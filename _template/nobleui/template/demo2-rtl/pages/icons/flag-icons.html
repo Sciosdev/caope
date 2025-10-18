@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<!--
+Template Name: NobleUI - HTML Bootstrap 5 Admin Dashboard Template
+Author: NobleUI
+Website: https://nobleui.com
+Contact: nobleui.team@gmail.com
+Purchase: https://1.envato.market/nobleui_html
+License: You must have a valid license to legally use this template for your project.
+-->
+<html lang="ar" dir="rtl">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <meta name="description" content="Responsive HTML Admin Dashboard Template based on Bootstrap 5">
+	<meta name="author" content="NobleUI">
+	<meta name="keywords" content="nobleui, bootstrap, bootstrap 5, bootstrap5, admin, dashboard, template, responsive, css, sass, html, theme, front-end, ui kit, web">
+
+	<title>NobleUI - HTML Bootstrap 5 Admin Dashboard Template</title>
+
+  <!-- color-modes:js -->
+  <script src="../../../assets/js/color-modes.js"></script>
+  <!-- endinject -->
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  <!-- End fonts -->
+
+	<!-- core:css -->
+	<link rel="stylesheet" href="../../../assets/vendors/core/core.css">
+	<!-- endinject -->
+
+	<!-- Plugin css for this page -->
+  <link rel="stylesheet" href="../../../assets/vendors/flag-icons/css/flag-icons.min.css">
+	<!-- End plugin css for this page -->
+
+	<!-- inject:css -->
+	<!-- endinject -->
+
+  <!-- Layout styles -->  
+	<link rel="stylesheet" href="../../../assets/css/demo2/style-rtl.css">
+  <!-- End layout styles -->
+
+  <link rel="shortcut icon" href="../../../assets/images/favicon.png" />
+</head>
+<body>
+	<div class="main-wrapper">
+
+		<!-- partial:../../partials/_navbar.html -->
+		<div class="horizontal-menu">
+			<nav class="navbar top-navbar">
+				<div class="container">
+					<div class="navbar-content">
+
+						<a href="#" class="navbar-brand d-none d-lg-flex">
+							Noble<span>UI</span>
+						</a>
+
+						<!-- Logo-mini for small screen devices (mobile/tablet) -->
+						<div class="logo-mini-wrapper">
+							<img src="../../../assets/images/logo-mini-light.png" class="logo-mini logo-mini-light" alt="logo">
+							<img src="../../../assets/images/logo-mini-dark.png" class="logo-mini logo-mini-dark" alt="logo">
+						</div>
+
+						<form class="search-form">
+							<div class="input-group">
+                <div class="input-group-text">
+                  <i data-lucide="search"></i>
+                </div>
+								<input type="text" class="form-control" id="navbarForm" placeholder="Search here...">
+							</div>
+						</form>
+
+						<ul class="navbar-nav">
+							<li class="theme-switcher-wrapper nav-item">
+								<input type="checkbox" value="" id="theme-switcher">
+								<label for="theme-switcher">
+									<div class="box">
+										<div class="ball"></div>
+										<div class="icons">
+											<i data-lucide="sun"></i>
+											<i data-lucide="moon"></i>
+										</div>
+									</div>
+								</label>
+							</li>
+							<li class="nav-item dropdown">
+								<a class="nav-link dropdown-toggle d-flex" href="#" id="languageDropdown" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+									<img src="../../../assets/images/flags/us.svg" class="w-20px" title="us" alt="flag">
+									<span class="ms-2 d-none d-md-inline-block">English</span>
+								</a>
+								<div class="dropdown-menu" aria-labelledby="languageDropdown">
+									<a href="javascript:;" class="dropdown-item py-2 d-flex"><img src="../../../assets/images/flags/us.svg" class="w-20px" title="us" alt="us"> <span class="ms-2"> English </span></a>
+									<a href="javascript:;" class="dropdown-item py-2 d-flex"><img src="../../../assets/images/flags/fr.svg" class="w-20px" title="fr" alt="fr"> <span class="ms-2"> French </span></a>
+									<a href="javascript:;" class="dropdown-item py-2 d-flex"><img src="../../../assets/images/flags/de.svg" class="w-20px" title="de" alt="de"> <span class="ms-2"> German </span></a>
+									<a href="javascript:;" class="dropdown-item py-2 d-flex"><img src="../../../assets/images/flags/pt.svg" class="w-20px" title="pt" alt="pt"> <span class="ms-2"> Portuguese </span></a>
+									<a href="javascript:;" class="dropdown-item py-2 d-flex"><img src="../../../assets/images/flags/es.svg" class="w-20px" title="es" alt="es"> <span class="ms-2"> Spanish </span></a>
+								</div>
+							</li>
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="appsDropdown" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  <i data-lucide="layout-grid"></i>
+                </a>
+                <div class="dropdown-menu p-0" aria-labelledby="appsDropdown">
+                  <div class="px-3 py-2 d-flex align-items-center justify-content-between border-bottom">
+                    <p class="mb-0 fw-bold">Web Apps</p>
+                    <a href="javascript:;" class="text-secondary">Edit</a>
+                  </div>
+                  <div class="row g-0 p-1">
+                    <div class="col-3 text-center">
+                      <a href="../../pages/apps/chat.html" class="dropdown-item d-flex flex-column align-items-center justify-content-center w-70px h-70px"><i data-lucide="message-square" class="icon-lg mb-1"></i><p class="fs-12px">Chat</p></a>
+                    </div>
+                    <div class="col-3 text-center">
+                      <a href="../../pages/apps/calendar.html" class="dropdown-item d-flex flex-column align-items-center justify-content-center w-70px h-70px"><i data-lucide="calendar" class="icon-lg mb-1"></i><p class="fs-12px">Calendar</p></a>
+                    </div>
+                    <div class="col-3 text-center">
+                      <a href="../../pages/email/inbox.html" class="dropdown-item d-flex flex-column align-items-center justify-content-center w-70px h-70px"><i data-lucide="mail" class="icon-lg mb-1"></i><p class="fs-12px">Email</p></a>
+                    </div>
+                    <div class="col-3 text-center">
+                      <a href="../../pages/general/profile.html" class="dropdown-item d-flex flex-column align-items-center justify-content-center w-70px h-70px"><i data-lucide="instagram" class="icon-lg mb-1"></i><p class="fs-12px">Profile</p></a>
+                    </div>
+                  </div>
+                  <div class="px-3 py-2 d-flex align-items-center justify-content-center border-top">
+                    <a href="javascript:;">View all</a>
+                  </div>
+                </div>
+              </li>
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="messageDropdown" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  <i data-lucide="mail"></i>
+                </a>
+                <div class="dropdown-menu p-0" aria-labelledby="messageDropdown">
+                  <div class="px-3 py-2 d-flex align-items-center justify-content-between border-bottom">
+                    <p>9 New Messages</p>
+                    <a href="javascript:;" class="text-secondary">Clear all</a>
+                  </div>
+                  <div class="p-1">
+                    <a href="javascript:;" class="dropdown-item d-flex align-items-center py-2">
+                      <div class="me-3">
+                        <img class="w-30px h-30px rounded-circle" src="https://placehold.co/30x30" alt="userr">
+                      </div>
+                      <div class="d-flex justify-content-between flex-grow-1">
+                        <div class="me-4">
+                          <p>Leonardo Payne</p>
+                          <p class="fs-12px text-secondary">Project status</p>
+                        </div>
+                        <p class="fs-12px text-secondary">2 min ago</p>
+                      </div>	
+                    </a>
+                    <a href="javascript:;" class="dropdown-item d-flex align-items-center py-2">
+                      <div class="me-3">
+                        <img class="w-30px h-30px rounded-circle" src="https://placehold.co/30x30" alt="userr">
+                      </div>
+                      <div class="d-flex justify-content-between flex-grow-1">
+                        <div class="me-4">
+                          <p>Carl Henson</p>
+                          <p class="fs-12px text-secondary">Client meeting</p>
+                        </div>
+                        <p class="fs-12px text-secondary">30 min ago</p>
+                      </div>	
+                    </a>
+                    <a href="javascript:;" class="dropdown-item d-flex align-items-center py-2">
+                      <div class="me-3">
+                        <img class="w-30px h-30px rounded-circle" src="https://placehold.co/30x30" alt="userr">
+                      </div>
+                      <div class="d-flex justify-content-between flex-grow-1">
+                        <div class="me-4">
+                          <p>Jensen Combs</p>
+                          <p class="fs-12px text-secondary">Project updates</p>
+                        </div>
+                        <p class="fs-12px text-secondary">1 hrs ago</p>
+                      </div>	
+                    </a>
+                    <a href="javascript:;" class="dropdown-item d-flex align-items-center py-2">
+                      <div class="me-3">
+                        <img class="w-30px h-30px rounded-circle" src="https://placehold.co/30x30" alt="userr">
+                      </div>
+                      <div class="d-flex justify-content-between flex-grow-1">
+                        <div class="me-4">
+                          <p>Amiah Burton</p>
+                          <p class="fs-12px text-secondary">Project deatline</p>
+                        </div>
+                        <p class="fs-12px text-secondary">2 hrs ago</p>
+                      </div>	
+                    </a>
+                    <a href="javascript:;" class="dropdown-item d-flex align-items-center py-2">
+                      <div class="me-3">
+                        <img class="w-30px h-30px rounded-circle" src="https://placehold.co/30x30" alt="userr">
+                      </div>
+                      <div class="d-flex justify-content-between flex-grow-1">
+                        <div class="me-4">
+                          <p>Yaretzi Mayo</p>
+                          <p class="fs-12px text-secondary">New record</p>
+                        </div>
+                        <p class="fs-12px text-secondary">5 hrs ago</p>
+                      </div>	
+                    </a>
+                  </div>
+                  <div class="px-3 py-2 d-flex align-items-center justify-content-center border-top">
+                    <a href="javascript:;">View all</a>
+                  </div>
+                </div>
+              </li>
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  <i data-lucide="bell"></i>
+                  <div class="indicator">
+                    <div class="circle"></div>
+                  </div>
+                </a>
+                <div class="dropdown-menu p-0" aria-labelledby="notificationDropdown">
+                  <div class="px-3 py-2 d-flex align-items-center justify-content-between border-bottom">
+                    <p>6 New Notifications</p>
+                    <a href="javascript:;" class="text-secondary">Clear all</a>
+                  </div>
+                  <div class="p-1">
+                    <a href="javascript:;" class="dropdown-item d-flex align-items-center py-2">
+                      <div class="w-30px h-30px d-flex align-items-center justify-content-center bg-primary rounded-circle me-3">
+                        <i class="icon-sm text-white" data-lucide="gift"></i>
+                      </div>
+                      <div class="flex-grow-1 me-2">
+                        <p>New Order Recieved</p>
+                        <p class="fs-12px text-secondary">30 min ago</p>
+                      </div>	
+                    </a>
+                    <a href="javascript:;" class="dropdown-item d-flex align-items-center py-2">
+                      <div class="w-30px h-30px d-flex align-items-center justify-content-center bg-primary rounded-circle me-3">
+                        <i class="icon-sm text-white" data-lucide="alert-circle"></i>
+                      </div>
+                      <div class="flex-grow-1 me-2">
+                        <p>Server Limit Reached!</p>
+                        <p class="fs-12px text-secondary">1 hrs ago</p>
+                      </div>	
+                    </a>
+                    <a href="javascript:;" class="dropdown-item d-flex align-items-center py-2">
+                      <div class="w-30px h-30px d-flex align-items-center justify-content-center bg-primary rounded-circle me-3">
+                        <img class="w-30px h-30px rounded-circle" src="https://placehold.co/30x30" alt="userr">
+                      </div>
+                      <div class="flex-grow-1 me-2">
+                        <p>New customer registered</p>
+                        <p class="fs-12px text-secondary">2 sec ago</p>
+                      </div>	
+                    </a>
+                    <a href="javascript:;" class="dropdown-item d-flex align-items-center py-2">
+                      <div class="w-30px h-30px d-flex align-items-center justify-content-center bg-primary rounded-circle me-3">
+                        <i class="icon-sm text-white" data-lucide="layers"></i>
+                      </div>
+                      <div class="flex-grow-1 me-2">
+                        <p>Apps are ready for update</p>
+                        <p class="fs-12px text-secondary">5 hrs ago</p>
+                      </div>	
+                    </a>
+                    <a href="javascript:;" class="dropdown-item d-flex align-items-center py-2">
+                      <div class="w-30px h-30px d-flex align-items-center justify-content-center bg-primary rounded-circle me-3">
+                        <i class="icon-sm text-white" data-lucide="download"></i>
+                      </div>
+                      <div class="flex-grow-1 me-2">
+                        <p>Download completed</p>
+                        <p class="fs-12px text-secondary">6 hrs ago</p>
+                      </div>	
+                    </a>
+                  </div>
+                  <div class="px-3 py-2 d-flex align-items-center justify-content-center border-top">
+                    <a href="javascript:;">View all</a>
+                  </div>
+                </div>
+              </li>
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="profileDropdown" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  <img class="w-30px h-30px ms-1 rounded-circle" src="https://placehold.co/30x30" alt="profile">
+                </a>
+                <div class="dropdown-menu p-0" aria-labelledby="profileDropdown">
+                  <div class="d-flex flex-column align-items-center border-bottom px-5 py-3">
+                    <div class="mb-3">
+                      <img class="w-80px h-80px rounded-circle" src="https://placehold.co/80x80" alt="">
+                    </div>
+                    <div class="text-center">
+                      <p class="fs-16px fw-bolder">Amiah Burton</p>
+                      <p class="fs-12px text-secondary">amiahburton@gmail.com</p>
+                    </div>
+                  </div>
+                  <ul class="list-unstyled p-1">
+                    <li>
+                      <a href="../../pages/general/profile.html" class="dropdown-item py-2 text-body ms-0">
+                        <i class="me-2 icon-md" data-lucide="user"></i>
+                        <span>Profile</span>
+                      </a>
+                    </li>
+                    <li>
+                      <a href="javascript:;" class="dropdown-item py-2 text-body ms-0">
+                        <i class="me-2 icon-md" data-lucide="edit"></i>
+                        <span>Edit Profile</span>
+                      </a>
+                    </li>
+                    <li>
+                      <a href="javascript:;" class="dropdown-item py-2 text-body ms-0">
+                        <i class="me-2 icon-md" data-lucide="repeat"></i>
+                        <span>Switch User</span>
+                      </a>
+                    </li>
+                    <li>
+                      <a href="javascript:;" class="dropdown-item py-2 text-body ms-0">
+                        <i class="me-2 icon-md" data-lucide="log-out"></i>
+                        <span>Log Out</span>
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+              </li>
+						</ul>
+
+						<!-- navbar toggler for small devices -->
+            <div data-toggle="horizontal-menu-toggle" class="navbar-toggler navbar-toggler-right d-lg-none align-self-center">
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+
+					</div>
+				</div>
+			</nav>
+			<nav class="bottom-navbar">
+				<div class="container">
+					<ul class="nav page-navigation">
+						<li class="nav-item">
+							<a class="nav-link" href="../../dashboard.html">
+								<i class="link-icon" data-lucide="box"></i>
+								<span class="menu-title">Dashboard</span>
+							</a>
+						</li>
+						<li class="nav-item">
+							<a href="#" class="nav-link">
+								<i class="link-icon" data-lucide="mail"></i>
+								<span class="menu-title">Apps</span>
+								<i class="link-arrow"></i>
+							</a>
+							<div class="submenu">
+								<ul class="submenu-item">
+									<li class="category-heading">Email</li>
+									<li class="nav-item"><a class="nav-link" href="../../pages/email/inbox.html">Inbox</a></li>
+									<li class="nav-item"><a class="nav-link" href="../../pages/email/read.html">Read</a></li>
+									<li class="nav-item"><a class="nav-link" href="../../pages/email/compose.html">Compose</a></li>
+									<li class="category-heading">Other<li>
+									<li class="nav-item"><a class="nav-link" href="../../pages/apps/chat.html">Chat</a></li>
+									<li class="nav-item"><a class="nav-link" href="../../pages/apps/calendar.html">Calendar</a></li>
+								</ul>
+							</div>
+						</li>
+						<li class="nav-item mega-menu">
+							<a href="#" class="nav-link">
+								<i class="link-icon" data-lucide="feather"></i>
+								<span class="menu-title">UI Kit</span>
+								<i class="link-arrow"></i>
+							</a>
+							<div class="submenu">
+								<div class="col-group-wrapper row">
+									<div class="col-group col-md-9">
+										<div class="row">
+											<div class="col-12">
+												<p class="category-heading">Basic</p>
+												<div class="submenu-item">
+													<div class="row">
+														<div class="col-md-4">
+															<ul>
+																<li class="nav-item"><a class="nav-link" href="../../pages/ui-components/accordion.html">Accordion</a></li>
+																<li class="nav-item"><a class="nav-link" href="../../pages/ui-components/alerts.html">Alerts</a></li>
+																<li class="nav-item"><a class="nav-link" href="../../pages/ui-components/badges.html">Badges</a></li>
+																<li class="nav-item"><a class="nav-link" href="../../pages/ui-components/breadcrumbs.html">Breadcrumbs</a></li>
+																<li class="nav-item"><a class="nav-link" href="../../pages/ui-components/buttons.html">Buttons</a></li>
+																<li class="nav-item"><a class="nav-link" href="../../pages/ui-components/button-group.html">Buttn Group</a></li>
+																<li class="nav-item"><a class="nav-link" href="../../pages/ui-components/cards.html">Cards</a></li>
+																<li class="nav-item"><a class="nav-link" href="../../pages/ui-components/carousel.html">Carousel</a></li>
+																<li class="nav-item"><a class="nav-link" href="../../pages/ui-components/collapse.html">Collapse</a></li>
+															</ul>
+														</div>
+														<div class="col-md-4">
+															<ul>
+																<li class="nav-item"><a class="nav-link" href="../../pages/ui-components/dropdowns.html">Dropdowns</a></li>
+																<li class="nav-item"><a class="nav-link" href="../../pages/ui-components/list-group.html">List group</a></li>
+																<li class="nav-item"><a class="nav-link" href="../../pages/ui-components/media-object.html">Media object</a></li>
+																<li class="nav-item"><a class="nav-link" href="../../pages/ui-components/modal.html">Modal</a></li>
+																<li class="nav-item"><a class="nav-link" href="../../pages/ui-components/navs.html">Navs</a></li>
+																<li class="nav-item"><a class="nav-link" href="../../pages/ui-components/offcanvas.html">Offcanvas</a></li>
+																<li class="nav-item"><a class="nav-link" href="../../pages/ui-components/pagination.html">Pagination</a></li>
+																<li class="nav-item"><a class="nav-link" href="../../pages/ui-components/placeholders.html">Placeholders</a></li>
+																<li class="nav-item"><a class="nav-link" href="../../pages/ui-components/popover.html">Popovers</a></li>
+															</ul>
+														</div>
+														<div class="col-md-4">
+															<ul>
+																<li class="nav-item"><a class="nav-link" href="../../pages/ui-components/progress.html">Progress</a></li>
+																<li class="nav-item"><a class="nav-link" href="../../pages/ui-components/scrollbar.html">Scrollbar</a></li>
+																<li class="nav-item"><a class="nav-link" href="../../pages/ui-components/scrollspy.html">Scrollspy</a></li>
+																<li class="nav-item"><a class="nav-link" href="../../pages/ui-components/spinners.html">Spinners</a></li>
+																<li class="nav-item"><a class="nav-link" href="../../pages/ui-components/tabs.html">Tabs</a></li>
+																<li class="nav-item"><a class="nav-link" href="../../pages/ui-components/toasts.html">Toasts</a></li>
+																<li class="nav-item"><a class="nav-link" href="../../pages/ui-components/tooltips.html">Tooltips</a></li>
+															</ul>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+									<div class="col-group col-md-3">
+										<div class="row">
+											<div class="col-12">
+												<p class="category-heading">Advanced</p>
+												<div class="submenu-item">
+													<div class="row">
+														<div class="col-md-12">
+															<ul>
+																<li class="nav-item"><a class="nav-link" href="../../pages/advanced-ui/cropper.html">Cropper</a></li>
+																<li class="nav-item"><a class="nav-link" href="../../pages/advanced-ui/owl-carousel.html">Owl carousel</a></li>
+																<li class="nav-item"><a class="nav-link" href="../../pages/advanced-ui/sortablejs.html">SortableJs</a></li>
+																<li class="nav-item"><a class="nav-link" href="../../pages/advanced-ui/sweet-alert.html">Sweetalert</a></li>
+															</ul>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</li>
+						<li class="nav-item">
+							<a href="#" class="nav-link">
+								<i class="link-icon" data-lucide="inbox"></i>
+								<span class="menu-title">Forms</span>
+								<i class="link-arrow"></i>
+							</a>
+							<div class="submenu">
+								<ul class="submenu-item">
+									<li class="nav-item"><a class="nav-link" href="../../pages/forms/basic-elements.html">Basic Elements</a></li>
+									<li class="nav-item"><a class="nav-link" href="../../pages/forms/advanced-elements.html">Advanced Elements</a></li>
+									<li class="nav-item"><a class="nav-link" href="../../pages/forms/editors.html">Editors</a></li>
+									<li class="nav-item"><a class="nav-link" href="../../pages/forms/wizard.html">Wizard</a></li>
+								</ul>
+							</div>
+						</li>
+						<li class="nav-item">
+							<a href="#" class="nav-link">
+								<i class="link-icon" data-lucide="pie-chart"></i>
+								<span class="menu-title">Data</span>
+								<i class="link-arrow"></i>
+							</a>
+							<div class="submenu">
+								<div class="row">
+									<div class="col-md-6">
+										<ul class="submenu-item pe-md-0">
+											<li class="category-heading">Charts</li>
+											<li class="nav-item"><a class="nav-link" href="../../pages/charts/apex.html">Apex</a></li>
+											<li class="nav-item"><a class="nav-link" href="../../pages/charts/chartjs.html">ChartJs</a></li>
+											<li class="nav-item"><a class="nav-link" href="../../pages/charts/flot.html">Float</a></li>
+											<li class="nav-item"><a class="nav-link" href="../../pages/charts/peity.html">Peity</a></li>
+											<li class="nav-item"><a class="nav-link" href="../../pages/charts/sparkline.html">Sparkline</a></li>
+										</ul>
+									</div>
+									<div class="col-md-6">
+										<ul class="submenu-item ps-md-0">
+											<li class="category-heading">Tables</li>
+											<li class="nav-item"><a class="nav-link" href="../../pages/tables/basic-table.html">Basic Tables</a></li>
+											<li class="nav-item"><a class="nav-link" href="../../pages/tables/data-table.html">Data Table</a></li>
+										</ul>
+									</div>
+								</div>
+							</div>
+						</li>
+						<li class="nav-item">
+							<a href="#" class="nav-link">
+								<i class="link-icon" data-lucide="smile"></i>
+								<span class="menu-title">Icons</span>
+								<i class="link-arrow"></i>
+							</a>
+							<div class="submenu">
+								<ul class="submenu-item">
+									<li class="nav-item"><a class="nav-link" href="../../pages/icons/lucide-icons.html">Lucide Icons</a></li>
+									<li class="nav-item"><a class="nav-link" href="../../pages/icons/flag-icons.html">Flag Icons</a></li>
+									<li class="nav-item"><a class="nav-link" href="../../pages/icons/mdi-icons.html">Mdi Icons</a></li>
+								</ul>
+							</div>
+						</li>
+						<li class="nav-item mega-menu">
+							<a href="#" class="nav-link">
+								<i class="link-icon" data-lucide="book"></i>
+								<span class="menu-title">Sample Pages</span>
+								<i class="link-arrow"></i>
+							</a>
+							<div class="submenu">
+								<div class="col-group-wrapper row">
+									<div class="col-group col-md-6">
+										<p class="category-heading">Special Pages</p>
+										<div class="submenu-item">
+											<div class="row">
+												<div class="col-md-6">
+													<ul>
+														<li class="nav-item"><a class="nav-link" href="../../pages/general/blank-page.html">Blank page</a></li>
+														<li class="nav-item"><a class="nav-link" href="../../pages/general/faq.html">Faq</a></li>
+														<li class="nav-item"><a class="nav-link" href="../../pages/general/invoice.html">Invoice</a></li>
+													</ul>
+												</div>
+												<div class="col-md-6">
+													<ul>
+														<li class="nav-item"><a class="nav-link" href="../../pages/general/profile.html">Profile</a></li>
+														<li class="nav-item"><a class="nav-link" href="../../pages/general/pricing.html">Pricing</a></li>
+														<li class="nav-item"><a class="nav-link" href="../../pages/general/timeline.html">Timeline</a></li>
+													</ul>
+												</div>
+											</div>
+										</div>
+									</div>
+									<div class="col-group col-md-3">
+										<p class="category-heading">Auth Pages</p>
+										<ul class="submenu-item">
+											<li class="nav-item"><a class="nav-link" href="../../pages/auth/login.html">Login</a></li>
+											<li class="nav-item"><a class="nav-link" href="../../pages/auth/register.html">Register</a></li>
+										</ul>
+									</div>
+									<div class="col-group col-md-3">
+										<p class="category-heading">Error Pages</p>
+										<ul class="submenu-item">
+											<li class="nav-item"><a class="nav-link" href="../../pages/error/404.html">404</a></li>
+											<li class="nav-item"><a class="nav-link" href="../../pages/error/500.html">500</a></li>
+										</ul>
+									</div>
+								</div>
+							</div>
+						</li>
+						<li class="nav-item">
+							<a href="https://nobleui.com/html/documentation/docs.html" target="_blank" class="nav-link">
+								<i class="link-icon" data-lucide="hash"></i>
+								<span class="menu-title">Documentation</span></a>
+						</li>
+					</ul>
+				</div>
+			</nav>
+		</div>
+		<!-- partial -->
+	
+		<div class="page-wrapper">
+
+			<div class="page-content container-xxl">
+
+				<nav aria-label="breadcrumb">
+					<ol class="breadcrumb">
+						<li class="breadcrumb-item"><a href="#">Icons</a></li>
+						<li class="breadcrumb-item active" aria-current="page">Flag Icons</li>
+					</ol>
+				</nav>
+
+				<div class="row">
+					<div class="col-md-12 stretch-card">
+            <div class="card">
+              <div class="card-body">
+                <h6 class="card-title">Flag Icons</h6>
+                <p class="text-secondary mb-3">Visit the <a href="https://github.com/lipis/flag-icons" target="_blank"> Official Flag Icons Documentation </a>.</p>                
+                <table class="table table-responsive table-bordered mb-3">
+                  <tbody>
+                    <tr>
+                      <td>Example</td>
+                      <td>Code</td>
+                    </tr>
+                    <tr>
+                      <td><i class="fi fi-us w-30px h-30px"></i></td>
+                      <td>
+                        <code>
+                          &lt;i class="fi fi-us"&gt;&lt;/i&gt;
+                        </code>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div class="container">
+                  <div class="icons-list row">
+                    <div class="col-6 col-md-3"><i class="fi fi-ad"></i>AD</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ae"></i>AE</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-af"></i>AF</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ag"></i>AG</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ai"></i>AU</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-al"></i>AL</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-am"></i>AM</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ao"></i>AO</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-aq"></i>AQ</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ar"></i>AR</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-as"></i>AS</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-at"></i>AT</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-au"></i>AU</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-aw"></i>AW</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ax"></i>AX</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-az"></i>AZ</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ba"></i>BA</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-bb"></i>BB</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-bd"></i>BD</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-be"></i>BE</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-bf"></i>BF</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-bg"></i>BG</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-bh"></i>BH</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-bi"></i>BI</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-bj"></i>BJ</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-bl"></i>BL</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-bm"></i>BM</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-bn"></i>BN</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-bo"></i>BO</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-bq"></i>BQ</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-br"></i>BR</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-bs"></i>BS</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-bt"></i>BT</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-bv"></i>BV</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-bw"></i>BW</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-by"></i>BY</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-bz"></i>BZ</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ca"></i>CA</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-cc"></i>CC</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-cd"></i>CD</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-cf"></i>CF</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-cg"></i>CG</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ch"></i>CH</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ci"></i>CI</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ck"></i>CK</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-cl"></i>CL</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-cm"></i>CM</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-cn"></i>CN</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-co"></i>CO</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-cr"></i>CR</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-cu"></i>CU</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-cv"></i>CV</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-cw"></i>CW</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-cx"></i>CX</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-cy"></i>CY</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-cz"></i>CZ</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-de"></i>DE</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-dj"></i>DJ</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-dk"></i>DK</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-dm"></i>DM</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-do"></i>DO</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-dz"></i>DZ</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ec"></i>EC</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ee"></i>EE</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-eg"></i>EG</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-eh"></i>EH</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-er"></i>ER</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-es"></i>ES</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-et"></i>ET</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-fi"></i>FI</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-fj"></i>FJ</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-fk"></i>FK</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-fm"></i>FM</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-fo"></i>FO</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-fr"></i>FR</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ga"></i>GA</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-gb"></i>GB</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-gd"></i>GD</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ge"></i>GE</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-gf"></i>GF</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-gg"></i>GG</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-gh"></i>GH</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-gi"></i>GI</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-gl"></i>GL</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-gm"></i>GM</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-gn"></i>GN</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-gp"></i>GP</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-gq"></i>GQ</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-gr"></i>GR</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-gs"></i>GS</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-gt"></i>GT</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-gu"></i>GU</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-gw"></i>GW</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-gy"></i>GY</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-hk"></i>HK</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-hm"></i>HM</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-hn"></i>HN</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-hr"></i>HR</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ht"></i>HT</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-hu"></i>HU</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-id"></i>ID</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ie"></i>IE</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-il"></i>IL</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-im"></i>IM</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-in"></i>IN</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-io"></i>IO</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-iq"></i>IQ</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ir"></i>IR</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-is"></i>IS</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-it"></i>IT</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-je"></i>JE</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-jm"></i>JM</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-jo"></i>JO</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-jp"></i>JP</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ke"></i>KE</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-kg"></i>KG</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-kh"></i>KH</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ki"></i>KI</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-km"></i>KM</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-kn"></i>KN</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-kp"></i>KP</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-kr"></i>KR</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-kw"></i>KW</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ky"></i>KY</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-kz"></i>KZ</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-la"></i>LA</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-lb"></i>LB</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-lc"></i>LC</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-li"></i>LI</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-lk"></i>LK</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-lr"></i>LR</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ls"></i>LS</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-lt"></i>LT</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-lu"></i>LU</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-lv"></i>LV</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ly"></i>LY</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ma"></i>MA</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-mc"></i>MC</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-md"></i>MD</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-me"></i>ME</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-mf"></i>MF</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-mg"></i>MG</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-mh"></i>MH</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-mk"></i>MK</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ml"></i>ML</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-mm"></i>MM</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-mn"></i>MN</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-mo"></i>MO</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-mp"></i>MP</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-mq"></i>MQ</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-mr"></i>MR</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ms"></i>MS</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-mt"></i>MT</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-mu"></i>MU</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-mv"></i>MV</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-mw"></i>MW</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-mx"></i>MX</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-my"></i>MY</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-mz"></i>MZ</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-na"></i>NA</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-nc"></i>NC</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ne"></i>NE</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-nf"></i>NF</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ng"></i>NG</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ni"></i>NI</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-nl"></i>NL</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-no"></i>NO</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-np"></i>NP</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-nr"></i>NR</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-nu"></i>NU</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-nz"></i>NZ</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-om"></i>OM</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-pa"></i>PA</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-pe"></i>PE</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-pf"></i>PF</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-pg"></i>PG</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ph"></i>PH</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-pk"></i>PK</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-pl"></i>PL</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-pm"></i>PM</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-pn"></i>PN</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-pr"></i>PR</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ps"></i>PS</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-pt"></i>PT</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-pw"></i>PW</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-py"></i>PY</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-qa"></i>QA</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-re"></i>RE</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ro"></i>RO</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-rs"></i>RS</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ru"></i>RU</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-rw"></i>RW</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-sa"></i>SA</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-sb"></i>SB</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-sc"></i>SC</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-sd"></i>SD</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-se"></i>SE</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-sg"></i>SG</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-sh"></i>SH</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-si"></i>SI</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-sj"></i>SJ</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-sk"></i>SK</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-sl"></i>SL</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-sm"></i>SM</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-sn"></i>SN</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-so"></i>SO</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-sr"></i>SR</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ss"></i>SS</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-st"></i>ST</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-sv"></i>SV</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-sx"></i>SX</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-sy"></i>SY</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-sz"></i>SZ</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-tc"></i>TC</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-td"></i>TD</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-tf"></i>TF</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-tg"></i>TG</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-th"></i>TH</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-tj"></i>TJ</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-tk"></i>TK</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-tl"></i>TL</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-tm"></i>TM</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-tn"></i>TN</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-to"></i>TO</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-tr"></i>TR</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-tt"></i>TT</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-tv"></i>TV</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-tw"></i>TW</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-tz"></i>TZ</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ua"></i>UA</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ug"></i>UG</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-um"></i>UM</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-us"></i>US</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-uy"></i>UY</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-uz"></i>UZ</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-va"></i>VA</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-vc"></i>VC</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ve"></i>VE</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-vg"></i>VG</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-vi"></i>VI</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-vn"></i>VN</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-vu"></i>VU</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-wf"></i>WF</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ws"></i>WS</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-ye"></i>YE</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-yt"></i>YT</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-za"></i>ZA</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-zm"></i>ZM</div>
+                    <div class="col-6 col-md-3"><i class="fi fi-zw"></i>ZW</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+					</div>
+				</div>
+
+			</div>
+
+			<!-- partial:../../partials/_footer.html -->
+			<footer class="footer border-top">
+        <div class="container d-flex flex-row align-items-center justify-content-between py-3 small">
+          <p class="text-secondary mb-1 mb-md-0">Copyright © 2025 <a href="https://nobleui.com" target="_blank">NobleUI</a>.</p>
+          <p class="text-secondary">Handcrafted With <i class="mb-1 text-primary ms-1 icon-sm" data-lucide="heart"></i></p>
+        </div>
+			</footer>
+			<!-- partial -->
+	
+		</div>
+	</div>
+
+	<!-- core:js -->
+	<script src="../../../assets/vendors/core/core.js"></script>
+	<!-- endinject -->
+
+	<!-- Plugin js for this page -->
+	<!-- End plugin js for this page -->
+
+	<!-- inject:js -->
+	<script src="../../../assets/js/app.js"></script>
+	<!-- endinject -->
+
+	<!-- Custom js for this page -->
+	<!-- End custom js for this page -->
+
+</body>
+</html>

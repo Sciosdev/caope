@@ -1,0 +1,82 @@
+*** CHANGELOG ***
+
+v3.0.1 (17 May 2025)
+- Updated outdated npm packages
+- Replaced Feather Icons with Lucide
+- Design improvements
+- Fixed minor bugs
+
+v3.0 (08 August 2024)
+- Added light/dark theme switch
+- Removed jQuery from core.js
+- Replaced unnecessary jQuery with vanilla JavaScript
+- Updated all outdated npm packages
+- Fixed bugs
+- Improved overall design
+- Enhanced RTL layout support
+- And many more improvements...
+
+v2.0.3 (10 November 2022)
+- Removed morris.js package
+- Updated all npm packages to the latest versions
+- Minor bug fixes
+
+v2.0.2 (11 August 2022)
+- Updated Bootstrap to v5.2
+- Updated all npm packages
+- Replaced bootstrap-datepicker and Tempus Dominus with Flatpickr
+- Replaced Bootstrap Colorpicker with Pickr
+- Replaced SimpleMDE with EasyMDE
+- Minor bug fixes
+
+v2.0.1 (10 April 2022)
+- Added SortableJS
+- Updated all npm packages
+- Minor bug fixes
+- Design improvements
+
+v2.0 (26 September 2021)
+- Updated to Bootstrap v5
+- Updated all npm packages
+- Improved RTL layout
+- Added RTL support for all demos
+- Bug fixes
+- Design improvements
+
+v1.4.2 (10 January 2021)
+- Updated outdated npm packages
+- Minor bug fixes
+
+v1.4.1 (30 July 2020)
+- Updated npm packages
+- Minor bug fixes
+
+v1.4 (10 June 2020)
+- Updated Bootstrap to v4.5.0
+- Updated jQuery to v3.5.1
+- Updated all npm packages
+- Minor bug fixes
+
+v1.3 (10 March 2020)
+- Updated Bootstrap to v4.4.1
+- Updated jQuery to v3.4.1
+- Updated all npm packages
+- Design improvements
+- Bug fixes
+
+v1.2 (3 November 2019)
+- Added horizontal-menu layout
+- Bug fixes
+
+v1.1.2 (15 October 2019)
+- Added minified versions of all main and additional CSS files
+
+v1.1.1 (6 October 2019)
+- Fixed RTL layout bugs
+
+v1.1 (28 September 2019)
+- Added RTL support
+- Design improvements
+
+v1.0 (11 September 2019)
+- Initial release
