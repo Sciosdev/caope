@@ -1,10 +1,16 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ExpedienteController;
 
-// Mantén tu /preview si quieres seguir probando el standalone
-Route::view('/preview', 'preview')->name('preview');
+Route::view('/', 'welcome');
 
-// Dashboard como home
-Route::redirect('/', '/dashboard');
-Route::view('/dashboard', 'dashboard.index')->name('dashboard');
+Route::get('/preview', fn() => view('preview'))->name('preview');
+
+// Dashboard de ejemplo (si ya lo tenías)
+Route::view('/dashboard', 'dashboard')->name('dashboard');
+
+Route::redirect('/dashboard', '/expedientes');
+
+// Expedientes
+Route::get('/expedientes', [ExpedienteController::class, 'index'])->name('expedientes.index');
