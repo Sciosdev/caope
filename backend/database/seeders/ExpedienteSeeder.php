@@ -9,6 +9,6 @@ class ExpedienteSeeder extends Seeder
 {
     public function run(): void
     {
-        Expediente::factory()->count(40)->create();
+        \App\Models\Expediente::factory(80)->create();
     }
 }

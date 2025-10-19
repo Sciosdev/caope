@@ -14,3 +14,4 @@ Route::redirect('/dashboard', '/expedientes');
 
 // Expedientes
 Route::get('/expedientes', [ExpedienteController::class, 'index'])->name('expedientes.index');
+Route::get('/', fn () => redirect()->route('expedientes.index'));

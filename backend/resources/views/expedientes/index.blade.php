@@ -32,7 +32,7 @@
     <table id="expedientes-table" class="table table-striped">
       <thead>
         <tr>
-          <th>No</th>
+          <th>No. de Control</th>
           <th>Paciente</th>
           <th>Estado</th>
           <th>Apertura</th>

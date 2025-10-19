@@ -9,12 +9,9 @@ class Expediente extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'numero','paciente','estado','apertura','carrera','turno','alerta'
-    ];
+    protected $fillable = ['no','paciente','estado','apertura','carrera','turno'];
 
     protected $casts = [
         'apertura' => 'date',
-        'alerta'   => 'bool',
     ];
 }
