@@ -45,7 +45,7 @@
                                 Register
                             </a>
                         @endif
-                    @endAuth
+                    @endauth
                 </nav>
             @endif
         </header>
