@@ -41,22 +41,27 @@
         </tr>
       </thead>
       <tbody>
-        @foreach($expedientes as $e)
+        @forelse($expedientes as $expediente)
           <tr>
-            <td>{{ $e->numero }}</td>
-            <td>{{ $e->paciente }}</td>
+            <td>{{ $expediente->no }}</td>
+            <td>{{ $expediente->paciente }}</td>
             <td>
-              @switch($e->estado)
+              @switch($expediente->estado)
                 @case('abierto')  <span class="badge bg-secondary">Abierto</span> @break
                 @case('revision') <span class="badge bg-warning">En revisión</span> @break
                 @case('cerrado')  <span class="badge bg-success">Cerrado</span> @break
+                @default <span class="badge bg-light text-dark">Sin estado</span>
               @endswitch
             </td>
-            <td>{{ $e->apertura->format('Y-m-d') }}</td>
-            <td>{{ $e->carrera }}</td>
-            <td>{{ $e->turno }}</td>
+            <td>{{ optional($expediente->apertura)->format('Y-m-d') }}</td>
+            <td>{{ $expediente->carrera }}</td>
+            <td>{{ $expediente->turno }}</td>
           </tr>
-        @endforeach
+        @empty
+          <tr>
+            <td colspan="6" class="text-center text-muted">No se encontraron expedientes con los filtros seleccionados.</td>
+          </tr>
+        @endforelse
       </tbody>
     </table>
   </div>
@@ -70,10 +75,10 @@
 <script>
   flatpickr('.flatpickr', { dateFormat:'Y-m-d' });
 
-  const dt = new DataTable('#expedientes-table', {
+  new DataTable('#expedientes-table', {
     responsive: true,
-    searching: false, // filtramos con el form
-    paging: false,    // paginación la hace Laravel
+    searching: false,
+    paging: false,
     info: false
   });
 </script>

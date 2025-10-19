@@ -1,17 +1,12 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ExpedienteController;
+use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'welcome');
+Route::redirect('/', '/expedientes');
 
-Route::get('/preview', fn() => view('preview'))->name('preview');
-
-// Dashboard de ejemplo (si ya lo tenías)
-Route::view('/dashboard', 'dashboard')->name('dashboard');
-
+Route::get('/preview', fn () => view('preview'))->name('preview');
 Route::redirect('/dashboard', '/expedientes');
 
-// Expedientes
-Route::get('/expedientes', [ExpedienteController::class, 'index'])->name('expedientes.index');
-Route::get('/', fn () => redirect()->route('expedientes.index'));
+Route::get('/expedientes', [ExpedienteController::class, 'index'])
+    ->name('expedientes.index');

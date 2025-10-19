@@ -2,24 +2,26 @@
 
 namespace Database\Factories;
 
+use App\Models\Expediente;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class ExpedienteFactory extends Factory
 {
+    protected $model = Expediente::class;
+
     public function definition(): array
-{
-    $estados = ['abierto','revision','cerrado'];
-    $carreras = ['Enfermería','Psicología','Odontología'];
-    $turnos   = ['Matutino','Vespertino'];
+    {
+        $estados  = ['abierto', 'revision', 'cerrado'];
+        $carreras = ['Enfermería', 'Psicología', 'Odontología'];
+        $turnos   = ['Matutino', 'Vespertino'];
 
-    return [
-        'no'       => 'CA-'.now()->year.'-'.str_pad(fake()->numberBetween(1, 9999), 4, '0', STR_PAD_LEFT),
-        'paciente' => fake()->name(),
-        'estado'   => fake()->randomElement($estados),
-        'apertura' => fake()->dateTimeBetween('-30 days', 'now'),
-        'carrera'  => fake()->randomElement($carreras),
-        'turno'    => fake()->randomElement($turnos),
-    ];
-}
-
+        return [
+            'no'       => sprintf('CA-%s-%04d', now()->format('Y'), $this->faker->unique()->numberBetween(1, 9999)),
+            'paciente' => $this->faker->name(),
+            'estado'   => $this->faker->randomElement($estados),
+            'apertura' => $this->faker->dateTimeBetween('-30 days', 'now'),
+            'carrera'  => $this->faker->randomElement($carreras),
+            'turno'    => $this->faker->randomElement($turnos),
+        ];
+    }
 }
