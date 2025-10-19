@@ -62,7 +62,7 @@
                                 @default
                                     <span class="badge bg-light text-dark">Sin estado</span>
                                     @break
-                            @endSwitch
+                            @endswitch
                         </td>
                         <td>{{ optional($expediente->apertura)->format('Y-m-d') }}</td>
                         <td>{{ $expediente->carrera }}</td>
