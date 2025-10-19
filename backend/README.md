@@ -1,4 +1,4 @@
-# Backend (Laravel 11)
+# Backend (Laravel 12)
 
 Aplicación Laravel que servirá como base del sistema académico-clínico de expedientes CAOPE.
 
