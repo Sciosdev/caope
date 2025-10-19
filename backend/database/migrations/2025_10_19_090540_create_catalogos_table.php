@@ -1,0 +1,51 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('catalogo_carreras', function (Blueprint $table) {
+            $table->id();
+            $table->string('clave', 20)->unique();
+            $table->string('nombre', 140);
+            $table->enum('estado', ['activo', 'inactivo'])->default('activo')->index();
+            $table->timestamps();
+        });
+
+        Schema::create('catalogo_turnos', function (Blueprint $table) {
+            $table->id();
+            $table->string('clave', 20)->unique();
+            $table->string('nombre', 140);
+            $table->enum('estado', ['activo', 'inactivo'])->default('activo')->index();
+            $table->timestamps();
+        });
+
+        Schema::create('catalogo_padecimientos', function (Blueprint $table) {
+            $table->id();
+            $table->string('clave', 20)->unique();
+            $table->string('nombre', 140);
+            $table->enum('estado', ['activo', 'inactivo'])->default('activo')->index();
+            $table->timestamps();
+        });
+
+        Schema::create('catalogo_tratamientos', function (Blueprint $table) {
+            $table->id();
+            $table->string('clave', 20)->unique();
+            $table->string('nombre', 140);
+            $table->enum('estado', ['activo', 'inactivo'])->default('activo')->index();
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('catalogo_tratamientos');
+        Schema::dropIfExists('catalogo_padecimientos');
+        Schema::dropIfExists('catalogo_turnos');
+        Schema::dropIfExists('catalogo_carreras');
+    }
+};
