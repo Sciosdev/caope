@@ -1,167 +1,382 @@
-# Objetivo
-Construir un sistema moderno para **dar seguimiento a expedientes clínicos** creados por alumnos en CAOPE: rápido de usar, claro, con estatus, notas de evolución, anexos y reportes básicos.
+# Ubícate en la raíz del repo
+cd C:\Users\Zak\Dev\Iztacala\caope
+
+# Asegura la carpeta docs y escribe blueprint.md (sobrescribe si existe)
+New-Item -ItemType Directory -Path .\docs -Force | Out-Null
+@"
+# CAOPE — Blueprint funcional y técnico (MVP)
+
+**Objetivo:** plataforma académico-clínica para gestionar expedientes estudiantiles con trazabilidad, revisiones docentes, consentimientos, anexos y reportes.
+
+**Stack:** Laravel 11 (PHP 8.3+), MySQL/MariaDB (prod), SQLite (dev), Blade + NobleUI (demo2), DataTables, Select2, Flatpickr, SweetAlert2.
 
 ---
-# Flujo actual (resumen)
-1) Login → 2) Home (consultar expediente / cambiar contraseña) → 3) Lista de expedientes (No. + Paciente) → 4) Menú de secciones del expediente:
-- Ficha de identificación
-- Antecedentes familiares hereditarios (AFH)
-- Antecedentes personales patológicos (APP)
-- Consentimiento informado
-- Notas de evolución
-- Anexar documento
-- Resumen clínico
+
+## 1) Decisiones rápidas (cerradas) — MVP
+
+- **Monorepo**: `caope/`
+  - `backend/` (Laravel app).
+  - `public-assets/` (assets productivos NobleUI).
+  - `_template/` (fuente SCSS/documentación original del tema) — **no se despliega**.
+- **Tema/UI**: NobleUI **demo2** (layout horizontal).
+- **Nomenclatura**: clave pública del expediente = **No. de Control** (`no_control` en BD).
+- **Estados de expediente**: `abierto | revision | cerrado`.
+- **DB local**: SQLite. **Prod**: MariaDB/MySQL.
+- **Storage**: `/storage/app/public` (no sensible) y `/storage/app/private` (sensible). En prod, opción S3/MinIO futura.
+- **Roles**: `Alumno`, `Docente`, `Coordinación`, `Admin` (Spatie Permission).
+- **Autenticación**: Laravel Breeze (email+password) ⟶ 2FA opcional post-MVP.
+- **Tabla**: listados con **paginación server-side de Laravel**, DataTables sin búsqueda global (filtros en servidor).
+- **Timeline**: eventos de negocio persistidos (quién, qué, cuándo).
 
 ---
-# Flujo propuesto (MVP rápido)
-**Post-login → Tablero**
-- Tarjetas: "Mis expedientes activos", "Crear expediente", "Pendientes / próximos".
 
-**Crear expediente (wizard de pasos cortos)**
-1. Identificación (paciente)  
-2. AFH  
-3. APP (Antecedentes personales patológicos)  
-4. Antecedentes y Padecimientos Actuales  
-5. Plan de atención  
-6. Diagnóstico  
-7. Consentimiento informado  
-8. Anexos (opcional)  
-9. Resumen y **Abrir expediente**
+## 2) Arquitectura y estándares
 
-**Vista Expediente**
-- Encabezado: No. expediente, Paciente, Estado (Abierto / En curso / En revisión / Pausado / Cerrado), Progreso, Responsable (alumno).  
-- Sidebar con secciones (FI, AFH, **APP**, **Antecedentes y Padecimientos Actuales**, **Plan de atención**, **Diagnóstico**, Consentimiento, **Registro de sesiones**, Anexos, Resumen).  
-- Panel principal con formularios **autosave** y botón Guardar/Continuar.
-- **Timeline** de seguimiento (alta, notas, cambios de estado, anexos).  
-- Botón **Cerrar expediente** (con validación de secciones mínimas).
+- **PHP 8.3+**, **Laravel 11**.
+- **PSR-12** + `laravel/pint`.
+- Commits: **Conventional Commits**.
+- Ramas: `main` (estable), `develop` (integración), `feature/*` (módulos).
+- i18n base: `es` (strings en `lang/es/`).
+- Formularios: **FormRequest** para validación.
+- Acceso: **Policies** por modelo (Spatie roles/permissions).
 
 ---
-# Roles y permisos
-- **Alumno**: crea/edita sus expedientes; sube anexos; escribe notas.  
-- **Docente/Tutor**: lee todos los expedientes del grupo; puede comentar y marcar revisiones.  
-- **Coordinación**: reportes, estados, reasignaciones.  
-- **Admin**: catálogos y usuarios.
+
+## 3) Modelo de datos (MVP)
+
+### 3.1 Tablas principales
+
+**users** (core Laravel)  
+`id, name, email (unique), password, carrera(nullable), turno(nullable), remember_token, timestamps`
+
+**roles / permissions** (Spatie)  
+Estructura estándar del paquete.
+
+**expedientes**  
+- `id` PK  
+- `no_control` string(20) **unique**  
+- `paciente` string(140)  
+- `estado` enum: `abierto|revision|cerrado` (index)  
+- `apertura` date (index)  
+- `carrera` string(60) (index)  
+- `turno` enum/text corto (index)  
+- `creado_por` FK → users(id)  
+- `tutor_id` FK → users(id) nullable  
+- `coordinador_id` FK → users(id) nullable  
+- `created_at/updated_at`
+
+**sesiones** (atenciones/visitas)  
+- `id` PK  
+- `expediente_id` FK (index, cascade)  
+- `fecha` date (index)  
+- `tipo` string(60)  
+- `nota` longtext (rich text permitido)  
+- `realizada_por` FK → users(id)  
+- `status_revision` enum: `pendiente|observada|validada` (index)  
+- `validada_por` FK → users(id) nullable  
+- timestamps
+
+**consentimientos**  
+- `id` PK  
+- `expediente_id` FK (index, cascade)  
+- `tratamiento` string(120)  
+- `requerido` boolean (default true)  
+- `aceptado` boolean (default false)  
+- `fecha` date nullable  
+- `archivo_path` string(255) nullable (private)  
+- `subido_por` FK → users(id) nullable  
+- timestamps
+
+**anexos**  
+- `id` PK  
+- `expediente_id` FK (index, cascade)  
+- `tipo` string(60) (index)  
+- `titulo` string(160)  
+- `ruta` string(255) (private/public según tipo)  
+- `tamano` integer (bytes)  
+- `subido_por` FK → users(id)  
+- timestamps
+
+**timeline_eventos**  
+- `id` PK  
+- `expediente_id` FK (index, cascade)  
+- `evento` string(80)  *(p.ej. `expediente.creado`, `estado.cambio`, `sesion.validada`, `consentimiento.cargado`)*  
+- `actor_id` FK → users(id)  
+- `payload` json nullable  
+- `created_at`
+
+### 3.2 Catálogos
+
+**catalogo_carreras(codigo, nombre)**, **catalogo_turnos(codigo, nombre)**, **catalogo_tratamientos(nombre, activo)**, **catalogo_padecimientos(nombre, activo)**
+
+### 3.3 Reglas / constraints
+
+- `expedientes.no_control` **único** + formato `CA-YYYY-####` configurable (prefijo/correlativo por año).
+- Borrados:
+  - `expedientes`: **restrict** si existen sesiones o consentimientos (no se borran expedientes reales).
+  - `anexos/sesiones/consentimientos/timeline`: **cascade** al borrar expediente solo en entornos de prueba.
 
 ---
-# Campos confirmados / ajustes
-## Ficha de identificación
-- Clínica: **CAOPE (por defecto)**
-- No. de expediente (autogenerado)
-- **Fecha de apertura** (antes: Fecha inicio)
-- Paciente: nombre(s), apellidos, ocupación, estado civil, lugar de nacimiento, fecha de nacimiento, domicilio (calle, no, col, municipio/delegación, entidad), teléfono(s), email, institución de derechohabiencia, contacto de emergencia (nombre, teléfono, horario), médico de referencia, motivo de consulta (texto), **alerta** (texto corto), observaciones.
-- **Género**: Masculino / Femenino / Persona no binaria / Prefiero no decirlo.  
-- **Responsable (Alumno)**: **Carrera**, **Turno**, **No. de cuenta** (vinculado al usuario logueado).
 
-## AFH
-- Mantener matriz por **padecimiento × parentesco** (checkbox) y Observaciones.
+## 4) Permisos y policies (MVP)
 
-## APP (Antecedentes personales patológicos)
-- Catálogo de padecimientos con **presencia (sí/no)** y **fecha de diagnóstico** por ítem, más **Observaciones** generales de la sección.
+| Acción / Recurso      | Alumno | Docente/Tutor       | Coordinación           | Admin |
+|-----------------------|:------:|:-------------------:|:----------------------:|:-----:|
+| Ver listado           |   ✔    |         ✔           |           ✔            |  ✔   |
+| Crear expediente      |   ✔    |         ✖           |           ✖            |  ✔   |
+| Editar expediente     |   ✔ (si autor y no “cerrado”) | ✔ (asignado)   |  ✔ (reasignar/meta)     |  ✔   |
+| Cambiar estado        |   ✖    |  ✔ (a “revisión”)   | ✔ (abrir/cerrar)       |  ✔   |
+| Sesiones CRUD         |   ✔ (las suyas) | ✔ (revisión/validar) |  ✔ (ver)            |  ✔   |
+| Consentimientos       |   ✔ (cargar) | ✔ (revisar)     |  ✔ (ver)               |  ✔   |
+| Anexos                |   ✔    |         ✔           |           ✔            |  ✔   |
+| Usuarios/Catálogos    |   ✖    |         ✖           |      parcial (reportes) |  ✔   |
 
-## Antecedentes y Padecimientos Actuales
-- Textos largos: **Historia Psicosocial y del Desarrollo**, **Evaluación Psicológica (Estado Mental Actual)** y **Evaluación Psicológica – Observaciones clínicas relevantes**.
-
-## Plan de atención
-- Texto largo único para el **Plan de atención**.
-
-## Diagnóstico
-- Textos largos: **Diagnósticos**, **DSM y TR** y **Observaciones relevantes**.
-
-## Registro de sesiones (antes “Notas de evolución”)
-- Lista lateral por **fecha** de sesión.  
-- Formulario por sesión: **Fecha**, **Hora de asistencia**, **Estrategias** (texto o catálogo), **Descripción de la sesión** (hallazgos, técnicas aplicadas, acuerdos, avances, retrocesos).  
-- **Interconsulta/Referencia** dentro de cada sesión: **Interconsulta o Referencia**, **Especialidad a la que se refiere**, **Motivo de referencia** (textos).  
-- **Facilitador** (texto), **Clínica donde se realizó el tratamiento** (selector), **Autorización del responsable académico** (checkbox/fecha/usuario).  
-- **Revisado** (solo visible a Docente/Tutor; guarda usuario y fecha).
-- **Archivos por sesión** (subidos por alumno).  
-- **Visor** del último **PDF de “Consentimiento informado y plan de tratamiento”** (generado o firmado) embebido en la parte inferior.
-- Acciones: **Guardar** / **Agregar nueva sesión** / **Duplicar**.
-
-
-## Consentimiento informado
-- **Tabla de tratamientos** (filas dinámicas): `tipo` (ej. Evaluación Psicológica, Interconsulta médica/psiquiátrica, Reportes solicitados), campos opcionales para **órgano**, **tratamiento/código**, **pronóstico** y **costo** (para impresión).  
-- **Alumno**: puede agregar filas, **guardar**, **imprimir** el formato "Consentimiento informado y plan de tratamiento" y **subir documento firmado** (archivo).  
-- **Docente/Tutor**: ve un botón **“Revisado”** únicamente si tiene ese rol; al marcarlo se registra **usuario** y **fecha** de revisión.  
-- Campos adicionales: **Profesor** (selector), **Testigo** (texto), **Observaciones del expediente**.
+**Policies**: `ExpedientePolicy`, `SesionPolicy`, `ConsentimientoPolicy`, `AnexoPolicy`.
 
 ---
-# Modelo de datos (provisional)
-**usuarios**(id, nombre, correo, hash, rol_id, no_cuenta, carrera_id, turno_id, activo, creado_en)  
-**roles**(id, nombre) — Alumno, Docente, Coordinación, Admin  
-**carreras**(id, nombre)  
-**turnos**(id, nombre)  
-**generos**(id, nombre) — catálogo ampliado  
-**clinicas**(id, nombre) — semilla: CAOPE
 
-**pacientes**(id, nombre, apellidos, genero_id, fecha_nacimiento, ocupacion, estado_civil, lugar_nacimiento, curp?, telefono, email, domicilio_json)
+## 5) Validaciones clave
 
-**expedientes**(id, no_expediente, paciente_id, responsable_id, clinica_id, fecha_apertura, estado_id, alerta, observaciones, creado_en, actualizado_en)
+**Expediente (store/update)**  
+- `no_control`: requerido, único, patrón configurable.  
+- `paciente`: requerido, 2–140 chars.  
+- `carrera`, `turno`: requeridos (de catálogo).  
+- `apertura`: fecha válida, ≤ hoy.
 
-**estados_expediente**(id, nombre, color_hex) — Abierto, En curso, En revisión, Pausado, Cerrado
+**Sesión**  
+- `fecha`: requerida, ≤ hoy.  
+- `nota`: requerida (min 10 chars), HTML permitido (lista blanca).  
+- `status_revision`: transiciones válidas:  
+  - `pendiente → observada|validada`, `observada → validada`.  
+  - No se puede volver a `pendiente` si ya está `validada`.
 
-**consentimientos**(id, expediente_id, alumno_id, profesor_id, testigo_text, observaciones, revisado_bool, revisado_por_id, revisado_fecha, firmado_bool, fecha_firma, archivo_firmado_url, pdf_generado_url, creado_en, actualizado_en)
+**Consentimiento**  
+- Si `requerido = true` → **no puede cerrar** expediente sin `aceptado = true` y `archivo_path` adjunto.  
+- Archivos: pdf/jpg/png, ≤ 10MB (configurable).
 
-**consentimiento_tratamientos**(id, consentimiento_id, tipo, organo, tratamiento_codigo, pronostico, costo, detalle, orden)
-
-**notas_evolucion**(id, expediente_id, autor_id, fecha, nota, tiene_alerta_bool)
-
-**documentos**(id, expediente_id, tipo, titulo, archivo_url, subido_por_id, creado_en)
-
-**afh_padecimientos**(id, nombre) — Diabetes, HTA, Cardiopatías, etc.  
-**afh_parentescos**(id, nombre) — Madre, Padre, Abuela, Abuelo, Hermanos, Otros
-
-**afh_respuestas**(id, expediente_id, padecimiento_id, parentesco_id, valor_bool)
-
-**app_items**(id, nombre, descripcion?)  
-**app_respuestas**(id, expediente_id, item_id, presente_bool, fecha_diagnostico, comentario?)  
-**app_observaciones**(id, expediente_id, texto)
-
-**antecedentes_padecimientos_actuales**(id, expediente_id, historia_psicosocial, evaluacion_psicologica_estado, evaluacion_psicologica_observaciones, creado_en, actualizado_en)
-
-**planes_atencion**(id, expediente_id, contenido, creado_en, actualizado_en)
-
-**diagnosticos_clinicos**(id, expediente_id, diagnosticos_text, dsm_tr_text, observaciones, creado_en, actualizado_en)
-
-**sesiones**(id, expediente_id, fecha, hora_asistencia, estrategias_text, descripcion, facilitador_nombre, clinica_id, autorizacion_responsable_bool, autorizacion_responsable_usuario_id, autorizacion_responsable_fecha, revisado_bool, revisado_por_id, revisado_fecha, visor_consentimiento_url, creado_en, actualizado_en)
-**sesion_referencias**(id, sesion_id, interconsulta_o_referencia, especialidad, motivo, creado_en)
-**sesion_archivos**(id, sesion_id, titulo, archivo_url, subido_por_id, creado_en)  
-
-> **Claves**:  
-> - FK de todas las tablas hacia `expedientes/usuarios/catalogos` con índices.  
-> - `no_expediente` único con prefijo y año (p.ej. CA-2025-000123).
+**Cierre de expediente**  
+- Debe existir ≥ 1 sesión **validada**.  
+- Sin consentimientos requeridos pendientes.  
+- Sin observaciones abiertas en sesiones.
 
 ---
-# Seguimiento (lo que hace “seguimiento”)
-- **Estados** del expediente + **Timeline** de eventos (creación, edición, anexos, firma de consentimiento, nota con alerta, cambio de estado).  
-- **Indicadores** por usuario/carrera/turno: abiertos, en revisión, cerrados; tiempo a cierre; expedientes con alerta.
+
+## 6) UX / Vistas
+
+- **Layout base**: `layouts/app.blade.php` (NobleUI demo2; topbar, breadcrumbs, slots para CSS/JS).
+- **Dashboard**: tarjetas KPI (Abiertos, Revisión, Cerrados, Alertas), últimas actividades (timeline).
+- **Expedientes**
+  - **Listado**: filtros (texto, estado, fechas, carrera, turno), tabla con: No. de Control, Paciente, Estado (badge), Apertura, Carrera, Turno, Acciones.
+  - **Crear/Editar**: formulario simple (autosave **post-MVP**).
+  - **Detalle**: tabs: Resumen | Sesiones | Consentimientos | Anexos | Timeline.
+- **Sesiones**: editor rich text (TinyMCE/EasyMDE), botón “Enviar a revisión”, “Marcar observación”, “Validar”.
+- **Consentimientos**: tabla de tratamientos, descarga/impresión de formato, upload firmado.
+- **Anexos**: lista/galería + visor.
+- **Reportes**: filtros + export CSV/XLSX.
 
 ---
-# UI/UX (línea visual)
-- Tema claro, tipografía legible, **cards** y **badges** de estado.  
-- Dashboard con 3 tarjetas: *Crear expediente*, *Mis activos*, *Pendientes hoy*. Incluye **atajo a Consentimiento** para imprimir rápidamente y **panel de pendientes de revisión** (solo docentes).  
-- Wizard con pasos y barra de progreso; formularios en 2 columnas; **autosave**.  
-- Lista de expedientes con búsqueda, filtros (estado, carrera, turno, fecha) y paginación.  
-- Vista móvil responsive.
+
+## 7) Rutas (HTTP) — MVP
+
+- GET /login
+- POST /logout
+
+- GET / → dashboard.index
+- GET /expedientes → expedientes.index
+- GET /expedientes/crear → expedientes.create
+- POST /expedientes → expedientes.store
+- GET /expedientes/{id} → expedientes.show
+- GET /expedientes/{id}/editar→ expedientes.edit
+- PUT /expedientes/{id} → expedientes.update
+- POST /expedientes/{id}/estado → expedientes.cambiarEstado (abierto|revision|cerrado)
+
+- GET /expedientes/{id}/sesiones → sesiones.index
+- POST /expedientes/{id}/sesiones → sesiones.store
+- PUT /sesiones/{sid} → sesiones.update
+- POST /sesiones/{sid}/revisar → sesiones.marcarObservada
+- POST /sesiones/{sid}/validar → sesiones.validar
+
+- GET /expedientes/{id}/consentimientos → consentimientos.index
+- POST /expedientes/{id}/consentimientos → consentimientos.store
+- POST /consentimientos/{cid}/archivo → consentimientos.subirArchivo
+- PUT /consentimientos/{cid} → consentimientos.update
+
+- GET /expedientes/{id}/anexos → anexos.index
+- POST /expedientes/{id}/anexos → anexos.store
+- DELETE /anexos/{aid} → anexos.destroy
+
+- GET /reportes/expedientes → reportes.expedientes
+- GET /reportes/export → reportes.export
+
 
 ---
-# Validaciones / Reglas de negocio (MVP)
-- No se puede **Cerrar** si: falta consentimiento o Ficha incompleta mínima (paciente + género + fecha apertura).  
-- AFH/APP opcionales para abrir; **Diagnóstico** y **Plan de atención** recomendados antes de cerrar. Para marcar **Revisado** en Consentimiento se requiere rol Docente/Tutor (se registra usuario y fecha).  
-- Notas de evolución requieren fecha y autor.  
-- Documentos con tipo predefinido (Consentimiento, Identificación, Otros).
+
+## 8) Eventos (timeline) — nomenclatura
+
+- `expediente.creado`, `expediente.actualizado`, `expediente.estado_cambiado`
+- `sesion.creada`, `sesion.observada`, `sesion.validada`
+- `consentimiento.creado`, `consentimiento.cargado`, `consentimiento.actualizado`
+- `anexo.subido`, `anexo.eliminado`
+
+Payload típico: `{ "antes": "...", "despues": "...", "comentario": "...", "campo": "estado" }`.
 
 ---
-# Reportes iniciales
-- Expedientes por estado/carrera/turno/mes.  
-- Tiempo promedio a cierre.  
-- **Sesiones** registradas por expediente / por mes.  
-- Alertas activas.
+
+## 9) Notificaciones (in-app / email)
+
+- Asignación de tutor (a Docente).
+- Sesión **observada** (a Alumno).
+- Sesión **validada** (a Alumno).
+- Intento de cierre bloqueado (a Alumno + Tutor).
+- Cierre exitoso (a Alumno + Coordinación).
+
+Driver: `mail=log` en dev, SMTP en prod.
 
 ---
-# Próximos pasos con tu insumo
-1) Completar campos de APNP y formatos de Consentimiento.  
-2) Definir catálogo de padecimientos/parentescos final.  
-3) Aterrizar nomenclatura de `no_expediente`.  
-4) Ajustar modelo según nuevas pantallas que compartas.
 
-> Cuando cierres requisitos, propondré **BD final** (DDL) y **stack de desarrollo** optimizado para velocidad de entrega, coherente con tus preferencias (PHP/MariaDB vs. alternativas).
+## 10) Reportes (MVP)
+
+- **Operativo**: conteos por estado, carrera, turno, rango fechas.
+- **Rendimiento**: tiempo promedio `apertura → cierre` por carrera/turno.
+- **Trazabilidad**: actividades por usuario/rol.
+
+Export: CSV (simple) y XLSX (opcional con `maatwebsite/excel`).
+
+---
+
+## 11) Seguridad y privacidad
+
+- CSRF, XSS, Rate limit en auth y carga de archivos.
+- **Mínimo privilegio** por rol y policy.
+- PII minimizada en listados; ver detalle solo si autorizado.
+- Archivos sensibles en `private` (no servidos públicamente). Descarga por controlador con policy.
+- Backups diarios (DB + storage). Prueba de restauración **mensual**.
+
+---
+
+## 12) Entornos y .env
+
+**Desarrollo (SQLite)**
+
+APP_ENV=local
+APP_DEBUG=true
+DB_CONNECTION=sqlite
+DB_DATABASE=database/database.sqlite
+SESSION_DRIVER=database
+CACHE_STORE=database
+QUEUE_CONNECTION=database
+
+**Producción (MySQL/MariaDB)**
+
+APP_ENV=production
+APP_DEBUG=false
+DB_CONNECTION=mysql
+DB_HOST=...
+DB_PORT=3306
+DB_DATABASE=caope
+DB_USERNAME=...
+DB_PASSWORD=...
+SESSION_DRIVER=database
+CACHE_STORE=database
+QUEUE_CONNECTION=database
+FILESYSTEM_DISK=public
+
+
+---
+
+## 13) Despliegue (cPanel)
+
+1. **Repositorio** en el servidor (Git™ Version Control) apuntando a `backend/`.
+2. **Document Root** del sitio apuntar a `backend/public`.
+3. `php -d detect_unicode=0 artisan key:generate` (si no existe APP_KEY).
+4. `php artisan storage:link`.
+5. `php artisan migrate --force`.
+6. **Cron**:
+   - Queue (si se requiere): `* * * * * php /path/backend/artisan queue:work --stop-when-empty`
+   - Scheduler: `* * * * * php /path/backend/artisan schedule:run`
+7. Verificar permisos de `storage/` y `bootstrap/cache/`.
+
+---
+
+## 14) CI/CD (GitHub Actions) — resumen
+
+- Job 1: **Lint** (`composer install --no-dev`, `php -v`, `./vendor/bin/pint --test`).
+- Job 2: **Tests** (con `phpunit`, base SQLite en memoria).
+- Job 3: **Deploy staging** (SSH/Git Pull) en `push` a `develop`.  
+- Job 4: **Deploy prod** (manual dispatch o tag `v*`).
+
+---
+
+## 15) Pruebas (mínimo)
+
+- **Feature**
+  - Crear expediente (valido/duplicado `no_control`).
+  - Filtros de listado (estado/fechas/carrera/turno).
+  - Flujo sesión: crear → observar → validar (transiciones inválidas fallan).
+  - Consentimiento requerido bloquea cierre si no está cargado/aceptado.
+  - Cerrar expediente exitosamente (timeline + estado).
+- **Unit**
+  - Generación de `no_control`.
+  - Policies de acceso.
+
+---
+
+## 16) Sprint 1 (en curso) — Objetivo: Expedientes CRUD + Detalle base
+
+**Entregables del Sprint 1**
+- Migraciones + modelos + factories de: `expedientes`, `sesiones`, `consentimientos`, `anexos`, `timeline_eventos`, catálogos mínimos.
+- Listado de expedientes con filtros y paginación, vista detalle (tabs vacías).
+- Cambios de estado con reglas mínimas (sin cierre duro).
+- Timeline registrando crear/editar/estado.
+- Seeders con ~40 expedientes demo.
+
+**Tareas**
+1. (DB) Migraciones y factories (expedientes/sesiones/consentimientos/anexos/timeline/catálogos).
+2. (Modelos) Relaciones Eloquent y casts (dates, json).
+3. (Policies) Expediente, Sesión, Consentimiento, Anexo.
+4. (HTTP) Controladores + FormRequests (store/update + filtros index).
+5. (Views) `layouts/app.blade.php` con NobleUI demo2 + `expedientes.index` + `expedientes.show` (tabs).
+6. (Timeline) Helper `Timeline::push($evento, $expediente, $payload)` centralizado.
+7. (Seed) Usuarios demo por rol + asignaciones.
+8. (Tests) Feature: crear expediente y filtro; Unit: generador `no_control`.
+
+**Criterios de aceptación Sprint 1**
+- Se puede **crear**, **listar**, **ver detalle** y **cambiar estado** (sin cierre final).
+- Filtros funcionan y paginan.
+- Timeline registra eventos básicos.
+- 0 errores en CI (lint + tests).
+
+---
+
+## 17) Backlog priorizado (post Sprint 1)
+
+- **Sesiones**: UI completa, revisión/validación, editor rich text, adjuntos por sesión.
+- **Consentimientos**: tabla por expediente, impresión PDF, carga firmada, estados.
+- **Anexos**: multiupload, visor, tipos.
+- **Cierre de expediente**: regla dura (consentimientos + sesiones validadas).
+- **Notificaciones**: in-app + email.
+- **Reportes**: KPIs dashboard + export CSV.
+- **Admin**: usuarios/roles, catálogos.
+- **Seguridad**: hardening, backups, restauración probada.
+- **Rendimiento**: índices y EXPLAIN en consultas críticas.
+- **2FA** (opcional).
+
+---
+
+## 18) Vendors/librerías (MVP)
+
+- **spatie/laravel-permission** (roles/permisos).
+- **laravel/breeze** (auth).
+- **maatwebsite/excel** (export opcional).
+- Front: DataTables, Select2, Flatpickr, SweetAlert2, TinyMCE/EasyMDE (uno).
+
+---
+
+## 19) Glosario
+
+- **No. de Control**: identificador público y único del expediente (`no_control`).
+- **Sesión**: atención/visita clínica; reemplaza “nota de evolución”.
+- **Observada**: sesión con comentarios del Docente; debe resolverse antes de validar.
+- **Validada**: sesión aprobada por Docente.
+- **Cierre**: pasar expediente a `cerrado` cumpliendo reglas.
+"@ | Set-Content -Path .\docs\blueprint.md -Encoding UTF8
