@@ -2,11 +2,9 @@
 
 use Illuminate\Support\Facades\Route;
 
-// Página de preview (usa resources/views/preview.blade.php)
+// Mantén tu /preview si quieres seguir probando el standalone
 Route::view('/preview', 'preview')->name('preview');
 
-// Deja el preview como página de inicio temporal
-Route::view('/', 'preview');
-
-// (Opcional) Mantén la vista de bienvenida accesible en /welcome
-Route::view('/welcome', 'welcome');
+// Dashboard como home
+Route::redirect('/', '/dashboard');
+Route::view('/dashboard', 'dashboard.index')->name('dashboard');
