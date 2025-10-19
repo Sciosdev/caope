@@ -11,9 +11,9 @@ class ExpedienteController extends Controller
     public function index(Request $request)
     {
         $busqueda = (string) $request->input('q', '');
-        $estado   = (string) $request->input('estado', '');
-        $desde    = $request->input('desde') ? Carbon::parse($request->input('desde')) : null;
-        $hasta    = $request->input('hasta') ? Carbon::parse($request->input('hasta')) : null;
+        $estado = (string) $request->input('estado', '');
+        $desde = $request->input('desde') ? Carbon::parse($request->input('desde')) : null;
+        $hasta = $request->input('hasta') ? Carbon::parse($request->input('hasta')) : null;
 
         $query = Expediente::query()
             ->when($busqueda, function ($q) use ($busqueda) {
@@ -31,10 +31,10 @@ class ExpedienteController extends Controller
 
         return view('expedientes.index', [
             'expedientes' => $expedientes,
-            'q'           => $busqueda,
-            'estado'      => $estado,
-            'desde'       => $desde,
-            'hasta'       => $hasta,
+            'q' => $busqueda,
+            'estado' => $estado,
+            'desde' => $desde,
+            'hasta' => $hasta,
         ]);
     }
 }

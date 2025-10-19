@@ -11,17 +11,17 @@ class ExpedienteFactory extends Factory
 
     public function definition(): array
     {
-        $estados  = ['abierto', 'revision', 'cerrado'];
+        $estados = ['abierto', 'revision', 'cerrado'];
         $carreras = ['Enfermería', 'Psicología', 'Odontología'];
-        $turnos   = ['Matutino', 'Vespertino'];
+        $turnos = ['Matutino', 'Vespertino'];
 
         return [
-            'no'       => sprintf('CA-%s-%04d', now()->format('Y'), $this->faker->unique()->numberBetween(1, 9999)),
+            'no' => sprintf('CA-%s-%04d', now()->format('Y'), $this->faker->unique()->numberBetween(1, 9999)),
             'paciente' => $this->faker->name(),
-            'estado'   => $this->faker->randomElement($estados),
+            'estado' => $this->faker->randomElement($estados),
             'apertura' => $this->faker->dateTimeBetween('-30 days', 'now'),
-            'carrera'  => $this->faker->randomElement($carreras),
-            'turno'    => $this->faker->randomElement($turnos),
+            'carrera' => $this->faker->randomElement($carreras),
+            'turno' => $this->faker->randomElement($turnos),
         ];
     }
 }

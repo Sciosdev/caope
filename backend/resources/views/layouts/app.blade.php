@@ -3,7 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>@yield('title','CAOPE')</title>
+  <title>
+    @yield('title', 'CAOPE')
+  </title>
 
   <link rel="stylesheet" href="{{ asset('assets/vendors/core/core.css') }}">
   <link rel="stylesheet" href="{{ asset('assets/vendors/flatpickr/flatpickr.min.css') }}">
