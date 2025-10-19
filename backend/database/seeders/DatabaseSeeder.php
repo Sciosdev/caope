@@ -18,6 +18,10 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $this->call([
+            CatalogoCarreraSeeder::class,
+            CatalogoTurnoSeeder::class,
+            CatalogoPadecimientoSeeder::class,
+            CatalogoTratamientoSeeder::class,
             ExpedienteSeeder::class,
         ]);
     }
