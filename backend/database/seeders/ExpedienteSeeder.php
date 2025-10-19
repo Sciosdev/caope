@@ -2,13 +2,13 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Expediente;
+use Illuminate\Database\Seeder;
 
 class ExpedienteSeeder extends Seeder
 {
     public function run(): void
     {
-        \App\Models\Expediente::factory(80)->create();
+        Expediente::factory(80)->create();
     }
 }
