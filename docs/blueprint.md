@@ -8,7 +8,7 @@ New-Item -ItemType Directory -Path .\docs -Force | Out-Null
 
 **Objetivo:** plataforma académico-clínica para gestionar expedientes estudiantiles con trazabilidad, revisiones docentes, consentimientos, anexos y reportes.
 
-**Stack:** Laravel 11 (PHP 8.3+), MySQL/MariaDB (prod), SQLite (dev), Blade + NobleUI (demo2), DataTables, Select2, Flatpickr, SweetAlert2.
+**Stack:** Laravel 12 (PHP 8.3+), MySQL/MariaDB (prod), SQLite (dev), Blade + NobleUI (demo2), DataTables, Select2, Flatpickr, SweetAlert2.
 
 ---
 
@@ -32,7 +32,7 @@ New-Item -ItemType Directory -Path .\docs -Force | Out-Null
 
 ## 2) Arquitectura y estándares
 
-- **PHP 8.3+**, **Laravel 11**.
+- **PHP 8.3+**, **Laravel 12**.
 - **PSR-12** + `laravel/pint`.
 - Commits: **Conventional Commits**.
 - Ramas: `main` (estable), `develop` (integración), `feature/*` (módulos).

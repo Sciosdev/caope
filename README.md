@@ -1,14 +1,14 @@
 # CAOPE – Sistema de Seguimiento de Expedientes (monorepo)
 
 ## Estructura
-- `backend/`: Aplicación Laravel 11 con SQLite para el MVP académico-clínico.
+- `backend/`: Aplicación Laravel 12 con SQLite para el MVP académico-clínico.
 - `public-assets/`: assets NobleUI listos para publicarse en Laravel (`public/assets`).
 - `_template/`: demos, documentación y SCSS originales del tema (solo referencia).
 - `docs/`: documentación funcional y de planeación (`docs/blueprint.md`).
 - `preview.html`: mock estático para validar estilos sin correr Laravel.
 
 ## Estado actual
-- Laravel 11 con autenticación base pendiente, pero con módulo de **Expedientes** leyendo datos ficticios desde SQLite.
+- Laravel 12 con autenticación base pendiente, pero con módulo de **Expedientes** leyendo datos ficticios desde SQLite.
 - Layout NobleUI integrado en Blade y tablas con DataTables + filtros básicos.
 - Seeder que genera 80 expedientes de ejemplo (`php artisan migrate --seed`).
 - Entorno local listo con `php artisan serve`.
