@@ -4,7 +4,7 @@
 - `backend/`: Aplicación Laravel 12 con SQLite para el MVP académico-clínico.
 - `public-assets/`: assets NobleUI listos para publicarse en Laravel (`public/assets`).
 - `_template/`: demos, documentación y SCSS originales del tema (solo referencia).
-- `docs/`: documentación funcional y de planeación (`docs/blueprint.md`).
+- `docs/`: documentación funcional, de planeación y operación (`docs/blueprint.md`, `docs/environments.md`).
 - `preview.html`: mock estático para validar estilos sin correr Laravel.
 
 ## Estado actual
@@ -22,6 +22,21 @@
 6. `php artisan serve`
 
 > Opcional: `npm run dev` si deseas recompilar assets Vite propios. NobleUI ya está publicado en `public/assets`.
+
+### Docker Compose (opcional)
+
+También puedes levantar el entorno local con Docker usando SQLite por defecto:
+
+```bash
+touch backend/database/database.sqlite
+cp backend/.env.example backend/.env
+docker compose up -d
+docker compose exec app composer install
+docker compose exec app php artisan key:generate
+docker compose exec app php artisan migrate --seed
+```
+
+El servicio queda disponible en <http://localhost:8000>. Consulta `docs/environments.md` para conocer los requisitos y la operativa de cada entorno (local, staging y producción).
 
 ## Próximos módulos (según blueprint)
 - Roles/Permisos (Alumno, Docente, Coordinación, Admin).
