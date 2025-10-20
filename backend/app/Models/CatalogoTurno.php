@@ -11,5 +11,9 @@ class CatalogoTurno extends Model
 
     protected $table = 'catalogo_turnos';
 
-    protected $fillable = ['clave', 'nombre', 'estado'];
+    protected $fillable = ['nombre', 'activo'];
+
+    protected $casts = [
+        'activo' => 'boolean',
+    ];
 }

@@ -10,15 +10,16 @@ class CatalogoCarreraSeeder extends Seeder
     public function run(): void
     {
         $carreras = [
-            ['clave' => 'ENF', 'nombre' => 'Licenciatura en Enfermería', 'estado' => 'activo'],
-            ['clave' => 'PSI', 'nombre' => 'Licenciatura en Psicología', 'estado' => 'activo'],
-            ['clave' => 'ODO', 'nombre' => 'Cirujano Dentista', 'estado' => 'activo'],
+            'Licenciatura en Enfermería',
+            'Licenciatura en Psicología',
+            'Cirujano Dentista',
+            'Nutrición y Bienestar Integral',
         ];
 
-        foreach ($carreras as $carrera) {
+        foreach ($carreras as $nombre) {
             CatalogoCarrera::query()->updateOrCreate(
-                ['clave' => $carrera['clave']],
-                ['nombre' => $carrera['nombre'], 'estado' => $carrera['estado']]
+                ['nombre' => $nombre],
+                ['activo' => true]
             );
         }
     }

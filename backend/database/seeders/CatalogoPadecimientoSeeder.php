@@ -10,15 +10,16 @@ class CatalogoPadecimientoSeeder extends Seeder
     public function run(): void
     {
         $padecimientos = [
-            ['clave' => 'ANS', 'nombre' => 'Ansiedad generalizada', 'estado' => 'activo'],
-            ['clave' => 'DEP', 'nombre' => 'Trastorno depresivo', 'estado' => 'activo'],
-            ['clave' => 'EST', 'nombre' => 'Estrés postraumático', 'estado' => 'activo'],
+            'Estrés académico',
+            'Ansiedad generalizada',
+            'Depresión leve',
+            'Trastornos del sueño',
         ];
 
-        foreach ($padecimientos as $padecimiento) {
+        foreach ($padecimientos as $nombre) {
             CatalogoPadecimiento::query()->updateOrCreate(
-                ['clave' => $padecimiento['clave']],
-                ['nombre' => $padecimiento['nombre'], 'estado' => $padecimiento['estado']]
+                ['nombre' => $nombre],
+                ['activo' => true]
             );
         }
     }
