@@ -8,7 +8,9 @@ Route::view('/', 'welcome')->name('home');
 
 Route::middleware('auth')->group(function () {
     Route::view('/dashboard', 'dashboard.index')->name('dashboard');
-    Route::resource('expedientes', ExpedienteController::class)->middleware('auth');
+    Route::resource('expedientes', ExpedienteController::class)
+        ->only('index')
+        ->middleware('auth');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
