@@ -26,7 +26,11 @@ Antes de abrir un PR, asegúrate de que apunte a `develop` salvo que se especifi
 3. Copiar `.env.example` → `.env` (hay uno de referencia en la raíz) y ajustar `DB_CONNECTION=sqlite`.
 4. `php artisan key:generate`
 5. `php artisan migrate --seed`
-6. `php artisan serve`
+6. `php artisan storage:link` (expone `storage/app/public` en `public/storage`)
+7. Verifica que `storage/app/private` exista con permisos restringidos para el proceso de PHP.
+8. `php artisan serve`
+
+> Nota: configura `FILESYSTEM_DISK` y `FILESYSTEM_DISK_PRIVATE` en `.env` según el entorno. En código, utiliza `config('filesystems.private_default')` para obtener el disco privado activo.
 
 > Opcional: `npm run dev` si deseas recompilar assets Vite propios. NobleUI ya está publicado en `public/assets`.
 
