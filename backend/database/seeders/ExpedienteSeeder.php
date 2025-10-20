@@ -106,6 +106,16 @@ class ExpedienteSeeder extends Seeder
                     $aceptado = $faker->boolean(75);
                     $fecha = $aceptado ? $faker->dateTimeBetween($apertura, 'now') : null;
 
+                    $subidoPor = null;
+
+                    if ($aceptado) {
+                        $subidoPor = $usuarios->random();
+
+                        if ($subidoPor instanceof User) {
+                            $subidoPor = $subidoPor->getKey();
+                        }
+                    }
+
                     Consentimiento::factory()->for($expediente)->create([
                         'tratamiento' => $tratamiento,
                         'requerido' => true,
@@ -114,7 +124,7 @@ class ExpedienteSeeder extends Seeder
                         'archivo_path' => $aceptado
                             ? sprintf('expedientes/%s/consentimientos/%s.pdf', $expediente->id, Str::uuid())
                             : null,
-                        'subido_por' => $aceptado ? $usuarios->random() : null,
+                        'subido_por' => $subidoPor,
                     ]);
                 }
             }
