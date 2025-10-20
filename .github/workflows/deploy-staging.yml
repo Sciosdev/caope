@@ -1,0 +1,36 @@
+name: Deploy to staging
+
+on:
+  push:
+    tags:
+      - 'staging-*'
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-staging:
+    name: Deploy to staging server
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute staging deployment commands
+        # Required secrets:
+        #   STAGING_HOST    -> Hostname or IP address of the staging server
+        #   STAGING_USER    -> SSH username used for the deployment
+        #   STAGING_SSH_KEY -> Private SSH key for the user above
+        # Optional secrets:
+        #   STAGING_PORT    -> SSH port (defaults to 22 if unset)
+        #   STAGING_PATH    -> Directory on the remote host where the app lives
+        # Provide any additional secrets/environment variables the deployment script needs.
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          port: ${{ secrets.STAGING_PORT || 22 }}
+          script: |
+            # TODO: Replace `/ruta` with the correct deployment directory.
+            # The tag name is available in the GITHUB_REF_NAME environment variable.
+            cd "${{ secrets.STAGING_PATH || '/ruta' }}"
+            git pull origin "${GITHUB_REF_NAME}"
+            # Add any other commands necessary to restart services, run migrations, etc.

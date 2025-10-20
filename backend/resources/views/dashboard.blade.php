@@ -1,23 +1,17 @@
-@extends('layouts.app')
+<x-app-layout>
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            {{ __('Dashboard') }}
+        </h2>
+    </x-slot>
 
-@section('title', 'Dashboard')
-
-@section('content')
-  <div class="container py-4">
-    <h3 class="mb-4">Dashboard</h3>
-
-    <div class="row g-3">
-      <div class="col-md-3">
-        <div class="card">
-          <div class="card-body">
-            <div class="fs-6 text-muted">Expedientes abiertos</div>
-            <div class="fs-2 fw-semibold">
-              {{ \App\Models\Expediente::where('estado','abierto')->count() }}
+    <div class="py-12">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 text-gray-900">
+                    {{ __("You're logged in!") }}
+                </div>
             </div>
-          </div>
         </div>
-      </div>
-      <!-- aquí luego metemos más tarjetas/mini-reportes -->
     </div>
-  </div>
-@endsection
+</x-app-layout>
