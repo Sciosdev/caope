@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -25,6 +26,8 @@ return new class extends Migration
         }
 
         if (Schema::hasColumn('expedientes', 'carrera_id')) {
+            $this->backfillCarreraFromCatalog();
+
             Schema::table('expedientes', function (Blueprint $table) {
                 $table->dropConstrainedForeignId('carrera_id');
             });
@@ -37,6 +40,8 @@ return new class extends Migration
         }
 
         if (Schema::hasColumn('expedientes', 'turno_id')) {
+            $this->backfillTurnoFromCatalog();
+
             Schema::table('expedientes', function (Blueprint $table) {
                 $table->dropConstrainedForeignId('turno_id');
             });
@@ -121,6 +126,62 @@ return new class extends Migration
             return array_key_exists($index, $schemaManager->listTableIndexes($table));
         } catch (\Throwable $e) {
             return false;
+        }
+    }
+
+    private function backfillCarreraFromCatalog(): void
+    {
+        if (!Schema::hasColumn('expedientes', 'carrera')) {
+            return;
+        }
+
+        $catalog = [];
+
+        if (Schema::hasTable('catalogo_carreras') && Schema::hasColumn('catalogo_carreras', 'nombre')) {
+            $catalog = DB::table('catalogo_carreras')->pluck('nombre', 'id')->all();
+        }
+
+        $records = DB::table('expedientes')
+            ->select(['id', 'carrera_id'])
+            ->whereNotNull('carrera_id')
+            ->get();
+
+        foreach ($records as $record) {
+            $value = $catalog[$record->carrera_id] ?? null;
+
+            if ($value === null) {
+                $value = (string) $record->carrera_id;
+            }
+
+            DB::table('expedientes')->where('id', $record->id)->update(['carrera' => $value]);
+        }
+    }
+
+    private function backfillTurnoFromCatalog(): void
+    {
+        if (!Schema::hasColumn('expedientes', 'turno')) {
+            return;
+        }
+
+        $catalog = [];
+
+        if (Schema::hasTable('catalogo_turnos') && Schema::hasColumn('catalogo_turnos', 'nombre')) {
+            $catalog = DB::table('catalogo_turnos')->pluck('nombre', 'id')->all();
+        }
+
+        $records = DB::table('expedientes')
+            ->select(['id', 'turno_id'])
+            ->whereNotNull('turno_id')
+            ->get();
+
+        foreach ($records as $record) {
+            $value = $catalog[$record->turno_id] ?? null;
+
+            if ($value === null) {
+                $value = (string) $record->turno_id;
+            }
+
+            DB::table('expedientes')->where('id', $record->id)->update(['turno' => $value]);
         }
     }
 };
