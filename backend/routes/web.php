@@ -12,8 +12,15 @@ Route::middleware('auth')->group(function () {
     Route::post('expedientes/{expediente}/estado', [ExpedienteController::class, 'changeState'])
         ->name('expedientes.change-state');
 
+    Route::post('expedientes/{expediente}/sesiones/{sesion}/observe', [SesionController::class, 'observe'])
+        ->name('expedientes.sesiones.observe');
+    Route::post('expedientes/{expediente}/sesiones/{sesion}/validate', [SesionController::class, 'validateSesion'])
+        ->name('expedientes.sesiones.validate');
+
     Route::resource('expedientes', ExpedienteController::class)->middleware('auth');
-    Route::resource('expedientes.sesiones', SesionController::class)->middleware('auth');
+    Route::resource('expedientes.sesiones', SesionController::class)
+        ->parameters(['sesiones' => 'sesion'])
+        ->middleware('auth');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

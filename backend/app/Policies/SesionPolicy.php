@@ -47,6 +47,10 @@ class SesionPolicy
 
     public function update(User $user, Sesion $sesion): bool
     {
+        if ($sesion->status_revision === 'validada') {
+            return $this->isAdmin($user) || $this->canManage($user);
+        }
+
         if ($this->isAdmin($user) || $this->canManage($user)) {
             return true;
         }
