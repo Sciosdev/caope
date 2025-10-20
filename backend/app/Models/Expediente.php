@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use App\Models\User;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Expediente extends Model
 {
@@ -27,7 +27,7 @@ class Expediente extends Model
         'apertura' => 'date',
     ];
 
-    public function creador(): BelongsTo
+    public function creadoPor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'creado_por');
     }
@@ -40,5 +40,25 @@ class Expediente extends Model
     public function coordinador(): BelongsTo
     {
         return $this->belongsTo(User::class, 'coordinador_id');
+    }
+
+    public function sesiones(): HasMany
+    {
+        return $this->hasMany(Sesion::class);
+    }
+
+    public function consentimientos(): HasMany
+    {
+        return $this->hasMany(Consentimiento::class);
+    }
+
+    public function anexos(): HasMany
+    {
+        return $this->hasMany(Anexo::class);
+    }
+
+    public function timelineEventos(): HasMany
+    {
+        return $this->hasMany(TimelineEvento::class);
     }
 }
