@@ -10,15 +10,15 @@ class CatalogoTurnoSeeder extends Seeder
     public function run(): void
     {
         $turnos = [
-            ['clave' => 'MAT', 'nombre' => 'Matutino', 'estado' => 'activo'],
-            ['clave' => 'VES', 'nombre' => 'Vespertino', 'estado' => 'activo'],
-            ['clave' => 'NOC', 'nombre' => 'Nocturno', 'estado' => 'activo'],
+            'Matutino',
+            'Vespertino',
+            'Mixto',
         ];
 
-        foreach ($turnos as $turno) {
+        foreach ($turnos as $nombre) {
             CatalogoTurno::query()->updateOrCreate(
-                ['clave' => $turno['clave']],
-                ['nombre' => $turno['nombre'], 'estado' => $turno['estado']]
+                ['nombre' => $nombre],
+                ['activo' => true]
             );
         }
     }

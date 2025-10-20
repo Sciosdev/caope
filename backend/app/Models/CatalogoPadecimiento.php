@@ -11,5 +11,9 @@ class CatalogoPadecimiento extends Model
 
     protected $table = 'catalogo_padecimientos';
 
-    protected $fillable = ['clave', 'nombre', 'estado'];
+    protected $fillable = ['nombre', 'activo'];
+
+    protected $casts = [
+        'activo' => 'boolean',
+    ];
 }

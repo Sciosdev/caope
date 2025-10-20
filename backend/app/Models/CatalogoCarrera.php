@@ -11,5 +11,9 @@ class CatalogoCarrera extends Model
 
     protected $table = 'catalogo_carreras';
 
-    protected $fillable = ['clave', 'nombre', 'estado'];
+    protected $fillable = ['nombre', 'activo'];
+
+    protected $casts = [
+        'activo' => 'boolean',
+    ];
 }
