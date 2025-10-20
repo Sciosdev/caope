@@ -45,6 +45,12 @@ The deployment workflow also honours the `ref` input when triggered manually. Th
 - PHP and Composer should already be available on the server if you run post-deployment commands such as database migrations.
 - Ensure the `.env` on the server contains production-ready values (database, cache, queues, mail, etc.). The workflows never overwrite `.env`.
 
+### Database preparation after deploys
+
+- Provision an empty database before the first deploy. The project seeds mandatory lookup data (catálogos, usuario de ejemplo, etc.) through `php artisan migrate --seed`.
+- Add `php artisan migrate --seed --force` to the `DEPLOY_POST_COMMANDS` secret (or run it manually) so every deploy keeps the schema in sync and refreshes the baseline catalog data when new seeders are shipped.
+- For destructive refreshes in staging you can trigger `php artisan migrate:fresh --seed --force`; avoid this command in production because it drops all tables.
+
 ## Running the workflows
 
 - **Continuous Integration (`ci.yml`)** runs automatically on every pull request and push to `main`. It installs Composer dependencies, runs `php artisan test --testsuite=Feature`, enforces Pint formatting, validates Blade templates with `php artisan blade:validate`, and builds Vite assets when `backend/package.json` is present.

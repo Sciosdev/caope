@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('model_has_roles')) {
+            return;
+        }
+
         Schema::create('model_has_roles', function (Blueprint $table) {
             $table->foreignId('role_id')->constrained('roles')->cascadeOnDelete();
             $table->string('model_type');

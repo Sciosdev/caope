@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('timeline_eventos')) {
+            return;
+        }
+
         Schema::create('timeline_eventos', function (Blueprint $table) {
             $table->id();
             $table->foreignId('expediente_id')->constrained('expedientes')->cascadeOnDelete();
