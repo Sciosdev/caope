@@ -155,6 +155,9 @@
     <script src="{{ asset('assets/vendors/core/core.js') }}"></script>
     <script src="{{ asset('assets/js/app.js') }}" defer></script>
 
+    {{-- Jetstream bundle (Alpine, etc.) --}}
+    @vite(['resources/js/app.js'])
+
     {{-- Third-party libraries via CDN (listos para migrar a build) --}}
     <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
