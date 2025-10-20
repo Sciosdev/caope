@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Sesion extends Model
 {
@@ -31,5 +32,10 @@ class Sesion extends Model
     public function validadaPor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'validada_por');
+    }
+
+    public function adjuntos(): HasMany
+    {
+        return $this->hasMany(SesionAdjunto::class);
     }
 }

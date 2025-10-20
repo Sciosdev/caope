@@ -66,10 +66,32 @@
 
             <div class="mt-4">
                 <h6 class="mb-2">Notas de la sesión</h6>
-                <div class="bg-light border rounded p-3 small" style="white-space: pre-wrap;">
-                    {{ $sesion->nota }}
+                <div class="bg-light border rounded p-3 small trix-content">
+                    {!! $sesion->nota !!}
                 </div>
             </div>
+            @if ($sesion->adjuntos->isNotEmpty())
+                <div class="mt-4">
+                    <h6 class="mb-2">Adjuntos</h6>
+                    <ul class="list-group list-group-flush">
+                        @foreach ($sesion->adjuntos as $adjunto)
+                            <li class="list-group-item d-flex justify-content-between align-items-start gap-3">
+                                <div>
+                                    <a href="{{ $adjunto->url }}" target="_blank" rel="noopener"
+                                        class="fw-semibold">{{ $adjunto->nombre_original }}</a>
+                                    <div class="text-muted small">
+                                        {{ number_format($adjunto->tamano / 1024, 1) }} KB ·
+                                        {{ $adjunto->subidoPor?->name ?? 'Desconocido' }} ·
+                                        {{ optional($adjunto->created_at)->format('Y-m-d H:i') }}
+                                    </div>
+                                </div>
+                                <a href="{{ $adjunto->url }}" target="_blank" rel="noopener"
+                                    class="btn btn-sm btn-outline-secondary">Descargar</a>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
         </div>
 
         @can('delete', $sesion)
