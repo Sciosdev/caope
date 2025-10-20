@@ -60,6 +60,13 @@
             const previous = focusables[previousIndex];
             previous.focus();
         },
+        handleTab(event) {
+            if (event.shiftKey) {
+                this.focusPrevious();
+            } else {
+                this.focusNext();
+            }
+        },
         trapFocus() {
             this.previouslyFocused = document.activeElement;
             this.$nextTick(() => this.focusFirst());
@@ -112,8 +119,7 @@
         x-ref="dialog"
         class="relative w-full max-h-[90vh] overflow-hidden bg-white border border-gray-200 shadow-2xl rounded-2xl {{ $maxWidthClasses }}"
         x-on:keydown.escape.window="close()"
-        x-on:keydown.tab.prevent="focusNext()"
-        x-on:keydown.shift.tab.prevent="focusPrevious()"
+        x-on:keydown.tab.prevent="handleTab($event)"
         role="dialog"
         aria-modal="true"
         tabindex="-1"
