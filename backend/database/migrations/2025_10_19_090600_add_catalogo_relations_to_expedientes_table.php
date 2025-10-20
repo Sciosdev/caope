@@ -89,8 +89,10 @@ return new class extends Migration
         $connection = Schema::getConnection();
         $driver = $connection->getDriverName();
 
+        $tableName = $connection->getTablePrefix() . $table;
+
         if ($driver === 'sqlite') {
-            $indexes = $connection->select("PRAGMA index_list('" . $table . "')");
+            $indexes = $connection->select("PRAGMA index_list('" . $tableName . "')");
 
             foreach ($indexes as $indexRow) {
                 $name = is_object($indexRow) ? ($indexRow->name ?? null) : ($indexRow['name'] ?? null);
@@ -103,12 +105,40 @@ return new class extends Migration
             return false;
         }
 
-        try {
-            $schemaManager = $connection->getDoctrineSchemaManager();
+        if ($driver === 'mysql') {
+            $indexes = $connection->select('SHOW INDEX FROM `' . $tableName . '` WHERE Key_name = ?', [$index]);
 
-            return array_key_exists($index, $schemaManager->listTableIndexes($table));
-        } catch (\Throwable $e) {
-            return false;
+            return !empty($indexes);
         }
+
+        if ($driver === 'pgsql') {
+            $indexes = $connection->select(
+                'SELECT 1 FROM pg_indexes WHERE schemaname = ANY (current_schemas(false)) AND tablename = ? AND indexname = ? LIMIT 1',
+                [$tableName, $index]
+            );
+
+            return !empty($indexes);
+        }
+
+        if ($driver === 'sqlsrv') {
+            $indexes = $connection->select(
+                'SELECT 1 FROM sys.indexes i INNER JOIN sys.tables t ON i.object_id = t.object_id WHERE t.name = ? AND i.name = ?',
+                [$tableName, $index]
+            );
+
+            return !empty($indexes);
+        }
+
+        if (class_exists(\Doctrine\DBAL\Schema\AbstractSchemaManager::class)) {
+            try {
+                $schemaManager = $connection->getDoctrineSchemaManager();
+
+                return array_key_exists($index, $schemaManager->listTableIndexes($table));
+            } catch (\Throwable $e) {
+                return false;
+            }
+        }
+
+        return false;
     }
 };
