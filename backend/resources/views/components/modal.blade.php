@@ -22,12 +22,71 @@
 <div
     x-data="{
         show: @js($show),
+        previouslyFocused: null,
         close() {
             this.show = false;
-            document.body.classList.remove('overflow-hidden');
+        },
+        focusables() {
+            return Array.from(this.$refs.dialog?.querySelectorAll(
+                'a[href], area[href], input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            ) || []).filter((el) => !el.hasAttribute('disabled') && !el.getAttribute('aria-hidden') && el.offsetParent !== null);
+        },
+        focusFirst() {
+            const focusables = this.focusables();
+            const first = focusables[0];
+            if (first) {
+                first.focus();
+            } else if (this.$refs.dialog) {
+                this.$refs.dialog.focus();
+            }
+        },
+        focusNext() {
+            const focusables = this.focusables();
+            if (!focusables.length) return;
+
+            const active = document.activeElement;
+            const index = focusables.indexOf(active);
+            const nextIndex = index === -1 ? 0 : (index + 1) % focusables.length;
+            const next = focusables[nextIndex];
+            next.focus();
+        },
+        focusPrevious() {
+            const focusables = this.focusables();
+            if (!focusables.length) return;
+
+            const active = document.activeElement;
+            const index = focusables.indexOf(active);
+            const previousIndex = index === -1 ? focusables.length - 1 : (index - 1 + focusables.length) % focusables.length;
+            const previous = focusables[previousIndex];
+            previous.focus();
+        },
+        trapFocus() {
+            this.previouslyFocused = document.activeElement;
+            this.$nextTick(() => this.focusFirst());
+        },
+        releaseFocus() {
+            if (this.previouslyFocused && typeof this.previouslyFocused.focus === 'function') {
+                this.previouslyFocused.focus();
+            }
+            this.previouslyFocused = null;
         },
     }"
-    x-init="$watch('show', value => document.body.classList.toggle('overflow-hidden', value))"
+    x-init="function () {
+        if (this.show) {
+            document.body.classList.add('overflow-hidden');
+            this.trapFocus();
+        }
+
+        this.$watch('show', value => {
+            document.body.classList.toggle('overflow-hidden', value);
+
+            if (value) {
+                this.trapFocus();
+            } else {
+                this.releaseFocus();
+            }
+        });
+    }"
     x-on:open-modal.window="if ($event.detail === '{{ $name }}') show = true"
     x-on:close-modal.window="if ($event.detail === '{{ $name }}') close()"
     x-show="show"
@@ -50,10 +109,14 @@
         x-transition:leave="ease-in duration-150"
         x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
         x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+        x-ref="dialog"
         class="relative w-full max-h-[90vh] overflow-hidden bg-white border border-gray-200 shadow-2xl rounded-2xl {{ $maxWidthClasses }}"
         x-on:keydown.escape.window="close()"
+        x-on:keydown.tab.prevent="focusNext()"
+        x-on:keydown.shift.tab.prevent="focusPrevious()"
         role="dialog"
         aria-modal="true"
+        tabindex="-1"
         @if($labelId)
             aria-labelledby="{{ $labelId }}"
         @else
