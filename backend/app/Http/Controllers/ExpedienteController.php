@@ -8,6 +8,11 @@ use Illuminate\Http\Request;
 
 class ExpedienteController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:expedientes.view')->only('index');
+    }
+
     public function index(Request $request)
     {
         $this->authorize('viewAny', Expediente::class);
