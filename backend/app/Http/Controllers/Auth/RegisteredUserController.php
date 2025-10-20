@@ -45,6 +45,11 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $request->merge([
+            'carrera' => $request->filled('carrera') ? $request->input('carrera') : null,
+            'turno' => $request->filled('turno') ? $request->input('turno') : null,
+        ]);
+
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
