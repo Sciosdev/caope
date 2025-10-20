@@ -17,10 +17,8 @@ return new class extends Migration
             $table->foreignId('expediente_id')->constrained('expedientes')->cascadeOnDelete();
             $table->string('evento', 80);
             $table->foreignId('actor_id')->constrained('users')->restrictOnDelete();
-            $table->json('payload')->nullable();
-            $table->foreignId('created_by')->nullable()->constrained('users')->restrictOnDelete();
-            $table->foreignId('updated_by')->nullable()->constrained('users')->restrictOnDelete();
-            $table->timestamps();
+            $table->json('payload');
+            $table->timestamp('created_at')->useCurrent();
         });
     }
 

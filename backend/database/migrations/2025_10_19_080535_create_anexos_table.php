@@ -20,8 +20,6 @@ return new class extends Migration
             $table->string('ruta', 255);
             $table->unsignedBigInteger('tamano');
             $table->foreignId('subido_por')->constrained('users')->restrictOnDelete();
-            $table->foreignId('created_by')->constrained('users')->restrictOnDelete();
-            $table->foreignId('updated_by')->nullable()->constrained('users')->restrictOnDelete();
             $table->timestamps();
         });
     }
