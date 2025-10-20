@@ -17,12 +17,11 @@ return new class extends Migration
             $table->foreignId('expediente_id')->constrained('expedientes')->cascadeOnDelete();
             $table->date('fecha')->index();
             $table->string('tipo', 60);
+            $table->string('referencia_externa', 120)->nullable();
             $table->longText('nota');
             $table->foreignId('realizada_por')->constrained('users')->restrictOnDelete();
-            $table->enum('status_revision', ['pendiente', 'observada', 'validada'])->default('pendiente')->index();
+            $table->enum('status_revision', ['pendiente', 'observada', 'validada'])->default('pendiente');
             $table->foreignId('validada_por')->nullable()->constrained('users')->restrictOnDelete();
-            $table->foreignId('created_by')->constrained('users')->restrictOnDelete();
-            $table->foreignId('updated_by')->nullable()->constrained('users')->restrictOnDelete();
             $table->timestamps();
         });
     }
