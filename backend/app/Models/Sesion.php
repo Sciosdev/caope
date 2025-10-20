@@ -10,6 +10,8 @@ class Sesion extends Model
 {
     use HasFactory;
 
+    protected $table = 'sesiones';
+
     public function expediente(): BelongsTo
     {
         return $this->belongsTo(Expediente::class);
