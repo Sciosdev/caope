@@ -8,6 +8,9 @@ Route::view('/', 'welcome')->name('home');
 
 Route::middleware('auth')->group(function () {
     Route::view('/dashboard', 'dashboard.index')->name('dashboard');
+    Route::post('expedientes/{expediente}/estado', [ExpedienteController::class, 'changeState'])
+        ->name('expedientes.change-state');
+
     Route::resource('expedientes', ExpedienteController::class)->middleware('auth');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
