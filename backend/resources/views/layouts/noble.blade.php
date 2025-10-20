@@ -16,6 +16,16 @@
   <div class="main-wrapper">
 
     {{-- Topbar simple --}}
+    @php
+        $reportesRouteName = collect(['reportes.index', 'reports.index'])->first(fn ($name) => Route::has($name));
+        $sesionesValidacionRouteName = collect([
+            'sesiones.validacion',
+            'sesiones.validacion.index',
+            'sesiones.validar.index',
+            'sesiones.validation.index',
+        ])->first(fn ($name) => Route::has($name));
+    @endphp
+
     <nav class="navbar">
       <div class="container d-flex justify-content-between align-items-center">
         <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url('/') }}">
@@ -30,10 +40,28 @@
                class="text-muted small {{ request()->routeIs('dashboard') ? 'fw-semibold text-body' : '' }}">
               Dashboard
             </a>
-            <a href="{{ route('expedientes.index') }}"
-               class="text-muted small {{ request()->routeIs('expedientes.*') ? 'fw-semibold text-body' : '' }}">
-              Expedientes
-            </a>
+            @can('expedientes.view')
+              <a href="{{ route('expedientes.index') }}"
+                 class="text-muted small {{ request()->routeIs('expedientes.*') ? 'fw-semibold text-body' : '' }}">
+                Expedientes
+              </a>
+            @endcan
+            @role('admin|coordinador')
+              @if ($reportesRouteName)
+                <a href="{{ route($reportesRouteName) }}"
+                   class="text-muted small {{ request()->routeIs($reportesRouteName) ? 'fw-semibold text-body' : '' }}">
+                  Reportes
+                </a>
+              @endif
+            @endrole
+            @can('sesiones.validate')
+              @if ($sesionesValidacionRouteName)
+                <a href="{{ route($sesionesValidacionRouteName) }}"
+                   class="text-muted small {{ request()->routeIs($sesionesValidacionRouteName) ? 'fw-semibold text-body' : '' }}">
+                  Validación de sesiones
+                </a>
+              @endif
+            @endcan
 
             <div class="dropdown">
               <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">

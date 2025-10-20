@@ -1,3 +1,13 @@
+@php
+    $reportesRouteName = collect(['reportes.index', 'reports.index'])->first(fn ($name) => Route::has($name));
+    $sesionesValidacionRouteName = collect([
+        'sesiones.validacion',
+        'sesiones.validacion.index',
+        'sesiones.validar.index',
+        'sesiones.validation.index',
+    ])->first(fn ($name) => Route::has($name));
+@endphp
+
 <nav x-data="{ open: false }" class="bg-white border-b border-gray-100">
     <!-- Primary Navigation Menu -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -15,9 +25,25 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
-                    <x-nav-link :href="route('expedientes.index')" :active="request()->routeIs('expedientes.*')">
-                        {{ __('Expedientes') }}
-                    </x-nav-link>
+                    @can('expedientes.view')
+                        <x-nav-link :href="route('expedientes.index')" :active="request()->routeIs('expedientes.*')">
+                            {{ __('Expedientes') }}
+                        </x-nav-link>
+                    @endcan
+                    @role('admin|coordinador')
+                        @if ($reportesRouteName)
+                            <x-nav-link :href="route($reportesRouteName)" :active="request()->routeIs($reportesRouteName)">
+                                {{ __('Reportes') }}
+                            </x-nav-link>
+                        @endif
+                    @endrole
+                    @can('sesiones.validate')
+                        @if ($sesionesValidacionRouteName)
+                            <x-nav-link :href="route($sesionesValidacionRouteName)" :active="request()->routeIs($sesionesValidacionRouteName)">
+                                {{ __('Validación de sesiones') }}
+                            </x-nav-link>
+                        @endif
+                    @endcan
                 </div>
             </div>
 
@@ -73,9 +99,25 @@
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('expedientes.index')" :active="request()->routeIs('expedientes.*')">
-                {{ __('Expedientes') }}
-            </x-responsive-nav-link>
+            @can('expedientes.view')
+                <x-responsive-nav-link :href="route('expedientes.index')" :active="request()->routeIs('expedientes.*')">
+                    {{ __('Expedientes') }}
+                </x-responsive-nav-link>
+            @endcan
+            @role('admin|coordinador')
+                @if ($reportesRouteName)
+                    <x-responsive-nav-link :href="route($reportesRouteName)" :active="request()->routeIs($reportesRouteName)">
+                        {{ __('Reportes') }}
+                    </x-responsive-nav-link>
+                @endif
+            @endrole
+            @can('sesiones.validate')
+                @if ($sesionesValidacionRouteName)
+                    <x-responsive-nav-link :href="route($sesionesValidacionRouteName)" :active="request()->routeIs($sesionesValidacionRouteName)">
+                        {{ __('Validación de sesiones') }}
+                    </x-responsive-nav-link>
+                @endif
+            @endcan
         </div>
 
         <!-- Responsive Settings Options -->
