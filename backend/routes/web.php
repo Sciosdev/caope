@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ConsentimientoPdfController;
 use App\Http\Controllers\ConsentimientoRequeridoController;
 use App\Http\Controllers\ExpedienteController;
 use App\Http\Controllers\ProfileController;
@@ -12,6 +13,9 @@ Route::middleware('auth')->group(function () {
     Route::view('/dashboard', 'dashboard.index')->name('dashboard');
     Route::post('expedientes/{expediente}/estado', [ExpedienteController::class, 'changeState'])
         ->name('expedientes.change-state');
+
+    Route::get('expedientes/{expediente}/consentimientos/pdf', ConsentimientoPdfController::class)
+        ->name('expedientes.consentimientos.pdf');
 
     Route::post('expedientes/{expediente}/sesiones/{sesion}/observe', [SesionController::class, 'observe'])
         ->name('expedientes.sesiones.observe');
