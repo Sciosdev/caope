@@ -20,6 +20,18 @@
 
 Antes de abrir un PR, asegúrate de que apunte a `develop` salvo que se especifique lo contrario.
 
+## Política de protección de ramas
+
+Configura la protección de ramas directamente en la interfaz de GitHub siguiendo estos lineamientos:
+
+1. **Ramas protegidas**: aplica la política sobre la rama estable de trabajo (`develop` o `main`, según corresponda).
+2. **Checks obligatorios**: marca como requisitos los jobs de CI `lint`, `test` y `build` para poder completar el merge.
+3. **Revisión obligatoria**: habilita la casilla de “Require a pull request before merging” e impide merges sin al menos una revisión aprobatoria.
+4. **Pushes restringidos**: bloquea los `force push` y los pushes directos marcando “Restrict who can push to matching branches” o “Do not allow bypassing the above settings”.
+5. **Sin fusiones directas**: fuerza que todos los cambios ingresen por Pull Request activando “Allow force pushes” en estado *deshabilitado*.
+
+Documenta cualquier excepción temporal en el handbook interno y levanta un recordatorio para revertirla una vez atendido el incidente.
+
 ## Pasos rápidos para desarrollar
 1. `cd backend`
 2. `composer install && npm install`
