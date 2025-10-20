@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\CatalogoCarrera;
+use App\Models\CatalogoTurno;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
 
@@ -19,7 +22,20 @@ class RegisteredUserController extends Controller
      */
     public function create(): View
     {
-        return view('auth.register');
+        $carreras = CatalogoCarrera::query()
+            ->where('activo', true)
+            ->orderBy('nombre')
+            ->pluck('nombre');
+
+        $turnos = CatalogoTurno::query()
+            ->where('activo', true)
+            ->orderBy('nombre')
+            ->pluck('nombre');
+
+        return view('auth.register', [
+            'carreras' => $carreras,
+            'turnos' => $turnos,
+        ]);
     }
 
     /**
@@ -29,16 +45,35 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $request->merge([
+            'carrera' => $request->filled('carrera') ? $request->input('carrera') : null,
+            'turno' => $request->filled('turno') ? $request->input('turno') : null,
+        ]);
+
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'carrera' => [
+                'nullable',
+                'string',
+                'max:100',
+                Rule::exists('catalogo_carreras', 'nombre')->where('activo', true),
+            ],
+            'turno' => [
+                'nullable',
+                'string',
+                'max:20',
+                Rule::exists('catalogo_turnos', 'nombre')->where('activo', true),
+            ],
         ]);
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'carrera' => $request->input('carrera'),
+            'turno' => $request->input('turno'),
         ]);
 
         event(new Registered($user));
