@@ -115,7 +115,7 @@ class ExpedienteController extends Controller
 
     public function store(StoreExpedienteRequest $request): RedirectResponse
     {
-        $data = $request->validated();
+        $data = $request->validatedExpedienteData();
         $data['creado_por'] = $request->user()->id;
         $data['estado'] = $data['estado'] ?? 'abierto';
 
@@ -171,7 +171,7 @@ class ExpedienteController extends Controller
 
     public function update(UpdateExpedienteRequest $request, Expediente $expediente): RedirectResponse
     {
-        $data = $request->validated();
+        $data = $request->validatedExpedienteData();
         $before = Arr::only($expediente->getAttributes(), self::TIMELINE_FIELDS);
 
         $expediente->fill($data);
