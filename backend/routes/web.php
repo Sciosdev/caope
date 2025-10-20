@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ExpedienteController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SesionController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
@@ -12,6 +13,7 @@ Route::middleware('auth')->group(function () {
         ->name('expedientes.change-state');
 
     Route::resource('expedientes', ExpedienteController::class)->middleware('auth');
+    Route::resource('expedientes.sesiones', SesionController::class)->middleware('auth');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

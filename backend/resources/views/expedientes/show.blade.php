@@ -151,7 +151,15 @@
         <div class="tab-pane fade" id="sesiones" role="tabpanel" aria-labelledby="sesiones-tab">
             <div class="card shadow-sm">
                 <div class="card-body">
-                    <h6 class="mb-3">Sesiones registradas</h6>
+                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                        <h6 class="mb-0">Sesiones registradas</h6>
+                        <div class="btn-group">
+                            <a href="{{ route('expedientes.sesiones.index', $expediente) }}" class="btn btn-outline-secondary btn-sm">Ver todas</a>
+                            @can('create', [App\Models\Sesion::class, $expediente])
+                                <a href="{{ route('expedientes.sesiones.create', $expediente) }}" class="btn btn-primary btn-sm">Nueva sesión</a>
+                            @endcan
+                        </div>
+                    </div>
                     @if ($sesiones->isEmpty())
                         <p class="text-muted mb-0">Aún no hay sesiones registradas.</p>
                     @else
@@ -164,6 +172,7 @@
                                         <th>Estado revisión</th>
                                         <th>Realizada por</th>
                                         <th>Validada por</th>
+                                        <th class="text-end">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -183,6 +192,24 @@
                                             </td>
                                             <td>{{ $sesion->realizadaPor?->name }}</td>
                                             <td>{{ $sesion->validadaPor?->name ?? '—' }}</td>
+                                            <td class="text-end">
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    @can('view', $sesion)
+                                                        <a href="{{ route('expedientes.sesiones.show', [$expediente, $sesion]) }}" class="btn btn-outline-secondary">Ver</a>
+                                                    @endcan
+                                                    @can('update', $sesion)
+                                                        <a href="{{ route('expedientes.sesiones.edit', [$expediente, $sesion]) }}" class="btn btn-outline-secondary">Editar</a>
+                                                    @endcan
+                                                    @can('delete', $sesion)
+                                                        <form action="{{ route('expedientes.sesiones.destroy', [$expediente, $sesion]) }}" method="post" class="d-inline"
+                                                            onsubmit="return confirm('¿Deseas eliminar esta sesión? Esta acción no se puede deshacer.');">
+                                                            @csrf
+                                                            @method('delete')
+                                                            <button type="submit" class="btn btn-outline-danger">Eliminar</button>
+                                                        </form>
+                                                    @endcan
+                                                </div>
+                                            </td>
                                         </tr>
                                     @endforeach
                                 </tbody>
