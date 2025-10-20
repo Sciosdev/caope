@@ -22,6 +22,7 @@ class RoleSeeder extends Seeder
             'usuarios.manage',
             'reportes.view',
             'sesiones.validate',
+            'consentimientos.manage',
         ];
 
         foreach ($permissions as $permission) {
