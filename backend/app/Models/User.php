@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable
 {
@@ -44,5 +45,20 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function expedientesCreados(): HasMany
+    {
+        return $this->hasMany(Expediente::class, 'creado_por');
+    }
+
+    public function expedientesTutorados(): HasMany
+    {
+        return $this->hasMany(Expediente::class, 'tutor_id');
+    }
+
+    public function expedientesCoordinados(): HasMany
+    {
+        return $this->hasMany(Expediente::class, 'coordinador_id');
     }
 }
