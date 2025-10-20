@@ -13,7 +13,9 @@ Route::middleware('auth')->group(function () {
         ->name('expedientes.change-state');
 
     Route::resource('expedientes', ExpedienteController::class)->middleware('auth');
-    Route::resource('expedientes.sesiones', SesionController::class)->middleware('auth');
+    Route::resource('expedientes.sesiones', SesionController::class)
+        ->parameters(['sesiones' => 'sesion'])
+        ->middleware('auth');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
