@@ -4,7 +4,12 @@
 - `backend/`: Aplicación Laravel 12 con SQLite para el MVP académico-clínico.
 - `public-assets/`: assets NobleUI listos para publicarse en Laravel (`public/assets`).
 - `_template/`: demos, documentación y SCSS originales del tema (solo referencia).
+codex/setup-branches-and-documentation-workflow
+- `docs/`: documentación funcional, planeación y guías de colaboración
+  (`docs/blueprint.md`, `docs/branching.md`, `docs/contributing.md`).
+
 - `docs/`: documentación funcional, de planeación y operación (`docs/blueprint.md`, `docs/environments.md`).
+ main
 - `preview.html`: mock estático para validar estilos sin correr Laravel.
 
 ## Estado actual
@@ -91,4 +96,8 @@ El servicio queda disponible en <http://localhost:8000>. Consulta `docs/environm
 - Registro de sesiones/atenciones con anexos por expediente.
 - Reportes iniciales de estados, alertas y actividad.
 
-Revisa `docs/blueprint.md` para el detalle funcional completo y próximos entregables.
+Revisa la documentación en `docs/` para más detalles:
+
+- [Blueprint funcional](docs/blueprint.md)
+- [Flujo de ramas y estrategias de merge](docs/branching.md)
+- [Guía de commits y Pull Requests](docs/contributing.md)
