@@ -235,6 +235,12 @@
                     @if ($consentimientos->isEmpty())
                         <p class="text-muted mb-0">No hay consentimientos registrados.</p>
                     @else
+                        @php
+                            $usuarioActual = auth()->user();
+                            $puedeGestionarConsentimientos = $usuarioActual
+                                ? $consentimientos->contains(fn ($consentimiento) => $usuarioActual->can('upload', $consentimiento))
+                                : false;
+                        @endphp
                         <div class="table-responsive">
                             <table class="table table-sm align-middle">
                                 <thead>
@@ -242,7 +248,12 @@
                                         <th>Tratamiento</th>
                                         <th>Requerido</th>
                                         <th>Aceptado</th>
+                                        <th>Archivo</th>
                                         <th>Fecha</th>
+                                        <th>Subido por</th>
+                                        @if ($puedeGestionarConsentimientos)
+                                            <th class="text-end">Acciones</th>
+                                        @endif
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -259,7 +270,25 @@
                                                     {{ $consentimiento->aceptado ? 'Aceptado' : 'Pendiente' }}
                                                 </span>
                                             </td>
+                                            <td>
+                                                @if ($consentimiento->archivo_path)
+                                                    <span class="badge bg-success">Cargado</span>
+                                                    <div class="small text-muted">{{ basename($consentimiento->archivo_path) }}</div>
+                                                @else
+                                                    <span class="badge bg-secondary">Sin archivo</span>
+                                                @endif
+                                            </td>
                                             <td>{{ optional($consentimiento->fecha)->format('Y-m-d') ?? '—' }}</td>
+                                            <td>{{ $consentimiento->subidoPor?->name ?? '—' }}</td>
+                                            @if ($puedeGestionarConsentimientos)
+                                                <td class="text-end">
+                                                    @can('upload', $consentimiento)
+                                                        @include('expedientes.partials.consentimiento-upload-form', ['consentimiento' => $consentimiento])
+                                                    @else
+                                                        <span class="text-muted small">Sin permisos</span>
+                                                    @endcan
+                                                </td>
+                                            @endif
                                         </tr>
                                     @endforeach
                                 </tbody>

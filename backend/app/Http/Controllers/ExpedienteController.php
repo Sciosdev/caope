@@ -143,7 +143,7 @@ class ExpedienteController extends Controller
             'tutor',
             'coordinador',
             'sesiones' => fn ($q) => $q->with(['realizadaPor', 'validadaPor'])->orderByDesc('fecha'),
-            'consentimientos' => fn ($q) => $q->orderByDesc('requerido')->orderBy('tratamiento'),
+            'consentimientos' => fn ($q) => $q->with('subidoPor')->orderByDesc('requerido')->orderBy('tratamiento'),
             'anexos' => fn ($q) => $q->with('subidoPor')->latest(),
             'timelineEventos' => fn ($q) => $q->with('actor')->orderByDesc('created_at'),
         ]);
