@@ -34,7 +34,7 @@ class ConsentimientoFactory extends Factory
             'requerido' => $requerido,
             'aceptado' => $aceptado,
             'fecha' => $fecha,
-            'archivo_path' => $aceptado ? 'consentimientos/' . $this->faker->uuid() . '.pdf' : null,
+            'archivo_path' => $aceptado ? 'consentimientos/'.$this->faker->uuid().'.pdf' : null,
         ];
     }
 }

@@ -26,7 +26,7 @@ class AnexoFactory extends Factory
             'expediente_id' => Expediente::factory(),
             'tipo' => $this->faker->randomElement(['documento', 'informe', 'evidencia']),
             'titulo' => $titulo,
-            'ruta' => 'anexos/' . $this->faker->uuid() . '/' . Str::slug($titulo) . '.pdf',
+            'ruta' => 'anexos/'.$this->faker->uuid().'/'.Str::slug($titulo).'.pdf',
             'tamano' => $this->faker->numberBetween(50_000, 2_000_000),
             'subido_por' => $usuarios->random(),
         ];
