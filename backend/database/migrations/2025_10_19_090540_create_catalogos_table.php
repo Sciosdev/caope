@@ -11,9 +11,8 @@ return new class extends Migration
         if (!Schema::hasTable('catalogo_carreras')) {
             Schema::create('catalogo_carreras', function (Blueprint $table) {
                 $table->id();
-                $table->string('clave', 20)->unique();
-                $table->string('nombre', 140);
-                $table->enum('estado', ['activo', 'inactivo'])->default('activo')->index();
+                $table->string('nombre')->unique();
+                $table->boolean('activo')->default(true);
                 $table->timestamps();
             });
         }
@@ -21,9 +20,8 @@ return new class extends Migration
         if (!Schema::hasTable('catalogo_turnos')) {
             Schema::create('catalogo_turnos', function (Blueprint $table) {
                 $table->id();
-                $table->string('clave', 20)->unique();
-                $table->string('nombre', 140);
-                $table->enum('estado', ['activo', 'inactivo'])->default('activo')->index();
+                $table->string('nombre')->unique();
+                $table->boolean('activo')->default(true);
                 $table->timestamps();
             });
         }
@@ -31,9 +29,8 @@ return new class extends Migration
         if (!Schema::hasTable('catalogo_padecimientos')) {
             Schema::create('catalogo_padecimientos', function (Blueprint $table) {
                 $table->id();
-                $table->string('clave', 20)->unique();
-                $table->string('nombre', 140);
-                $table->enum('estado', ['activo', 'inactivo'])->default('activo')->index();
+                $table->string('nombre')->unique();
+                $table->boolean('activo')->default(true);
                 $table->timestamps();
             });
         }
@@ -41,9 +38,8 @@ return new class extends Migration
         if (!Schema::hasTable('catalogo_tratamientos')) {
             Schema::create('catalogo_tratamientos', function (Blueprint $table) {
                 $table->id();
-                $table->string('clave', 20)->unique();
-                $table->string('nombre', 140);
-                $table->enum('estado', ['activo', 'inactivo'])->default('activo')->index();
+                $table->string('nombre')->unique();
+                $table->boolean('activo')->default(true);
                 $table->timestamps();
             });
         }
