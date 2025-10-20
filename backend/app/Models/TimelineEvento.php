@@ -22,6 +22,7 @@ class TimelineEvento extends Model
 
     protected $casts = [
         'payload' => 'array',
+        'created_at' => 'datetime',
     ];
 
     public function expediente(): BelongsTo

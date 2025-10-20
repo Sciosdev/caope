@@ -7,8 +7,8 @@ use App\Http\Requests\UpdateExpedienteRequest;
 use App\Models\CatalogoCarrera;
 use App\Models\CatalogoTurno;
 use App\Models\Expediente;
-use App\Models\TimelineEvento;
 use App\Models\User;
+use App\Services\TimelineLogger;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,7 +34,7 @@ class ExpedienteController extends Controller
         'coordinador_id',
     ];
 
-    public function __construct()
+    public function __construct(private TimelineLogger $timelineLogger)
     {
         $this->middleware('permission:expedientes.view')->only('index');
     }
@@ -121,7 +121,7 @@ class ExpedienteController extends Controller
 
         $expediente = Expediente::create($data);
 
-        $this->recordTimeline($expediente, 'expediente.creado', [
+        $this->timelineLogger->log($expediente, 'expediente.creado', $request->user(), [
             'datos' => Arr::only($expediente->toArray(), self::TIMELINE_FIELDS),
         ]);
 
@@ -150,6 +150,7 @@ class ExpedienteController extends Controller
             'consentimientos' => $expediente->consentimientos,
             'anexos' => $expediente->anexos,
             'timelineEventos' => $expediente->timelineEventos,
+            'timelineEventosRecientes' => $expediente->timelineEventos->take(5),
             'availableStates' => [
                 'abierto' => 'Abierto',
                 'revision' => 'En revisión',
@@ -186,7 +187,7 @@ class ExpedienteController extends Controller
             ->all();
 
         if (! empty($cambios)) {
-            $this->recordTimeline($expediente, 'expediente.actualizado', [
+            $this->timelineLogger->log($expediente, 'expediente.actualizado', $request->user(), [
                 'antes' => Arr::only($before, $cambios),
                 'despues' => Arr::only($after, $cambios),
                 'campos' => $cambios,
@@ -228,7 +229,7 @@ class ExpedienteController extends Controller
 
         $expediente->update(['estado' => $nuevoEstado]);
 
-        $this->recordTimeline($expediente, 'expediente.estado_cambiado', [
+        $this->timelineLogger->log($expediente, 'expediente.estado_cambiado', $request->user(), [
             'antes' => $estadoAnterior,
             'despues' => $nuevoEstado,
         ]);
@@ -261,20 +262,4 @@ class ExpedienteController extends Controller
         ];
     }
 
-    protected function recordTimeline(Expediente $expediente, string $evento, array $payload = []): void
-    {
-        $actorId = auth()->id();
-
-        if (! $actorId) {
-            return;
-        }
-
-        TimelineEvento::create([
-            'expediente_id' => $expediente->id,
-            'actor_id' => $actorId,
-            'evento' => $evento,
-            'payload' => $payload,
-            'created_at' => now(),
-        ]);
-    }
 }
