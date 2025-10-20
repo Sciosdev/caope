@@ -6,15 +6,24 @@ use App\Models\CatalogoCarrera;
 use App\Models\CatalogoTratamiento;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 class ConsentimientoRequeridoControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_usuario_puede_ver_matriz_de_tratamientos_requeridos(): void
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Permission::findOrCreate('consentimientos.manage', 'web');
+    }
+
+    public function test_usuario_con_permiso_puede_ver_matriz_de_tratamientos_requeridos(): void
     {
         $usuario = User::factory()->create();
+        $usuario->givePermissionTo('consentimientos.manage');
 
         $carrera = CatalogoCarrera::create([
             'nombre' => 'Arquitectura',
@@ -35,9 +44,19 @@ class ConsentimientoRequeridoControllerTest extends TestCase
         $response->assertSeeText($tratamiento->nombre);
     }
 
-    public function test_usuario_puede_actualizar_tratamientos_requeridos(): void
+    public function test_usuario_sin_permiso_no_puede_ver_matriz_de_tratamientos_requeridos(): void
     {
         $usuario = User::factory()->create();
+
+        $response = $this->actingAs($usuario)->get(route('consentimientos.requeridos.index'));
+
+        $response->assertForbidden();
+    }
+
+    public function test_usuario_con_permiso_puede_actualizar_tratamientos_requeridos(): void
+    {
+        $usuario = User::factory()->create();
+        $usuario->givePermissionTo('consentimientos.manage');
 
         $carrera = CatalogoCarrera::create([
             'nombre' => 'Ingeniería Biomédica',
@@ -75,9 +94,31 @@ class ConsentimientoRequeridoControllerTest extends TestCase
         $this->assertSame(2, $carrera->fresh()->tratamientosRequeridos()->count());
     }
 
+    public function test_usuario_sin_permiso_no_puede_actualizar_tratamientos_requeridos(): void
+    {
+        $usuario = User::factory()->create();
+        $carrera = CatalogoCarrera::create([
+            'nombre' => 'Arquitectura',
+        ]);
+
+        $tratamiento = CatalogoTratamiento::create([
+            'nombre' => 'Carta de consentimiento',
+        ]);
+
+        $response = $this->actingAs($usuario)->put(route('consentimientos.requeridos.update'), [
+            'requeridos' => [
+                $carrera->id => [$tratamiento->id],
+            ],
+        ]);
+
+        $response->assertForbidden();
+        $this->assertDatabaseCount('carrera_tratamiento', 0);
+    }
+
     public function test_actualizar_tratamientos_permite_limpiar_selecciones(): void
     {
         $usuario = User::factory()->create();
+        $usuario->givePermissionTo('consentimientos.manage');
 
         $carrera = CatalogoCarrera::create([
             'nombre' => 'Psicología',

@@ -23,10 +23,12 @@ Route::middleware('auth')->group(function () {
         ->parameters(['sesiones' => 'sesion'])
         ->middleware('auth');
 
-    Route::get('consentimientos/requeridos', [ConsentimientoRequeridoController::class, 'index'])
-        ->name('consentimientos.requeridos.index');
-    Route::put('consentimientos/requeridos', [ConsentimientoRequeridoController::class, 'update'])
-        ->name('consentimientos.requeridos.update');
+    Route::middleware('permission:consentimientos.manage')->group(function () {
+        Route::get('consentimientos/requeridos', [ConsentimientoRequeridoController::class, 'index'])
+            ->name('consentimientos.requeridos.index');
+        Route::put('consentimientos/requeridos', [ConsentimientoRequeridoController::class, 'update'])
+            ->name('consentimientos.requeridos.update');
+    });
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
