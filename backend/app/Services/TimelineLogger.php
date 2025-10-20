@@ -10,9 +10,13 @@ class TimelineLogger
 {
     public function log(Expediente $expediente, string $evento, ?Authenticatable $actor, array $payload = []): void
     {
+        if ($actor === null) {
+            return;
+        }
+
         TimelineEvento::create([
             'expediente_id' => $expediente->getKey(),
-            'actor_id' => $actor?->getAuthIdentifier(),
+            'actor_id' => $actor->getAuthIdentifier(),
             'evento' => $evento,
             'payload' => $payload,
             'created_at' => now(),
