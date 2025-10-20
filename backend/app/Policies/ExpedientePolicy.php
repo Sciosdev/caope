@@ -12,6 +12,14 @@ class ExpedientePolicy
 
     public function viewAny(User $user): bool
     {
+        if ($this->isAdmin($user) || $this->canManage($user)) {
+            return true;
+        }
+
+        if ($user->hasRole('docente') || $user->hasRole('alumno')) {
+            return true;
+        }
+
         return $user->can('expedientes.view');
     }
 
