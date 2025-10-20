@@ -8,6 +8,7 @@ use App\Models\CatalogoCarrera;
 use App\Models\CatalogoTurno;
 use App\Models\Expediente;
 use App\Models\User;
+use App\Services\ExpedienteStateValidator;
 use App\Services\TimelineLogger;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -34,7 +35,10 @@ class ExpedienteController extends Controller
         'coordinador_id',
     ];
 
-    public function __construct(private TimelineLogger $timelineLogger)
+    public function __construct(
+        private TimelineLogger $timelineLogger,
+        private ExpedienteStateValidator $stateValidator,
+    )
     {
         $this->middleware('permission:expedientes.view')->only('index');
     }
@@ -225,6 +229,16 @@ class ExpedienteController extends Controller
             return redirect()
                 ->route('expedientes.show', $expediente)
                 ->with('status', 'El estado seleccionado es el mismo que el actual.');
+        }
+
+        if ($nuevoEstado === 'cerrado') {
+            $erroresCierre = $this->stateValidator->validateClosureRequirements($expediente);
+
+            if ($erroresCierre->isNotEmpty()) {
+                return redirect()
+                    ->route('expedientes.show', $expediente)
+                    ->withErrors(['estado' => $erroresCierre->all()]);
+            }
         }
 
         $expediente->update(['estado' => $nuevoEstado]);
