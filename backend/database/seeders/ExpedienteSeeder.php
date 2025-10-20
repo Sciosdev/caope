@@ -111,8 +111,10 @@ class ExpedienteSeeder extends Seeder
                     if ($aceptado) {
                         $subidoPor = $usuarios->random();
 
-                        if ($subidoPor instanceof User) {
+                        if (is_object($subidoPor) && $subidoPor instanceof User) {
                             $subidoPor = $subidoPor->getKey();
+                        } elseif (is_scalar($subidoPor)) {
+                            $subidoPor = (int) $subidoPor;
                         }
                     }
 
