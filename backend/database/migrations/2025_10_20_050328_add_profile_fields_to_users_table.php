@@ -4,6 +4,7 @@ use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Throwable;
 
 return new class extends Migration
 {
@@ -72,11 +73,40 @@ return new class extends Migration
 
     private function indexExists(ConnectionInterface $connection, string $database, string $table, string $index): bool
     {
-        $result = $connection->selectOne(
-            'SELECT 1 FROM information_schema.statistics WHERE table_schema = ? AND table_name = ? AND index_name = ? LIMIT 1',
-            [$database, $table, $index]
-        );
+        $driver = $connection->getDriverName();
 
-        return $result !== null;
+        if ($driver === 'mysql' || $driver === 'mariadb') {
+            $result = $connection->selectOne(
+                'SELECT 1 FROM information_schema.statistics WHERE table_schema = ? AND table_name = ? AND index_name = ? LIMIT 1',
+                [$database, $table, $index]
+            );
+
+            return $result !== null;
+        }
+
+        if ($driver === 'sqlite') {
+            $result = $connection->selectOne(
+                "SELECT 1 FROM sqlite_master WHERE type = 'index' AND tbl_name = ? AND name = ? LIMIT 1",
+                [$table, $index]
+            );
+
+            return $result !== null;
+        }
+
+        if (method_exists($connection, 'getDoctrineSchemaManager')) {
+            try {
+                $schemaManager = $connection->getDoctrineSchemaManager();
+
+                if ($schemaManager !== null) {
+                    $indexes = $schemaManager->listTableIndexes($table);
+
+                    return array_key_exists($index, $indexes);
+                }
+            } catch (Throwable $exception) {
+                // Ignore Doctrine availability issues and fall back to false below.
+            }
+        }
+
+        return false;
     }
 };
