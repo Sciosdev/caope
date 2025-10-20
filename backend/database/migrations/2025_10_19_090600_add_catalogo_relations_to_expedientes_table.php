@@ -23,8 +23,8 @@ return new class extends Migration
         }
 
         Schema::table('expedientes', function (Blueprint $table) {
-            $table->foreignId('carrera_id')->nullable()->after('apertura')->constrained('catalogo_carreras')->nullOnDelete();
-            $table->foreignId('turno_id')->nullable()->after('carrera_id')->constrained('catalogo_turnos')->nullOnDelete();
+            $table->foreignId('carrera_id')->nullable()->after('apertura')->constrained('catalogo_carreras')->restrictOnDelete();
+            $table->foreignId('turno_id')->nullable()->after('carrera_id')->constrained('catalogo_turnos')->restrictOnDelete();
         });
     }
 

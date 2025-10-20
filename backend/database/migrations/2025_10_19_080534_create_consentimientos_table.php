@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('consentimientos', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('expediente_id')->constrained('expedientes')->restrictOnDelete();
+            $table->foreignId('expediente_id')->constrained('expedientes')->cascadeOnDelete();
             $table->string('tratamiento', 120);
             $table->boolean('requerido')->default(true);
             $table->boolean('aceptado')->default(false);

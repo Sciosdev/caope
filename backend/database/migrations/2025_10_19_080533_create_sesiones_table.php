@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('sesiones', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('expediente_id')->constrained('expedientes')->restrictOnDelete();
+            $table->foreignId('expediente_id')->constrained('expedientes')->cascadeOnDelete();
             $table->date('fecha')->index();
             $table->string('tipo', 60);
             $table->longText('nota');
