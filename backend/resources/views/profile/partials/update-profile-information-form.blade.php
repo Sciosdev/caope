@@ -47,6 +47,40 @@
             @endif
         </div>
 
+        <div>
+            <x-input-label for="carrera" :value="__('Carrera')" />
+            <select
+                id="carrera"
+                name="carrera"
+                class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+            >
+                <option value="">{{ __('Selecciona una carrera') }}</option>
+                @foreach ($carreras as $carrera)
+                    <option value="{{ $carrera }}" @selected(old('carrera', $user->carrera) === $carrera)>
+                        {{ $carrera }}
+                    </option>
+                @endforeach
+            </select>
+            <x-input-error class="mt-2" :messages="$errors->get('carrera')" />
+        </div>
+
+        <div>
+            <x-input-label for="turno" :value="__('Turno')" />
+            <select
+                id="turno"
+                name="turno"
+                class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+            >
+                <option value="">{{ __('Selecciona un turno') }}</option>
+                @foreach ($turnos as $turno)
+                    <option value="{{ $turno }}" @selected(old('turno', $user->turno) === $turno)>
+                        {{ $turno }}
+                    </option>
+                @endforeach
+            </select>
+            <x-input-error class="mt-2" :messages="$errors->get('turno')" />
+        </div>
+
         <div class="flex items-center gap-4">
             <x-primary-button>{{ __('Save') }}</x-primary-button>
 

@@ -25,6 +25,18 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
+            'carrera' => [
+                'nullable',
+                'string',
+                'max:100',
+                Rule::exists('catalogo_carreras', 'nombre')->where('activo', true),
+            ],
+            'turno' => [
+                'nullable',
+                'string',
+                'max:20',
+                Rule::exists('catalogo_turnos', 'nombre')->where('activo', true),
+            ],
         ];
     }
 }
