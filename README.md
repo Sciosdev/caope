@@ -34,6 +34,29 @@ Antes de abrir un PR, asegúrate de que apunte a `develop` salvo que se especifi
 
 > Opcional: `npm run dev` si deseas recompilar assets Vite propios. NobleUI ya está publicado en `public/assets`.
 
+## Validaciones CI locales
+
+Sigue estos pasos para replicar los jobs del workflow de GitHub Actions antes de subir cambios:
+
+### Lint (`lint`)
+1. `cd backend`
+2. Instala Pint de forma global (una sola vez es suficiente): `composer global require laravel/pint`
+3. Ejecuta la verificación de estilo: `pint --test`
+
+### Pruebas (`test`)
+1. `cd backend`
+2. Asegúrate de que exista `database/database.sqlite` (puedes crearlo con `touch database/database.sqlite` si falta).
+3. Copia `.env.example` a `.env` y genera la llave de la aplicación: `cp .env.example .env && php artisan key:generate`
+4. Ejecuta las migraciones (con semillas si es necesario): `php artisan migrate --seed`
+5. Lanza la prueba rápida de humo: `php artisan test --testsuite=Feature`
+6. Ejecuta el validador de Blade: `php artisan blade:validate`
+
+### Build (`build`)
+1. `cd backend`
+2. Instala dependencias de Composer si no lo has hecho: `composer install`
+3. Si existe `package.json`, instala dependencias de Node y construye los assets: `npm ci && npm run build`
+4. Si no existe `package.json`, ejecuta un chequeo rápido de rutas: `php artisan route:list`
+
 ### Docker Compose (opcional)
 
 También puedes levantar el entorno local con Docker usando SQLite por defecto:
