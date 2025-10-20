@@ -20,6 +20,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Verify SQLite database placeholder
+        run: |
+          if [ ! -f database/database.sqlite ]; then
+            echo "::error::database/database.sqlite is missing. Create it and commit it so queue and cache drivers work in CI."
+            exit 1
+          fi
+
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
