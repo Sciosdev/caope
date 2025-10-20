@@ -14,7 +14,8 @@
         </div>
     </div>
 
-    <form action="{{ route('expedientes.sesiones.store', $expediente) }}" method="post" class="card shadow-sm">
+    <form action="{{ route('expedientes.sesiones.store', $expediente) }}" method="post" class="card shadow-sm"
+        enctype="multipart/form-data">
         @csrf
 
         <div class="card-body">

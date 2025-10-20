@@ -99,6 +99,10 @@
         </li>
     </ul>
 
+    @php
+        $permiteGestionarSesiones = $expediente->estado === 'abierto';
+    @endphp
+
     <div class="tab-content" id="expedienteTabsContent">
         <div class="tab-pane fade show active" id="resumen" role="tabpanel" aria-labelledby="resumen-tab">
             <div class="card shadow-sm">
@@ -155,9 +159,11 @@
                         <h6 class="mb-0">Sesiones registradas</h6>
                         <div class="btn-group">
                             <a href="{{ route('expedientes.sesiones.index', $expediente) }}" class="btn btn-outline-secondary btn-sm">Ver todas</a>
-                            @can('create', [App\Models\Sesion::class, $expediente])
-                                <a href="{{ route('expedientes.sesiones.create', $expediente) }}" class="btn btn-primary btn-sm">Nueva sesión</a>
-                            @endcan
+                            @if ($permiteGestionarSesiones)
+                                @can('create', [App\Models\Sesion::class, $expediente])
+                                    <a href="{{ route('expedientes.sesiones.create', $expediente) }}" class="btn btn-primary btn-sm">Nueva sesión</a>
+                                @endcan
+                            @endif
                         </div>
                     </div>
                     @if ($sesiones->isEmpty())
@@ -197,9 +203,11 @@
                                                     @can('view', $sesion)
                                                         <a href="{{ route('expedientes.sesiones.show', [$expediente, $sesion]) }}" class="btn btn-outline-secondary">Ver</a>
                                                     @endcan
-                                                    @can('update', $sesion)
-                                                        <a href="{{ route('expedientes.sesiones.edit', [$expediente, $sesion]) }}" class="btn btn-outline-secondary">Editar</a>
-                                                    @endcan
+                                                    @if ($permiteGestionarSesiones && $sesion->status_revision !== 'validada')
+                                                        @can('update', $sesion)
+                                                            <a href="{{ route('expedientes.sesiones.edit', [$expediente, $sesion]) }}" class="btn btn-outline-secondary">Editar</a>
+                                                        @endcan
+                                                    @endif
                                                     @can('delete', $sesion)
                                                         <form action="{{ route('expedientes.sesiones.destroy', [$expediente, $sesion]) }}" method="post" class="d-inline"
                                                             onsubmit="return confirm('¿Deseas eliminar esta sesión? Esta acción no se puede deshacer.');">
