@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('carrera', 60)->nullable()->index();
             $table->string('turno', 40)->nullable()->index();
             $table->foreignId('created_by')->constrained('users')->restrictOnDelete();
-            $table->foreignId('tutor_id')->nullable()->constrained('users')->restrictOnDelete();
+            $table->foreignId('tutor_id')->nullable()->constrained('users')->restrictOnDelete()->index();
             $table->foreignId('coordinador_id')->nullable()->constrained('users')->restrictOnDelete();
             $table->foreignId('updated_by')->nullable()->constrained('users')->restrictOnDelete();
             $table->timestamps();

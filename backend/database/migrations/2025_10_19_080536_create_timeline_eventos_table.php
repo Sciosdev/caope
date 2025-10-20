@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('timeline_eventos', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('expediente_id')->constrained('expedientes')->restrictOnDelete();
+            $table->foreignId('expediente_id')->constrained('expedientes')->cascadeOnDelete();
             $table->string('evento', 80);
             $table->foreignId('actor_id')->constrained('users')->restrictOnDelete();
             $table->json('payload')->nullable();
