@@ -117,7 +117,7 @@ jobs:
       - name: Build frontend assets with Vite
         if: ${{ hashFiles('backend/package.json') != '' }}
         run: |
-          npm ci
+          npm install
           npm run build
 
       - name: Validate application routes
