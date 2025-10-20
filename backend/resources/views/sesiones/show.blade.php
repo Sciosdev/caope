@@ -67,7 +67,7 @@
             <div class="mt-4">
                 <h6 class="mb-2">Notas de la sesión</h6>
                 <div class="bg-light border rounded p-3 small trix-content">
-                    {!! $sesion->nota !!}
+                    {!! nl2br(e($sesion->nota)) !!}
                 </div>
             </div>
             @if ($sesion->adjuntos->isNotEmpty())
