@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ConsentimientoPdfController;
 use App\Http\Controllers\ConsentimientoRequeridoController;
+use App\Http\Controllers\ConsentimientoUploadController;
 use App\Http\Controllers\ExpedienteController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SesionController;
@@ -16,6 +17,9 @@ Route::middleware('auth')->group(function () {
 
     Route::get('expedientes/{expediente}/consentimientos/pdf', ConsentimientoPdfController::class)
         ->name('expedientes.consentimientos.pdf');
+
+    Route::post('consentimientos/{consentimiento}/archivo', [ConsentimientoUploadController::class, 'store'])
+        ->name('consentimientos.upload');
 
     Route::post('expedientes/{expediente}/sesiones/{sesion}/observe', [SesionController::class, 'observe'])
         ->name('expedientes.sesiones.observe');

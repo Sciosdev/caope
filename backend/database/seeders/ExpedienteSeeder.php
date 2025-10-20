@@ -114,6 +114,7 @@ class ExpedienteSeeder extends Seeder
                         'archivo_path' => $aceptado
                             ? sprintf('expedientes/%s/consentimientos/%s.pdf', $expediente->id, Str::uuid())
                             : null,
+                        'subido_por' => $aceptado ? $usuarios->random() : null,
                     ]);
                 }
             }

@@ -33,6 +33,10 @@ class ConsentimientoPolicy
 
         $expediente = $consentimiento->expediente;
 
+        if (! $expediente || $expediente->estado === 'cerrado') {
+            return false;
+        }
+
         if ($user->hasRole('docente') && $expediente && $expediente->tutor_id === $user->id) {
             return true;
         }

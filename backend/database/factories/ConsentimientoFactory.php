@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Models\CatalogoTratamiento;
 use App\Models\Consentimiento;
 use App\Models\Expediente;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class ConsentimientoFactory extends Factory
@@ -35,6 +36,7 @@ class ConsentimientoFactory extends Factory
             'aceptado' => $aceptado,
             'fecha' => $fecha,
             'archivo_path' => $aceptado ? 'consentimientos/'.$this->faker->uuid().'.pdf' : null,
+            'subido_por' => $aceptado ? User::factory() : null,
         ];
     }
 }
