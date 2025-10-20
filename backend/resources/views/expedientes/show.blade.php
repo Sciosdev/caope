@@ -276,3 +276,37 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (!window.bootstrap || !window.bootstrap.Tab) {
+                return;
+            }
+
+            const triggerTabList = [].slice.call(document.querySelectorAll('#expedienteTabs button[data-bs-toggle="tab"]'));
+
+            const activateTab = function (selector) {
+                const tabTrigger = document.querySelector(selector);
+                if (tabTrigger) {
+                    const tab = new window.bootstrap.Tab(tabTrigger);
+                    tab.show();
+                }
+            };
+
+            if (window.location.hash) {
+                activateTab(`#expedienteTabs button[data-bs-target="${window.location.hash}"]`);
+            }
+
+            triggerTabList.forEach(function (triggerEl) {
+                triggerEl.addEventListener('shown.bs.tab', function (event) {
+                    const target = event.target.getAttribute('data-bs-target');
+                    if (target) {
+                        const newUrl = `${window.location.pathname}${window.location.search}${target}`;
+                        history.replaceState(null, '', newUrl);
+                    }
+                });
+            });
+        });
+    </script>
+@endpush

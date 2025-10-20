@@ -51,7 +51,8 @@
         <select
             name="carrera"
             id="carrera"
-            class="form-select @error('carrera') is-invalid @enderror"
+            class="form-select js-select2 @error('carrera') is-invalid @enderror"
+            data-placeholder="Seleccione una carrera"
             required
         >
             <option value="">Seleccione</option>
@@ -71,7 +72,8 @@
         <select
             name="turno"
             id="turno"
-            class="form-select @error('turno') is-invalid @enderror"
+            class="form-select js-select2 @error('turno') is-invalid @enderror"
+            data-placeholder="Seleccione un turno"
             required
         >
             <option value="">Seleccione</option>
@@ -124,3 +126,40 @@
         @enderror
     </div>
 </div>
+
+@once
+    @push('styles')
+        <link rel="stylesheet" href="{{ asset('assets/vendors/select2/select2.min.css') }}">
+    @endpush
+
+    @push('scripts')
+        <script src="{{ asset('assets/vendors/select2/select2.min.js') }}"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const aperturaField = document.getElementById('apertura');
+                if (aperturaField && window.flatpickr) {
+                    window.flatpickr(aperturaField, {
+                        dateFormat: 'Y-m-d',
+                        maxDate: 'today',
+                    });
+                }
+
+                if (window.jQuery && typeof window.jQuery.fn.select2 === 'function') {
+                    const $ = window.jQuery;
+                    const $selects = $('#carrera, #turno');
+
+                    if ($selects.length) {
+                        $selects.each(function () {
+                            const $element = $(this);
+                            $element.select2({
+                                placeholder: $element.data('placeholder') || 'Seleccione una opción',
+                                allowClear: true,
+                                width: '100%'
+                            });
+                        });
+                    }
+                }
+            });
+        </script>
+    @endpush
+@endonce
