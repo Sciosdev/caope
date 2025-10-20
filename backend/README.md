@@ -17,6 +17,20 @@ php artisan serve
 
 > El proyecto está pensado para SQLite en desarrollo. Si prefieres MySQL/PostgreSQL ajusta el `.env` y crea la base correspondiente.
 
+### Colas y caché
+
+- Inicia el worker de colas cuando requieras procesar trabajos en segundo plano:
+
+  ```bash
+  php artisan queue:work
+  ```
+
+- Limpia la caché de la aplicación si necesitas regenerar la información almacenada:
+
+  ```bash
+  php artisan cache:clear
+  ```
+
 ## Datos de ejemplo
 `php artisan migrate --seed` registra los catálogos base (carreras, turnos, padecimientos y tratamientos), crea 80 expedientes de ejemplo con vínculos a esos catálogos y genera un usuario de muestra (`test@example.com`).
 
