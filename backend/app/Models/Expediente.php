@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\User;
 
 class Expediente extends Model
 {
@@ -15,21 +16,29 @@ class Expediente extends Model
         'paciente',
         'estado',
         'apertura',
-        'carrera_id',
-        'turno_id',
+        'carrera',
+        'turno',
+        'creado_por',
+        'tutor_id',
+        'coordinador_id',
     ];
 
     protected $casts = [
         'apertura' => 'date',
     ];
 
-    public function carrera(): BelongsTo
+    public function creador(): BelongsTo
     {
-        return $this->belongsTo(CatalogoCarrera::class);
+        return $this->belongsTo(User::class, 'creado_por');
     }
 
-    public function turno(): BelongsTo
+    public function tutor(): BelongsTo
     {
-        return $this->belongsTo(CatalogoTurno::class);
+        return $this->belongsTo(User::class, 'tutor_id');
+    }
+
+    public function coordinador(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'coordinador_id');
     }
 }

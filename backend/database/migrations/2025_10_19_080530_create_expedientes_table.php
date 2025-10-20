@@ -14,17 +14,18 @@ return new class extends Migration
 
         Schema::create('expedientes', function (Blueprint $table) {
             $table->id();
-            $table->string('no_control', 20)->unique();
-            $table->string('paciente', 140);
-            $table->enum('estado', ['abierto', 'revision', 'cerrado'])->default('abierto')->index();
-            $table->date('apertura')->nullable()->index();
-            $table->string('carrera', 60)->nullable()->index();
-            $table->string('turno', 40)->nullable()->index();
-            $table->foreignId('created_by')->constrained('users')->restrictOnDelete();
-            $table->foreignId('tutor_id')->nullable()->constrained('users')->restrictOnDelete()->index();
+            $table->string('no_control', 30)->unique();
+            $table->string('paciente', 150);
+            $table->string('estado', 20)->default('abierto')->checkIn(['abierto', 'revision', 'cerrado'])->index();
+            $table->date('apertura');
+            $table->string('carrera', 100)->index();
+            $table->string('turno', 20)->index();
+            $table->foreignId('creado_por')->constrained('users')->restrictOnDelete();
+            $table->foreignId('tutor_id')->nullable()->constrained('users')->restrictOnDelete();
             $table->foreignId('coordinador_id')->nullable()->constrained('users')->restrictOnDelete();
-            $table->foreignId('updated_by')->nullable()->constrained('users')->restrictOnDelete();
             $table->timestamps();
+
+            $table->index(['estado', 'apertura']);
         });
     }
 

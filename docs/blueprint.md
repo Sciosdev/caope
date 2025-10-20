@@ -54,12 +54,12 @@ Estructura estándar del paquete.
 
 **expedientes**  
 - `id` PK  
-- `no_control` string(20) **unique**  
-- `paciente` string(140)  
-- `estado` enum: `abierto|revision|cerrado` (index)  
-- `apertura` date (index)  
-- `carrera` string(60) (index)  
-- `turno` enum/text corto (index)  
+- `no_control` string(30) **unique**
+- `paciente` string(150)
+- `estado` string(20) limitado a `abierto|revision|cerrado` (index)
+- `apertura` date (index compuesto con estado)
+- `carrera` string(100) (index)
+- `turno` string(20) (index)
 - `creado_por` FK → users(id)  
 - `tutor_id` FK → users(id) nullable  
 - `coordinador_id` FK → users(id) nullable  

@@ -2,8 +2,6 @@
 
 namespace Database\Factories;
 
-use App\Models\CatalogoCarrera;
-use App\Models\CatalogoTurno;
 use App\Models\Expediente;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -30,12 +28,11 @@ class ExpedienteFactory extends Factory
             'paciente' => $this->faker->name(),
             'estado' => $this->faker->randomElement($estados),
             'apertura' => $this->faker->dateTimeBetween('-30 days', 'now'),
-            'carrera_id' => CatalogoCarrera::query()->where('estado', 'activo')->inRandomOrder()->value('id'),
-            'turno_id' => CatalogoTurno::query()->where('estado', 'activo')->inRandomOrder()->value('id'),
-            'created_by' => $createdBy,
+            'carrera' => $this->faker->words(3, true),
+            'turno' => $this->faker->randomElement(['matutino', 'vespertino', 'mixto']),
+            'creado_por' => $createdBy,
             'tutor_id' => $this->faker->boolean(60) && $otrosUsuarios->isNotEmpty() ? $otrosUsuarios->random() : null,
             'coordinador_id' => $this->faker->boolean(30) && $otrosUsuarios->isNotEmpty() ? $otrosUsuarios->random() : null,
-            'updated_by' => $this->faker->boolean(50) ? $usuarios->random() : null,
         ];
     }
 }

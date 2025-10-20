@@ -12,6 +12,49 @@ return new class extends Migration
             return;
         }
 
+        if (Schema::hasColumn('expedientes', 'created_by') && !Schema::hasColumn('expedientes', 'creado_por')) {
+            Schema::table('expedientes', function (Blueprint $table) {
+                $table->renameColumn('created_by', 'creado_por');
+            });
+        }
+
+        if (!Schema::hasColumn('expedientes', 'carrera')) {
+            Schema::table('expedientes', function (Blueprint $table) {
+                $table->string('carrera', 100)->index()->after('apertura');
+            });
+        }
+
+        if (Schema::hasColumn('expedientes', 'carrera_id')) {
+            Schema::table('expedientes', function (Blueprint $table) {
+                $table->dropConstrainedForeignId('carrera_id');
+            });
+        }
+
+        if (!Schema::hasColumn('expedientes', 'turno')) {
+            Schema::table('expedientes', function (Blueprint $table) {
+                $table->string('turno', 20)->index()->after('carrera');
+            });
+        }
+
+        if (Schema::hasColumn('expedientes', 'turno_id')) {
+            Schema::table('expedientes', function (Blueprint $table) {
+                $table->dropConstrainedForeignId('turno_id');
+            });
+        }
+    }
+
+    public function down(): void
+    {
+        if (!Schema::hasTable('expedientes')) {
+            return;
+        }
+
+        if (!Schema::hasColumn('expedientes', 'carrera_id')) {
+            Schema::table('expedientes', function (Blueprint $table) {
+                $table->foreignId('carrera_id')->nullable()->after('apertura')->constrained('catalogo_carreras')->restrictOnDelete();
+            });
+        }
+
         if (Schema::hasColumn('expedientes', 'carrera')) {
             $indexName = 'expedientes_carrera_index';
 
@@ -23,6 +66,12 @@ return new class extends Migration
 
             Schema::table('expedientes', function (Blueprint $table) {
                 $table->dropColumn('carrera');
+            });
+        }
+
+        if (!Schema::hasColumn('expedientes', 'turno_id')) {
+            Schema::table('expedientes', function (Blueprint $table) {
+                $table->foreignId('turno_id')->nullable()->after('carrera_id')->constrained('catalogo_turnos')->restrictOnDelete();
             });
         }
 
@@ -40,46 +89,9 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasColumn('expedientes', 'carrera_id')) {
+        if (Schema::hasColumn('expedientes', 'creado_por') && !Schema::hasColumn('expedientes', 'created_by')) {
             Schema::table('expedientes', function (Blueprint $table) {
-                $table->foreignId('carrera_id')->nullable()->after('apertura')->constrained('catalogo_carreras')->restrictOnDelete();
-            });
-        }
-
-        if (!Schema::hasColumn('expedientes', 'turno_id')) {
-            Schema::table('expedientes', function (Blueprint $table) {
-                $table->foreignId('turno_id')->nullable()->after('carrera_id')->constrained('catalogo_turnos')->restrictOnDelete();
-            });
-        }
-    }
-
-    public function down(): void
-    {
-        if (!Schema::hasTable('expedientes')) {
-            return;
-        }
-
-        if (Schema::hasColumn('expedientes', 'turno_id')) {
-            Schema::table('expedientes', function (Blueprint $table) {
-                $table->dropConstrainedForeignId('turno_id');
-            });
-        }
-
-        if (Schema::hasColumn('expedientes', 'carrera_id')) {
-            Schema::table('expedientes', function (Blueprint $table) {
-                $table->dropConstrainedForeignId('carrera_id');
-            });
-        }
-
-        if (!Schema::hasColumn('expedientes', 'carrera')) {
-            Schema::table('expedientes', function (Blueprint $table) {
-                $table->string('carrera', 60)->nullable()->index()->after('apertura');
-            });
-        }
-
-        if (!Schema::hasColumn('expedientes', 'turno')) {
-            Schema::table('expedientes', function (Blueprint $table) {
-                $table->string('turno', 40)->nullable()->index()->after('carrera');
+                $table->renameColumn('creado_por', 'created_by');
             });
         }
     }
