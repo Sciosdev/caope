@@ -32,5 +32,6 @@ jobs:
             # TODO: Replace `/ruta` with the correct deployment directory.
             # The tag name is available in the GITHUB_REF_NAME environment variable.
             cd "${{ secrets.STAGING_PATH || '/ruta' }}"
-            git pull origin "${GITHUB_REF_NAME}"
+            git fetch --depth 1 origin "refs/tags/${GITHUB_REF_NAME}"
+            git checkout -f FETCH_HEAD
             # Add any other commands necessary to restart services, run migrations, etc.
