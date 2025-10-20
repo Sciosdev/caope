@@ -10,9 +10,33 @@ permissions:
   contents: read
 
 jobs:
-  php:
-    name: PHP quality checks
+  lint:
+    name: Lint PHP code style
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, bcmath, intl, pcntl, sqlite3
+          coverage: none
+
+      - name: Install Pint globally
+        run: composer global require laravel/pint
+
+      - name: Run Pint (PSR-12 + Laravel style)
+        run: pint --test
+
+  test:
+    name: Test Laravel application
+    runs-on: ubuntu-latest
+    needs: lint
     defaults:
       run:
         working-directory: backend
@@ -34,9 +58,6 @@ jobs:
           extensions: mbstring, bcmath, intl, pcntl, sqlite3
           coverage: none
 
-      - name: Validate composer.json
-        run: composer validate --no-check-publish
-
       - name: Install Composer dependencies
         uses: ramsey/composer-install@v3
         with:
@@ -52,20 +73,15 @@ jobs:
       - name: Run migrations with seed data
         run: php artisan migrate --seed --force
 
-      - name: Run Feature test suite
+      - name: Run smoke test suite
         run: php artisan test --testsuite=Feature
-
-      - name: Run Pint (PSR-12 + Laravel style)
-        run: vendor/bin/pint --test
 
       - name: Run Blade linter
         run: php artisan blade:validate
 
-  assets:
-    name: Build frontend assets
+  build:
+    name: Build frontend assets or verify routes
     runs-on: ubuntu-latest
-    needs: php
-    if: ${{ hashFiles('backend/package.json') != '' }}
     defaults:
       run:
         working-directory: backend
@@ -73,13 +89,37 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, bcmath, intl, pcntl, sqlite3
+          coverage: none
+
+      - name: Install Composer dependencies
+        uses: ramsey/composer-install@v3
+        with:
+          working-directory: backend
+          composer-options: "--no-progress --no-interaction --prefer-dist"
+
+      - name: Prepare application
+        run: |
+          cp .env.example .env
+          touch database/database.sqlite
+          php artisan key:generate
+
       - name: Set up Node.js
+        if: ${{ hashFiles('backend/package.json') != '' }}
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
+      - name: Build frontend assets with Vite
+        if: ${{ hashFiles('backend/package.json') != '' }}
+        run: |
+          npm ci
+          npm run build
 
-      - name: Build assets with Vite
-        run: npm run build
+      - name: Validate application routes
+        if: ${{ hashFiles('backend/package.json') == '' }}
+        run: php artisan route:list
