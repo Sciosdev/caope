@@ -102,6 +102,6 @@ trait ExpedienteFormRules
             'turno',
             'tutor_id',
             'coordinador_id',
-        ])->toArray();
+        ]);
     }
 }
