@@ -10,15 +10,15 @@ class CatalogoTratamientoSeeder extends Seeder
     public function run(): void
     {
         $tratamientos = [
-            ['clave' => 'TCC', 'nombre' => 'Terapia cognitivo conductual', 'estado' => 'activo'],
-            ['clave' => 'TFE', 'nombre' => 'Terapia familiar estructural', 'estado' => 'activo'],
-            ['clave' => 'TPP', 'nombre' => 'Terapia psicodinámica breve', 'estado' => 'activo'],
+            ['nombre' => 'Terapia cognitivo conductual', 'activo' => true],
+            ['nombre' => 'Terapia familiar estructural', 'activo' => true],
+            ['nombre' => 'Terapia psicodinámica breve', 'activo' => true],
         ];
 
         foreach ($tratamientos as $tratamiento) {
             CatalogoTratamiento::query()->updateOrCreate(
-                ['clave' => $tratamiento['clave']],
-                ['nombre' => $tratamiento['nombre'], 'estado' => $tratamiento['estado']]
+                ['nombre' => $tratamiento['nombre']],
+                ['activo' => $tratamiento['activo']]
             );
         }
     }
