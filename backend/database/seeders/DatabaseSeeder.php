@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             CatalogoTurnoSeeder::class,
             CatalogoPadecimientoSeeder::class,
             CatalogoTratamientoSeeder::class,
+            RoleSeeder::class,
         ]);
 
         $this->seedUsuariosBase();
@@ -62,8 +63,15 @@ class DatabaseSeeder extends Seeder
             ],
         ];
 
+        $rolesPorEmail = [
+            'admin@demo.local' => 'admin',
+            'alumno@demo.local' => 'alumno',
+            'docente@demo.local' => 'docente',
+            'coordinacion@demo.local' => 'coordinador',
+        ];
+
         foreach ($usuarios as $usuario) {
-            User::query()->updateOrCreate(
+            $usuarioModelo = User::query()->updateOrCreate(
                 ['email' => $usuario['email']],
                 [
                     'name' => $usuario['name'],
@@ -74,6 +82,10 @@ class DatabaseSeeder extends Seeder
                     'turno' => $usuario['turno'],
                 ]
             );
+
+            if (isset($rolesPorEmail[$usuario['email']])) {
+                $usuarioModelo->syncRoles([$rolesPorEmail[$usuario['email']]]);
+            }
         }
     }
 }
