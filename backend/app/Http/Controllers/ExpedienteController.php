@@ -10,12 +10,25 @@ class ExpedienteController extends Controller
 {
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Expediente::class);
+
         $busqueda = (string) $request->input('q', '');
         $estado = (string) $request->input('estado', '');
         $desde = $request->input('desde') ? Carbon::parse($request->input('desde')) : null;
         $hasta = $request->input('hasta') ? Carbon::parse($request->input('hasta')) : null;
 
+        $user = $request->user();
+
         $query = Expediente::query()
+            ->when(! $user->can('expedientes.manage'), function ($q) use ($user) {
+                if ($user->hasRole('docente')) {
+                    $q->where('tutor_id', $user->id);
+                } elseif ($user->hasRole('alumno')) {
+                    $q->where('creado_por', $user->id);
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
+            })
             ->when($busqueda, function ($q) use ($busqueda) {
                 $q->where(function ($w) use ($busqueda) {
                     $w->where('no', 'like', "%{$busqueda}%")
