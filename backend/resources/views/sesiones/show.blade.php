@@ -70,6 +70,61 @@
                     {!! $sesion->nota !!}
                 </div>
             </div>
+
+            @if ($sesion->status_revision !== 'validada')
+                <div class="mt-4">
+                    <h6 class="mb-3">Gestión de revisión</h6>
+                    <div class="row g-3">
+                        @can('observe', $sesion)
+                            <div class="col-md-6">
+                                <div class="card h-100 border-warning">
+                                    <div class="card-body">
+                                        <h6 class="card-title text-warning">Marcar como observada</h6>
+                                        <p class="card-text small text-muted">Registra observaciones para que el alumno atienda los cambios necesarios.</p>
+                                        <form action="{{ route('expedientes.sesiones.observe', [$expediente, $sesion]) }}" method="post" class="d-flex flex-column gap-2">
+                                            @csrf
+                                            <input type="hidden" name="form_action" value="observe">
+                                            <textarea name="observaciones" rows="3" class="form-control @if (old('form_action') === 'observe') @error('observaciones') is-invalid @enderror @endif" placeholder="Describe las observaciones" required>{{ old('form_action') === 'observe' ? old('observaciones') : '' }}</textarea>
+                                            @if (old('form_action') === 'observe')
+                                                @error('observaciones')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            @endif
+                                            <div class="text-end">
+                                                <button type="submit" class="btn btn-warning text-dark">Guardar observaciones</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        @endcan
+                        @can('validate', $sesion)
+                            <div class="col-md-6">
+                                <div class="card h-100 border-success">
+                                    <div class="card-body">
+                                        <h6 class="card-title text-success">Validar sesión</h6>
+                                        <p class="card-text small text-muted">Confirma que la sesión cumple con los requisitos establecidos.</p>
+                                        <form action="{{ route('expedientes.sesiones.validate', [$expediente, $sesion]) }}" method="post" class="d-flex flex-column gap-2">
+                                            @csrf
+                                            <input type="hidden" name="form_action" value="validate">
+                                            <textarea name="observaciones" rows="3" class="form-control @if (old('form_action') === 'validate') @error('observaciones') is-invalid @enderror @endif" placeholder="Notas opcionales para la validación">{{ old('form_action') === 'validate' ? old('observaciones') : '' }}</textarea>
+                                            @if (old('form_action') === 'validate')
+                                                @error('observaciones')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            @endif
+                                            <div class="text-end">
+                                                <button type="submit" class="btn btn-success">Validar sesión</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        @endcan
+                    </div>
+                </div>
+            @endif
+
             @if ($sesion->adjuntos->isNotEmpty())
                 <div class="mt-4">
                     <h6 class="mb-2">Adjuntos</h6>
@@ -77,21 +132,66 @@
                         @foreach ($sesion->adjuntos as $adjunto)
                             <li class="list-group-item d-flex justify-content-between align-items-start gap-3">
                                 <div>
-                                    <a href="{{ $adjunto->url }}" target="_blank" rel="noopener"
-                                        class="fw-semibold">{{ $adjunto->nombre_original }}</a>
+                                    <a href="{{ $adjunto->url }}" target="_blank" rel="noopener" class="fw-semibold">{{ $adjunto->nombre_original }}</a>
                                     <div class="text-muted small">
                                         {{ number_format($adjunto->tamano / 1024, 1) }} KB ·
                                         {{ $adjunto->subidoPor?->name ?? 'Desconocido' }} ·
                                         {{ optional($adjunto->created_at)->format('Y-m-d H:i') }}
                                     </div>
                                 </div>
-                                <a href="{{ $adjunto->url }}" target="_blank" rel="noopener"
-                                    class="btn btn-sm btn-outline-secondary">Descargar</a>
+                                <a href="{{ $adjunto->url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">Descargar</a>
                             </li>
                         @endforeach
                     </ul>
                 </div>
             @endif
+
+            <div class="mt-4">
+                <h6 class="mb-2">Historial de revisión</h6>
+                @if ($historialRevision->isEmpty())
+                    <p class="text-muted small mb-0">Sin eventos registrados para esta sesión.</p>
+                @else
+                    <ul class="list-group list-group-flush">
+                        @foreach ($historialRevision as $evento)
+                            <li class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <span class="fw-semibold">{{ $evento->actor?->name ?? 'Sistema' }}</span>
+                                        <span class="text-muted small">→ {{ ucfirst(str_replace('sesion.', '', $evento->evento)) }}</span>
+                                        <div class="mt-2 small">
+                                            <span class="text-muted">Estado:</span>
+                                            @php
+                                                $estadoAnterior = $evento->payload['estado_anterior'] ?? null;
+                                                $estadoNuevo = $evento->payload['estado_nuevo'] ?? null;
+                                                $badgeClasses = [
+                                                    'pendiente' => 'badge bg-secondary',
+                                                    'observada' => 'badge bg-warning text-dark',
+                                                    'validada' => 'badge bg-success',
+                                                ];
+                                            @endphp
+                                            @if ($estadoAnterior)
+                                                <span class="me-1">{{ ucfirst($estadoAnterior) }}</span>
+                                                <span class="text-muted">→</span>
+                                            @endif
+                        
+                                            @if ($estadoNuevo)
+                                                <span class="ms-1 {{ $badgeClasses[$estadoNuevo] ?? 'badge bg-light text-dark' }}">{{ ucfirst($estadoNuevo) }}</span>
+                                            @endif
+                                        </div>
+                                        @if (! empty($evento->payload['observaciones']))
+                                            <div class="mt-2 small">
+                                                <span class="text-muted">Observaciones:</span>
+                                                <span>{{ $evento->payload['observaciones'] }}</span>
+                                            </div>
+                                        @endif
+                                    </div>
+                                    <small class="text-muted">{{ optional($evento->created_at)->format('d/m/Y H:i') }}</small>
+                                </div>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+            </div>
         </div>
 
         @can('delete', $sesion)

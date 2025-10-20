@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ObserveSesionRequest;
 use App\Http\Requests\StoreSesionRequest;
 use App\Http\Requests\UpdateSesionRequest;
+use App\Http\Requests\ValidateSesionRequest;
 use App\Models\Expediente;
 use App\Models\Sesion;
+use App\Services\TimelineLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -17,6 +20,10 @@ use Illuminate\View\View;
 
 class SesionController extends Controller
 {
+    public function __construct(private TimelineLogger $timelineLogger)
+    {
+    }
+
     public function index(Request $request, Expediente $expediente): View
     {
         $this->authorize('view', $expediente);
@@ -66,6 +73,13 @@ class SesionController extends Controller
             $request->user()->id,
         );
 
+        $this->timelineLogger->log($expediente, 'sesion.creada', $request->user(), [
+            'sesion_id' => $sesion->id,
+            'estado_anterior' => null,
+            'estado_nuevo' => 'pendiente',
+            'observaciones' => null,
+        ]);
+
         return redirect()
             ->route('expedientes.sesiones.show', [$expediente, $sesion])
             ->with('status', 'Sesión registrada correctamente.');
@@ -79,9 +93,16 @@ class SesionController extends Controller
 
         $sesion->load(['realizadaPor', 'validadaPor', 'expediente', 'adjuntos.subidoPor']);
 
+        $historialRevision = $expediente->timelineEventos()
+            ->where('payload->sesion_id', $sesion->id)
+            ->with('actor')
+            ->orderByDesc('created_at')
+            ->get();
+
         return view('sesiones.show', [
             'expediente' => $expediente,
             'sesion' => $sesion,
+            'historialRevision' => $historialRevision,
         ]);
     }
 
@@ -128,6 +149,67 @@ class SesionController extends Controller
             ->with('status', 'Sesión actualizada correctamente.');
     }
 
+    public function observe(ObserveSesionRequest $request, Expediente $expediente, Sesion $sesion): RedirectResponse
+    {
+        $this->ensureSesionBelongsToExpediente($expediente, $sesion);
+
+        $this->authorize('observe', $sesion);
+
+        if ($sesion->status_revision === 'validada') {
+            return redirect()
+                ->route('expedientes.sesiones.show', [$expediente, $sesion])
+                ->withErrors(['observaciones' => 'La sesión ya fue validada y no puede ser observada.'])
+                ->withInput($request->only('observaciones', 'form_action'));
+        }
+
+        $estadoAnterior = $sesion->status_revision;
+
+        $sesion->status_revision = 'observada';
+        $sesion->validada_por = null;
+        $sesion->save();
+
+        $this->timelineLogger->log($expediente, 'sesion.observada', $request->user(), [
+            'sesion_id' => $sesion->id,
+            'estado_anterior' => $estadoAnterior,
+            'estado_nuevo' => 'observada',
+            'observaciones' => $request->observation(),
+        ]);
+
+        return redirect()
+            ->route('expedientes.sesiones.show', [$expediente, $sesion])
+            ->with('status', 'Sesión marcada como observada correctamente.');
+    }
+
+    public function validateSesion(ValidateSesionRequest $request, Expediente $expediente, Sesion $sesion): RedirectResponse
+    {
+        $this->ensureSesionBelongsToExpediente($expediente, $sesion);
+
+        $this->authorize('validate', $sesion);
+
+        if ($sesion->status_revision === 'validada') {
+            return redirect()
+                ->route('expedientes.sesiones.show', [$expediente, $sesion])
+                ->with('status', 'La sesión ya se encuentra validada.');
+        }
+
+        $estadoAnterior = $sesion->status_revision;
+
+        $sesion->status_revision = 'validada';
+        $sesion->validada_por = $request->user()->id;
+        $sesion->save();
+
+        $this->timelineLogger->log($expediente, 'sesion.validada', $request->user(), [
+            'sesion_id' => $sesion->id,
+            'estado_anterior' => $estadoAnterior,
+            'estado_nuevo' => 'validada',
+            'observaciones' => $request->observation(),
+        ]);
+
+        return redirect()
+            ->route('expedientes.sesiones.show', [$expediente, $sesion])
+            ->with('status', 'Sesión validada correctamente.');
+    }
+
     public function destroy(Expediente $expediente, Sesion $sesion): RedirectResponse
     {
         $this->ensureSesionBelongsToExpediente($expediente, $sesion);
@@ -145,7 +227,7 @@ class SesionController extends Controller
 
     private function ensureSesionBelongsToExpediente(Expediente $expediente, Sesion $sesion): void
     {
-        abort_if($sesion->expediente_id !== $expediente->id, 404);
+        abort_if((int) $sesion->expediente_id !== (int) $expediente->id, 404);
     }
 
     /**
