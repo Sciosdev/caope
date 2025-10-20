@@ -64,4 +64,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Expediente::class, 'coordinador_id');
     }
+
+    public function timelineEventos(): HasMany
+    {
+        return $this->hasMany(TimelineEvento::class, 'actor_id');
+    }
 }

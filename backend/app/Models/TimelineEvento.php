@@ -10,8 +10,27 @@ class TimelineEvento extends Model
 {
     use HasFactory;
 
+    public $timestamps = false;
+
+    protected $fillable = [
+        'expediente_id',
+        'actor_id',
+        'evento',
+        'payload',
+        'created_at',
+    ];
+
+    protected $casts = [
+        'payload' => 'array',
+    ];
+
     public function expediente(): BelongsTo
     {
         return $this->belongsTo(Expediente::class);
+    }
+
+    public function actor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'actor_id');
     }
 }
