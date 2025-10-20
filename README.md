@@ -13,6 +13,13 @@
 - Seeder que genera 80 expedientes de ejemplo (`php artisan migrate --seed`).
 - Entorno local listo con `php artisan serve`.
 
+## Convenciones de ramas
+- **main**: rama estable para releases y despliegues a producción.
+- **develop**: base por defecto para Pull Requests y trabajo continuo.
+- **feature/<tarea>**: ramas derivadas desde `develop` para nuevas funcionalidades o fixes concretos. Reemplaza `<tarea>` por el identificador corto de la actividad (por ejemplo, `feature/123-formulario-intake`).
+
+Antes de abrir un PR, asegúrate de que apunte a `develop` salvo que se especifique lo contrario.
+
 ## Pasos rápidos para desarrollar
 1. `cd backend`
 2. `composer install && npm install`
