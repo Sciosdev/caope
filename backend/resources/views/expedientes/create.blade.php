@@ -23,14 +23,3 @@
         </div>
     </form>
 @endsection
-
-@push('scripts')
-    <script>
-        if (window.flatpickr) {
-            flatpickr('#apertura', {
-                dateFormat: 'Y-m-d',
-                maxDate: 'today',
-            });
-        }
-    </script>
-@endpush
