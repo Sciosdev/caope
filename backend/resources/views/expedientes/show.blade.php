@@ -120,6 +120,30 @@
                         <dt class="col-sm-3">Última actualización</dt>
                         <dd class="col-sm-9">{{ optional($expediente->updated_at)->diffForHumans() }}</dd>
                     </dl>
+
+                    <div class="mt-4">
+                        <h6 class="mb-3">Últimos eventos</h6>
+                        @if ($timelineEventosRecientes->isEmpty())
+                            <p class="text-muted mb-0">Todavía no hay actividad registrada.</p>
+                        @else
+                            <ul class="list-unstyled mb-0">
+                                @foreach ($timelineEventosRecientes as $evento)
+                                    <li class="mb-3">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <span class="fw-semibold">{{ $evento->actor?->name ?? 'Sistema' }}</span>
+                                                <span class="text-muted">→ {{ $evento->evento }}</span>
+                                            </div>
+                                            <small class="text-muted">{{ optional($evento->created_at)->diffForHumans() }}</small>
+                                        </div>
+                                        @if (! empty($evento->payload))
+                                            <pre class="bg-light border rounded small mt-2 mb-0 p-2">{{ json_encode($evento->payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
+                                        @endif
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>
