@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class CatalogoTratamiento extends Model
 {
@@ -16,4 +17,16 @@ class CatalogoTratamiento extends Model
     protected $casts = [
         'activo' => 'boolean',
     ];
+
+    public function carreras(): BelongsToMany
+    {
+        return $this->belongsToMany(CatalogoCarrera::class, 'carrera_tratamiento')
+            ->withPivot('obligatorio')
+            ->withTimestamps();
+    }
+
+    public function carrerasQueRequieren(): BelongsToMany
+    {
+        return $this->carreras()->wherePivot('obligatorio', true);
+    }
 }

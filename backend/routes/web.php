@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ConsentimientoRequeridoController;
 use App\Http\Controllers\ExpedienteController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SesionController;
@@ -21,6 +22,11 @@ Route::middleware('auth')->group(function () {
     Route::resource('expedientes.sesiones', SesionController::class)
         ->parameters(['sesiones' => 'sesion'])
         ->middleware('auth');
+
+    Route::get('consentimientos/requeridos', [ConsentimientoRequeridoController::class, 'index'])
+        ->name('consentimientos.requeridos.index');
+    Route::put('consentimientos/requeridos', [ConsentimientoRequeridoController::class, 'update'])
+        ->name('consentimientos.requeridos.update');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
