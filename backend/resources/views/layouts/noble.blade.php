@@ -24,6 +24,43 @@
         </a>
         <div class="d-flex align-items-center gap-3">
           <a href="#" class="text-muted small">Ayuda</a>
+
+          @auth
+            <a href="{{ route('dashboard') }}"
+               class="text-muted small {{ request()->routeIs('dashboard') ? 'fw-semibold text-body' : '' }}">
+              Dashboard
+            </a>
+            <a href="{{ route('expedientes.index') }}"
+               class="text-muted small {{ request()->routeIs('expedientes.*') ? 'fw-semibold text-body' : '' }}">
+              Expedientes
+            </a>
+
+            <div class="dropdown">
+              <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                {{ \Illuminate\Support\Str::limit(Auth::user()->name, 18) }}
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                  <a class="dropdown-item" href="{{ route('profile.edit') }}">Mi perfil</a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                  <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button type="submit" class="dropdown-item">Cerrar sesión</button>
+                  </form>
+                </li>
+              </ul>
+            </div>
+          @else
+            @if (Route::has('login'))
+              <a href="{{ route('login') }}" class="btn btn-sm btn-primary">Iniciar sesión</a>
+            @endif
+
+            @if (Route::has('register'))
+              <a href="{{ route('register') }}" class="text-muted small">Registrarse</a>
+            @endif
+          @endauth
         </div>
       </div>
     </nav>
