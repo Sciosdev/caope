@@ -76,7 +76,7 @@
                 @forelse($expedientes as $expediente)
                     <tr>
                         <td class="fw-semibold">{{ $expediente->no_control }}</td>
-                        <td>{{ $expediente->paciente }}</td>
+                        <td>{{ $expediente->paciente_masked }}</td>
                         <td>
                             @switch($expediente->estado)
                                 @case('abierto')

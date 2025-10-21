@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Masking\NameMasker;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -66,5 +67,10 @@ class Expediente extends Model
     public function comentarios(): MorphMany
     {
         return $this->morphMany(Comentario::class, 'comentable')->latest('created_at');
+    }
+
+    public function getPacienteMaskedAttribute(): string
+    {
+        return NameMasker::mask($this->paciente);
     }
 }
