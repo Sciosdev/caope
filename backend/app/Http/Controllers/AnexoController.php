@@ -59,6 +59,12 @@ class AnexoController extends Controller
             [$expediente, $anexo]
         );
 
+        $previewUrl = URL::temporarySignedRoute(
+            'expedientes.anexos.preview',
+            now()->addMinutes(30),
+            [$expediente, $anexo]
+        );
+
         $this->timelineLogger->log($expediente, 'anexo.subido', $request->user(), [
             'anexo_id' => $anexo->getKey(),
             'titulo' => $anexo->titulo,
@@ -76,6 +82,7 @@ class AnexoController extends Controller
             'fecha' => optional($anexo->created_at)->format('Y-m-d H:i'),
             'delete_url' => route('expedientes.anexos.destroy', [$expediente, $anexo]),
             'download_url' => $downloadUrl,
+            'preview_url' => $previewUrl,
             'message' => 'Anexo subido correctamente.',
         ];
 
@@ -146,6 +153,27 @@ class AnexoController extends Controller
         return Storage::disk($disk)->download($anexo->ruta, $downloadName);
     }
 
+    public function preview(Request $request, Expediente $expediente, Anexo $anexo)
+    {
+        $this->ensureAnexoBelongsToExpediente($expediente, $anexo);
+
+        $this->authorize('view', $anexo);
+
+        $disk = $anexo->disk ?: config('filesystems.private_default', 'private');
+
+        if (! $anexo->ruta || ! Storage::disk($disk)->exists($anexo->ruta)) {
+            abort(404);
+        }
+
+        $downloadName = $this->buildDownloadName($anexo);
+        $mimeType = $this->resolveMimeType($anexo, $disk);
+
+        return Storage::disk($disk)->response($anexo->ruta, $downloadName, [
+            'Content-Type' => $mimeType,
+            'Content-Disposition' => 'inline; filename="'.$downloadName.'"',
+        ]);
+    }
+
     private function ensureAnexoBelongsToExpediente(Expediente $expediente, Anexo $anexo): void
     {
         abort_if((int) $anexo->expediente_id !== (int) $expediente->getKey(), 404);
@@ -173,6 +201,23 @@ class AnexoController extends Controller
         $extension = $extension !== '' ? '.'.$extension : '';
 
         return trim($anexo->titulo.$extension) ?: basename($anexo->ruta ?? 'archivo');
+    }
+
+    private function resolveMimeType(Anexo $anexo, string $disk): string
+    {
+        $mimeType = null;
+
+        if ($anexo->ruta) {
+            $mimeType = Storage::disk($disk)->mimeType($anexo->ruta);
+        }
+
+        if ($mimeType) {
+            return $mimeType;
+        }
+
+        $tipo = (string) $anexo->tipo;
+
+        return str_contains($tipo, '/') ? $tipo : 'application/octet-stream';
     }
 
     private function respondWithError(Request $request, string $message, int $status): JsonResponse|RedirectResponse
