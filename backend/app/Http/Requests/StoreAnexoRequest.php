@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\Anexo;
 use App\Models\Expediente;
+use App\Models\Parametro;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreAnexoRequest extends FormRequest
@@ -21,8 +22,8 @@ class StoreAnexoRequest extends FormRequest
 
     public function rules(): array
     {
-        $mimes = (string) config('uploads.anexos.mimes', 'pdf,jpg,jpeg,png,doc,docx');
-        $max = (int) config('uploads.anexos.max', 10240);
+        $mimes = (string) Parametro::obtener('uploads.anexos.mimes', 'pdf,jpg,jpeg,png,doc,docx');
+        $max = (int) Parametro::obtener('uploads.anexos.max', 10240);
 
         return [
             'archivo' => [

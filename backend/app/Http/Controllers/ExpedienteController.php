@@ -8,6 +8,7 @@ use App\Models\Anexo;
 use App\Models\CatalogoCarrera;
 use App\Models\CatalogoTurno;
 use App\Models\Expediente;
+use App\Models\Parametro;
 use App\Models\User;
 use App\Notifications\ExpedienteClosedNotification;
 use App\Notifications\ExpedienteClosureAttemptNotification;
@@ -190,6 +191,11 @@ class ExpedienteController extends Controller
             );
         });
 
+        $anexosMimes = (string) Parametro::obtener('uploads.anexos.mimes', 'pdf,jpg,jpeg,png,doc,docx');
+        $anexosMax = (int) Parametro::obtener('uploads.anexos.max', 10240);
+        $consentimientoMimes = (string) Parametro::obtener('uploads.consentimientos.mimes', 'pdf,jpg,jpeg');
+        $consentimientoMax = (int) Parametro::obtener('uploads.consentimientos.max', 5120);
+
         return view('expedientes.show', [
             'expediente' => $expediente,
             'sesiones' => $expediente->sesiones,
@@ -205,6 +211,10 @@ class ExpedienteController extends Controller
                 'revision' => 'En revisión',
                 'cerrado' => 'Cerrado',
             ],
+            'anexosUploadMimes' => $anexosMimes,
+            'anexosUploadMax' => $anexosMax,
+            'consentimientosUploadMimes' => $consentimientoMimes,
+            'consentimientosUploadMax' => $consentimientoMax,
         ]);
     }
 

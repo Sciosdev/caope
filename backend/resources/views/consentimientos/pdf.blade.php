@@ -49,6 +49,12 @@
         </div>
     </section>
 
+    @if ($textoIntroduccion !== '')
+        <section class="mb-4">
+            <p class="text-sm">{{ $textoIntroduccion }}</p>
+        </section>
+    @endif
+
     <section>
         <h2>Consentimientos registrados</h2>
         @if ($consentimientos->isEmpty())
@@ -87,8 +93,10 @@
         @endif
     </section>
 
-    <footer class="footer">
-        <p>Documento generado para fines internos del Centro de Atención y Orientación Psicológica.</p>
-    </footer>
+    @if ($textoCierre !== '')
+        <footer class="footer">
+            <p>{{ $textoCierre }}</p>
+        </footer>
+    @endif
 </body>
 </html>

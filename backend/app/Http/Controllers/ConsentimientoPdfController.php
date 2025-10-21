@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Expediente;
+use App\Models\Parametro;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
@@ -28,6 +29,8 @@ class ConsentimientoPdfController extends Controller
             'expediente' => $expediente,
             'consentimientos' => $expediente->consentimientos,
             'fechaEmision' => Carbon::now(),
+            'textoIntroduccion' => (string) Parametro::obtener('consentimientos.texto_introduccion', ''),
+            'textoCierre' => (string) Parametro::obtener('consentimientos.texto_cierre', ''),
         ];
 
         $pdf = Pdf::loadView('consentimientos.pdf', $data)
