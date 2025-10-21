@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\Admin\CatalogoCarreraController;
+use App\Http\Controllers\Admin\CatalogoPadecimientoController;
+use App\Http\Controllers\Admin\CatalogoTratamientoController;
+use App\Http\Controllers\Admin\CatalogoTurnoController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AnexoController;
 use App\Http\Controllers\ConsentimientoPdfController;
@@ -30,6 +34,13 @@ Route::middleware('auth')->group(function () {
         Route::get('{user}/editar', [UserController::class, 'edit'])->name('edit');
         Route::put('{user}', [UserController::class, 'update'])->name('update');
         Route::delete('{user}', [UserController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('admin/catalogos')->name('admin.catalogos.')->middleware('role:admin')->group(function (): void {
+        Route::resource('carreras', CatalogoCarreraController::class)->except('show');
+        Route::resource('tratamientos', CatalogoTratamientoController::class)->except('show');
+        Route::resource('padecimientos', CatalogoPadecimientoController::class)->except('show');
+        Route::resource('turnos', CatalogoTurnoController::class)->except('show');
     });
 
     Route::middleware('role:admin|coordinador')->group(function (): void {
