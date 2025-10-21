@@ -302,35 +302,94 @@
         <div class="tab-pane fade" id="anexos" role="tabpanel" aria-labelledby="anexos-tab">
             <div class="card shadow-sm">
                 <div class="card-body">
-                    <h6 class="mb-3">Anexos</h6>
-                    @if ($anexos->isEmpty())
-                        <p class="text-muted mb-0">Sin anexos por el momento.</p>
-                    @else
-                        <div class="table-responsive">
-                            <table class="table table-sm align-middle">
-                                <thead>
-                                    <tr>
-                                        <th>Título</th>
-                                        <th>Tipo</th>
-                                        <th>Tamaño</th>
-                                        <th>Subido por</th>
-                                        <th>Fecha</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach ($anexos as $anexo)
-                                        <tr>
-                                            <td>{{ $anexo->titulo }}</td>
-                                            <td>{{ $anexo->tipo }}</td>
-                                            <td>{{ number_format($anexo->tamano / 1024, 1) }} KB</td>
-                                            <td>{{ $anexo->subidoPor?->name }}</td>
-                                            <td>{{ optional($anexo->created_at)->format('Y-m-d H:i') }}</td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
+                    @php
+                        $usuarioActual = auth()->user();
+                        $puedeSubirAnexos = $usuarioActual?->can('create', [App\Models\Anexo::class, $expediente]);
+                        $puedeEliminarAlguno = $anexos->contains(fn ($anexo) => $usuarioActual?->can('delete', $anexo));
+                        $mostrarAcciones = $puedeSubirAnexos || $puedeEliminarAlguno;
+                        $formatosAceptados = collect(explode(',', (string) config('uploads.anexos.mimes')))
+                            ->map(fn ($valor) => trim($valor))
+                            ->filter()
+                            ->map(fn ($valor) => str_contains($valor, '/') ? $valor : '.'.$valor)
+                            ->implode(',');
+                    @endphp
+                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                        <h6 class="mb-0">Anexos</h6>
+                        <span class="badge bg-light text-muted" data-anexos-counter>{{ $anexos->count() }} registros</span>
+                    </div>
+                    @can('create', [App\Models\Anexo::class, $expediente])
+                        <div class="mb-4">
+                            <label for="anexos-uploader" class="form-label small text-uppercase text-muted mb-2">Agregar archivos</label>
+                            <input
+                                type="file"
+                                id="anexos-uploader"
+                                data-anexos-uploader
+                                data-upload-url="{{ route('expedientes.anexos.store', $expediente) }}"
+                                data-csrf-token="{{ csrf_token() }}"
+                                data-table-target="#anexos-table-body"
+                                data-empty-target="#anexos-empty-state"
+                                data-table-wrapper="#anexos-table-wrapper"
+                                data-accepted-types="{{ config('uploads.anexos.mimes') }}"
+                                data-max-size="{{ config('uploads.anexos.max') }}"
+                                data-can-delete="true"
+                                multiple
+                                class="form-control"
+                                accept="{{ $formatosAceptados }}"
+                            >
+                            <p class="text-muted small mt-2 mb-0">
+                                Formatos permitidos: {{ str_replace(',', ', ', config('uploads.anexos.mimes')) }}.
+                                Tamaño máximo: {{ number_format(config('uploads.anexos.max') / 1024, 1) }} MB por archivo.
+                            </p>
                         </div>
-                    @endif
+                    @endcan
+                    <div id="anexos-empty-state" class="{{ $anexos->isEmpty() ? '' : 'd-none' }}">
+                        <p class="text-muted mb-0">Sin anexos por el momento.</p>
+                    </div>
+                    <div id="anexos-table-wrapper" class="table-responsive {{ $anexos->isEmpty() ? 'd-none' : '' }}">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Título</th>
+                                    <th>Tipo</th>
+                                    <th>Tamaño</th>
+                                    <th>Subido por</th>
+                                    <th>Fecha</th>
+                                    @if ($mostrarAcciones)
+                                        <th class="text-end">Acciones</th>
+                                    @endif
+                                </tr>
+                            </thead>
+                            <tbody id="anexos-table-body" data-has-actions="{{ $mostrarAcciones ? 'true' : 'false' }}">
+                                @foreach ($anexos as $anexo)
+                                    <tr data-anexo-id="{{ $anexo->id }}">
+                                        <td>{{ $anexo->titulo }}</td>
+                                        <td>{{ $anexo->tipo }}</td>
+                                        <td>{{ number_format($anexo->tamano / 1024, 1) }} KB</td>
+                                        <td>{{ $anexo->subidoPor?->name }}</td>
+                                        <td>{{ optional($anexo->created_at)->format('Y-m-d H:i') }}</td>
+                                        @if ($mostrarAcciones)
+                                            <td class="text-end">
+                                                @can('delete', $anexo)
+                                                    <form
+                                                        action="{{ route('expedientes.anexos.destroy', [$expediente, $anexo]) }}"
+                                                        method="post"
+                                                        class="d-inline"
+                                                        data-anexo-delete-form
+                                                    >
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="btn btn-link btn-sm text-danger p-0">Eliminar</button>
+                                                    </form>
+                                                @else
+                                                    <span class="text-muted small">—</span>
+                                                @endcan
+                                            </td>
+                                        @endif
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -366,6 +425,7 @@
 @endsection
 
 @push('scripts')
+    @vite('resources/js/expedientes/anexos.js')
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             if (!window.bootstrap || !window.bootstrap.Tab) {

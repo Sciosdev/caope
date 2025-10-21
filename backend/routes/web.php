@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AnexoController;
 use App\Http\Controllers\ConsentimientoPdfController;
 use App\Http\Controllers\ConsentimientoRequeridoController;
 use App\Http\Controllers\ConsentimientoUploadController;
@@ -20,6 +21,11 @@ Route::middleware('auth')->group(function () {
 
     Route::post('consentimientos/{consentimiento}/archivo', [ConsentimientoUploadController::class, 'store'])
         ->name('consentimientos.upload');
+
+    Route::post('expedientes/{expediente}/anexos', [AnexoController::class, 'store'])
+        ->name('expedientes.anexos.store');
+    Route::delete('expedientes/{expediente}/anexos/{anexo}', [AnexoController::class, 'destroy'])
+        ->name('expedientes.anexos.destroy');
 
     Route::post('expedientes/{expediente}/sesiones/{sesion}/observe', [SesionController::class, 'observe'])
         ->name('expedientes.sesiones.observe');
