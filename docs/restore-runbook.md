@@ -20,7 +20,7 @@ This runbook defines the recovery workflow for SQLite (local/testing) and MySQL 
    - Identify the desired snapshot in the backup directory (`storage/backups/sqlite/`).
    - Verify checksum against the catalogue file `checksums.txt`.
 2. **Restore**
-   - Stop the Laravel queue workers and any scheduled jobs: `php artisan queue:restart` and `php artisan schedule:finish`.
+   - Stop the Laravel queue workers and any scheduled jobs: `php artisan queue:stop` and `php artisan schedule:finish`. If the workers are managed by Supervisor or another process manager, disable that service until the database copy is complete.
    - Replace the active database: `cp storage/backups/sqlite/<timestamp>.sqlite database/database.sqlite`.
    - Apply file permissions: `chown www-data:www-data database/database.sqlite` (adjust user for your stack).
 3. **Validation**
@@ -28,6 +28,7 @@ This runbook defines the recovery workflow for SQLite (local/testing) and MySQL 
    - Execute smoke tests: `php artisan test --testsuite=Smoke` or the minimal API health check.
    - Review application logs for unexpected errors over the last 10 minutes.
 4. **Handover**
+   - Re-enable queue workers or Supervisor jobs that were paused for the restore.
    - Application owner validates business workflows and signs off.
    - Incident commander announces completion and closes the incident.
 
@@ -37,6 +38,7 @@ This runbook defines the recovery workflow for SQLite (local/testing) and MySQL 
    - Validate integrity by running `mysqlbinlog --verify-binlog-checksum` for the incremental logs, when applicable.
 2. **Prepare environment**
    - Place the application in maintenance mode: `php artisan down --render="errors::503-maintenance"`.
+   - Disable queue workers and scheduled jobs (for example, `php artisan queue:stop` and `php artisan schedule:finish`, and pause any Supervisor-managed workers).
    - Ensure there is sufficient disk space in the target data directory.
    - Create a manual snapshot of the current database before overwriting (`mysqldump --single-transaction`). Store it for 30 days.
 3. **Restore**
@@ -50,6 +52,7 @@ This runbook defines the recovery workflow for SQLite (local/testing) and MySQL 
    - Review monitoring dashboards for error rates, replication lag, and query latency.
 5. **Handover**
    - Exit maintenance mode: `php artisan up`.
+   - Restart queue workers and scheduled jobs, re-enabling any Supervisor-managed processes.
    - Incident commander records the restore time, data loss window, and outstanding remediation tasks in the post-incident document.
    - Update [`docs/security-checklist.md`](security-checklist.md) with the drill/incident date.
 
