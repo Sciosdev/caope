@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Expediente extends Model
 {
@@ -60,5 +61,10 @@ class Expediente extends Model
     public function timelineEventos(): HasMany
     {
         return $this->hasMany(TimelineEvento::class);
+    }
+
+    public function comentarios(): MorphMany
+    {
+        return $this->morphMany(Comentario::class, 'comentable')->latest('created_at');
     }
 }

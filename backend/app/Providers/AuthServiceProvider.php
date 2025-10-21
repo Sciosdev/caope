@@ -3,10 +3,12 @@
 namespace App\Providers;
 
 use App\Models\Anexo;
+use App\Models\Comentario;
 use App\Models\Consentimiento;
 use App\Models\Expediente;
 use App\Models\Sesion;
 use App\Policies\AnexoPolicy;
+use App\Policies\ComentarioPolicy;
 use App\Policies\ConsentimientoPolicy;
 use App\Policies\ExpedientePolicy;
 use App\Policies\SesionPolicy;
@@ -24,6 +26,7 @@ class AuthServiceProvider extends ServiceProvider
         Sesion::class => SesionPolicy::class,
         Consentimiento::class => ConsentimientoPolicy::class,
         Anexo::class => AnexoPolicy::class,
+        Comentario::class => ComentarioPolicy::class,
     ];
 
     /**
