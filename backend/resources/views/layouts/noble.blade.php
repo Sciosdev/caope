@@ -9,7 +9,8 @@
   <link rel="stylesheet" href="{{ asset('assets/vendors/core/core.css') }}">
   <link rel="stylesheet" href="{{ asset('assets/css/demo2/style.css') }}">
 
-  @vite(['resources/js/app.js'])
+  <link rel="stylesheet" href="{{ asset('assets/build/css/app-editor.css') }}">
+  <script src="{{ asset('assets/build/js/app.js') }}" defer></script>
 
   {{-- Hook para CSS por página --}}
   @stack('styles')

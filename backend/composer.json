@@ -43,8 +43,8 @@
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
             "@php artisan key:generate",
             "@php artisan migrate --force",
-            "npm install",
-            "npm run build"
+            "@php artisan storage:link",
+            "@php -r \"if (! is_dir('public/assets/build')) { fwrite(STDERR, '[setup] Copia los assets precompilados desde public-assets/.'.PHP_EOL); }\""
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
