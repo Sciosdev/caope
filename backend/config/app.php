@@ -128,12 +128,8 @@ return [
 
     'providers' => ServiceProvider::defaultProviders()
         ->merge(require base_path('bootstrap/providers.php'))
-        ->merge([
-            Barryvdh\DomPDF\ServiceProvider::class,
-        ])->toArray(),
+        ->toArray(),
 
-    'aliases' => Facade::defaultAliases()->merge([
-        'Pdf' => Barryvdh\DomPDF\Facade\Pdf::class,
-    ])->toArray(),
+    'aliases' => Facade::defaultAliases()->toArray(),
 
 ];
