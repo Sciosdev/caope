@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\ExpedientesExport;
-use App\Jobs\FinalizeExpedientesExport;
+use App\Jobs\FinalizeQueuedExport;
 use App\Models\Expediente;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
@@ -70,7 +70,7 @@ class ReporteExpedienteController extends Controller
 
             Excel::queue($export, $path, 'local', $writerType)
                 ->chain([
-                    new FinalizeExpedientesExport($token, $path, $filename, $userId),
+                    new FinalizeQueuedExport($token, $path, $filename, $userId),
                 ]);
 
             return response()->json([

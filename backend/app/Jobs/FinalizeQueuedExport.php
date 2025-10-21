@@ -10,18 +10,22 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 
-class FinalizeExpedientesExport implements ShouldQueue
+class FinalizeQueuedExport implements ShouldQueue
 {
     use Dispatchable;
     use InteractsWithQueue;
     use Queueable;
     use SerializesModels;
 
+    /**
+     * @param  array<string, mixed>  $extra
+     */
     public function __construct(
         public readonly string $token,
         public readonly string $path,
         public readonly string $filename,
         public readonly int $userId,
+        public readonly array $extra = [],
     ) {
     }
 
@@ -38,6 +42,6 @@ class FinalizeExpedientesExport implements ShouldQueue
             'path' => $this->path,
             'filename' => $this->filename,
             'user_id' => $this->userId,
-        ]), now()->addMinutes(30));
+        ], $this->extra), now()->addMinutes(30));
     }
 }
