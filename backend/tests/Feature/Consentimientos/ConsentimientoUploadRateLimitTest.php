@@ -6,6 +6,7 @@ use App\Models\Consentimiento;
 use App\Models\Expediente;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\RateLimiter;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
@@ -40,7 +41,29 @@ class ConsentimientoUploadRateLimitTest extends TestCase
         $limiterKey = sprintf('uploads.consentimientos|consentimientos|%s', $usuario->getAuthIdentifier());
         RateLimiter::clear($limiterKey);
 
-        for ($attempt = 0; $attempt < 5; $attempt++) {
+        try {
+            Carbon::setTestNow($now = now());
+
+            for ($attempt = 0; $attempt < 5; $attempt++) {
+                $response = $this->actingAs($usuario)
+                    ->from(route('expedientes.show', $expediente))
+                    ->post(route('consentimientos.upload', $consentimiento), []);
+
+                $response->assertStatus(302);
+                $response->assertSessionHasErrorsIn(
+                    sprintf('consentimientoUpload-%s', $consentimiento->id),
+                    ['archivo']
+                );
+            }
+
+            $response = $this->actingAs($usuario)
+                ->from(route('expedientes.show', $expediente))
+                ->post(route('consentimientos.upload', $consentimiento), []);
+
+            $response->assertStatus(429);
+
+            Carbon::setTestNow($now->copy()->addMinutes(10)->addSecond());
+
             $response = $this->actingAs($usuario)
                 ->from(route('expedientes.show', $expediente))
                 ->post(route('consentimientos.upload', $consentimiento), []);
@@ -50,12 +73,8 @@ class ConsentimientoUploadRateLimitTest extends TestCase
                 sprintf('consentimientoUpload-%s', $consentimiento->id),
                 ['archivo']
             );
+        } finally {
+            Carbon::setTestNow();
         }
-
-        $response = $this->actingAs($usuario)
-            ->from(route('expedientes.show', $expediente))
-            ->post(route('consentimientos.upload', $consentimiento), []);
-
-        $response->assertStatus(429);
     }
 }
