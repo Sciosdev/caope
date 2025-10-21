@@ -7,6 +7,7 @@ use App\Http\Controllers\ConsentimientoUploadController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExpedienteController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReporteExpedienteController;
 use App\Http\Controllers\SesionController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,6 +20,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard/alertas', [DashboardController::class, 'alerts'])->name('dashboard.alerts');
     Route::post('expedientes/{expediente}/estado', [ExpedienteController::class, 'changeState'])
         ->name('expedientes.change-state');
+
+    Route::middleware('role:admin|coordinador')->group(function (): void {
+        Route::get('reportes/expedientes', [ReporteExpedienteController::class, 'index'])->name('reportes.index');
+        Route::post('reportes/expedientes/export', [ReporteExpedienteController::class, 'export'])->name('reportes.expedientes.export');
+        Route::get('reportes/expedientes/export/{token}', [ReporteExpedienteController::class, 'download'])->name('reportes.expedientes.download');
+        Route::get('reportes/expedientes/export/{token}/status', [ReporteExpedienteController::class, 'status'])->name('reportes.expedientes.export.status');
+    });
 
     Route::get('expedientes/{expediente}/consentimientos/pdf', ConsentimientoPdfController::class)
         ->name('expedientes.consentimientos.pdf');
