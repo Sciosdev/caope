@@ -40,7 +40,7 @@
           @auth
             <a href="{{ route('dashboard') }}"
                class="text-muted small {{ request()->routeIs('dashboard') ? 'fw-semibold text-body' : '' }}">
-              Dashboard
+              Pendientes
             </a>
             @can('expedientes.view')
               <a href="{{ route('expedientes.index') }}"
