@@ -534,7 +534,18 @@
         <div class="tab-pane fade" id="timeline" role="tabpanel" aria-labelledby="timeline-tab">
             <div class="card shadow-sm">
                 <div class="card-body">
-                    <h6 class="mb-3">Actividad reciente</h6>
+                    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+                        <h6 class="mb-0">Actividad reciente</h6>
+                        <button
+                            type="button"
+                            class="btn btn-outline-primary btn-sm ms-md-auto"
+                            data-timeline-export-url="{{ route('expedientes.timeline.export', $expediente) }}"
+                        >
+                            <i class="mdi mdi-download"></i>
+                            {{ __('Exportar historial') }}
+                        </button>
+                    </div>
+                    <div id="timeline-export-feedback" class="alert d-none" role="alert"></div>
                     @if ($timelineEventos->isEmpty())
                         <p class="text-muted mb-0">Aún no hay eventos registrados en el timeline.</p>
                     @else
@@ -719,6 +730,117 @@
                     if (submitButton) {
                         submitButton.disabled = false;
                     }
+                });
+            }
+
+            const timelineExportButton = document.querySelector('[data-timeline-export-url]');
+            const timelineFeedback = document.getElementById('timeline-export-feedback');
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
+            let timelinePollTimer = null;
+
+            const showTimelineMessage = (type, message) => {
+                if (!timelineFeedback) {
+                    return;
+                }
+
+                timelineFeedback.classList.remove('d-none', 'alert-success', 'alert-danger', 'alert-warning', 'alert-info');
+                timelineFeedback.classList.add(`alert-${type}`);
+                timelineFeedback.textContent = message;
+            };
+
+            const setTimelineButtonDisabled = (disabled) => {
+                if (timelineExportButton) {
+                    timelineExportButton.disabled = disabled;
+                }
+            };
+
+            const stopTimelinePolling = () => {
+                if (timelinePollTimer) {
+                    clearInterval(timelinePollTimer);
+                    timelinePollTimer = null;
+                }
+            };
+
+            const startTimelinePolling = (statusUrl) => {
+                stopTimelinePolling();
+
+                timelinePollTimer = setInterval(() => {
+                    fetch(statusUrl, { headers: { Accept: 'application/json' } })
+                        .then((response) => {
+                            if (!response.ok) {
+                                throw new Error('status-error');
+                            }
+
+                            return response.json();
+                        })
+                        .then((payload) => {
+                            if (payload.status === 'ready' && payload.download_url) {
+                                stopTimelinePolling();
+                                showTimelineMessage('success', @json(__('El archivo está listo, iniciando descarga...')));
+                                window.location.href = payload.download_url;
+                                setTimelineButtonDisabled(false);
+                            }
+                        })
+                        .catch(() => {
+                            stopTimelinePolling();
+                            showTimelineMessage('danger', @json(__('No se pudo verificar el estado de la exportación. Intenta nuevamente.')));
+                            setTimelineButtonDisabled(false);
+                        });
+                }, 4000);
+            };
+
+            if (timelineExportButton && timelineFeedback) {
+                timelineExportButton.addEventListener('click', (event) => {
+                    event.preventDefault();
+
+                    const exportUrl = timelineExportButton.getAttribute('data-timeline-export-url');
+                    if (!exportUrl) {
+                        return;
+                    }
+
+                    setTimelineButtonDisabled(true);
+                    showTimelineMessage('warning', @json(__('Generando exportación, espera un momento...')));
+
+                    fetch(exportUrl, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken,
+                            Accept: 'application/json',
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ format: 'xlsx' }),
+                    })
+                        .then((response) => {
+                            if (!response.ok) {
+                                return response.json().then((payload) => {
+                                    throw payload;
+                                });
+                            }
+
+                            return response.json();
+                        })
+                        .then((payload) => {
+                            if (payload.status === 'ready' && payload.download_url) {
+                                showTimelineMessage('success', payload.message ?? @json(__('El archivo está listo.')));
+                                window.location.href = payload.download_url;
+                                setTimelineButtonDisabled(false);
+                            } else if (payload.status === 'pending' && payload.status_url) {
+                                showTimelineMessage('info', payload.message ?? @json(__('La exportación se está procesando. Te avisaremos cuando esté lista.')));
+                                startTimelinePolling(payload.status_url);
+                            } else {
+                                throw new Error('invalid-payload');
+                            }
+                        })
+                        .catch((error) => {
+                            if (error?.errors) {
+                                const firstError = Object.values(error.errors)[0]?.[0] ?? @json(__('No fue posible generar la exportación.'));
+                                showTimelineMessage('danger', firstError);
+                            } else {
+                                showTimelineMessage('danger', @json(__('No fue posible generar la exportación.')));
+                            }
+
+                            setTimelineButtonDisabled(false);
+                        });
                 });
             }
         });

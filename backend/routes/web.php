@@ -9,6 +9,7 @@ use App\Http\Controllers\ExpedienteController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReporteExpedienteController;
 use App\Http\Controllers\SesionController;
+use App\Http\Controllers\TimelineEventoExportController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
@@ -30,6 +31,13 @@ Route::middleware('auth')->group(function () {
 
     Route::get('expedientes/{expediente}/consentimientos/pdf', ConsentimientoPdfController::class)
         ->name('expedientes.consentimientos.pdf');
+
+    Route::post('expedientes/{expediente}/timeline/export', [TimelineEventoExportController::class, 'export'])
+        ->name('expedientes.timeline.export');
+    Route::get('expedientes/{expediente}/timeline/export/{token}/status', [TimelineEventoExportController::class, 'status'])
+        ->name('expedientes.timeline.export.status');
+    Route::get('expedientes/{expediente}/timeline/export/{token}', [TimelineEventoExportController::class, 'download'])
+        ->name('expedientes.timeline.export.download');
 
     Route::post('consentimientos/{consentimiento}/archivo', [ConsentimientoUploadController::class, 'store'])
         ->name('consentimientos.upload');
