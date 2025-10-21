@@ -96,6 +96,10 @@ class DashboardInsightsService
         $alerts = [];
 
         foreach ($expedientes as $expediente) {
+            if ($user !== null && $user->cannot('view', $expediente)) {
+                continue;
+            }
+
             $lastActivity = $this->resolveLastActivity($expediente);
 
             if ($lastActivity instanceof Carbon && $lastActivity->greaterThan($threshold)) {
