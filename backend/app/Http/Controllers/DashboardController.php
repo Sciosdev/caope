@@ -12,7 +12,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -59,8 +58,6 @@ class DashboardController extends Controller
 
     public function alerts(Request $request): JsonResponse
     {
-        Gate::authorize('viewAny', Expediente::class);
-
         $requestedDays = $request->query('days');
         $requestedDays = is_numeric($requestedDays) ? (int) $requestedDays : null;
 
