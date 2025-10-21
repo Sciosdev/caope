@@ -9,7 +9,7 @@
         </div>
     @endif
 
-    <form method="POST" action="{{ route('two-factor.login.store') }}" class="space-y-6">
+    <form method="POST" action="{{ route('two-factor.login') }}" class="space-y-6">
         @csrf
 
         <div>
