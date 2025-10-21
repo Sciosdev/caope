@@ -57,3 +57,15 @@ The deployment workflow also honours the `ref` input when triggered manually. Th
 - **Deployment (`deploy.yml`)** runs automatically on pushes to `main` and can be triggered manually. It performs an SSH login with the configured secrets, checks out the requested ref, pulls the latest code, and optionally executes your custom post-deploy commands.
 
 With the secrets configured and the server prepared, deployments become a one-click action while the CI workflow keeps code quality under control.
+
+## Operational security
+
+Operational hardening is as important as the mechanics of the deploy. Adopt the following practices and review them during every quarterly security audit:
+
+- **Access controls** – Limit who can trigger `deploy.yml`, require multi-factor authentication for GitHub administrators, and keep SSH keys rotated as documented in [`docs/security-checklist.md`](security-checklist.md).
+- **Environment hygiene** – Periodically prune unused environment variables and secrets in GitHub Actions, the hosting panel, and cloud services. Cross-reference the inventory maintained in the security checklist before removing values.
+- **Infrastructure monitoring** – Enable host-based firewalls, patch the OS monthly, and monitor CPU, memory, and disk usage for anomalies. Investigate alerts immediately and log incidents in the restore runbook.
+- **Backup readiness** – Confirm that database backups are succeeding and restorable. Practice the workflow described in [`docs/restore-runbook.md`](restore-runbook.md) twice per year and record the outcome.
+- **Incident response** – Maintain an on-call rota and escalation matrix. During incidents involving data integrity, defer deploys until the restore process concludes and update both the deployment documentation and the security checklist with lessons learned.
+
+For a holistic view of the security posture, pair this section with the OWASP-aligned checklist in [`docs/security-checklist.md`](security-checklist.md) and the recovery procedures in [`docs/restore-runbook.md`](restore-runbook.md).
