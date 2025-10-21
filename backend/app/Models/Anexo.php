@@ -14,6 +14,10 @@ class Anexo extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'es_privado' => 'boolean',
+    ];
+
     public function expediente(): BelongsTo
     {
         return $this->belongsTo(Expediente::class);

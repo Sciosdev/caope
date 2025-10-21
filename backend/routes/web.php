@@ -24,6 +24,9 @@ Route::middleware('auth')->group(function () {
 
     Route::post('expedientes/{expediente}/anexos', [AnexoController::class, 'store'])
         ->name('expedientes.anexos.store');
+    Route::get('expedientes/{expediente}/anexos/{anexo}', [AnexoController::class, 'show'])
+        ->middleware('signed')
+        ->name('expedientes.anexos.show');
     Route::delete('expedientes/{expediente}/anexos/{anexo}', [AnexoController::class, 'destroy'])
         ->name('expedientes.anexos.destroy');
 

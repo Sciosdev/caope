@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreExpedienteRequest;
 use App\Http\Requests\UpdateExpedienteRequest;
+use App\Models\Anexo;
 use App\Models\CatalogoCarrera;
 use App\Models\CatalogoTurno;
 use App\Models\Expediente;
@@ -14,6 +15,7 @@ use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -147,6 +149,17 @@ class ExpedienteController extends Controller
             'anexos' => fn ($q) => $q->with('subidoPor')->latest(),
             'timelineEventos' => fn ($q) => $q->with('actor')->orderByDesc('created_at'),
         ]);
+
+        $expediente->anexos->each(function (Anexo $anexo) use ($expediente) {
+            $anexo->setAttribute(
+                'download_url',
+                URL::temporarySignedRoute(
+                    'expedientes.anexos.show',
+                    now()->addMinutes(30),
+                    [$expediente, $anexo]
+                )
+            );
+        });
 
         return view('expedientes.show', [
             'expediente' => $expediente,
