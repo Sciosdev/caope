@@ -63,6 +63,7 @@ class AnexoController extends Controller
             'anexo_id' => $anexo->getKey(),
             'titulo' => $anexo->titulo,
             'tipo' => $anexo->tipo,
+            'disk' => $anexo->disk,
         ]);
 
         $payload = [
@@ -116,8 +117,15 @@ class AnexoController extends Controller
             ]);
         }
 
+        $redirectQuery = collect($request->only(['titulo', 'tipo']))
+            ->map(fn ($value) => is_string($value) ? trim($value) : '')
+            ->filter(fn ($value) => $value !== '')
+            ->all();
+
+        $redirectQuery['tab'] = $request->input('tab', 'anexos');
+
         return redirect()
-            ->route('expedientes.show', $expediente)
+            ->route('expedientes.show', array_merge(['expediente' => $expediente], $redirectQuery))
             ->with('status', 'Anexo eliminado correctamente.');
     }
 

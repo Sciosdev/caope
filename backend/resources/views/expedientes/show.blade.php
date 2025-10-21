@@ -306,7 +306,8 @@
                         $usuarioActual = auth()->user();
                         $puedeSubirAnexos = $usuarioActual?->can('create', [App\Models\Anexo::class, $expediente]);
                         $puedeEliminarAlguno = $anexos->contains(fn ($anexo) => $usuarioActual?->can('delete', $anexo));
-                        $mostrarAcciones = $puedeSubirAnexos || $puedeEliminarAlguno;
+                        $mostrarDescarga = $anexos->contains(fn ($anexo) => ! empty($anexo->download_url));
+                        $mostrarAcciones = $mostrarDescarga || $puedeEliminarAlguno;
                         $formatosAceptados = collect(explode(',', (string) config('uploads.anexos.mimes')))
                             ->map(fn ($valor) => trim($valor))
                             ->filter()
@@ -314,8 +315,14 @@
                             ->implode(',');
                     @endphp
                     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                        <h6 class="mb-0">Anexos</h6>
-                        <span class="badge bg-light text-muted" data-anexos-counter>{{ $anexos->count() }} registros</span>
+                        <div class="d-flex align-items-center gap-3 flex-wrap">
+                            <h6 class="mb-0">Anexos</h6>
+                            <span class="badge bg-light text-muted" data-anexos-counter>{{ $anexos->count() }} registros</span>
+                        </div>
+                        <div class="btn-group btn-group-sm" role="group" data-anexos-view-switch>
+                            <button type="button" class="btn btn-outline-secondary active" data-anexos-view-toggle="list">Lista</button>
+                            <button type="button" class="btn btn-outline-secondary" data-anexos-view-toggle="gallery">Galería</button>
+                        </div>
                     </div>
                     @can('create', [App\Models\Anexo::class, $expediente])
                         <div class="mb-4">
@@ -329,6 +336,8 @@
                                 data-table-target="#anexos-table-body"
                                 data-empty-target="#anexos-empty-state"
                                 data-table-wrapper="#anexos-table-wrapper"
+                                data-gallery-wrapper="#anexos-gallery-wrapper"
+                                data-gallery-target="#anexos-gallery-grid"
                                 data-accepted-types="{{ config('uploads.anexos.mimes') }}"
                                 data-max-size="{{ config('uploads.anexos.max') }}"
                                 data-can-delete="true"
@@ -342,10 +351,37 @@
                             </p>
                         </div>
                     @endcan
+                    <form method="GET" action="{{ route('expedientes.show', $expediente) }}" class="row g-3 align-items-end mb-4">
+                        <input type="hidden" name="tab" value="anexos">
+                        <div class="col-md-4 col-lg-3">
+                            <label for="filtro-anexo-titulo" class="form-label">Título</label>
+                            <input
+                                type="search"
+                                class="form-control"
+                                id="filtro-anexo-titulo"
+                                name="titulo"
+                                placeholder="Buscar por título"
+                                value="{{ $anexosFilters['titulo'] ?? '' }}"
+                            >
+                        </div>
+                        <div class="col-md-4 col-lg-3">
+                            <label for="filtro-anexo-tipo" class="form-label">Tipo</label>
+                            <select id="filtro-anexo-tipo" name="tipo" class="form-select">
+                                <option value="">Todos</option>
+                                @foreach ($anexosTipos as $tipo)
+                                    <option value="{{ $tipo }}" @selected(($anexosFilters['tipo'] ?? '') === $tipo)>{{ $tipo }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-4 col-lg-3 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">Buscar</button>
+                            <a href="{{ route('expedientes.show', ['expediente' => $expediente, 'tab' => 'anexos']) }}" class="btn btn-link text-decoration-none">Limpiar</a>
+                        </div>
+                    </form>
                     <div id="anexos-empty-state" class="{{ $anexos->isEmpty() ? '' : 'd-none' }}">
                         <p class="text-muted mb-0">Sin anexos por el momento.</p>
                     </div>
-                    <div id="anexos-table-wrapper" class="table-responsive {{ $anexos->isEmpty() ? 'd-none' : '' }}">
+                    <div id="anexos-table-wrapper" data-anexos-view="list" class="table-responsive {{ $anexos->isEmpty() ? 'd-none' : '' }}">
                         <table class="table table-sm align-middle mb-0">
                             <thead>
                                 <tr>
@@ -372,31 +408,124 @@
                                             @endif
                                         </td>
                                         <td>{{ $anexo->tipo }}</td>
-                                        <td>{{ number_format($anexo->tamano / 1024, 1) }} KB</td>
+                                        <td>{{ number_format(($anexo->tamano ?? 0) / 1024, 1) }} KB</td>
                                         <td>{{ $anexo->subidoPor?->name }}</td>
                                         <td>{{ optional($anexo->created_at)->format('Y-m-d H:i') }}</td>
                                         @if ($mostrarAcciones)
                                             <td class="text-end">
-                                                @can('delete', $anexo)
-                                                    <form
-                                                        action="{{ route('expedientes.anexos.destroy', [$expediente, $anexo]) }}"
-                                                        method="post"
-                                                        class="d-inline"
-                                                        data-anexo-delete-form
-                                                    >
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit" class="btn btn-link btn-sm text-danger p-0">Eliminar</button>
-                                                    </form>
+                                                @if ($mostrarDescarga && ! empty($anexo->download_url))
+                                                    <div class="btn-group btn-group-sm" role="group">
+                                                        <a href="{{ $anexo->download_url }}" class="btn btn-outline-secondary">Descargar</a>
+                                                        @can('delete', $anexo)
+                                                            <button
+                                                                type="button"
+                                                                class="btn btn-outline-danger"
+                                                                data-bs-toggle="modal"
+                                                                data-bs-target="#anexoDeleteModal"
+                                                                data-delete-url="{{ route('expedientes.anexos.destroy', [$expediente, $anexo]) }}"
+                                                                data-anexo-title="{{ $anexo->titulo }}"
+                                                            >
+                                                                Eliminar
+                                                            </button>
+                                                        @endcan
+                                                    </div>
+                                                @elseif ($puedeEliminarAlguno)
+                                                    @can('delete', $anexo)
+                                                        <button
+                                                            type="button"
+                                                            class="btn btn-outline-danger btn-sm"
+                                                            data-bs-toggle="modal"
+                                                            data-bs-target="#anexoDeleteModal"
+                                                            data-delete-url="{{ route('expedientes.anexos.destroy', [$expediente, $anexo]) }}"
+                                                            data-anexo-title="{{ $anexo->titulo }}"
+                                                        >
+                                                            Eliminar
+                                                        </button>
+                                                    @else
+                                                        <span class="text-muted small">—</span>
+                                                    @endcan
                                                 @else
                                                     <span class="text-muted small">—</span>
-                                                @endcan
+                                                @endif
                                             </td>
                                         @endif
                                     </tr>
                                 @endforeach
                             </tbody>
                         </table>
+                    </div>
+                    <div id="anexos-gallery-wrapper" data-anexos-view="gallery" class="{{ $anexos->isEmpty() ? 'd-none' : '' }}">
+                        <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3" id="anexos-gallery-grid" data-anexos-gallery>
+                            @foreach ($anexos as $anexo)
+                                @php
+                                    $tipo = strtolower((string) $anexo->tipo);
+                                    $esImagen = str_starts_with($tipo, 'image/') || in_array($tipo, ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'], true);
+                                    $tamanoLegible = number_format(($anexo->tamano ?? 0) / 1024, 1).' KB';
+                                @endphp
+                                <div class="col" data-anexo-id="{{ $anexo->id }}">
+                                    <div class="card h-100 shadow-sm">
+                                        <div class="ratio ratio-4x3 bg-light border-bottom">
+                                            @if ($esImagen && ! empty($anexo->download_url))
+                                                <img src="{{ $anexo->download_url }}" alt="Vista previa de {{ $anexo->titulo }}" class="img-fluid w-100 h-100 object-fit-cover rounded-top">
+                                            @else
+                                                <div class="d-flex h-100 align-items-center justify-content-center text-muted flex-column">
+                                                    <span class="fw-semibold">Sin vista previa</span>
+                                                    <small class="text-muted">{{ strtoupper((string) $anexo->tipo) }}</small>
+                                                </div>
+                                            @endif
+                                        </div>
+                                        <div class="card-body d-flex flex-column">
+                                            <h6 class="card-title text-truncate" title="{{ $anexo->titulo }}">{{ $anexo->titulo }}</h6>
+                                            <ul class="list-unstyled small text-muted mb-3">
+                                                <li><span class="text-dark">Tipo:</span> {{ $anexo->tipo }}</li>
+                                                <li><span class="text-dark">Tamaño:</span> {{ $tamanoLegible }}</li>
+                                                <li><span class="text-dark">Subido por:</span> {{ $anexo->subidoPor?->name ?? '—' }}</li>
+                                                <li><span class="text-dark">Fecha:</span> {{ optional($anexo->created_at)->format('Y-m-d H:i') ?? '—' }}</li>
+                                            </ul>
+                                            <div class="mt-auto d-flex flex-wrap gap-2">
+                                                @if (! empty($anexo->download_url))
+                                                    <a href="{{ $anexo->download_url }}" class="btn btn-outline-secondary btn-sm">Descargar</a>
+                                                @endif
+                                                @can('delete', $anexo)
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-outline-danger btn-sm"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#anexoDeleteModal"
+                                                        data-delete-url="{{ route('expedientes.anexos.destroy', [$expediente, $anexo]) }}"
+                                                        data-anexo-title="{{ $anexo->titulo }}"
+                                                    >
+                                                        Eliminar
+                                                    </button>
+                                                @endcan
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    <div class="modal fade" id="anexoDeleteModal" tabindex="-1" aria-labelledby="anexoDeleteModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <form method="POST" class="modal-content" id="anexoDeleteForm">
+                                @csrf
+                                @method('DELETE')
+                                <input type="hidden" name="titulo" value="{{ $anexosFilters['titulo'] ?? '' }}">
+                                <input type="hidden" name="tipo" value="{{ $anexosFilters['tipo'] ?? '' }}">
+                                <input type="hidden" name="tab" value="anexos">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="anexoDeleteModalLabel">Eliminar anexo</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p class="mb-0">¿Seguro que deseas eliminar <span class="fw-semibold" data-anexo-delete-title>este anexo</span>? Esta acción no se puede deshacer.</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -436,33 +565,162 @@
     @vite('resources/js/expedientes/anexos.js')
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            if (!window.bootstrap || !window.bootstrap.Tab) {
-                return;
-            }
+            const bootstrapLib = window.bootstrap;
+            const tabButtons = [].slice.call(document.querySelectorAll('#expedienteTabs button[data-bs-toggle="tab"]'));
+            const hasTabSupport = Boolean(bootstrapLib?.Tab);
 
-            const triggerTabList = [].slice.call(document.querySelectorAll('#expedienteTabs button[data-bs-toggle="tab"]'));
+            const sanitizeTab = (value) => (value || '').toString().replace(/[^a-z0-9_-]/gi, '');
 
-            const activateTab = function (selector) {
+            const activateTab = (selector) => {
+                if (!hasTabSupport) {
+                    return;
+                }
+
                 const tabTrigger = document.querySelector(selector);
                 if (tabTrigger) {
-                    const tab = new window.bootstrap.Tab(tabTrigger);
+                    const tab = new bootstrapLib.Tab(tabTrigger);
                     tab.show();
                 }
             };
 
-            if (window.location.hash) {
-                activateTab(`#expedienteTabs button[data-bs-target="${window.location.hash}"]`);
+            const updateUrlForTab = (target) => {
+                const url = new URL(window.location.href);
+
+                if (target && target.startsWith('#')) {
+                    const value = sanitizeTab(target.substring(1));
+                    if (value && value !== 'resumen') {
+                        url.searchParams.set('tab', value);
+                    } else {
+                        url.searchParams.delete('tab');
+                    }
+                } else {
+                    url.searchParams.delete('tab');
+                }
+
+                url.hash = '';
+                history.replaceState(null, '', url);
+            };
+
+            if (hasTabSupport) {
+                const params = new URLSearchParams(window.location.search);
+                const requestedTab = sanitizeTab(params.get('tab'));
+
+                if (requestedTab) {
+                    activateTab(`#expedienteTabs button[data-bs-target="#${requestedTab}"]`);
+                } else if (window.location.hash) {
+                    const hash = sanitizeTab(window.location.hash.replace('#', ''));
+                    if (hash) {
+                        activateTab(`#expedienteTabs button[data-bs-target="#${hash}"]`);
+                    }
+                }
+
+                tabButtons.forEach((triggerEl) => {
+                    triggerEl.addEventListener('shown.bs.tab', (event) => {
+                        const target = event.target.getAttribute('data-bs-target');
+                        if (target) {
+                            updateUrlForTab(target);
+                        }
+                    });
+                });
             }
 
-            triggerTabList.forEach(function (triggerEl) {
-                triggerEl.addEventListener('shown.bs.tab', function (event) {
-                    const target = event.target.getAttribute('data-bs-target');
-                    if (target) {
-                        const newUrl = `${window.location.pathname}${window.location.search}${target}`;
-                        history.replaceState(null, '', newUrl);
+            const viewButtons = document.querySelectorAll('[data-anexos-view-toggle]');
+            const viewContainers = document.querySelectorAll('[data-anexos-view]');
+            const viewStorageKey = 'expedientes.anexos.view';
+
+            const setViewMode = (mode) => {
+                const normalized = mode === 'gallery' ? 'gallery' : 'list';
+
+                viewContainers.forEach((container) => {
+                    const isActive = container.dataset.anexosView === normalized;
+                    container.classList.toggle('d-none', !isActive);
+                });
+
+                viewButtons.forEach((button) => {
+                    const isActive = button.dataset.anexosViewToggle === normalized;
+                    button.classList.toggle('active', isActive);
+                    if (isActive) {
+                        button.classList.remove('btn-outline-secondary');
+                        button.classList.add('btn-primary');
+                    } else {
+                        button.classList.remove('btn-primary');
+                        button.classList.add('btn-outline-secondary');
                     }
                 });
-            });
+
+                try {
+                    window.localStorage.setItem(viewStorageKey, normalized);
+                } catch (error) {
+                    console.debug('No se pudo guardar la preferencia de vista de anexos.', error);
+                }
+            };
+
+            if (viewButtons.length > 0 && viewContainers.length > 0) {
+                let storedView = null;
+                try {
+                    storedView = window.localStorage.getItem(viewStorageKey);
+                } catch (error) {
+                    storedView = null;
+                }
+
+                if (storedView !== 'list' && storedView !== 'gallery') {
+                    storedView = 'list';
+                }
+
+                setViewMode(storedView);
+
+                viewButtons.forEach((button) => {
+                    button.addEventListener('click', () => {
+                        setViewMode(button.dataset.anexosViewToggle);
+                    });
+                });
+            }
+
+            const deleteModalEl = document.getElementById('anexoDeleteModal');
+
+            if (deleteModalEl && bootstrapLib?.Modal) {
+                deleteModalEl.addEventListener('show.bs.modal', (event) => {
+                    const trigger = event.relatedTarget;
+                    if (!trigger) {
+                        return;
+                    }
+
+                    const deleteUrl = trigger.getAttribute('data-delete-url') || '';
+                    const anexoTitle = trigger.getAttribute('data-anexo-title') || 'este anexo';
+                    const form = deleteModalEl.querySelector('form');
+                    const titleTarget = deleteModalEl.querySelector('[data-anexo-delete-title]');
+                    const submitButton = deleteModalEl.querySelector('button[type="submit"]');
+
+                    if (form) {
+                        if (deleteUrl) {
+                            form.setAttribute('action', deleteUrl);
+                        } else {
+                            form.removeAttribute('action');
+                        }
+                    }
+
+                    if (titleTarget) {
+                        titleTarget.textContent = anexoTitle;
+                    }
+
+                    if (submitButton) {
+                        submitButton.disabled = deleteUrl === '';
+                    }
+                });
+
+                deleteModalEl.addEventListener('hidden.bs.modal', () => {
+                    const form = deleteModalEl.querySelector('form');
+                    const submitButton = deleteModalEl.querySelector('button[type="submit"]');
+
+                    if (form) {
+                        form.removeAttribute('action');
+                    }
+
+                    if (submitButton) {
+                        submitButton.disabled = false;
+                    }
+                });
+            }
         });
     </script>
 @endpush

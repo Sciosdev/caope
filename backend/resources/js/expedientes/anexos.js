@@ -17,6 +17,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const tableBody = document.querySelector(uploader.dataset.tableTarget || '');
     const emptyState = document.querySelector(uploader.dataset.emptyTarget || '');
     const tableWrapper = document.querySelector(uploader.dataset.tableWrapper || '');
+    const galleryWrapper = document.querySelector(uploader.dataset.galleryWrapper || '');
+    const galleryGrid = document.querySelector(uploader.dataset.galleryTarget || '');
     const counter = document.querySelector('[data-anexos-counter]');
     const canDelete = uploader.dataset.canDelete === 'true';
     const hasActions = tableBody?.dataset.hasActions === 'true';
@@ -63,23 +65,30 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const updateCounter = () => {
-        if (!counter || !tableBody) {
+        if (!counter) {
             return;
         }
 
-        const total = tableBody.querySelectorAll('tr').length;
+        let total = 0;
+
+        if (tableBody) {
+            total = tableBody.querySelectorAll('tr').length;
+        } else if (galleryGrid) {
+            total = galleryGrid.querySelectorAll('[data-anexo-id]').length;
+        }
+
         counter.textContent = `${total} registros`;
     };
 
     const toggleEmptyState = () => {
-        if (!tableBody) {
-            return;
-        }
-
-        const hasRows = tableBody.querySelector('tr') !== null;
+        const hasRows = tableBody?.querySelector('tr') !== null || galleryGrid?.querySelector('[data-anexo-id]') !== null;
 
         if (tableWrapper) {
             tableWrapper.classList.toggle('d-none', !hasRows);
+        }
+
+        if (galleryWrapper) {
+            galleryWrapper.classList.toggle('d-none', !hasRows);
         }
 
         if (emptyState) {
@@ -117,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return cell;
     };
 
-    const createActionCell = (deleteUrl) => {
+    const createActionCell = (anexo) => {
         const cell = document.createElement('td');
         cell.classList.add('text-end');
 
@@ -125,7 +134,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return cell;
         }
 
-        if (!canDelete || !deleteUrl) {
+        const hasDownload = Boolean(anexo?.download_url);
+        const canDeleteCurrent = Boolean(canDelete && anexo?.delete_url);
+
+        if (!hasDownload && !canDeleteCurrent) {
             const placeholder = document.createElement('span');
             placeholder.className = 'text-muted small';
             placeholder.textContent = '—';
@@ -134,32 +146,167 @@ document.addEventListener('DOMContentLoaded', () => {
             return cell;
         }
 
-        const form = document.createElement('form');
-        form.action = deleteUrl;
-        form.method = 'post';
-        form.setAttribute('data-anexo-delete-form', '');
+        if (hasDownload) {
+            const group = document.createElement('div');
+            group.className = 'btn-group btn-group-sm';
 
-        const tokenInput = document.createElement('input');
-        tokenInput.type = 'hidden';
-        tokenInput.name = '_token';
-        tokenInput.value = csrfToken;
-        form.appendChild(tokenInput);
+            const downloadButton = document.createElement('a');
+            downloadButton.href = anexo.download_url;
+            downloadButton.className = 'btn btn-outline-secondary';
+            downloadButton.textContent = 'Descargar';
+            group.appendChild(downloadButton);
 
-        const methodInput = document.createElement('input');
-        methodInput.type = 'hidden';
-        methodInput.name = '_method';
-        methodInput.value = 'DELETE';
-        form.appendChild(methodInput);
+            if (canDeleteCurrent) {
+                const deleteButton = document.createElement('button');
+                deleteButton.type = 'button';
+                deleteButton.className = 'btn btn-outline-danger';
+                deleteButton.textContent = 'Eliminar';
+                deleteButton.setAttribute('data-bs-toggle', 'modal');
+                deleteButton.setAttribute('data-bs-target', '#anexoDeleteModal');
+                deleteButton.dataset.deleteUrl = anexo.delete_url;
+                deleteButton.dataset.anexoTitle = anexo.titulo ?? 'este anexo';
+                group.appendChild(deleteButton);
+            }
 
-        const button = document.createElement('button');
-        button.type = 'submit';
-        button.className = 'btn btn-link btn-sm text-danger p-0';
-        button.textContent = 'Eliminar';
-        form.appendChild(button);
+            cell.appendChild(group);
 
-        cell.appendChild(form);
+            return cell;
+        }
+
+        if (canDeleteCurrent) {
+            const deleteOnlyButton = document.createElement('button');
+            deleteOnlyButton.type = 'button';
+            deleteOnlyButton.className = 'btn btn-outline-danger btn-sm';
+            deleteOnlyButton.textContent = 'Eliminar';
+            deleteOnlyButton.setAttribute('data-bs-toggle', 'modal');
+            deleteOnlyButton.setAttribute('data-bs-target', '#anexoDeleteModal');
+            deleteOnlyButton.dataset.deleteUrl = anexo.delete_url;
+            deleteOnlyButton.dataset.anexoTitle = anexo.titulo ?? 'este anexo';
+            cell.appendChild(deleteOnlyButton);
+
+            return cell;
+        }
 
         return cell;
+    };
+
+    const isImageType = (tipo) => {
+        if (!tipo) {
+            return false;
+        }
+
+        const value = String(tipo).toLowerCase();
+
+        return value.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(value);
+    };
+
+    const createGalleryCard = (anexo) => {
+        const col = document.createElement('div');
+        col.className = 'col';
+        col.dataset.anexoId = String(anexo.id);
+
+        const card = document.createElement('div');
+        card.className = 'card h-100 shadow-sm';
+        col.appendChild(card);
+
+        const ratio = document.createElement('div');
+        ratio.className = 'ratio ratio-4x3 bg-light border-bottom';
+        card.appendChild(ratio);
+
+        if (isImageType(anexo.tipo) && anexo.download_url) {
+            const img = document.createElement('img');
+            img.src = anexo.download_url;
+            img.alt = `Vista previa de ${anexo.titulo ?? 'anexo'}`;
+            img.className = 'img-fluid w-100 h-100 object-fit-cover rounded-top';
+            ratio.appendChild(img);
+        } else {
+            const placeholder = document.createElement('div');
+            placeholder.className = 'd-flex h-100 align-items-center justify-content-center text-muted flex-column';
+
+            const label = document.createElement('span');
+            label.className = 'fw-semibold';
+            label.textContent = 'Sin vista previa';
+            placeholder.appendChild(label);
+
+            const typeLabel = document.createElement('small');
+            typeLabel.className = 'text-muted';
+            typeLabel.textContent = String(anexo.tipo ?? '').toUpperCase() || '—';
+            placeholder.appendChild(typeLabel);
+
+            ratio.appendChild(placeholder);
+        }
+
+        const body = document.createElement('div');
+        body.className = 'card-body d-flex flex-column';
+        card.appendChild(body);
+
+        const title = document.createElement('h6');
+        title.className = 'card-title text-truncate';
+        title.title = anexo.titulo ?? 'Sin título';
+        title.textContent = anexo.titulo ?? 'Sin título';
+        body.appendChild(title);
+
+        const metaList = document.createElement('ul');
+        metaList.className = 'list-unstyled small text-muted mb-3';
+        const metadata = [
+            ['Tipo:', anexo.tipo || '—'],
+            ['Tamaño:', `${anexo.tamano_legible ?? formatBytesToKilobytes(anexo.tamano ?? 0)} KB`],
+            ['Subido por:', anexo.subido_por || '—'],
+            ['Fecha:', anexo.fecha || '—'],
+        ];
+
+        metadata.forEach(([label, value]) => {
+            const item = document.createElement('li');
+            const labelSpan = document.createElement('span');
+            labelSpan.className = 'text-dark';
+            labelSpan.textContent = label;
+            item.appendChild(labelSpan);
+            item.append(` ${value}`);
+            metaList.appendChild(item);
+        });
+
+        body.appendChild(metaList);
+
+        const actions = document.createElement('div');
+        actions.className = 'mt-auto d-flex flex-wrap gap-2';
+        body.appendChild(actions);
+
+        if (anexo.download_url) {
+            const downloadButton = document.createElement('a');
+            downloadButton.href = anexo.download_url;
+            downloadButton.className = 'btn btn-outline-secondary btn-sm';
+            downloadButton.textContent = 'Descargar';
+            actions.appendChild(downloadButton);
+        }
+
+        if (canDelete && anexo.delete_url) {
+            const deleteButton = document.createElement('button');
+            deleteButton.type = 'button';
+            deleteButton.className = 'btn btn-outline-danger btn-sm';
+            deleteButton.textContent = 'Eliminar';
+            deleteButton.setAttribute('data-bs-toggle', 'modal');
+            deleteButton.setAttribute('data-bs-target', '#anexoDeleteModal');
+            deleteButton.dataset.deleteUrl = anexo.delete_url;
+            deleteButton.dataset.anexoTitle = anexo.titulo ?? 'este anexo';
+            actions.appendChild(deleteButton);
+        }
+
+        return col;
+    };
+
+    const addCardToGallery = (anexo) => {
+        if (!galleryGrid || !anexo || !anexo.id) {
+            return;
+        }
+
+        const existingCard = galleryGrid.querySelector(`[data-anexo-id="${anexo.id}"]`);
+
+        if (existingCard) {
+            existingCard.remove();
+        }
+
+        const card = createGalleryCard(anexo);
+        galleryGrid.prepend(card);
     };
 
     const addRowToTable = (anexo) => {
@@ -177,24 +324,36 @@ document.addEventListener('DOMContentLoaded', () => {
         row.appendChild(createCell(anexo.fecha || '—'));
 
         if (hasActions) {
-            row.appendChild(createActionCell(anexo.delete_url));
+            row.appendChild(createActionCell(anexo));
         }
 
         tableBody.prepend(row);
+        addCardToGallery(anexo);
         toggleEmptyState();
     };
 
     const removeRow = (anexoId) => {
-        if (!tableBody || !anexoId) {
+        if (!anexoId) {
             return;
         }
 
-        const row = Array.from(tableBody.querySelectorAll('tr')).find((item) => item.dataset.anexoId === String(anexoId));
+        if (tableBody) {
+            const row = Array.from(tableBody.querySelectorAll('tr')).find((item) => item.dataset.anexoId === String(anexoId));
 
-        if (row) {
-            row.remove();
-            toggleEmptyState();
+            if (row) {
+                row.remove();
+            }
         }
+
+        if (galleryGrid) {
+            const card = Array.from(galleryGrid.querySelectorAll('[data-anexo-id]')).find((item) => item.dataset.anexoId === String(anexoId));
+
+            if (card) {
+                card.remove();
+            }
+        }
+
+        toggleEmptyState();
     };
 
     const pond = create(uploader, {
@@ -294,50 +453,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     toggleEmptyState();
-
-    document.addEventListener('submit', (event) => {
-        const form = event.target;
-
-        if (!(form instanceof HTMLFormElement) || !form.matches('[data-anexo-delete-form]')) {
-            return;
-        }
-
-        event.preventDefault();
-
-        const submitButton = form.querySelector('button[type="submit"]');
-        if (submitButton) {
-            submitButton.disabled = true;
-        }
-
-        const formData = new FormData(form);
-
-        fetch(form.action, {
-            method: form.method?.toUpperCase() === 'GET' ? 'GET' : 'POST',
-            headers: {
-                Accept: 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
-            },
-            body: form.method?.toUpperCase() === 'GET' ? null : formData,
-        })
-            .then((response) => {
-                if (!response.ok) {
-                    throw new Error('Error');
-                }
-
-                const row = form.closest('tr');
-
-                if (row?.dataset.anexoId) {
-                    deleteUrls.delete(row.dataset.anexoId);
-                    removeRow(row.dataset.anexoId);
-                }
-            })
-            .catch(() => {
-                window.alert('No fue posible eliminar el anexo. Intenta nuevamente.');
-            })
-            .finally(() => {
-                if (submitButton) {
-                    submitButton.disabled = false;
-                }
-            });
-    }, true);
 });

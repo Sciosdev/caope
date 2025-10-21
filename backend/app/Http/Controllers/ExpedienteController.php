@@ -136,9 +136,25 @@ class ExpedienteController extends Controller
             ->with('status', 'Expediente creado correctamente.');
     }
 
-    public function show(Expediente $expediente): View
+    public function show(Request $request, Expediente $expediente): View
     {
         $this->authorize('view', $expediente);
+
+        $filterValues = collect($request->only(['titulo', 'tipo']))
+            ->map(fn ($value) => is_string($value) ? trim($value) : '')
+            ->all();
+
+        $activeFilters = collect($filterValues)
+            ->filter(fn ($value) => $value !== '')
+            ->all();
+
+        $anexosTipos = $expediente->anexos()
+            ->select('tipo')
+            ->distinct()
+            ->orderBy('tipo')
+            ->pluck('tipo')
+            ->filter()
+            ->values();
 
         $expediente->load([
             'creadoPor',
@@ -146,7 +162,7 @@ class ExpedienteController extends Controller
             'coordinador',
             'sesiones' => fn ($q) => $q->with(['realizadaPor', 'validadaPor'])->orderByDesc('fecha'),
             'consentimientos' => fn ($q) => $q->with('subidoPor')->orderByDesc('requerido')->orderBy('tratamiento'),
-            'anexos' => fn ($q) => $q->with('subidoPor')->latest(),
+            'anexos' => fn ($q) => $q->with('subidoPor')->filter($activeFilters)->latest(),
             'timelineEventos' => fn ($q) => $q->with('actor')->orderByDesc('created_at'),
         ]);
 
@@ -166,6 +182,9 @@ class ExpedienteController extends Controller
             'sesiones' => $expediente->sesiones,
             'consentimientos' => $expediente->consentimientos,
             'anexos' => $expediente->anexos,
+            'anexosFilters' => $filterValues,
+            'anexosTipos' => $anexosTipos,
+            'activeTab' => $request->query('tab'),
             'timelineEventos' => $expediente->timelineEventos,
             'timelineEventosRecientes' => $expediente->timelineEventos->take(5),
             'availableStates' => [
