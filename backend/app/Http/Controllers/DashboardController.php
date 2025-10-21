@@ -64,7 +64,7 @@ class DashboardController extends Controller
         $thresholdDays = $this->insights->getStalledThresholdDays($requestedDays);
 
         $alerts = $this->insights
-            ->getStalledExpedientes($thresholdDays, $request->user())
+            ->getStalledExpedientes($thresholdDays)
             ->map(function (array $alert) {
                 $alert['url'] = route('expedientes.show', $alert['id']);
 
