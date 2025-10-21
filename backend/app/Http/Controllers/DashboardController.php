@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Expediente;
 use App\Models\Sesion;
 use App\Models\User;
 use App\Services\DashboardInsightsService;
@@ -63,7 +64,7 @@ class DashboardController extends Controller
         $thresholdDays = $this->insights->getStalledThresholdDays($requestedDays);
 
         $alerts = $this->insights
-            ->getStalledExpedientes($thresholdDays)
+            ->getStalledExpedientes($thresholdDays, $request->user())
             ->map(function (array $alert) {
                 $alert['url'] = route('expedientes.show', $alert['id']);
 
