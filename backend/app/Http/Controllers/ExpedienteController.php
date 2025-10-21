@@ -9,12 +9,16 @@ use App\Models\CatalogoCarrera;
 use App\Models\CatalogoTurno;
 use App\Models\Expediente;
 use App\Models\User;
+use App\Notifications\ExpedienteClosedNotification;
+use App\Notifications\ExpedienteClosureAttemptNotification;
+use App\Notifications\TutorAssignedNotification;
 use App\Services\ExpedienteStateValidator;
 use App\Services\TimelineLogger;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -237,6 +241,15 @@ class ExpedienteController extends Controller
                 'despues' => Arr::only($after, $cambios),
                 'campos' => $cambios,
             ]);
+
+            if (in_array('tutor_id', $cambios, true)) {
+                $expediente->loadMissing('tutor');
+                $tutor = $expediente->tutor;
+
+                if ($tutor) {
+                    $tutor->notify(new TutorAssignedNotification($expediente, $request->user()));
+                }
+            }
         }
 
         return redirect()
@@ -276,6 +289,8 @@ class ExpedienteController extends Controller
             $erroresCierre = $this->stateValidator->validateClosureRequirements($expediente);
 
             if ($erroresCierre->isNotEmpty()) {
+                $this->notifyClosureAttempt($expediente, $request->user(), $erroresCierre->all());
+
                 return redirect()
                     ->route('expedientes.show', $expediente)
                     ->withErrors(['estado' => $erroresCierre->all()]);
@@ -288,6 +303,10 @@ class ExpedienteController extends Controller
             'antes' => $estadoAnterior,
             'despues' => $nuevoEstado,
         ]);
+
+        if ($nuevoEstado === 'cerrado') {
+            $this->notifyClosureSuccess($expediente, $request->user());
+        }
 
         return redirect()
             ->route('expedientes.show', $expediente)
@@ -317,4 +336,33 @@ class ExpedienteController extends Controller
         ];
     }
 
+    /**
+     * @return Collection<int, User>
+     */
+    private function expedienteContacts(Expediente $expediente): Collection
+    {
+        $expediente->loadMissing(['tutor', 'creadoPor', 'coordinador']);
+
+        return collect([$expediente->tutor, $expediente->creadoPor, $expediente->coordinador])
+            ->filter()
+            ->unique(fn (User $user) => $user->id)
+            ->values();
+    }
+
+    /**
+     * @param  list<string>  $errores
+     */
+    private function notifyClosureAttempt(Expediente $expediente, User $actor, array $errores): void
+    {
+        $this->expedienteContacts($expediente)
+            ->each(fn (User $user) => $user->notify(new ExpedienteClosureAttemptNotification($expediente, $actor, $errores)));
+    }
+
+    private function notifyClosureSuccess(Expediente $expediente, User $actor): void
+    {
+        $this->expedienteContacts($expediente)
+            ->each(fn (User $user) => $user->notify(new ExpedienteClosedNotification($expediente, $actor)));
+    }
+
 }
+
