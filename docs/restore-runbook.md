@@ -20,7 +20,7 @@ This runbook defines the recovery workflow for SQLite (local/testing) and MySQL 
    - Identify the desired snapshot in the backup directory (`storage/backups/sqlite/`).
    - Verify checksum against the catalogue file `checksums.txt`.
 2. **Restore**
-   - Stop the Laravel queue workers and any scheduled jobs: `php artisan queue:stop` and `php artisan schedule:finish`. If the workers are managed by Supervisor or another process manager, disable that service until the database copy is complete.
+   - Stop the Laravel queue workers and pause the scheduler. Run `php artisan queue:stop` and disable the cron job or Supervisor-managed scheduler process that triggers `php artisan schedule:run`. If the workers are managed by Supervisor or another process manager, disable that service until the database copy is complete.
    - Replace the active database: `cp storage/backups/sqlite/<timestamp>.sqlite database/database.sqlite`.
    - Apply file permissions: `chown www-data:www-data database/database.sqlite` (adjust user for your stack).
 3. **Validation**
@@ -38,7 +38,7 @@ This runbook defines the recovery workflow for SQLite (local/testing) and MySQL 
    - Validate integrity by running `mysqlbinlog --verify-binlog-checksum` for the incremental logs, when applicable.
 2. **Prepare environment**
    - Place the application in maintenance mode: `php artisan down --render="errors::503-maintenance"`.
-   - Disable queue workers and scheduled jobs (for example, `php artisan queue:stop` and `php artisan schedule:finish`, and pause any Supervisor-managed workers).
+   - Disable queue workers and scheduled jobs. Run `php artisan queue:stop`, stop the cron entry or Supervisor-managed scheduler that runs `php artisan schedule:run`, and pause any Supervisor-managed workers.
    - Ensure there is sufficient disk space in the target data directory.
    - Create a manual snapshot of the current database before overwriting (`mysqldump --single-transaction`). Store it for 30 days.
 3. **Restore**
