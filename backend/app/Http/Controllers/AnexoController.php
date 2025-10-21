@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
 class AnexoController extends Controller
@@ -26,7 +27,10 @@ class AnexoController extends Controller
             return $this->respondWithError($request, 'No se recibió un archivo válido.', 422);
         }
 
-        $disk = config('filesystems.private_default', 'private');
+        $isPrivado = $request->boolean('es_privado', true);
+        $privateDisk = config('filesystems.private_default', 'private');
+        $publicDisk = config('filesystems.default', 'public');
+        $disk = $isPrivado ? $privateDisk : $publicDisk;
         $directory = sprintf('expedientes/%s/anexos', $expediente->getKey());
         $originalExtension = strtolower((string) $file->getClientOriginalExtension());
         $extension = $originalExtension !== '' ? $originalExtension : 'bin';
@@ -41,11 +45,19 @@ class AnexoController extends Controller
             'titulo' => $titulo,
             'tipo' => $tipo,
             'ruta' => $storedPath,
+            'disk' => $disk,
+            'es_privado' => $isPrivado,
             'tamano' => $file->getSize() ?? 0,
             'subido_por' => $request->user()->id,
         ]);
 
         $anexo->load('subidoPor');
+
+        $downloadUrl = URL::temporarySignedRoute(
+            'expedientes.anexos.show',
+            now()->addMinutes(30),
+            [$expediente, $anexo]
+        );
 
         $this->timelineLogger->log($expediente, 'anexo.subido', $request->user(), [
             'anexo_id' => $anexo->getKey(),
@@ -62,6 +74,7 @@ class AnexoController extends Controller
             'subido_por' => $anexo->subidoPor?->name,
             'fecha' => optional($anexo->created_at)->format('Y-m-d H:i'),
             'delete_url' => route('expedientes.anexos.destroy', [$expediente, $anexo]),
+            'download_url' => $downloadUrl,
             'message' => 'Anexo subido correctamente.',
         ];
 
@@ -80,7 +93,7 @@ class AnexoController extends Controller
 
         $this->authorize('delete', $anexo);
 
-        $disk = config('filesystems.private_default', 'private');
+        $disk = $anexo->disk ?: config('filesystems.private_default', 'private');
 
         if ($anexo->ruta && Storage::disk($disk)->exists($anexo->ruta)) {
             Storage::disk($disk)->delete($anexo->ruta);
@@ -108,6 +121,23 @@ class AnexoController extends Controller
             ->with('status', 'Anexo eliminado correctamente.');
     }
 
+    public function show(Request $request, Expediente $expediente, Anexo $anexo)
+    {
+        $this->ensureAnexoBelongsToExpediente($expediente, $anexo);
+
+        $this->authorize('view', $anexo);
+
+        $disk = $anexo->disk ?: config('filesystems.private_default', 'private');
+
+        if (! $anexo->ruta || ! Storage::disk($disk)->exists($anexo->ruta)) {
+            abort(404);
+        }
+
+        $downloadName = $this->buildDownloadName($anexo);
+
+        return Storage::disk($disk)->download($anexo->ruta, $downloadName);
+    }
+
     private function ensureAnexoBelongsToExpediente(Expediente $expediente, Anexo $anexo): void
     {
         abort_if((int) $anexo->expediente_id !== (int) $expediente->getKey(), 404);
@@ -127,6 +157,14 @@ class AnexoController extends Controller
         }
 
         return number_format($bytes / 1024, 1);
+    }
+
+    private function buildDownloadName(Anexo $anexo): string
+    {
+        $extension = pathinfo($anexo->ruta ?? '', PATHINFO_EXTENSION);
+        $extension = $extension !== '' ? '.'.$extension : '';
+
+        return trim($anexo->titulo.$extension) ?: basename($anexo->ruta ?? 'archivo');
     }
 
     private function respondWithError(Request $request, string $message, int $status): JsonResponse|RedirectResponse

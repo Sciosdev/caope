@@ -362,7 +362,15 @@
                             <tbody id="anexos-table-body" data-has-actions="{{ $mostrarAcciones ? 'true' : 'false' }}">
                                 @foreach ($anexos as $anexo)
                                     <tr data-anexo-id="{{ $anexo->id }}">
-                                        <td>{{ $anexo->titulo }}</td>
+                                        <td>
+                                            @if (! empty($anexo->download_url))
+                                                <a href="{{ $anexo->download_url }}" class="text-decoration-none">
+                                                    {{ $anexo->titulo }}
+                                                </a>
+                                            @else
+                                                {{ $anexo->titulo }}
+                                            @endif
+                                        </td>
                                         <td>{{ $anexo->tipo }}</td>
                                         <td>{{ number_format($anexo->tamano / 1024, 1) }} KB</td>
                                         <td>{{ $anexo->subidoPor?->name }}</td>

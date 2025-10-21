@@ -96,6 +96,27 @@ document.addEventListener('DOMContentLoaded', () => {
         return cell;
     };
 
+    const createTitleCell = (anexo) => {
+        const cell = document.createElement('td');
+        const title = anexo?.titulo ?? 'Sin título';
+
+        if (anexo?.download_url) {
+            const link = document.createElement('a');
+            link.href = anexo.download_url;
+            link.textContent = title;
+            link.className = 'text-decoration-none';
+            link.rel = 'noopener';
+
+            cell.appendChild(link);
+
+            return cell;
+        }
+
+        cell.textContent = title;
+
+        return cell;
+    };
+
     const createActionCell = (deleteUrl) => {
         const cell = document.createElement('td');
         cell.classList.add('text-end');
@@ -149,7 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const row = document.createElement('tr');
         row.dataset.anexoId = String(anexo.id);
 
-        row.appendChild(createCell(anexo.titulo || 'Sin título'));
+        row.appendChild(createTitleCell(anexo));
         row.appendChild(createCell(anexo.tipo || '—'));
         row.appendChild(createCell(`${anexo.tamano_legible ?? formatBytesToKilobytes(anexo.tamano ?? 0)} KB`));
         row.appendChild(createCell(anexo.subido_por || '—'));

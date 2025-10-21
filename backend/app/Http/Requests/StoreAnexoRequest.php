@@ -31,6 +31,7 @@ class StoreAnexoRequest extends FormRequest
                 'mimes:'.$mimes,
                 'max:'.$max,
             ],
+            'es_privado' => ['nullable', 'boolean'],
         ];
     }
 
@@ -38,6 +39,7 @@ class StoreAnexoRequest extends FormRequest
     {
         return [
             'archivo' => 'archivo de anexo',
+            'es_privado' => 'marcador de privacidad',
         ];
     }
 }
