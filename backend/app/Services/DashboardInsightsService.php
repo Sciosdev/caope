@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Expediente;
 use App\Models\Sesion;
+use App\Models\User;
 use Carbon\CarbonInterval;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -79,7 +80,7 @@ class DashboardInsightsService
     /**
      * Obtiene los expedientes que no han tenido actividad en los últimos N días.
      */
-    public function getStalledExpedientes(?int $days = null): Collection
+    public function getStalledExpedientes(?int $days = null, ?User $user = null): Collection
     {
         $days = $this->resolveDays($days);
         $threshold = Carbon::now()->subDays($days);
@@ -95,6 +96,10 @@ class DashboardInsightsService
         $alerts = [];
 
         foreach ($expedientes as $expediente) {
+            if ($user !== null && $user->cannot('view', $expediente)) {
+                continue;
+            }
+
             $lastActivity = $this->resolveLastActivity($expediente);
 
             if ($lastActivity instanceof Carbon && $lastActivity->greaterThan($threshold)) {
