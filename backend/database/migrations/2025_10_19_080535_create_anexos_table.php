@@ -18,8 +18,6 @@ return new class extends Migration
             $table->string('tipo', 60)->index();
             $table->string('titulo', 160);
             $table->string('ruta', 255);
-            $table->string('disk', 32)->default('private');
-            $table->boolean('es_privado')->default(true);
             $table->unsignedBigInteger('tamano');
             $table->foreignId('subido_por')->constrained('users')->restrictOnDelete();
             $table->timestamps();
