@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Expediente;
 use App\Models\Sesion;
 use App\Models\User;
 use App\Services\DashboardInsightsService;
@@ -11,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -57,13 +59,15 @@ class DashboardController extends Controller
 
     public function alerts(Request $request): JsonResponse
     {
+        Gate::authorize('viewAny', Expediente::class);
+
         $requestedDays = $request->query('days');
         $requestedDays = is_numeric($requestedDays) ? (int) $requestedDays : null;
 
         $thresholdDays = $this->insights->getStalledThresholdDays($requestedDays);
 
         $alerts = $this->insights
-            ->getStalledExpedientes($thresholdDays)
+            ->getStalledExpedientes($thresholdDays, $request->user())
             ->map(function (array $alert) {
                 $alert['url'] = route('expedientes.show', $alert['id']);
 
