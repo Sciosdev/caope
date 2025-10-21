@@ -1,5 +1,12 @@
 @php
     $errorBag = "consentimientoUpload-{$consentimiento->id}";
+    $uploadMimes = $uploadMimes ?? 'pdf,jpg,jpeg';
+    $uploadMax = $uploadMax ?? 5120;
+    $acceptedExtensions = collect(explode(',', $uploadMimes))
+        ->map(fn ($ext) => trim($ext))
+        ->filter()
+        ->map(fn ($ext) => '.' . ltrim($ext, '.'))
+        ->implode(',');
 @endphp
 <form action="{{ route('consentimientos.upload', $consentimiento) }}" method="post" enctype="multipart/form-data" class="d-flex flex-column gap-2">
     @csrf
@@ -10,7 +17,7 @@
                 type="file"
                 name="archivo"
                 id="archivo-consentimiento-{{ $consentimiento->id }}"
-                accept=".pdf,.jpg,.jpeg"
+                accept="{{ $acceptedExtensions }}"
                 class="form-control form-control-sm @error('archivo', $errorBag) is-invalid @enderror"
                 required
             >
@@ -53,5 +60,8 @@
             <button type="submit" class="btn btn-outline-primary btn-sm">Subir</button>
         </div>
     </div>
-    <p class="text-muted small mb-0">Formatos permitidos: PDF y JPG.</p>
+    <p class="text-muted small mb-0">
+        Formatos permitidos: {{ str_replace(',', ', ', $uploadMimes) }}.
+        Tamaño máximo: {{ number_format($uploadMax / 1024, 1) }} MB.
+    </p>
 </form>

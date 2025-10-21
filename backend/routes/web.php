@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\CatalogoCarreraController;
 use App\Http\Controllers\Admin\CatalogoPadecimientoController;
 use App\Http\Controllers\Admin\CatalogoTratamientoController;
 use App\Http\Controllers\Admin\CatalogoTurnoController;
+use App\Http\Controllers\Admin\ParametrosController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AnexoController;
 use App\Http\Controllers\ConsentimientoPdfController;
@@ -41,6 +42,11 @@ Route::middleware('auth')->group(function () {
         Route::resource('tratamientos', CatalogoTratamientoController::class)->except('show');
         Route::resource('padecimientos', CatalogoPadecimientoController::class)->except('show');
         Route::resource('turnos', CatalogoTurnoController::class)->except('show');
+    });
+
+    Route::prefix('admin/parametros')->name('admin.parametros.')->middleware('role:admin')->group(function (): void {
+        Route::get('/', [ParametrosController::class, 'index'])->name('index');
+        Route::put('{parametro}', [ParametrosController::class, 'update'])->name('update');
     });
 
     Route::middleware('role:admin|coordinador')->group(function (): void {

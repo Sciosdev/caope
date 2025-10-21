@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Consentimiento;
+use App\Models\Parametro;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -16,8 +17,11 @@ class ConsentimientoUploadController extends Controller
 
         $errorBag = sprintf('consentimientoUpload-%s', $consentimiento->id);
 
+        $mimes = (string) Parametro::obtener('uploads.consentimientos.mimes', 'pdf,jpg,jpeg');
+        $max = (int) Parametro::obtener('uploads.consentimientos.max', 5120);
+
         $validated = $request->validateWithBag($errorBag, [
-            'archivo' => ['required', 'file', 'mimes:pdf,jpg,jpeg'],
+            'archivo' => ['required', 'file', 'mimes:'.$mimes, 'max:'.$max],
             'aceptado' => ['required', 'boolean'],
             'fecha' => ['nullable', 'date'],
         ]);

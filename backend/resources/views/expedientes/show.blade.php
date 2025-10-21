@@ -283,7 +283,11 @@
                                             @if ($puedeGestionarConsentimientos)
                                                 <td class="text-end">
                                                     @can('upload', $consentimiento)
-                                                        @include('expedientes.partials.consentimiento-upload-form', ['consentimiento' => $consentimiento])
+                                                        @include('expedientes.partials.consentimiento-upload-form', [
+                                                            'consentimiento' => $consentimiento,
+                                                            'uploadMimes' => $consentimientosUploadMimes,
+                                                            'uploadMax' => $consentimientosUploadMax,
+                                                        ])
                                                     @else
                                                         <span class="text-muted small">Sin permisos</span>
                                                     @endcan
@@ -308,7 +312,7 @@
                         $puedeEliminarAlguno = $anexos->contains(fn ($anexo) => $usuarioActual?->can('delete', $anexo));
                         $mostrarDescarga = $anexos->contains(fn ($anexo) => ! empty($anexo->download_url));
                         $mostrarAcciones = $mostrarDescarga || $puedeEliminarAlguno;
-                        $formatosAceptados = collect(explode(',', (string) config('uploads.anexos.mimes')))
+                        $formatosAceptados = collect(explode(',', (string) $anexosUploadMimes))
                             ->map(fn ($valor) => trim($valor))
                             ->filter()
                             ->map(fn ($valor) => str_contains($valor, '/') ? $valor : '.'.$valor)
@@ -338,16 +342,16 @@
                                 data-table-wrapper="#anexos-table-wrapper"
                                 data-gallery-wrapper="#anexos-gallery-wrapper"
                                 data-gallery-target="#anexos-gallery-grid"
-                                data-accepted-types="{{ config('uploads.anexos.mimes') }}"
-                                data-max-size="{{ config('uploads.anexos.max') }}"
+                                data-accepted-types="{{ $anexosUploadMimes }}"
+                                data-max-size="{{ $anexosUploadMax }}"
                                 data-can-delete="true"
                                 multiple
                                 class="form-control"
                                 accept="{{ $formatosAceptados }}"
                             >
                             <p class="text-muted small mt-2 mb-0">
-                                Formatos permitidos: {{ str_replace(',', ', ', config('uploads.anexos.mimes')) }}.
-                                Tamaño máximo: {{ number_format(config('uploads.anexos.max') / 1024, 1) }} MB por archivo.
+                                Formatos permitidos: {{ str_replace(',', ', ', $anexosUploadMimes) }}.
+                                Tamaño máximo: {{ number_format($anexosUploadMax / 1024, 1) }} MB por archivo.
                             </p>
                         </div>
                     @endcan
