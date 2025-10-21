@@ -175,6 +175,15 @@ class ExpedienteController extends Controller
                     [$expediente, $anexo]
                 )
             );
+
+            $anexo->setAttribute(
+                'preview_url',
+                URL::temporarySignedRoute(
+                    'expedientes.anexos.preview',
+                    now()->addMinutes(30),
+                    [$expediente, $anexo]
+                )
+            );
         });
 
         return view('expedientes.show', [

@@ -465,8 +465,8 @@
                                 <div class="col" data-anexo-id="{{ $anexo->id }}">
                                     <div class="card h-100 shadow-sm">
                                         <div class="ratio ratio-4x3 bg-light border-bottom">
-                                            @if ($esImagen && ! empty($anexo->download_url))
-                                                <img src="{{ $anexo->download_url }}" alt="Vista previa de {{ $anexo->titulo }}" class="img-fluid w-100 h-100 object-fit-cover rounded-top">
+                                            @if ($esImagen && ! empty($anexo->preview_url))
+                                                <img src="{{ $anexo->preview_url }}" alt="Vista previa de {{ $anexo->titulo }}" class="img-fluid w-100 h-100 object-fit-cover rounded-top">
                                             @else
                                                 <div class="d-flex h-100 align-items-center justify-content-center text-muted flex-column">
                                                     <span class="fw-semibold">Sin vista previa</span>

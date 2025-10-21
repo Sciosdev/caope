@@ -213,9 +213,9 @@ document.addEventListener('DOMContentLoaded', () => {
         ratio.className = 'ratio ratio-4x3 bg-light border-bottom';
         card.appendChild(ratio);
 
-        if (isImageType(anexo.tipo) && anexo.download_url) {
+        if (isImageType(anexo.tipo) && anexo.preview_url) {
             const img = document.createElement('img');
-            img.src = anexo.download_url;
+            img.src = anexo.preview_url;
             img.alt = `Vista previa de ${anexo.titulo ?? 'anexo'}`;
             img.className = 'img-fluid w-100 h-100 object-fit-cover rounded-top';
             ratio.appendChild(img);
