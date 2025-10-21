@@ -8,6 +8,9 @@ use App\Http\Requests\UpdateSesionRequest;
 use App\Http\Requests\ValidateSesionRequest;
 use App\Models\Expediente;
 use App\Models\Sesion;
+use App\Models\User;
+use App\Notifications\SesionObservedNotification;
+use App\Notifications\SesionValidatedNotification;
 use App\Services\TimelineLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -175,6 +178,9 @@ class SesionController extends Controller
             'observaciones' => $request->observation(),
         ]);
 
+        $this->sesionRecipients($sesion)
+            ->each(fn (User $user) => $user->notify(new SesionObservedNotification($sesion, $request->user(), $request->observation())));
+
         return redirect()
             ->route('expedientes.sesiones.show', [$expediente, $sesion])
             ->with('status', 'Sesión marcada como observada correctamente.');
@@ -204,6 +210,9 @@ class SesionController extends Controller
             'estado_nuevo' => 'validada',
             'observaciones' => $request->observation(),
         ]);
+
+        $this->sesionRecipients($sesion)
+            ->each(fn (User $user) => $user->notify(new SesionValidatedNotification($sesion, $request->user(), $request->observation())));
 
         return redirect()
             ->route('expedientes.sesiones.show', [$expediente, $sesion])
@@ -270,5 +279,24 @@ class SesionController extends Controller
         });
 
         $sesion->adjuntos()->delete();
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    private function sesionRecipients(Sesion $sesion): Collection
+    {
+        $sesion->loadMissing(['realizadaPor', 'expediente.tutor', 'expediente.creadoPor', 'expediente.coordinador']);
+
+        $expediente = $sesion->expediente;
+
+        return collect([
+            $sesion->realizadaPor,
+            $expediente?->tutor,
+            $expediente?->creadoPor,
+            $expediente?->coordinador,
+        ])->filter()
+            ->unique(fn (User $user) => $user->id)
+            ->values();
     }
 }
