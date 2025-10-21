@@ -67,9 +67,11 @@ Route::middleware('auth')->group(function () {
         ->name('expedientes.timeline.export.download');
 
     Route::post('consentimientos/{consentimiento}/archivo', [ConsentimientoUploadController::class, 'store'])
+        ->middleware('throttle:uploads.consentimientos')
         ->name('consentimientos.upload');
 
     Route::post('expedientes/{expediente}/anexos', [AnexoController::class, 'store'])
+        ->middleware('throttle:uploads.anexos')
         ->name('expedientes.anexos.store');
     Route::get('expedientes/{expediente}/anexos/{anexo}/preview', [AnexoController::class, 'preview'])
         ->middleware('signed')
