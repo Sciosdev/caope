@@ -9,9 +9,40 @@ permissions:
   contents: read
 
 jobs:
+  restore-test:
+    name: Validate backup restoration
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: sqlite3, mysqli
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=sqlite/' .env
+          sed -i 's/^DB_DATABASE=.*/DB_DATABASE=database\/database.sqlite/' .env
+          mkdir -p database
+          touch database/database.sqlite
+          php artisan key:generate
+      - name: Generate database backup
+        run: php artisan backup:run --only-db --no-interaction
+      - name: Run backup restoration smoke tests
+        run: |
+          php artisan backup:test-restore-sqlite --no-interaction || exit 1
+          php artisan backup:test-restore-mysql --no-interaction --allow-missing --allow-unavailable || exit 1
+
   deploy-staging:
     name: Deploy to staging server
     runs-on: ubuntu-latest
+    needs: restore-test
     steps:
       - name: Execute staging deployment commands
         # Required secrets:
@@ -33,4 +64,7 @@ jobs:
             # The tag name is available in the GITHUB_REF_NAME environment variable.
             cd "${{ secrets.STAGING_PATH || '/ruta' }}"
             git pull origin "${GITHUB_REF_NAME}"
+            php artisan backup:run --only-db --no-interaction || true
+            php artisan backup:test-restore-sqlite --no-interaction || true
+            php artisan backup:test-restore-mysql --no-interaction || true
             # Add any other commands necessary to restart services, run migrations, etc.
