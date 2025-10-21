@@ -30,6 +30,16 @@ class ComentarioPolicy
 
     public function update(User $user, Comentario $comentario): bool
     {
+        $comentable = $comentario->comentable;
+
+        if (! $comentable instanceof Model) {
+            return false;
+        }
+
+        if (! $this->canInteractWithComentable($user, $comentable)) {
+            return false;
+        }
+
         if ($this->isAdminOrManager($user)) {
             return true;
         }
@@ -39,6 +49,16 @@ class ComentarioPolicy
 
     public function delete(User $user, Comentario $comentario): bool
     {
+        $comentable = $comentario->comentable;
+
+        if (! $comentable instanceof Model) {
+            return false;
+        }
+
+        if (! $this->canInteractWithComentable($user, $comentable)) {
+            return false;
+        }
+
         if ($this->isAdminOrManager($user)) {
             return true;
         }
