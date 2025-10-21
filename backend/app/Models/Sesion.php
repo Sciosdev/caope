@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Sesion extends Model
 {
@@ -37,5 +38,10 @@ class Sesion extends Model
     public function adjuntos(): HasMany
     {
         return $this->hasMany(SesionAdjunto::class);
+    }
+
+    public function comentarios(): MorphMany
+    {
+        return $this->morphMany(Comentario::class, 'comentable')->latest('created_at');
     }
 }

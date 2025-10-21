@@ -69,4 +69,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(TimelineEvento::class, 'actor_id');
     }
+
+    public function comentarios(): HasMany
+    {
+        return $this->hasMany(Comentario::class);
+    }
 }
