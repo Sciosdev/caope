@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Sesion;
 use App\Models\User;
+use App\Services\DashboardInsightsService;
 use App\Notifications\ExpedienteClosureAttemptNotification;
 use App\Notifications\SesionObservedNotification;
 use Illuminate\Http\JsonResponse;
@@ -14,6 +15,10 @@ use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
+    public function __construct(private DashboardInsightsService $insights)
+    {
+    }
+
     public function index(Request $request): View
     {
         return view('dashboard.index');
@@ -31,6 +36,44 @@ class DashboardController extends Controller
 
         return response()->json([
             'cards' => $cards,
+        ]);
+    }
+
+    public function metrics(Request $request): JsonResponse
+    {
+        $stateCounts = $this->insights->getExpedienteCountsByState();
+        $averageValidation = $this->insights->getAverageValidationTime();
+
+        return response()->json([
+            'expedientes' => [
+                'total' => array_sum($stateCounts),
+                'por_estado' => $stateCounts,
+            ],
+            'sesiones' => [
+                'tiempo_promedio_validacion' => $averageValidation,
+            ],
+        ]);
+    }
+
+    public function alerts(Request $request): JsonResponse
+    {
+        $requestedDays = $request->query('days');
+        $requestedDays = is_numeric($requestedDays) ? (int) $requestedDays : null;
+
+        $thresholdDays = $this->insights->getStalledThresholdDays($requestedDays);
+
+        $alerts = $this->insights
+            ->getStalledExpedientes($thresholdDays)
+            ->map(function (array $alert) {
+                $alert['url'] = route('expedientes.show', $alert['id']);
+
+                return $alert;
+            })
+            ->values();
+
+        return response()->json([
+            'threshold_days' => $thresholdDays,
+            'alerts' => $alerts,
         ]);
     }
 
