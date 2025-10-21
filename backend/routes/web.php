@@ -4,6 +4,7 @@ use App\Http\Controllers\AnexoController;
 use App\Http\Controllers\ConsentimientoPdfController;
 use App\Http\Controllers\ConsentimientoRequeridoController;
 use App\Http\Controllers\ConsentimientoUploadController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExpedienteController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SesionController;
@@ -12,7 +13,8 @@ use Illuminate\Support\Facades\Route;
 Route::view('/', 'welcome')->name('home');
 
 Route::middleware('auth')->group(function () {
-    Route::view('/dashboard', 'dashboard.index')->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/pendientes', [DashboardController::class, 'pending'])->name('dashboard.pending');
     Route::post('expedientes/{expediente}/estado', [ExpedienteController::class, 'changeState'])
         ->name('expedientes.change-state');
 
