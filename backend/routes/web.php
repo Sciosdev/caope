@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AnexoController;
 use App\Http\Controllers\ConsentimientoPdfController;
 use App\Http\Controllers\ConsentimientoRequeridoController;
@@ -21,6 +22,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard/alertas', [DashboardController::class, 'alerts'])->name('dashboard.alerts');
     Route::post('expedientes/{expediente}/estado', [ExpedienteController::class, 'changeState'])
         ->name('expedientes.change-state');
+
+    Route::prefix('admin/usuarios')->name('admin.users.')->middleware('role:admin')->group(function (): void {
+        Route::get('/', [UserController::class, 'index'])->name('index');
+        Route::get('crear', [UserController::class, 'create'])->name('create');
+        Route::post('/', [UserController::class, 'store'])->name('store');
+        Route::get('{user}/editar', [UserController::class, 'edit'])->name('edit');
+        Route::put('{user}', [UserController::class, 'update'])->name('update');
+        Route::delete('{user}', [UserController::class, 'destroy'])->name('destroy');
+    });
 
     Route::middleware('role:admin|coordinador')->group(function (): void {
         Route::get('reportes/expedientes', [ReporteExpedienteController::class, 'index'])->name('reportes.index');
