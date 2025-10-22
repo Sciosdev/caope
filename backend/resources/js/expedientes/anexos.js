@@ -509,10 +509,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const hasPendingUploads = pendingUploads.size > 0;
-        const shouldDisable = !hasPendingUploads || isProcessingUploads;
 
-        uploadTrigger.disabled = shouldDisable;
-        uploadTrigger.setAttribute('aria-disabled', shouldDisable ? 'true' : 'false');
+        uploadTrigger.disabled = isProcessingUploads;
+        uploadTrigger.setAttribute('aria-disabled', isProcessingUploads ? 'true' : 'false');
+        uploadTrigger.dataset.action = hasPendingUploads ? 'process' : 'select';
+        uploadTrigger.dataset.hasPendingUploads = hasPendingUploads ? 'true' : 'false';
     };
 
     const refreshPendingUploads = () => {
@@ -534,10 +535,23 @@ document.addEventListener('DOMContentLoaded', () => {
         uploadTrigger.disabled = true;
         uploadTrigger.setAttribute('aria-disabled', 'true');
 
-        uploadTrigger.addEventListener('click', () => {
-            if (pendingUploads.size === 0 || isProcessingUploads) {
+        uploadTrigger.addEventListener('click', (event) => {
+            if (isProcessingUploads) {
+                event.preventDefault();
                 return;
             }
+
+            if (pendingUploads.size === 0) {
+                event.preventDefault();
+
+                if (typeof uploader?.click === 'function') {
+                    uploader.click();
+                }
+
+                return;
+            }
+
+            event.preventDefault();
 
             isProcessingUploads = true;
             updateUploadTriggerState();
@@ -569,6 +583,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         pond.on('processfile', () => {
+            refreshPendingUploads();
+        });
+
+        pond.on('updatefiles', () => {
             refreshPendingUploads();
         });
 
