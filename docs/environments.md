@@ -33,6 +33,15 @@ This document summarizes the baseline requirements, data stores, and operational
 - Provide a `.env.staging` file with at least `APP_KEY`, `APP_URL`, `DB_*` variables, and (if MinIO is enabled) `FILESYSTEM_DISK=s3` plus MinIO-specific keys (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`, `AWS_BUCKET`, `AWS_URL`).
 - Protect the staging URL using basic auth (e.g., `htpasswd` with Nginx/Apache), VPN/IP allow lists, or an auth proxy. See "Staging publication" below.
 
+### Query profiling (Nov 2025)
+
+During QA of `ExpedienteController@index` and `DashboardInsightsService` we temporarily enabled `DB::listen` in `AppServiceProvider` (or ran Laravel Telescope) to capture queries above 100 ms while browsing the expediente list and dashboard cards. Running `EXPLAIN` on the captured SQL confirmed the following:
+
+- The expediente listing was scanning the whole table when ordering by `apertura` without an accompanying `estado` filter. We added a dedicated non-composite index on `apertura` to keep the sort and pagination using an index.
+- Aggregations on sesiones filtered by `status_revision = 'validada'` and `validada_por IS NOT NULL` were falling back to a full scan. A compound index on `(status_revision, validada_por)` now supports these lookups.
+
+The adjustments are codified in migration `2025_11_01_000000_optimize_dashboard_and_expedientes_queries.php`. After applying the migration, rerun the relevant dashboard widgets to ensure execution plans report `type = ref` (or better) instead of `ALL`. Remove any temporary logging once finished.
+
 ### Deployment flow
 1. Build frontend assets (`npm run build`) and commit the compiled files or serve them through Vite with `APP_ENV=staging`.
 2. Deploy the stack: `docker compose -f docker-compose.staging.yml --env-file .env.staging up -d`.
