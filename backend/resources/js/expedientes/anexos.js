@@ -409,6 +409,11 @@ document.addEventListener('DOMContentLoaded', () => {
         maxFileSize: Number.isFinite(maxFileSize) && maxFileSize > 0 ? `${maxFileSize}KB` : null,
         acceptedFileTypes: acceptedTypes,
         labelIdle: t('pond.idle', 'Arrastra y suelta tus archivos o <span class="filepond--label-action">explora</span>'),
+        instantUpload: false,
+        labelButtonProcessItem: t('pond.process_button', 'Cargar'),
+        labelButtonProcessItemProcessing: t('pond.process_button_processing', 'Cargando…'),
+        labelTapToCancel: t('pond.tap_to_cancel', 'Cancelar'),
+        labelTapToRetry: t('pond.tap_to_retry', 'Reintentar'),
         credits: false,
         server: {
             process: (fieldName, file, metadata, load, error, progress, abort) => {
