@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\SafeDate;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -18,7 +19,7 @@ class Consentimiento extends Model
     protected $casts = [
         'requerido' => 'boolean',
         'aceptado' => 'boolean',
-        'fecha' => 'date',
+        'fecha' => SafeDate::class,
     ];
 
     public function expediente(): BelongsTo

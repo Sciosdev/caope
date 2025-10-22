@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\SafeDate;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,7 +18,7 @@ class Sesion extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'fecha' => 'date',
+        'fecha' => SafeDate::class,
     ];
 
     public function expediente(): BelongsTo
