@@ -14,12 +14,13 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Faker\Factory as FakerFactory;
 
 class ExpedienteSeeder extends Seeder
 {
     public function run(): void
     {
-        $faker = fake('es_MX');
+        $faker = FakerFactory::create('es_MX');
 
         $estados = collect(['abierto', 'revision', 'cerrado']);
         $carreras = CatalogoCarrera::query()->where('activo', true)->pluck('nombre');
