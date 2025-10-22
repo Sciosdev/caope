@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches:
-      - main
+      - '**'
   pull_request:
 
 permissions:
@@ -70,56 +70,22 @@ jobs:
           touch database/database.sqlite
           php artisan key:generate
 
-      - name: Run migrations with seed data
-        run: php artisan migrate --seed --force
-
-      - name: Run smoke test suite
-        run: php artisan test --testsuite=Feature
-
-      - name: Run Blade linter
-        run: php artisan blade:validate
-
-  build:
-    name: Build frontend assets or verify routes
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-          extensions: mbstring, bcmath, intl, pcntl, sqlite3
-          coverage: none
-
-      - name: Install Composer dependencies
-        uses: ramsey/composer-install@v3
-        with:
-          working-directory: backend
-          composer-options: "--no-progress --no-interaction --prefer-dist"
-
-      - name: Prepare application
-        run: |
-          cp .env.example .env
-          touch database/database.sqlite
-          php artisan key:generate
-
       - name: Set up Node.js
-        if: ${{ hashFiles('backend/package.json') != '' }}
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Build frontend assets with Vite
-        if: ${{ hashFiles('backend/package.json') != '' }}
-        run: |
-          npm ci
-          npm run build
+      - name: Install Node dependencies
+        run: npm ci
 
-      - name: Validate application routes
-        if: ${{ hashFiles('backend/package.json') == '' }}
-        run: php artisan route:list
+      - name: Run migrations with seed data
+        run: php artisan migrate --seed --force
+
+      - name: Run full test suite
+        run: php artisan test
+
+      - name: Build frontend assets with Vite
+        run: npm run build
+
+      - name: Run Blade linter
+        run: php artisan blade:validate

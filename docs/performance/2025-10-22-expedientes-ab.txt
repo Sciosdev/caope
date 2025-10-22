@@ -1,0 +1,42 @@
+This is ApacheBench, Version 2.3 <$Revision: 1903618 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking 127.0.0.1 (be patient).....done
+
+
+Server Software:        
+Server Hostname:        127.0.0.1
+Server Port:            8000
+
+Document Path:          /expedientes
+Document Length:        23634 bytes
+
+Concurrency Level:      5
+Time taken for tests:   8.748 seconds
+Complete requests:      50
+Failed requests:        0
+Total transferred:      1238400 bytes
+HTML transferred:       1181700 bytes
+Requests per second:    5.72 [#/sec] (mean)
+Time per request:       874.816 [ms] (mean)
+Time per request:       174.963 [ms] (mean, across all concurrent requests)
+Transfer rate:          138.24 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.0      0       0
+Processing:   205  823 150.6    862     953
+Waiting:      205  821 150.7    860     950
+Total:        205  823 150.6    862     953
+
+Percentage of the requests served within a certain time (ms)
+  50%    862
+  66%    876
+  75%    881
+  80%    890
+  90%    897
+  95%    907
+  98%    953
+  99%    953
+ 100%    953 (longest request)
