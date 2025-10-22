@@ -20,6 +20,7 @@ return [
             'delete' => 'Eliminar',
         ],
         'delete_placeholder' => 'este anexo',
+        'upload_button' => 'Subir archivos',
         'pond' => [
             'idle' => 'Arrastra y suelta tus archivos o <span class="filepond--label-action">explora</span>',
             'process_button' => 'Cargar',

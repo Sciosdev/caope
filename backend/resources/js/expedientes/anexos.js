@@ -499,6 +499,87 @@ document.addEventListener('DOMContentLoaded', () => {
         },
     });
 
+    const uploadTrigger = document.querySelector('[data-anexos-upload-trigger]');
+    const pendingUploads = new Set();
+    let isProcessingUploads = false;
+
+    const updateUploadTriggerState = () => {
+        if (!uploadTrigger) {
+            return;
+        }
+
+        const hasPendingUploads = pendingUploads.size > 0;
+        const shouldDisable = !hasPendingUploads || isProcessingUploads;
+
+        uploadTrigger.disabled = shouldDisable;
+        uploadTrigger.setAttribute('aria-disabled', shouldDisable ? 'true' : 'false');
+    };
+
+    const refreshPendingUploads = () => {
+        pendingUploads.clear();
+
+        pond.getFiles().forEach((fileItem) => {
+            const serverId = fileItem?.serverId;
+            const hasServerId = typeof serverId === 'string' ? serverId.length > 0 : Boolean(serverId);
+
+            if (!hasServerId && fileItem?.id) {
+                pendingUploads.add(fileItem.id);
+            }
+        });
+
+        updateUploadTriggerState();
+    };
+
+    if (uploadTrigger) {
+        uploadTrigger.disabled = true;
+        uploadTrigger.setAttribute('aria-disabled', 'true');
+
+        uploadTrigger.addEventListener('click', () => {
+            if (pendingUploads.size === 0 || isProcessingUploads) {
+                return;
+            }
+
+            isProcessingUploads = true;
+            updateUploadTriggerState();
+
+            pond.processFiles()
+                .then(() => {
+                    isProcessingUploads = false;
+                    updateUploadTriggerState();
+                })
+                .catch(() => {
+                    isProcessingUploads = false;
+                    updateUploadTriggerState();
+
+                    if (pendingUploads.size > 0) {
+                        const message = t('errors.upload_unexpected', 'Ocurrió un error al subir el archivo.');
+                        if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+                            window.alert(message);
+                        }
+                    }
+                });
+        });
+
+        pond.on('addfile', () => {
+            refreshPendingUploads();
+        });
+
+        pond.on('removefile', () => {
+            refreshPendingUploads();
+        });
+
+        pond.on('processfile', () => {
+            refreshPendingUploads();
+        });
+
+        pond.on('processfiles', () => {
+            isProcessingUploads = false;
+            refreshPendingUploads();
+        });
+
+        refreshPendingUploads();
+    }
+
     pond.setOptions({
         allowProcess: true,
         allowRevert: true,
