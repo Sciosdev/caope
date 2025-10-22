@@ -72,6 +72,11 @@ class ExpedientePolicy
         return false;
     }
 
+    public function viewFullName(User $user, Expediente $expediente): bool
+    {
+        return $this->view($user, $expediente);
+    }
+
     private function isAdmin(User $user): bool
     {
         return $user->hasRole('admin');
