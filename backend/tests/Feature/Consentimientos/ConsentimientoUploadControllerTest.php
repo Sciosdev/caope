@@ -144,7 +144,7 @@ class ConsentimientoUploadControllerTest extends TestCase
         $response
             ->assertOk()
             ->assertSeeText('Carta de consentimiento')
-            ->assertSeeText('Cargado')
+            ->assertSee('Ver archivo')
             ->assertSeeText('consentimiento-firmado.pdf')
             ->assertSeeText($subidor->name)
             ->assertSeeText(now()->format('Y-m-d'));
