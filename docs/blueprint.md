@@ -152,7 +152,7 @@ Estructura estándar del paquete.
 
 **Consentimiento**  
 - Si `requerido = true` → **no puede cerrar** expediente sin `aceptado = true` y `archivo_path` adjunto.  
-- Archivos: pdf/jpg/png, ≤ 10MB (configurable).
+- Archivos: pdf/jpg/png, ≤ 50MB (configurable).
 
 **Cierre de expediente**  
 - Debe existir ≥ 1 sesión **validada**.  

@@ -17,7 +17,7 @@ class ParametroSeeder extends Seeder
             ],
             [
                 'clave' => 'uploads.anexos.max',
-                'valor' => '10240',
+                'valor' => '51200',
                 'tipo' => Parametro::TYPE_INTEGER,
             ],
             [
