@@ -105,4 +105,23 @@ return [
 
     'prefix' => env('CACHE_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')).'-cache-'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Catálogos – configuración especializada
+    |--------------------------------------------------------------------------
+    |
+    | Los catálogos públicos del sistema se cachean para evitar consultas
+    | repetitivas en formularios. Ajusta la duración, el store dedicado o las
+    | etiquetas desde variables de entorno según las capacidades del driver.
+    |
+    */
+
+    'catalogos_store' => env('CACHE_CATALOGOS_STORE'),
+
+    'catalogos_tags' => env('CACHE_CATALOGOS_TAGS')
+        ? array_filter(array_map('trim', explode(',', env('CACHE_CATALOGOS_TAGS'))))
+        : [],
+
+    'catalogos_ttl' => (int) env('CACHE_CATALOGOS_TTL', 3600),
+
 ];

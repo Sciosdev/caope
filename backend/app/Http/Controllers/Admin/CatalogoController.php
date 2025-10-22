@@ -67,6 +67,8 @@ abstract class CatalogoController extends Controller
         /** @var Model $item */
         $item = $modelClass::create($this->validatedData($request));
 
+        $this->flushCatalogoCache();
+
         return Redirect::route($this->routePrefix . '.index')->with('status', __(
             ':resource creado correctamente.',
             ['resource' => $this->resourceName]
@@ -91,6 +93,8 @@ abstract class CatalogoController extends Controller
 
         $item->update($this->validatedData($request, $item));
 
+        $this->flushCatalogoCache();
+
         return Redirect::route($this->routePrefix . '.index')->with('status', __(
             ':resource actualizado correctamente.',
             ['resource' => $this->resourceName]
@@ -104,6 +108,8 @@ abstract class CatalogoController extends Controller
         if ($item->activo) {
             $item->forceFill(['activo' => false])->save();
         }
+
+        $this->flushCatalogoCache();
 
         return Redirect::route($this->routePrefix . '.index')->with('status', __(
             ':resource desactivado correctamente.',
@@ -169,5 +175,14 @@ abstract class CatalogoController extends Controller
             'resourceNamePlural' => $this->resourceNamePlural,
             'routePrefix' => $this->routePrefix,
         ], $data);
+    }
+
+    protected function flushCatalogoCache(): void
+    {
+        $modelClass = $this->modelClass;
+
+        if (method_exists($modelClass, 'flushCache')) {
+            $modelClass::flushCache();
+        }
     }
 }

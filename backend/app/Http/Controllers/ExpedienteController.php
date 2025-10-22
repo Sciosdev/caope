@@ -88,15 +88,9 @@ class ExpedienteController extends Controller
 
         $expedientes = $query->paginate(10)->withQueryString();
 
-        $carreras = CatalogoCarrera::query()
-            ->where('activo', true)
-            ->orderBy('nombre')
-            ->pluck('nombre');
+        $carreras = CatalogoCarrera::activos()->pluck('nombre');
 
-        $turnos = CatalogoTurno::query()
-            ->where('activo', true)
-            ->orderBy('nombre')
-            ->pluck('nombre');
+        $turnos = CatalogoTurno::activos()->pluck('nombre');
 
         return view('expedientes.index', [
             'expedientes' => $expedientes,
@@ -325,15 +319,9 @@ class ExpedienteController extends Controller
 
     protected function formOptions(): array
     {
-        $carreras = CatalogoCarrera::query()
-            ->where('activo', true)
-            ->orderBy('nombre')
-            ->pluck('nombre');
+        $carreras = CatalogoCarrera::activos()->pluck('nombre');
 
-        $turnos = CatalogoTurno::query()
-            ->where('activo', true)
-            ->orderBy('nombre')
-            ->pluck('nombre');
+        $turnos = CatalogoTurno::activos()->pluck('nombre');
 
         $tutores = User::role('docente')->orderBy('name')->get();
         $coordinadores = User::role('coordinador')->orderBy('name')->get();
