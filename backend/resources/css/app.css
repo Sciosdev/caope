@@ -4,11 +4,26 @@
 
 @layer base {
   @media (max-width: 768px) {
-    body.horizontal-menu,
-    body.horizontal-menu .page-wrapper {
+    body.horizontal-menu {
       display: block;
       min-height: auto;
-      overflow-y: auto;
+      height: auto;
+      overflow: auto;
+    }
+
+    body.horizontal-menu .main-wrapper {
+      display: block;
+      min-height: auto;
+      height: auto;
+      overflow: visible;
+    }
+
+    body.horizontal-menu .page-wrapper,
+    body.horizontal-menu .page-wrapper .page-content {
+      display: block;
+      min-height: auto;
+      height: auto;
+      overflow: visible;
     }
   }
 }
