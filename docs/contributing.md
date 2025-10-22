@@ -35,3 +35,14 @@ forma opcional y ejecutar:
 ```bash
 npx commitlint --edit HEAD
 ```
+
+Antes de subir cambios también valida que no se hayan introducido cadenas en
+inglés ejecutando:
+
+```bash
+composer lint:locale
+```
+
+El comando utiliza `rg` (ripgrep) para revisar los directorios de código y
+fallará en caso de encontrar alguna coincidencia. Asegúrate de corregir las
+advertencias antes de abrir un Pull Request.
