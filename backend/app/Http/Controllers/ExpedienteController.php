@@ -64,6 +64,7 @@ class ExpedienteController extends Controller
         $user = $request->user();
 
         $query = Expediente::query()
+            ->with('creadoPor')
             ->when(! $user->can('expedientes.manage'), function ($q) use ($user) {
                 if ($user->hasRole('docente')) {
                     $q->where('tutor_id', $user->id);

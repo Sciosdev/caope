@@ -25,6 +25,8 @@ class ExpedienteNameMaskingTest extends TestCase
             'creado_por' => $user->id,
         ]);
 
+        $expediente->load('creadoPor');
+
         $paginator = new LengthAwarePaginator([$expediente], 1, 15);
 
         $view = $this->actingAs($user)->view('expedientes.index', [
@@ -39,8 +41,10 @@ class ExpedienteNameMaskingTest extends TestCase
             'turnos' => collect(),
         ]);
 
+        $view->assertSeeText('Alumno');
         $view->assertSeeText('Juan Perez');
         $view->assertDontSeeText('J*** P****');
+        $view->assertSeeText($user->name);
     }
 
     public function test_unauthorized_user_sees_masked_patient_name_on_index(): void
@@ -54,6 +58,8 @@ class ExpedienteNameMaskingTest extends TestCase
             'creado_por' => $anotherUser->id,
         ]);
 
+        $expediente->load('creadoPor');
+
         $paginator = new LengthAwarePaginator([$expediente], 1, 15);
 
         $view = $this->actingAs($user)->view('expedientes.index', [
@@ -68,8 +74,34 @@ class ExpedienteNameMaskingTest extends TestCase
             'turnos' => collect(),
         ]);
 
+        $view->assertSeeText('Alumno');
         $view->assertSeeText('J*** P****');
         $view->assertDontSeeText('Juan Perez');
+        $view->assertSeeText($anotherUser->name);
+    }
+
+    public function test_index_eager_loads_creado_por_relation(): void
+    {
+        $user = $this->createDocenteUser();
+        $alumno = User::factory()->create();
+
+        $expediente = Expediente::factory()->create([
+            'tutor_id' => $user->id,
+            'creado_por' => $alumno->id,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('expedientes.index'));
+
+        $response->assertOk();
+        $response->assertViewIs('expedientes.index');
+
+        /** @var LengthAwarePaginator $expedientes */
+        $expedientes = $response->viewData('expedientes');
+
+        $this->assertInstanceOf(LengthAwarePaginator::class, $expedientes);
+        $this->assertNotNull($expedientes->first());
+        $this->assertTrue($expedientes->first()->relationLoaded('creadoPor'));
+        $this->assertSame($alumno->name, optional($expedientes->first()->creadoPor)->name);
     }
 
     private function createDocenteUser(): User

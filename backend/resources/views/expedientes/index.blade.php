@@ -65,6 +65,7 @@
                 <tr>
                     <th>No. de Control</th>
                     <th>Paciente</th>
+                    <th>Alumno</th>
                     <th>Estado</th>
                     <th>Apertura</th>
                     <th>Carrera</th>
@@ -83,6 +84,7 @@
                                 {{ $expediente->paciente_masked }}
                             @endcan
                         </td>
+                        <td>{{ optional($expediente->creadoPor)->name }}</td>
                         <td>
                             @switch($expediente->estado)
                                 @case('abierto')
@@ -116,7 +118,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="text-center text-muted">No se encontraron expedientes con los filtros seleccionados.</td>
+                        <td colspan="8" class="text-center text-muted">No se encontraron expedientes con los filtros seleccionados.</td>
                     </tr>
                 @endforelse
             </tbody>

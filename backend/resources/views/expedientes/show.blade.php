@@ -585,7 +585,7 @@
         window.translations = window.translations || {};
         window.translations.expedientes = {
             ...(window.translations.expedientes || {}),
-            anexos: @json([
+            anexos: {{ Js::from([
                 'counter_label' => __('expedientes.anexos.counter_label'),
                 'placeholder' => __('expedientes.anexos.placeholder'),
                 'untitled' => __('expedientes.anexos.untitled'),
@@ -613,7 +613,7 @@
                     'upload_unexpected' => __('expedientes.anexos.errors.upload_unexpected'),
                     'revert_failed' => __('expedientes.anexos.errors.revert_failed'),
                 ],
-            ]),
+            ]) }},
         };
     </script>
     <script src="{{ asset('assets/build/js/anexos.js') }}" defer></script>
