@@ -22,6 +22,10 @@ return [
         'delete_placeholder' => 'este anexo',
         'pond' => [
             'idle' => 'Arrastra y suelta tus archivos o <span class="filepond--label-action">explora</span>',
+            'process_button' => 'Cargar',
+            'process_button_processing' => 'Cargando…',
+            'tap_to_cancel' => 'Cancelar',
+            'tap_to_retry' => 'Reintentar',
         ],
         'errors' => [
             'generic_title' => 'Error',
