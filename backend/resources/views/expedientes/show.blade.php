@@ -335,24 +335,31 @@
                     @can('create', [App\Models\Anexo::class, $expediente])
                         <div class="mb-4">
                             <label for="anexos-uploader" class="form-label small text-uppercase text-muted mb-2">Agregar archivos</label>
-                            <input
-                                type="file"
-                                id="anexos-uploader"
-                                data-anexos-uploader
-                                data-upload-url="{{ route('expedientes.anexos.store', $expediente) }}"
-                                data-csrf-token="{{ csrf_token() }}"
-                                data-table-target="#anexos-table-body"
-                                data-empty-target="#anexos-empty-state"
-                                data-table-wrapper="#anexos-table-wrapper"
-                                data-gallery-wrapper="#anexos-gallery-wrapper"
-                                data-gallery-target="#anexos-gallery-grid"
-                                data-accepted-types="{{ $anexosUploadMimes }}"
-                                data-max-size="{{ $anexosUploadMax }}"
-                                data-can-delete="true"
-                                multiple
-                                class="form-control"
-                                accept="{{ $formatosAceptados }}"
-                            >
+                            <div class="d-flex flex-wrap gap-2 align-items-start">
+                                <input
+                                    type="file"
+                                    id="anexos-uploader"
+                                    data-anexos-uploader
+                                    data-upload-url="{{ route('expedientes.anexos.store', $expediente) }}"
+                                    data-csrf-token="{{ csrf_token() }}"
+                                    data-table-target="#anexos-table-body"
+                                    data-empty-target="#anexos-empty-state"
+                                    data-table-wrapper="#anexos-table-wrapper"
+                                    data-gallery-wrapper="#anexos-gallery-wrapper"
+                                    data-gallery-target="#anexos-gallery-grid"
+                                    data-accepted-types="{{ $anexosUploadMimes }}"
+                                    data-max-size="{{ $anexosUploadMax }}"
+                                    data-can-delete="true"
+                                    multiple
+                                    class="form-control flex-grow-1"
+                                    accept="{{ $formatosAceptados }}"
+                                >
+                                <button
+                                    type="button"
+                                    class="btn btn-primary btn-sm"
+                                    data-anexos-upload-trigger
+                                >{{ __('expedientes.anexos.upload_button') }}</button>
+                            </div>
                             <p class="text-muted small mt-2 mb-0">
                                 Formatos permitidos: {{ str_replace(',', ', ', $anexosUploadMimes) }}.
                                 Tamaño máximo: {{ $formattedMaxSize }} MB por archivo.
@@ -608,6 +615,7 @@
                     'delete' => __('expedientes.anexos.actions.delete'),
                 ],
                 'delete_placeholder' => __('expedientes.anexos.delete_placeholder'),
+                'upload_button' => __('expedientes.anexos.upload_button'),
                 'pond' => [
                     'idle' => __('expedientes.anexos.pond.idle'),
                 ],
