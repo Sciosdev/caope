@@ -1,0 +1,28 @@
+{
+  "resources/css/app.css": {
+    "file": "css/app.css",
+    "src": "resources/css/app.css",
+    "isEntry": true,
+    "names": [
+      "app.css"
+    ]
+  },
+  "resources/js/app.js": {
+    "file": "js/app.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true,
+    "css": [
+      "css/app-editor.css"
+    ]
+  },
+  "resources/js/expedientes/anexos.js": {
+    "file": "js/anexos.js",
+    "name": "anexos",
+    "src": "resources/js/expedientes/anexos.js",
+    "isEntry": true,
+    "css": [
+      "css/anexos.css"
+    ]
+  }
+}
