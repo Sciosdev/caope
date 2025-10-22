@@ -272,7 +272,9 @@
                                             </td>
                                             <td>
                                                 @if ($consentimiento->archivo_path)
-                                                    <span class="badge bg-success">Cargado</span>
+                                                    <a href="{{ route('consentimientos.archivo', $consentimiento) }}" target="_blank" rel="noopener">
+                                                        Ver archivo
+                                                    </a>
                                                     <div class="small text-muted">{{ basename($consentimiento->archivo_path) }}</div>
                                                 @else
                                                     <span class="badge bg-secondary">Sin archivo</span>

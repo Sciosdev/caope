@@ -11,6 +11,19 @@ use Illuminate\Support\Facades\Storage;
 
 class ConsentimientoUploadController extends Controller
 {
+    public function show(Consentimiento $consentimiento)
+    {
+        $this->authorize('view', $consentimiento);
+
+        $disk = config('filesystems.private_default', 'private');
+
+        if (! $consentimiento->archivo_path || ! Storage::disk($disk)->exists($consentimiento->archivo_path)) {
+            abort(404);
+        }
+
+        return Storage::disk($disk)->response($consentimiento->archivo_path);
+    }
+
     public function store(Request $request, Consentimiento $consentimiento): RedirectResponse
     {
         $this->authorize('upload', $consentimiento);

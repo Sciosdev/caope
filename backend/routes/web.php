@@ -69,6 +69,8 @@ Route::middleware('auth')->group(function () {
     Route::post('consentimientos/{consentimiento}/archivo', [ConsentimientoUploadController::class, 'store'])
         ->middleware('throttle:uploads.consentimientos')
         ->name('consentimientos.upload');
+    Route::get('consentimientos/{consentimiento}/archivo', [ConsentimientoUploadController::class, 'show'])
+        ->name('consentimientos.archivo');
 
     Route::post('expedientes/{expediente}/anexos', [AnexoController::class, 'store'])
         ->middleware('throttle:uploads.anexos')
