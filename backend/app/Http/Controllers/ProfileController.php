@@ -20,14 +20,8 @@ class ProfileController extends Controller
     {
         return view('profile.edit', [
             'user' => $request->user(),
-            'carreras' => CatalogoCarrera::query()
-                ->where('activo', true)
-                ->orderBy('nombre')
-                ->pluck('nombre'),
-            'turnos' => CatalogoTurno::query()
-                ->where('activo', true)
-                ->orderBy('nombre')
-                ->pluck('nombre'),
+            'carreras' => CatalogoCarrera::activos()->pluck('nombre'),
+            'turnos' => CatalogoTurno::activos()->pluck('nombre'),
         ]);
     }
 

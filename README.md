@@ -51,6 +51,17 @@ Documenta cualquier excepción temporal en el handbook interno y levanta un reco
 
 > Opcional: `npm run dev` si deseas recompilar assets Vite propios. NobleUI ya está publicado en `public/assets`.
 
+## Cache de catálogos
+
+- Los modelos de catálogos (`CatalogoCarrera`, `CatalogoTurno`, `CatalogoTratamiento` y `CatalogoPadecimiento`) exponen el
+  helper `::activos()` que devuelve la lista ordenada de registros activos cacheada durante una hora (ajustable con
+  `CACHE_CATALOGOS_TTL`).
+- `CatalogoController` invalida automáticamente la cache al crear, actualizar o desactivar elementos desde el panel de
+  administración. Si realizas cambios fuera de esos flujos recuerda llamar explícitamente a `Model::flushCache()` o ejecutar
+  `php artisan cache:clear`.
+- Evita consultas directas como `CatalogoCarrera::where('activo', true)->get()` en código nuevo: reutiliza los helpers para
+  mantener los datos sincronizados y reducir lecturas innecesarias.
+
 ## Validaciones CI locales
 
 Sigue estos pasos para replicar los jobs del workflow de GitHub Actions antes de subir cambios:

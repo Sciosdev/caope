@@ -22,15 +22,9 @@ class RegisteredUserController extends Controller
      */
     public function create(): View
     {
-        $carreras = CatalogoCarrera::query()
-            ->where('activo', true)
-            ->orderBy('nombre')
-            ->pluck('nombre');
+        $carreras = CatalogoCarrera::activos()->pluck('nombre');
 
-        $turnos = CatalogoTurno::query()
-            ->where('activo', true)
-            ->orderBy('nombre')
-            ->pluck('nombre');
+        $turnos = CatalogoTurno::activos()->pluck('nombre');
 
         return view('auth.register', [
             'carreras' => $carreras,
