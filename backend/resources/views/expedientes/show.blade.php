@@ -319,6 +319,8 @@
                             ->filter()
                             ->map(fn ($valor) => str_contains($valor, '/') ? $valor : '.'.$valor)
                             ->implode(',');
+                        $maxSizeInMb = $anexosUploadMax / 1024;
+                        $formattedMaxSize = rtrim(rtrim(number_format($maxSizeInMb, 1), '0'), '.');
                     @endphp
                     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                         <div class="d-flex align-items-center gap-3 flex-wrap">
@@ -353,7 +355,7 @@
                             >
                             <p class="text-muted small mt-2 mb-0">
                                 Formatos permitidos: {{ str_replace(',', ', ', $anexosUploadMimes) }}.
-                                Tamaño máximo: {{ number_format($anexosUploadMax / 1024, 1) }} MB por archivo.
+                                Tamaño máximo: {{ $formattedMaxSize }} MB por archivo.
                             </p>
                         </div>
                     @endcan

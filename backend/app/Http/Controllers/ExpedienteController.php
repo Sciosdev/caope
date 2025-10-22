@@ -187,7 +187,7 @@ class ExpedienteController extends Controller
         });
 
         $anexosMimes = (string) Parametro::obtener('uploads.anexos.mimes', 'pdf,jpg,jpeg,png,doc,docx');
-        $anexosMax = (int) Parametro::obtener('uploads.anexos.max', 10240);
+        $anexosMax = (int) Parametro::obtener('uploads.anexos.max', 51200);
         $consentimientoMimes = (string) Parametro::obtener('uploads.consentimientos.mimes', 'pdf,jpg,jpeg');
         $consentimientoMax = (int) Parametro::obtener('uploads.consentimientos.max', 5120);
 
