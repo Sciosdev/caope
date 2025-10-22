@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\SafeDate;
 use App\Services\Masking\NameMasker;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -26,7 +27,7 @@ class Expediente extends Model
     ];
 
     protected $casts = [
-        'apertura' => 'date',
+        'apertura' => SafeDate::class,
     ];
 
     public function creadoPor(): BelongsTo
