@@ -581,6 +581,41 @@
 @endpush
 
 @push('scripts')
+    <script>
+        window.translations = window.translations || {};
+        window.translations.expedientes = {
+            ...(window.translations.expedientes || {}),
+            anexos: @json([
+                'counter_label' => __('expedientes.anexos.counter_label'),
+                'placeholder' => __('expedientes.anexos.placeholder'),
+                'untitled' => __('expedientes.anexos.untitled'),
+                'generic_item' => __('expedientes.anexos.generic_item'),
+                'preview_alt' => __('expedientes.anexos.preview_alt'),
+                'no_preview' => __('expedientes.anexos.no_preview'),
+                'metadata' => [
+                    'type' => __('expedientes.anexos.metadata.type'),
+                    'size' => __('expedientes.anexos.metadata.size'),
+                    'size_value' => __('expedientes.anexos.metadata.size_value'),
+                    'uploaded_by' => __('expedientes.anexos.metadata.uploaded_by'),
+                    'date' => __('expedientes.anexos.metadata.date'),
+                ],
+                'actions' => [
+                    'download' => __('expedientes.anexos.actions.download'),
+                    'delete' => __('expedientes.anexos.actions.delete'),
+                ],
+                'delete_placeholder' => __('expedientes.anexos.delete_placeholder'),
+                'pond' => [
+                    'idle' => __('expedientes.anexos.pond.idle'),
+                ],
+                'errors' => [
+                    'generic_title' => __('expedientes.anexos.errors.generic_title'),
+                    'upload_failed' => __('expedientes.anexos.errors.upload_failed'),
+                    'upload_unexpected' => __('expedientes.anexos.errors.upload_unexpected'),
+                    'revert_failed' => __('expedientes.anexos.errors.revert_failed'),
+                ],
+            ]),
+        };
+    </script>
     <script src="{{ asset('assets/build/js/anexos.js') }}" defer></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {

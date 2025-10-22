@@ -5,12 +5,43 @@ import 'filepond/dist/filepond.min.css';
 
 registerPlugin(FilePondPluginFileValidateType, FilePondPluginFileValidateSize);
 
+const getAnexosTranslations = () => window?.translations?.expedientes?.anexos ?? {};
+
+const formatTranslation = (template, replacements = {}) => {
+    return Object.entries(replacements).reduce((carry, [placeholder, value]) => {
+        const pattern = new RegExp(`:${placeholder}`, 'g');
+
+        return carry.replace(pattern, value);
+    }, template);
+};
+
+const resolveTranslationValue = (source, keys) => {
+    return keys.reduce((carry, key) => {
+        if (carry && typeof carry === 'object' && key in carry) {
+            return carry[key];
+        }
+
+        return undefined;
+    }, source);
+};
+
+const translateWith = (source, key, defaultValue, replacements = {}) => {
+    const value = typeof key === 'string' ? resolveTranslationValue(source, key.split('.')) : undefined;
+    const template = typeof value === 'string' ? value : defaultValue;
+    const normalizedTemplate = typeof template === 'string' ? template : '';
+
+    return formatTranslation(normalizedTemplate, replacements);
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     const uploader = document.querySelector('[data-anexos-uploader]');
 
     if (!uploader) {
         return;
     }
+
+    const translations = getAnexosTranslations();
+    const t = (key, defaultValue, replacements = {}) => translateWith(translations, key, defaultValue, replacements);
 
     const uploadUrl = uploader.dataset.uploadUrl || '';
     const csrfToken = uploader.dataset.csrfToken || '';
@@ -64,6 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return (bytes / 1024).toFixed(1);
     };
 
+    const placeholderText = t('placeholder', '—');
     const updateCounter = () => {
         if (!counter) {
             return;
@@ -77,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
             total = galleryGrid.querySelectorAll('[data-anexo-id]').length;
         }
 
-        counter.textContent = `${total} registros`;
+        counter.textContent = t('counter_label', ':count registros', { count: total });
     };
 
     const toggleEmptyState = () => {
@@ -100,14 +132,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const createCell = (text) => {
         const cell = document.createElement('td');
-        cell.textContent = text ?? '—';
+        cell.textContent = text ?? placeholderText;
 
         return cell;
     };
 
     const createTitleCell = (anexo) => {
         const cell = document.createElement('td');
-        const title = anexo?.titulo ?? 'Sin título';
+        const title = anexo?.titulo ?? t('untitled', 'Sin título');
 
         if (anexo?.download_url) {
             const link = document.createElement('a');
@@ -140,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!hasDownload && !canDeleteCurrent) {
             const placeholder = document.createElement('span');
             placeholder.className = 'text-muted small';
-            placeholder.textContent = '—';
+            placeholder.textContent = placeholderText;
             cell.appendChild(placeholder);
 
             return cell;
@@ -153,18 +185,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const downloadButton = document.createElement('a');
             downloadButton.href = anexo.download_url;
             downloadButton.className = 'btn btn-outline-secondary';
-            downloadButton.textContent = 'Descargar';
+            downloadButton.textContent = t('actions.download', 'Descargar');
             group.appendChild(downloadButton);
 
             if (canDeleteCurrent) {
                 const deleteButton = document.createElement('button');
                 deleteButton.type = 'button';
                 deleteButton.className = 'btn btn-outline-danger';
-                deleteButton.textContent = 'Eliminar';
+                deleteButton.textContent = t('actions.delete', 'Eliminar');
                 deleteButton.setAttribute('data-bs-toggle', 'modal');
                 deleteButton.setAttribute('data-bs-target', '#anexoDeleteModal');
                 deleteButton.dataset.deleteUrl = anexo.delete_url;
-                deleteButton.dataset.anexoTitle = anexo.titulo ?? 'este anexo';
+                deleteButton.dataset.anexoTitle = anexo.titulo ?? t('delete_placeholder', 'este anexo');
                 group.appendChild(deleteButton);
             }
 
@@ -177,11 +209,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const deleteOnlyButton = document.createElement('button');
             deleteOnlyButton.type = 'button';
             deleteOnlyButton.className = 'btn btn-outline-danger btn-sm';
-            deleteOnlyButton.textContent = 'Eliminar';
+            deleteOnlyButton.textContent = t('actions.delete', 'Eliminar');
             deleteOnlyButton.setAttribute('data-bs-toggle', 'modal');
             deleteOnlyButton.setAttribute('data-bs-target', '#anexoDeleteModal');
             deleteOnlyButton.dataset.deleteUrl = anexo.delete_url;
-            deleteOnlyButton.dataset.anexoTitle = anexo.titulo ?? 'este anexo';
+            deleteOnlyButton.dataset.anexoTitle = anexo.titulo ?? t('delete_placeholder', 'este anexo');
             cell.appendChild(deleteOnlyButton);
 
             return cell;
@@ -216,7 +248,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isImageType(anexo.tipo) && anexo.preview_url) {
             const img = document.createElement('img');
             img.src = anexo.preview_url;
-            img.alt = `Vista previa de ${anexo.titulo ?? 'anexo'}`;
+            img.alt = t('preview_alt', 'Vista previa de :title', {
+                title: anexo.titulo ?? t('generic_item', 'anexo'),
+            });
             img.className = 'img-fluid w-100 h-100 object-fit-cover rounded-top';
             ratio.appendChild(img);
         } else {
@@ -225,12 +259,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const label = document.createElement('span');
             label.className = 'fw-semibold';
-            label.textContent = 'Sin vista previa';
+            label.textContent = t('no_preview', 'Sin vista previa');
             placeholder.appendChild(label);
 
             const typeLabel = document.createElement('small');
             typeLabel.className = 'text-muted';
-            typeLabel.textContent = String(anexo.tipo ?? '').toUpperCase() || '—';
+            typeLabel.textContent = String(anexo.tipo ?? '').toUpperCase() || placeholderText;
             placeholder.appendChild(typeLabel);
 
             ratio.appendChild(placeholder);
@@ -242,17 +276,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const title = document.createElement('h6');
         title.className = 'card-title text-truncate';
-        title.title = anexo.titulo ?? 'Sin título';
-        title.textContent = anexo.titulo ?? 'Sin título';
+        const cardTitle = anexo.titulo ?? t('untitled', 'Sin título');
+        title.title = cardTitle;
+        title.textContent = cardTitle;
         body.appendChild(title);
 
         const metaList = document.createElement('ul');
         metaList.className = 'list-unstyled small text-muted mb-3';
         const metadata = [
-            ['Tipo:', anexo.tipo || '—'],
-            ['Tamaño:', `${anexo.tamano_legible ?? formatBytesToKilobytes(anexo.tamano ?? 0)} KB`],
-            ['Subido por:', anexo.subido_por || '—'],
-            ['Fecha:', anexo.fecha || '—'],
+            [t('metadata.type', 'Tipo:'), anexo.tipo || placeholderText],
+            [
+                t('metadata.size', 'Tamaño:'),
+                t('metadata.size_value', ':size KB', {
+                    size: anexo.tamano_legible ?? formatBytesToKilobytes(anexo.tamano ?? 0),
+                }),
+            ],
+            [t('metadata.uploaded_by', 'Subido por:'), anexo.subido_por || placeholderText],
+            [t('metadata.date', 'Fecha:'), anexo.fecha || placeholderText],
         ];
 
         metadata.forEach(([label, value]) => {
@@ -275,7 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const downloadButton = document.createElement('a');
             downloadButton.href = anexo.download_url;
             downloadButton.className = 'btn btn-outline-secondary btn-sm';
-            downloadButton.textContent = 'Descargar';
+            downloadButton.textContent = t('actions.download', 'Descargar');
             actions.appendChild(downloadButton);
         }
 
@@ -283,11 +323,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const deleteButton = document.createElement('button');
             deleteButton.type = 'button';
             deleteButton.className = 'btn btn-outline-danger btn-sm';
-            deleteButton.textContent = 'Eliminar';
+            deleteButton.textContent = t('actions.delete', 'Eliminar');
             deleteButton.setAttribute('data-bs-toggle', 'modal');
             deleteButton.setAttribute('data-bs-target', '#anexoDeleteModal');
             deleteButton.dataset.deleteUrl = anexo.delete_url;
-            deleteButton.dataset.anexoTitle = anexo.titulo ?? 'este anexo';
+            deleteButton.dataset.anexoTitle = anexo.titulo ?? t('delete_placeholder', 'este anexo');
             actions.appendChild(deleteButton);
         }
 
@@ -318,10 +358,16 @@ document.addEventListener('DOMContentLoaded', () => {
         row.dataset.anexoId = String(anexo.id);
 
         row.appendChild(createTitleCell(anexo));
-        row.appendChild(createCell(anexo.tipo || '—'));
-        row.appendChild(createCell(`${anexo.tamano_legible ?? formatBytesToKilobytes(anexo.tamano ?? 0)} KB`));
-        row.appendChild(createCell(anexo.subido_por || '—'));
-        row.appendChild(createCell(anexo.fecha || '—'));
+        row.appendChild(createCell(anexo.tipo || placeholderText));
+        row.appendChild(
+            createCell(
+                t('metadata.size_value', ':size KB', {
+                    size: anexo.tamano_legible ?? formatBytesToKilobytes(anexo.tamano ?? 0),
+                }),
+            ),
+        );
+        row.appendChild(createCell(anexo.subido_por || placeholderText));
+        row.appendChild(createCell(anexo.fecha || placeholderText));
 
         if (hasActions) {
             row.appendChild(createActionCell(anexo));
@@ -346,7 +392,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (galleryGrid) {
-            const card = Array.from(galleryGrid.querySelectorAll('[data-anexo-id]')).find((item) => item.dataset.anexoId === String(anexoId));
+            const card = Array.from(galleryGrid.querySelectorAll('[data-anexo-id]')).find(
+                (item) => item.dataset.anexoId === String(anexoId),
+            );
 
             if (card) {
                 card.remove();
@@ -360,7 +408,7 @@ document.addEventListener('DOMContentLoaded', () => {
         allowMultiple: true,
         maxFileSize: Number.isFinite(maxFileSize) && maxFileSize > 0 ? `${maxFileSize}KB` : null,
         acceptedFileTypes: acceptedTypes,
-        labelIdle: 'Arrastra y suelta tus archivos o <span class="filepond--label-action">explora</span>',
+        labelIdle: t('pond.idle', 'Arrastra y suelta tus archivos o <span class="filepond--label-action">explora</span>'),
         credits: false,
         server: {
             process: (fieldName, file, metadata, load, error, progress, abort) => {
@@ -395,12 +443,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         return;
                     }
 
-                    const message = response?.message || 'No fue posible subir el archivo.';
+                    const message = response?.message || t('errors.upload_failed', 'No fue posible subir el archivo.');
                     error(message);
                 };
 
                 request.onerror = () => {
-                    error('Ocurrió un error al subir el archivo.');
+                    error(t('errors.upload_unexpected', 'Ocurrió un error al subir el archivo.'));
                 };
 
                 request.onabort = () => {
@@ -432,7 +480,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 })
                     .then((response) => {
                         if (!response.ok) {
-                            throw new Error('Error');
+                            throw new Error(t('errors.generic_title', 'Error'));
                         }
 
                         deleteUrls.delete(String(uniqueId));
@@ -440,7 +488,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         load();
                     })
                     .catch(() => {
-                        error('No fue posible revertir la carga del archivo.');
+                        error(t('errors.revert_failed', 'No fue posible revertir la carga del archivo.'));
                     });
             },
         },
