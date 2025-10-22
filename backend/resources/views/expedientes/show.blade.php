@@ -588,7 +588,7 @@
 @endsection
 
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('assets/build/css/anexos.css') }}">
+    @vite('resources/js/expedientes/anexos.js')
 @endpush
 
 @push('scripts')
@@ -628,7 +628,6 @@
             ]) }},
         };
     </script>
-    <script src="{{ asset('assets/build/js/anexos.js') }}" defer></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const bootstrapLib = window.bootstrap;
