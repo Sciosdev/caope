@@ -1,3 +1,14 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  @media (max-width: 768px) {
+    body.horizontal-menu,
+    body.horizontal-menu .page-wrapper {
+      display: block;
+      min-height: auto;
+      overflow-y: auto;
+    }
+  }
+}
