@@ -6,8 +6,11 @@ use App\Models\Expediente;
 use App\Models\Sesion;
 use App\Models\User;
 use Carbon\CarbonInterval;
+use DateTimeInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class DashboardInsightsService
 {
@@ -144,12 +147,15 @@ class DashboardInsightsService
             $expediente->created_at,
         ]);
 
-        if ($expediente->ultima_bitacora) {
-            $dates->push(Carbon::parse($expediente->ultima_bitacora));
-        }
+        foreach ([
+            'ultima_bitacora' => $expediente->ultima_bitacora ?? null,
+            'ultima_sesion' => $expediente->ultima_sesion ?? null,
+        ] as $attribute => $value) {
+            $parsed = $this->parseAggregateDate($expediente, $value, $attribute);
 
-        if ($expediente->ultima_sesion) {
-            $dates->push(Carbon::parse($expediente->ultima_sesion));
+            if ($parsed instanceof Carbon) {
+                $dates->push($parsed);
+            }
         }
 
         $dates = $dates
@@ -158,6 +164,40 @@ class DashboardInsightsService
             ->values();
 
         return $dates->first();
+    }
+
+    private function parseAggregateDate(Expediente $expediente, mixed $value, string $attribute): ?Carbon
+    {
+        if ($value instanceof Carbon) {
+            return $value;
+        }
+
+        if ($value instanceof DateTimeInterface) {
+            return Carbon::instance($value);
+        }
+
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $value = trim($value);
+
+        if ($value === '' || $value === '0000-00-00' || $value === '0000-00-00 00:00:00') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($value);
+        } catch (Throwable $exception) {
+            Log::warning('Failed to parse dashboard aggregate date', [
+                'expediente_id' => $expediente->getKey(),
+                'attribute' => $attribute,
+                'value' => $value,
+                'message' => $exception->getMessage(),
+            ]);
+
+            return null;
+        }
     }
 }
 

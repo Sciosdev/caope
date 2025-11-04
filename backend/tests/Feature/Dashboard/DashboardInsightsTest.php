@@ -9,6 +9,7 @@ use App\Models\User;
 use Carbon\CarbonInterval;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class DashboardInsightsTest extends TestCase
@@ -145,6 +146,42 @@ class DashboardInsightsTest extends TestCase
         $this->assertSame(Carbon::now()->subDays(25)->toIso8601String(), $alert['ultima_actividad']);
         $this->assertSame(25, $alert['dias_inactivo']);
         $this->assertNotEmpty($alert['url']);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_alerts_endpoint_ignores_invalid_aggregate_dates(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2025-03-10 10:00:00'));
+
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        $expediente = Expediente::factory()->create([
+            'estado' => 'revision',
+            'created_at' => Carbon::now()->subDays(60),
+            'updated_at' => Carbon::now()->subDays(40),
+        ]);
+
+        DB::table('timeline_eventos')->insert([
+            'expediente_id' => $expediente->id,
+            'actor_id' => $user->id,
+            'evento' => 'expediente.actualizado',
+            'payload' => json_encode([]),
+            'created_at' => 'not-a-valid-date',
+        ]);
+
+        $response = $this->getJson(route('dashboard.alerts'));
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'alerts');
+        $response->assertJsonPath('alerts.0.id', $expediente->id);
+        $response->assertJsonPath('alerts.0.ultima_actividad', $expediente->updated_at->toIso8601String());
+
+        $this->assertEquals(
+            $expediente->updated_at->diffInDays(Carbon::now()),
+            $response->json('alerts.0.dias_inactivo')
+        );
 
         Carbon::setTestNow();
     }
