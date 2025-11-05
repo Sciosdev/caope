@@ -72,21 +72,27 @@ document.addEventListener('DOMContentLoaded', () => {
             ppt: 'application/vnd.ms-powerpoint',
             pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
             txt: 'text/plain',
-            csv: 'text/csv',
+            csv: ['text/csv', 'application/vnd.ms-excel'],
         };
 
         return value
             .split(',')
             .map((item) => item.trim())
             .filter((item) => item.length > 0)
-            .map((item) => {
+            .flatMap((item) => {
                 if (item.includes('/')) {
                     return item;
                 }
 
                 const normalized = item.replace(/^\./, '').toLowerCase();
 
-                return knownTypes[normalized] ?? `.${normalized}`;
+                const resolved = knownTypes[normalized];
+
+                if (Array.isArray(resolved)) {
+                    return resolved;
+                }
+
+                return resolved ?? `.${normalized}`;
             });
     };
 
