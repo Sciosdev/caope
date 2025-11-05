@@ -22,7 +22,7 @@ class StoreAnexoRequest extends FormRequest
 
     public function rules(): array
     {
-        $mimes = (string) Parametro::obtener('uploads.anexos.mimes', 'pdf,jpg,jpeg,png,doc,docx');
+        $mimes = (string) Parametro::obtener('uploads.anexos.mimes', 'pdf,jpg,jpeg,png,doc,docx,xls,xlsx,ppt,pptx,txt,csv');
         $max = (int) Parametro::obtener('uploads.anexos.max', 51200);
 
         return [

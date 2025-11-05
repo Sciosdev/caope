@@ -12,7 +12,7 @@ class ParametroSeeder extends Seeder
         $parametros = [
             [
                 'clave' => 'uploads.anexos.mimes',
-                'valor' => 'pdf,jpg,jpeg,png,doc,docx',
+                'valor' => 'pdf,jpg,jpeg,png,doc,docx,xls,xlsx,ppt,pptx,txt,csv',
                 'tipo' => Parametro::TYPE_STRING,
             ],
             [
