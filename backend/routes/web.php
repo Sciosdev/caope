@@ -16,9 +16,16 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReporteExpedienteController;
 use App\Http\Controllers\SesionController;
 use App\Http\Controllers\TimelineEventoExportController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'welcome')->name('home');
+Route::get('/', function () {
+    if (Auth::check()) {
+        return redirect()->route('dashboard');
+    }
+
+    return redirect()->route('login');
+})->name('home');
 
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
