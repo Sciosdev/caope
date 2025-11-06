@@ -24,10 +24,24 @@ class Expediente extends Model
         'creado_por',
         'tutor_id',
         'coordinador_id',
+        'antecedentes_familiares',
+        'antecedentes_observaciones',
     ];
 
     protected $casts = [
         'apertura' => SafeDate::class,
+        'antecedentes_familiares' => 'array',
+        'antecedentes_observaciones' => 'string',
+    ];
+
+    public const ANTECEDENTES_FAMILIARES_OPTIONS = [
+        'madre' => 'Madre',
+        'padre' => 'Padre',
+        'hermanos' => 'Hermanos',
+        'abuelos_maternos' => 'Abuelos maternos',
+        'abuelos_paternos' => 'Abuelos paternos',
+        'tios' => 'Tíos',
+        'otros' => 'Otros',
     ];
 
     public function creadoPor(): BelongsTo

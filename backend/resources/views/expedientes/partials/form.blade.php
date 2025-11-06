@@ -1,3 +1,25 @@
+@php
+    $antecedentesOpciones = $antecedentesFamiliaresOpciones ?? [];
+    $antecedentesPrevios = old('antecedentes_familiares');
+
+    if (! is_array($antecedentesPrevios)) {
+        $antecedentesPrevios = $expediente->antecedentes_familiares ?? [];
+    }
+
+    $antecedentesValores = [];
+
+    foreach ($antecedentesOpciones as $key => $label) {
+        $valor = $antecedentesPrevios[$key] ?? false;
+
+        if (is_string($valor)) {
+            $valor = trim($valor);
+        }
+
+        $booleanValor = filter_var($valor, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        $antecedentesValores[$key] = $booleanValor ?? false;
+    }
+@endphp
+
 <div class="row g-3">
     <div class="col-md-4">
         <label for="no_control" class="form-label">Número de control</label>
@@ -124,6 +146,68 @@
         @error('coordinador_id')
             <div class="invalid-feedback">{{ $message }}</div>
         @enderror
+    </div>
+
+    <div class="col-12">
+        <div class="border rounded p-3 h-100">
+            <h6 class="mb-3">Antecedentes familiares</h6>
+
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-3">
+                    <thead>
+                        <tr>
+                            <th class="w-75">Familiar</th>
+                            <th class="text-center">Presenta antecedente</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($antecedentesOpciones as $key => $label)
+                            <tr>
+                                <td>{{ $label }}</td>
+                                <td class="text-center">
+                                    <div class="form-check d-inline-flex justify-content-center">
+                                        <input type="hidden" name="antecedentes_familiares[{{ $key }}]" value="0">
+                                        <input
+                                            type="checkbox"
+                                            class="form-check-input"
+                                            id="antecedentes_{{ $key }}"
+                                            name="antecedentes_familiares[{{ $key }}]"
+                                            value="1"
+                                            @checked($antecedentesValores[$key] ?? false)
+                                        >
+                                        <label class="visually-hidden" for="antecedentes_{{ $key }}">{{ $label }}</label>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            @error('antecedentes_familiares')
+                <div class="text-danger small">{{ $message }}</div>
+            @enderror
+
+            @foreach ($antecedentesOpciones as $key => $label)
+                @error('antecedentes_familiares.' . $key)
+                    <div class="text-danger small">{{ $message }}</div>
+                @enderror
+            @endforeach
+
+            <div class="mt-3">
+                <label for="antecedentes_observaciones" class="form-label">Observaciones</label>
+                <textarea
+                    name="antecedentes_observaciones"
+                    id="antecedentes_observaciones"
+                    class="form-control @error('antecedentes_observaciones') is-invalid @enderror"
+                    rows="3"
+                    maxlength="1000"
+                >{{ old('antecedentes_observaciones', $expediente->antecedentes_observaciones ?? '') }}</textarea>
+                @error('antecedentes_observaciones')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+        </div>
     </div>
 </div>
 

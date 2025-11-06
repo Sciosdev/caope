@@ -62,6 +62,10 @@ class ExpedienteUpdateTest extends TestCase
         CatalogoCarrera::flushCache();
         CatalogoTurno::flushCache();
 
+        $originalAntecedentes = array_fill_keys(array_keys(Expediente::ANTECEDENTES_FAMILIARES_OPTIONS), false);
+        $originalAntecedentes['madre'] = true;
+        $originalAntecedentes['padre'] = true;
+
         $expediente = Expediente::factory()->create([
             'no_control' => 'CA-2025-0100',
             'paciente' => 'Paciente Original',
@@ -71,7 +75,13 @@ class ExpedienteUpdateTest extends TestCase
             'tutor_id' => $tutor->id,
             'coordinador_id' => null,
             'creado_por' => $creator->id,
+            'antecedentes_familiares' => $originalAntecedentes,
+            'antecedentes_observaciones' => 'Observaciones iniciales.',
         ]);
+
+        $expectedAntecedentes = $originalAntecedentes;
+        $expectedAntecedentes['madre'] = false;
+        $expectedAntecedentes['hermanos'] = true;
 
         $payload = [
             'no_control' => 'CA-2025-0200',
@@ -79,6 +89,12 @@ class ExpedienteUpdateTest extends TestCase
             'apertura' => Carbon::now()->toDateString(),
             'carrera' => $carreraNueva->nombre,
             'turno' => $turnoNuevo->nombre,
+            'antecedentes_familiares' => [
+                'madre' => '0',
+                'padre' => '1',
+                'hermanos' => '1',
+            ],
+            'antecedentes_observaciones' => 'Se agrega antecedente por parte de hermanos.',
         ];
 
         $response = $this->actingAs($admin)->put(route('expedientes.update', $expediente), $payload);
@@ -93,6 +109,8 @@ class ExpedienteUpdateTest extends TestCase
         $this->assertSame($payload['paciente'], $expediente->paciente);
         $this->assertSame($payload['carrera'], $expediente->carrera);
         $this->assertSame($payload['turno'], $expediente->turno);
+        $this->assertSame($expectedAntecedentes, $expediente->antecedentes_familiares);
+        $this->assertSame($payload['antecedentes_observaciones'], $expediente->antecedentes_observaciones);
 
         $this->assertDatabaseHas('timeline_eventos', [
             'expediente_id' => $expediente->id,
@@ -110,8 +128,14 @@ class ExpedienteUpdateTest extends TestCase
         $this->assertContains('paciente', $evento->payload['campos']);
         $this->assertContains('carrera', $evento->payload['campos']);
         $this->assertContains('turno', $evento->payload['campos']);
+        $this->assertContains('antecedentes_familiares', $evento->payload['campos']);
+        $this->assertContains('antecedentes_observaciones', $evento->payload['campos']);
         $this->assertSame('CA-2025-0100', $evento->payload['antes']['no_control']);
         $this->assertSame('CA-2025-0200', $evento->payload['despues']['no_control']);
+        $this->assertSame($originalAntecedentes, $evento->payload['antes']['antecedentes_familiares']);
+        $this->assertSame($expectedAntecedentes, $evento->payload['despues']['antecedentes_familiares']);
+        $this->assertSame('Observaciones iniciales.', $evento->payload['antes']['antecedentes_observaciones']);
+        $this->assertSame($payload['antecedentes_observaciones'], $evento->payload['despues']['antecedentes_observaciones']);
     }
 
     public function test_reasignacion_de_tutor_notifica_y_registra_en_timeline(): void
@@ -145,6 +169,12 @@ class ExpedienteUpdateTest extends TestCase
             'creado_por' => $creator->id,
         ]);
 
+        $antecedentesPayload = [];
+
+        foreach (array_keys(Expediente::ANTECEDENTES_FAMILIARES_OPTIONS) as $key) {
+            $antecedentesPayload[$key] = ($expediente->antecedentes_familiares[$key] ?? false) ? '1' : '0';
+        }
+
         $payload = [
             'no_control' => $expediente->no_control,
             'paciente' => $expediente->paciente,
@@ -152,6 +182,8 @@ class ExpedienteUpdateTest extends TestCase
             'carrera' => $expediente->carrera,
             'turno' => $expediente->turno,
             'tutor_id' => $tutorNuevo->id,
+            'antecedentes_familiares' => $antecedentesPayload,
+            'antecedentes_observaciones' => $expediente->antecedentes_observaciones ?? '',
         ];
 
         $response = $this->actingAs($admin)->put(route('expedientes.update', $expediente), $payload);
@@ -213,12 +245,20 @@ class ExpedienteUpdateTest extends TestCase
             'creado_por' => $creador->id,
         ]);
 
+        $antecedentesPayload = [];
+
+        foreach (array_keys(Expediente::ANTECEDENTES_FAMILIARES_OPTIONS) as $key) {
+            $antecedentesPayload[$key] = ($expediente->antecedentes_familiares[$key] ?? false) ? '1' : '0';
+        }
+
         $payload = [
             'no_control' => $expediente->no_control,
             'paciente' => $expediente->paciente,
             'apertura' => $expediente->apertura->toDateString(),
             'carrera' => $expediente->carrera,
             'turno' => $expediente->turno,
+            'antecedentes_familiares' => $antecedentesPayload,
+            'antecedentes_observaciones' => $expediente->antecedentes_observaciones ?? '',
         ];
 
         $originalPaciente = $expediente->paciente;

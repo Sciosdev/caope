@@ -126,6 +126,70 @@
                     </dl>
 
                     <div class="mt-4">
+                        <h6 class="mb-3">Antecedentes familiares</h6>
+                        @php
+                            $antecedentesOpciones = $antecedentesFamiliaresOpciones ?? [];
+                            $antecedentesDatos = $expediente->antecedentes_familiares ?? [];
+                            $antecedentesValores = [];
+
+                            foreach ($antecedentesOpciones as $key => $label) {
+                                $valor = $antecedentesDatos[$key] ?? false;
+
+                                if (is_string($valor)) {
+                                    $valor = trim($valor);
+                                }
+
+                                $booleanValor = filter_var($valor, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+                                $antecedentesValores[$key] = $booleanValor ?? false;
+                            }
+
+                            $hayAntecedentes = array_filter($antecedentesValores);
+                        @endphp
+
+                        @if (empty($antecedentesOpciones))
+                            <p class="text-muted mb-0">No hay opciones de antecedentes configuradas.</p>
+                        @else
+                            <div class="table-responsive mb-3">
+                                <table class="table table-sm align-middle mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Familiar</th>
+                                            <th class="text-center">Antecedente</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($antecedentesOpciones as $key => $label)
+                                            <tr>
+                                                <td>{{ $label }}</td>
+                                                <td class="text-center">
+                                                    @if ($antecedentesValores[$key] ?? false)
+                                                        <span class="badge bg-success">Sí</span>
+                                                    @else
+                                                        <span class="badge bg-light text-dark">No</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            @if (empty($hayAntecedentes))
+                                <p class="text-muted mb-0">No se registraron antecedentes familiares positivos.</p>
+                            @endif
+
+                            <div>
+                                <h6 class="mb-2">Observaciones</h6>
+                                @if (! empty($expediente->antecedentes_observaciones))
+                                    <p class="mb-0">{!! nl2br(e($expediente->antecedentes_observaciones)) !!}</p>
+                                @else
+                                    <p class="text-muted mb-0">Sin observaciones registradas.</p>
+                                @endif
+                            </div>
+                        @endif
+                    </div>
+
+                    <div class="mt-4">
                         <h6 class="mb-3">Últimos eventos</h6>
                         @if ($timelineEventosRecientes->isEmpty())
                             <p class="text-muted mb-0">Todavía no hay actividad registrada.</p>

@@ -52,6 +52,12 @@ class ExpedienteFactory extends Factory
         $tutor = $usuarios->isNotEmpty() && $this->faker->boolean(60) ? $usuarios->first() : null;
         $coordinador = $usuarios->count() > 1 && $this->faker->boolean(40) ? $usuarios->skip(1)->first() : null;
 
+        $antecedentes = [];
+
+        foreach (Expediente::ANTECEDENTES_FAMILIARES_OPTIONS as $key => $label) {
+            $antecedentes[$key] = $this->faker->boolean(25);
+        }
+
         return [
             'no_control' => sprintf('CA-%s-%04d', now()->format('Y'), $this->faker->unique()->numberBetween(1, 9999)),
             'paciente' => $this->faker->name(),
@@ -62,6 +68,8 @@ class ExpedienteFactory extends Factory
             'creado_por' => $creadoPor,
             'tutor_id' => $tutor,
             'coordinador_id' => $coordinador,
+            'antecedentes_familiares' => $antecedentes,
+            'antecedentes_observaciones' => $this->faker->boolean(40) ? $this->faker->sentence(10) : null,
         ];
     }
 }

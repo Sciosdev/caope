@@ -40,6 +40,8 @@ class ExpedienteController extends Controller
         'estado',
         'tutor_id',
         'coordinador_id',
+        'antecedentes_familiares',
+        'antecedentes_observaciones',
     ];
 
     public function __construct(
@@ -128,7 +130,7 @@ class ExpedienteController extends Controller
         $expediente = Expediente::create($data);
 
         $this->timelineLogger->log($expediente, 'expediente.creado', $request->user(), [
-            'datos' => Arr::only($expediente->toArray(), self::TIMELINE_FIELDS),
+            'datos' => $this->extractTimelineValues($expediente),
         ]);
 
         return redirect()
@@ -210,6 +212,7 @@ class ExpedienteController extends Controller
             'anexosUploadMax' => $anexosMax,
             'consentimientosUploadMimes' => $consentimientoMimes,
             'consentimientosUploadMax' => $consentimientoMax,
+            'antecedentesFamiliaresOpciones' => Expediente::ANTECEDENTES_FAMILIARES_OPTIONS,
         ]);
     }
 
@@ -227,16 +230,16 @@ class ExpedienteController extends Controller
     public function update(UpdateExpedienteRequest $request, Expediente $expediente): RedirectResponse
     {
         $data = $request->validatedExpedienteData();
-        $before = Arr::only($expediente->getAttributes(), self::TIMELINE_FIELDS);
+        $before = $this->extractTimelineValues($expediente);
 
         $expediente->fill($data);
         $expediente->save();
 
         $expediente->refresh();
 
-        $after = Arr::only($expediente->getAttributes(), self::TIMELINE_FIELDS);
+        $after = $this->extractTimelineValues($expediente);
         $cambios = collect($after)
-            ->filter(fn ($value, $key) => ($before[$key] ?? null) !== $value)
+            ->filter(fn ($value, $key) => $this->valuesDiffer($before[$key] ?? null, $value))
             ->keys()
             ->all();
 
@@ -332,7 +335,31 @@ class ExpedienteController extends Controller
             'turnos' => $turnos,
             'tutores' => $tutores,
             'coordinadores' => $coordinadores,
+            'antecedentesFamiliaresOpciones' => Expediente::ANTECEDENTES_FAMILIARES_OPTIONS,
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function extractTimelineValues(Expediente $expediente): array
+    {
+        return Arr::only($expediente->toArray(), self::TIMELINE_FIELDS);
+    }
+
+    private function valuesDiffer(mixed $previous, mixed $current): bool
+    {
+        if (is_array($previous) && is_array($current)) {
+            $previousSorted = $previous;
+            $currentSorted = $current;
+
+            ksort($previousSorted);
+            ksort($currentSorted);
+
+            return $previousSorted !== $currentSorted;
+        }
+
+        return $previous !== $current;
     }
 
     /**

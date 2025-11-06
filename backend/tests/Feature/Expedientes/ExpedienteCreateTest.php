@@ -47,12 +47,21 @@ class ExpedienteCreateTest extends TestCase
         CatalogoCarrera::flushCache();
         CatalogoTurno::flushCache();
 
+        $expectedAntecedentes = array_fill_keys(array_keys(Expediente::ANTECEDENTES_FAMILIARES_OPTIONS), false);
+        $expectedAntecedentes['madre'] = true;
+        $expectedAntecedentes['abuelos_maternos'] = true;
+
         $payload = [
             'no_control' => 'CA-2025-0001',
             'paciente' => 'Paciente Demo',
             'apertura' => Carbon::now()->toDateString(),
             'carrera' => $carrera->nombre,
             'turno' => $turno->nombre,
+            'antecedentes_familiares' => [
+                'madre' => '1',
+                'abuelos_maternos' => 'true',
+            ],
+            'antecedentes_observaciones' => 'Antecedentes por línea materna.',
         ];
 
         $response = $this->actingAs($admin)->post(route('expedientes.store'), $payload);
@@ -69,6 +78,8 @@ class ExpedienteCreateTest extends TestCase
         $this->assertSame($payload['paciente'], $expediente->paciente);
         $this->assertSame($payload['carrera'], $expediente->carrera);
         $this->assertSame($payload['turno'], $expediente->turno);
+        $this->assertSame($expectedAntecedentes, $expediente->antecedentes_familiares);
+        $this->assertSame($payload['antecedentes_observaciones'], $expediente->antecedentes_observaciones);
 
         $this->assertDatabaseHas('timeline_eventos', [
             'expediente_id' => $expediente->id,
@@ -85,5 +96,7 @@ class ExpedienteCreateTest extends TestCase
         $this->assertSame($payload['no_control'], $evento->payload['datos']['no_control']);
         $this->assertSame($payload['paciente'], $evento->payload['datos']['paciente']);
         $this->assertSame($payload['turno'], $evento->payload['datos']['turno']);
+        $this->assertSame($expectedAntecedentes, $evento->payload['datos']['antecedentes_familiares']);
+        $this->assertSame($payload['antecedentes_observaciones'], $evento->payload['datos']['antecedentes_observaciones']);
     }
 }
