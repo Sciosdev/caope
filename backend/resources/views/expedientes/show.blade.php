@@ -150,6 +150,43 @@
                     </div>
                 </div>
             </div>
+
+            @if (auth()->user()?->hasAnyRole(['alumno', 'docente']))
+                @php
+                    $familyHistory = $expediente->antecedentes_familiares ?? \App\Models\Expediente::defaultFamilyHistory();
+                @endphp
+                <div class="card shadow-sm mt-4">
+                    <div class="card-body">
+                        <h6 class="mb-3">Antecedentes familiares</h6>
+                        <div class="row row-cols-1 row-cols-md-3 g-3">
+                            @foreach ($familyHistoryMembers as $memberKey => $memberLabel)
+                                @php
+                                    $hasAntecedent = (bool) ($familyHistory[$memberKey] ?? false);
+                                @endphp
+                                <div class="col">
+                                    <div class="border rounded p-3 h-100">
+                                        <span class="text-muted small d-block">{{ $memberLabel }}</span>
+                                        @if ($hasAntecedent)
+                                            <span class="badge bg-success">Sí</span>
+                                        @else
+                                            <span class="badge bg-secondary">No</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <div class="mt-3">
+                            <span class="text-muted small d-block">Observaciones</span>
+                            @if (filled($expediente->antecedentes_observaciones))
+                                <p class="mb-0">{!! nl2br(e($expediente->antecedentes_observaciones)) !!}</p>
+                            @else
+                                <p class="mb-0 text-muted fst-italic">Sin observaciones registradas.</p>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            @endif
         </div>
 
         <div class="tab-pane fade" id="sesiones" role="tabpanel" aria-labelledby="sesiones-tab">
