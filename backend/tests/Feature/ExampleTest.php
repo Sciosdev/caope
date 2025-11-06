@@ -22,7 +22,7 @@ class ExampleTest extends TestCase
 
     public function test_home_page_is_accessible(): void
     {
-        $response = $this->get('/');
+        $response = $this->followingRedirects()->get('/');
 
         $response->assertOk();
     }

@@ -40,6 +40,8 @@ class ExpedienteController extends Controller
         'estado',
         'tutor_id',
         'coordinador_id',
+        'antecedentes_familiares',
+        'antecedentes_observaciones',
     ];
 
     public function __construct(
@@ -122,6 +124,13 @@ class ExpedienteController extends Controller
     public function store(StoreExpedienteRequest $request): RedirectResponse
     {
         $data = $request->validatedExpedienteData();
+        $familyHistoryProvided = array_key_exists('antecedentes_familiares', $data) || array_key_exists('antecedentes_observaciones', $data);
+
+        if (! array_key_exists('antecedentes_familiares', $data)) {
+            $data['antecedentes_familiares'] = Expediente::defaultFamilyHistory();
+        }
+
+        $data['antecedentes_observaciones'] = $data['antecedentes_observaciones'] ?? null;
         $data['creado_por'] = $request->user()->id;
         $data['estado'] = $data['estado'] ?? 'abierto';
 
@@ -130,6 +139,15 @@ class ExpedienteController extends Controller
         $this->timelineLogger->log($expediente, 'expediente.creado', $request->user(), [
             'datos' => Arr::only($expediente->toArray(), self::TIMELINE_FIELDS),
         ]);
+
+        if ($request->user()->hasRole('alumno') && $familyHistoryProvided) {
+            $this->timelineLogger->log($expediente, 'expediente.antecedentes_registrados', $request->user(), [
+                'datos' => [
+                    'familiares' => $expediente->antecedentes_familiares,
+                    'observaciones' => $expediente->antecedentes_observaciones,
+                ],
+            ]);
+        }
 
         return redirect()
             ->route('expedientes.show', $expediente)
@@ -210,6 +228,7 @@ class ExpedienteController extends Controller
             'anexosUploadMax' => $anexosMax,
             'consentimientosUploadMimes' => $consentimientoMimes,
             'consentimientosUploadMax' => $consentimientoMax,
+            'familyHistoryMembers' => Expediente::FAMILY_HISTORY_MEMBERS,
         ]);
     }
 
@@ -228,9 +247,16 @@ class ExpedienteController extends Controller
     {
         $data = $request->validatedExpedienteData();
         $before = Arr::only($expediente->getAttributes(), self::TIMELINE_FIELDS);
+        $familyHistoryBefore = [
+            'familiares' => $expediente->antecedentes_familiares ?? Expediente::defaultFamilyHistory(),
+            'observaciones' => $expediente->antecedentes_observaciones,
+        ];
 
         $expediente->fill($data);
         $expediente->save();
+
+        $familyHistoryChanged = $expediente->wasChanged('antecedentes_familiares')
+            || $expediente->wasChanged('antecedentes_observaciones');
 
         $expediente->refresh();
 
@@ -255,6 +281,16 @@ class ExpedienteController extends Controller
                     $tutor->notify(new TutorAssignedNotification($expediente, $request->user()));
                 }
             }
+        }
+
+        if ($request->user()->hasRole('alumno') && $familyHistoryChanged) {
+            $this->timelineLogger->log($expediente, 'expediente.antecedentes_actualizados', $request->user(), [
+                'antes' => $familyHistoryBefore,
+                'despues' => [
+                    'familiares' => $expediente->antecedentes_familiares ?? Expediente::defaultFamilyHistory(),
+                    'observaciones' => $expediente->antecedentes_observaciones,
+                ],
+            ]);
         }
 
         return redirect()
@@ -332,6 +368,7 @@ class ExpedienteController extends Controller
             'turnos' => $turnos,
             'tutores' => $tutores,
             'coordinadores' => $coordinadores,
+            'familyHistoryMembers' => Expediente::FAMILY_HISTORY_MEMBERS,
         ];
     }
 

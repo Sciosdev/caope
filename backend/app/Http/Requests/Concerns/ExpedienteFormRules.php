@@ -10,6 +10,12 @@ trait ExpedienteFormRules
     protected function prepareForValidation(): void
     {
         $this->merge($this->sanitizedStringFields());
+
+        if ($this->has('antecedentes_familiares')) {
+            $this->merge([
+                'antecedentes_familiares' => $this->sanitizeFamilyHistory($this->input('antecedentes_familiares')),
+            ]);
+        }
     }
 
     /**
@@ -19,7 +25,7 @@ trait ExpedienteFormRules
     {
         $sanitized = [];
 
-        foreach (['no_control', 'paciente', 'estado', 'carrera', 'turno'] as $field) {
+        foreach (['no_control', 'paciente', 'estado', 'carrera', 'turno', 'antecedentes_observaciones'] as $field) {
             if ($this->has($field)) {
                 $value = $this->input($field);
 
@@ -71,7 +77,66 @@ trait ExpedienteFormRules
             ],
             'tutor_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
             'coordinador_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
+            'antecedentes_familiares' => ['sometimes', 'array'],
+            'antecedentes_observaciones' => ['sometimes', 'nullable', 'string', 'max:500'],
+            ...$this->familyHistoryMemberRules(),
         ];
+    }
+
+    /**
+     * @return array<string, array<int, string>>
+     */
+    private function familyHistoryMemberRules(): array
+    {
+        return collect(Expediente::FAMILY_HISTORY_MEMBERS)
+            ->keys()
+            ->mapWithKeys(fn (string $member) => [
+                "antecedentes_familiares.$member" => ['required_with:antecedentes_familiares', 'boolean'],
+            ])
+            ->all();
+    }
+
+    /**
+     * @param  mixed  $value
+     * @return array<string, bool>
+     */
+    private function sanitizeFamilyHistory(mixed $value): array
+    {
+        $family = is_array($value) ? $value : [];
+
+        $sanitized = [];
+
+        $defaults = Expediente::defaultFamilyHistory();
+
+        foreach (array_keys(Expediente::FAMILY_HISTORY_MEMBERS) as $member) {
+            if (! array_key_exists($member, $family)) {
+                $sanitized[$member] = $defaults[$member];
+                continue;
+            }
+
+            $raw = $family[$member];
+
+            if (is_bool($raw)) {
+                $sanitized[$member] = $raw;
+                continue;
+            }
+
+            if (is_scalar($raw)) {
+                $boolValue = filter_var($raw, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
+
+                if ($boolValue !== null) {
+                    $sanitized[$member] = $boolValue;
+                    continue;
+                }
+
+                $sanitized[$member] = $raw;
+                continue;
+            }
+
+            $sanitized[$member] = $raw;
+        }
+
+        return array_merge($defaults, $sanitized);
     }
 
     protected function resolveExpedienteFromRoute(): ?Expediente
@@ -102,6 +167,8 @@ trait ExpedienteFormRules
             'turno',
             'tutor_id',
             'coordinador_id',
+            'antecedentes_familiares',
+            'antecedentes_observaciones',
         ]);
     }
 }

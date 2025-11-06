@@ -127,6 +127,10 @@
     </div>
 </div>
 
+@if (auth()->user()?->hasRole('alumno'))
+    @include('expedientes.partials.alumno.family-history')
+@endif
+
 @once
     @push('styles')
         <link rel="stylesheet" href="{{ asset('assets/vendors/select2/select2.min.css') }}">

@@ -14,6 +14,15 @@ class Expediente extends Model
 {
     use HasFactory;
 
+    public const FAMILY_HISTORY_MEMBERS = [
+        'madre' => 'Madre',
+        'padre' => 'Padre',
+        'hermanos' => 'Hermanos',
+        'abuelos' => 'Abuelos',
+        'tios' => 'Tíos',
+        'otros' => 'Otros',
+    ];
+
     protected $fillable = [
         'no_control',
         'paciente',
@@ -24,11 +33,25 @@ class Expediente extends Model
         'creado_por',
         'tutor_id',
         'coordinador_id',
+        'antecedentes_familiares',
+        'antecedentes_observaciones',
     ];
 
     protected $casts = [
         'apertura' => SafeDate::class,
+        'antecedentes_familiares' => 'array',
     ];
+
+    /**
+     * @return array<string, bool>
+     */
+    public static function defaultFamilyHistory(): array
+    {
+        return collect(self::FAMILY_HISTORY_MEMBERS)
+            ->keys()
+            ->mapWithKeys(fn (string $key) => [$key => false])
+            ->all();
+    }
 
     public function creadoPor(): BelongsTo
     {

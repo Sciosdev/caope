@@ -60,6 +60,12 @@ class ExpedienteSeeder extends Seeder
 
             $apertura = Carbon::parse($faker->dateTimeBetween('-8 months', '-1 week'));
 
+            $familyHistory = Expediente::defaultFamilyHistory();
+            foreach (array_keys($familyHistory) as $member) {
+                $familyHistory[$member] = $faker->boolean(30);
+            }
+            $familyNotes = $faker->boolean(35) ? $faker->sentences($faker->numberBetween(1, 2), true) : null;
+
             $expediente = Expediente::factory()->create([
                 'estado' => $estado,
                 'carrera' => $carrera,
@@ -68,6 +74,8 @@ class ExpedienteSeeder extends Seeder
                 'creado_por' => $creadoPor,
                 'tutor_id' => $tutor,
                 'coordinador_id' => $coordinador,
+                'antecedentes_familiares' => $familyHistory,
+                'antecedentes_observaciones' => $familyNotes,
             ]);
 
             $sesionesCount = $faker->numberBetween(2, 5);
