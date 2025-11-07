@@ -47,6 +47,18 @@ class ExpedienteFamilyHistoryTest extends TestCase
         CatalogoCarrera::flushCache();
         CatalogoTurno::flushCache();
 
+        $clinicalPayload = [];
+        foreach (Expediente::CLINICAL_HISTORY_CONDITIONS as $conditionKey => $conditionLabel) {
+            $clinicalPayload[$conditionKey] = [];
+            foreach (Expediente::FAMILY_HISTORY_MEMBERS as $memberKey => $memberLabel) {
+                $clinicalPayload[$conditionKey][$memberKey] = '0';
+            }
+        }
+
+        $clinicalPayload['diabetes']['madre'] = '1';
+        $clinicalPayload['hipertension_arterial']['padre'] = '1';
+        $clinicalPayload['cancer']['tios'] = '1';
+
         $payload = [
             'no_control' => 'AL-2025-0001',
             'paciente' => 'Alumno Demo',
@@ -62,6 +74,9 @@ class ExpedienteFamilyHistoryTest extends TestCase
                 'otros' => '0',
             ],
             'antecedentes_observaciones' => 'Antecedentes por madre y hermanos.',
+            'antecedentes_clinicos' => $clinicalPayload,
+            'antecedentes_clinicos_otros' => 'Asma en abuelo.',
+            'antecedentes_clinicos_observaciones' => 'Seguimiento semestral recomendado.',
         ];
 
         $response = $this->actingAs($alumno)->post(route('expedientes.store'), $payload);
@@ -78,6 +93,11 @@ class ExpedienteFamilyHistoryTest extends TestCase
             $payload['antecedentes_observaciones'],
             $expediente->antecedentes_observaciones
         );
+        $this->assertTrue($expediente->antecedentes_clinicos['diabetes']['madre']);
+        $this->assertTrue($expediente->antecedentes_clinicos['hipertension_arterial']['padre']);
+        $this->assertFalse($expediente->antecedentes_clinicos['obesidad']['madre']);
+        $this->assertSame('Asma en abuelo.', $expediente->antecedentes_clinicos_otros);
+        $this->assertSame('Seguimiento semestral recomendado.', $expediente->antecedentes_clinicos_observaciones);
 
         $this->assertDatabaseHas('timeline_eventos', [
             'expediente_id' => $expediente->id,
@@ -99,6 +119,18 @@ class ExpedienteFamilyHistoryTest extends TestCase
             $expediente->antecedentes_observaciones,
             $creacionEvento->payload['datos']['antecedentes_observaciones']
         );
+        $this->assertSame(
+            $expediente->antecedentes_clinicos,
+            $creacionEvento->payload['datos']['antecedentes_clinicos']
+        );
+        $this->assertSame(
+            $expediente->antecedentes_clinicos_otros,
+            $creacionEvento->payload['datos']['antecedentes_clinicos_otros']
+        );
+        $this->assertSame(
+            $expediente->antecedentes_clinicos_observaciones,
+            $creacionEvento->payload['datos']['antecedentes_clinicos_observaciones']
+        );
 
         $antecedentesEvento = $expediente->timelineEventos()
             ->where('evento', 'expediente.antecedentes_registrados')
@@ -113,6 +145,18 @@ class ExpedienteFamilyHistoryTest extends TestCase
         $this->assertSame(
             $expediente->antecedentes_observaciones,
             $antecedentesEvento->payload['datos']['observaciones']
+        );
+        $this->assertSame(
+            $expediente->antecedentes_clinicos,
+            $antecedentesEvento->payload['datos']['clinicos']['padecimientos']
+        );
+        $this->assertSame(
+            $expediente->antecedentes_clinicos_otros,
+            $antecedentesEvento->payload['datos']['clinicos']['otros']
+        );
+        $this->assertSame(
+            $expediente->antecedentes_clinicos_observaciones,
+            $antecedentesEvento->payload['datos']['clinicos']['observaciones']
         );
     }
 
@@ -134,6 +178,11 @@ class ExpedienteFamilyHistoryTest extends TestCase
         CatalogoCarrera::flushCache();
         CatalogoTurno::flushCache();
 
+        $initialClinical = Expediente::defaultClinicalHistory();
+        $initialClinical['diabetes']['madre'] = true;
+        $initialClinical['hipertension_arterial']['padre'] = false;
+        $initialClinical['cancer']['tios'] = false;
+
         $expediente = Expediente::factory()->create([
             'creado_por' => $alumno->id,
             'estado' => 'abierto',
@@ -148,7 +197,22 @@ class ExpedienteFamilyHistoryTest extends TestCase
                 'otros' => false,
             ],
             'antecedentes_observaciones' => 'Observaciones iniciales.',
+            'antecedentes_clinicos' => $initialClinical,
+            'antecedentes_clinicos_otros' => 'Control anual.',
+            'antecedentes_clinicos_observaciones' => 'Sin incidencias recientes.',
         ]);
+
+        $updatedClinical = [];
+        foreach (Expediente::CLINICAL_HISTORY_CONDITIONS as $conditionKey => $conditionLabel) {
+            $updatedClinical[$conditionKey] = [];
+            foreach (Expediente::FAMILY_HISTORY_MEMBERS as $memberKey => $memberLabel) {
+                $updatedClinical[$conditionKey][$memberKey] = '0';
+            }
+        }
+
+        $updatedClinical['diabetes']['madre'] = '0';
+        $updatedClinical['hipertension_arterial']['padre'] = '1';
+        $updatedClinical['obesidad']['hermanos'] = '1';
 
         $payload = [
             'no_control' => $expediente->no_control,
@@ -165,6 +229,9 @@ class ExpedienteFamilyHistoryTest extends TestCase
                 'otros' => '0',
             ],
             'antecedentes_observaciones' => 'Actualización por parte del alumno.',
+            'antecedentes_clinicos' => $updatedClinical,
+            'antecedentes_clinicos_otros' => 'Tratamiento en curso.',
+            'antecedentes_clinicos_observaciones' => 'Cambios recientes detectados.',
         ];
 
         $response = $this->actingAs($alumno)->put(route('expedientes.update', $expediente), $payload);
@@ -180,6 +247,11 @@ class ExpedienteFamilyHistoryTest extends TestCase
             $payload['antecedentes_observaciones'],
             $expediente->antecedentes_observaciones
         );
+        $this->assertTrue($expediente->antecedentes_clinicos['hipertension_arterial']['padre']);
+        $this->assertTrue($expediente->antecedentes_clinicos['obesidad']['hermanos']);
+        $this->assertFalse($expediente->antecedentes_clinicos['diabetes']['madre']);
+        $this->assertSame('Tratamiento en curso.', $expediente->antecedentes_clinicos_otros);
+        $this->assertSame('Cambios recientes detectados.', $expediente->antecedentes_clinicos_observaciones);
 
         $actualizacionEvento = $expediente->timelineEventos()
             ->where('evento', 'expediente.actualizado')
@@ -189,6 +261,9 @@ class ExpedienteFamilyHistoryTest extends TestCase
         $this->assertNotNull($actualizacionEvento);
         $this->assertContains('antecedentes_familiares', $actualizacionEvento->payload['campos']);
         $this->assertContains('antecedentes_observaciones', $actualizacionEvento->payload['campos']);
+        $this->assertContains('antecedentes_clinicos', $actualizacionEvento->payload['campos']);
+        $this->assertContains('antecedentes_clinicos_otros', $actualizacionEvento->payload['campos']);
+        $this->assertContains('antecedentes_clinicos_observaciones', $actualizacionEvento->payload['campos']);
 
         $antecedentesEvento = $expediente->timelineEventos()
             ->where('evento', 'expediente.antecedentes_actualizados')
@@ -205,6 +280,16 @@ class ExpedienteFamilyHistoryTest extends TestCase
         $this->assertSame(
             $payload['antecedentes_observaciones'],
             $antecedentesEvento->payload['despues']['observaciones']
+        );
+        $this->assertTrue($antecedentesEvento->payload['antes']['clinicos']['padecimientos']['diabetes']['madre']);
+        $this->assertFalse($antecedentesEvento->payload['despues']['clinicos']['padecimientos']['diabetes']['madre']);
+        $this->assertSame(
+            'Control anual.',
+            $antecedentesEvento->payload['antes']['clinicos']['otros']
+        );
+        $this->assertSame(
+            'Tratamiento en curso.',
+            $antecedentesEvento->payload['despues']['clinicos']['otros']
         );
     }
 
@@ -236,6 +321,12 @@ class ExpedienteFamilyHistoryTest extends TestCase
                 'madre' => 'tal vez',
             ],
             'antecedentes_observaciones' => str_repeat('a', 600),
+            'antecedentes_clinicos' => [
+                'diabetes' => [
+                    'madre' => 'quizá',
+                ],
+            ],
+            'antecedentes_clinicos_observaciones' => str_repeat('b', 600),
         ];
 
         $response = $this->actingAs($alumno)->post(route('expedientes.store'), $payload);
@@ -243,6 +334,8 @@ class ExpedienteFamilyHistoryTest extends TestCase
         $response->assertSessionHasErrors([
             'antecedentes_familiares.madre',
             'antecedentes_observaciones',
+            'antecedentes_clinicos.diabetes.madre',
+            'antecedentes_clinicos_observaciones',
         ]);
     }
 }

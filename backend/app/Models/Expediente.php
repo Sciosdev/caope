@@ -23,6 +23,14 @@ class Expediente extends Model
         'otros' => 'Otros',
     ];
 
+    public const CLINICAL_HISTORY_CONDITIONS = [
+        'diabetes' => 'Diabetes',
+        'hipertension_arterial' => 'Hipertensión arterial',
+        'enfermedad_cardiaca' => 'Enfermedad cardíaca',
+        'cancer' => 'Cáncer',
+        'obesidad' => 'Obesidad',
+    ];
+
     protected $fillable = [
         'no_control',
         'paciente',
@@ -35,11 +43,15 @@ class Expediente extends Model
         'coordinador_id',
         'antecedentes_familiares',
         'antecedentes_observaciones',
+        'antecedentes_clinicos',
+        'antecedentes_clinicos_otros',
+        'antecedentes_clinicos_observaciones',
     ];
 
     protected $casts = [
         'apertura' => SafeDate::class,
         'antecedentes_familiares' => 'array',
+        'antecedentes_clinicos' => 'array',
     ];
 
     /**
@@ -50,6 +62,25 @@ class Expediente extends Model
         return collect(self::FAMILY_HISTORY_MEMBERS)
             ->keys()
             ->mapWithKeys(fn (string $key) => [$key => false])
+            ->all();
+    }
+
+    /**
+     * @return array<string, array<string, bool>>
+     */
+    public static function defaultClinicalHistory(): array
+    {
+        $members = collect(self::FAMILY_HISTORY_MEMBERS)->keys();
+
+        return collect(self::CLINICAL_HISTORY_CONDITIONS)
+            ->keys()
+            ->mapWithKeys(function (string $condition) use ($members) {
+                $defaults = $members
+                    ->mapWithKeys(fn (string $member) => [$member => false])
+                    ->all();
+
+                return [$condition => $defaults];
+            })
             ->all();
     }
 

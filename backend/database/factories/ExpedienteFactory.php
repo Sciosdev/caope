@@ -57,6 +57,16 @@ class ExpedienteFactory extends Factory
             $familyHistory[$member] = $this->faker->boolean(30);
         }
 
+        $clinicalHistory = Expediente::defaultClinicalHistory();
+        foreach ($clinicalHistory as $condition => $members) {
+            foreach ($members as $member => $value) {
+                $clinicalHistory[$condition][$member] = $this->faker->boolean(20);
+            }
+        }
+
+        $clinicalOthers = $this->faker->optional(0.3)->words($this->faker->numberBetween(2, 4), true);
+        $clinicalNotes = $this->faker->optional(0.35)->sentences($this->faker->numberBetween(1, 2), true);
+
         return [
             'no_control' => sprintf('CA-%s-%04d', now()->format('Y'), $this->faker->unique()->numberBetween(1, 9999)),
             'paciente' => $this->faker->name(),
@@ -69,6 +79,9 @@ class ExpedienteFactory extends Factory
             'coordinador_id' => $coordinador,
             'antecedentes_familiares' => $familyHistory,
             'antecedentes_observaciones' => $this->faker->optional(0.4)->text(120),
+            'antecedentes_clinicos' => $clinicalHistory,
+            'antecedentes_clinicos_otros' => $clinicalOthers,
+            'antecedentes_clinicos_observaciones' => $clinicalNotes,
         ];
     }
 }
