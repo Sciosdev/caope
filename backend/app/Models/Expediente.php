@@ -51,7 +51,7 @@ class Expediente extends Model
         'cancer' => 'Neoplasias',
         'obesidad' => 'Obesidad',
         'dislipidemias' => 'Dislipidemias',
-        'trastornos_tiroideos' => 'Trastornos tiroideos',
+        'trastornos_tiroideos' => 'Disfunciones endócrinas',
         'asma' => 'Asma',
         'epoc' => 'Enfermedad pulmonar obstructiva crónica (EPOC)',
         'epilepsia' => 'Epilepsia',
