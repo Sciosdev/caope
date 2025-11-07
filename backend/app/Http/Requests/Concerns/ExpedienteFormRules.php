@@ -24,6 +24,12 @@ trait ExpedienteFormRules
                 ),
             ]);
         }
+
+        if ($this->has('aparatos_sistemas')) {
+            $this->merge([
+                'aparatos_sistemas' => $this->sanitizeSystemsReview($this->input('aparatos_sistemas')),
+            ]);
+        }
     }
 
     /**
@@ -41,6 +47,7 @@ trait ExpedienteFormRules
             'turno',
             'antecedentes_observaciones',
             'antecedentes_personales_observaciones',
+            'antecedente_padecimiento_actual',
         ] as $field) {
             if ($this->has($field)) {
                 $value = $this->input($field);
@@ -97,8 +104,11 @@ trait ExpedienteFormRules
             'antecedentes_observaciones' => ['sometimes', 'nullable', 'string', 'max:500'],
             'antecedentes_personales_patologicos' => ['sometimes', 'array'],
             'antecedentes_personales_observaciones' => ['sometimes', 'nullable', 'string', 'max:500'],
+            'antecedente_padecimiento_actual' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'aparatos_sistemas' => ['sometimes', 'array'],
             ...$this->familyHistoryMemberRules(),
             ...$this->personalPathologicalRules(),
+            ...$this->systemsReviewRules(),
         ];
     }
 
@@ -190,6 +200,37 @@ trait ExpedienteFormRules
         return array_merge($defaults, $normalized);
     }
 
+    /**
+     * @param  mixed  $value
+     * @return array<string, ?string>
+     */
+    private function sanitizeSystemsReview(mixed $value): array
+    {
+        $systems = is_array($value) ? $value : [];
+        $defaults = Expediente::defaultSystemsReview();
+
+        $normalized = [];
+
+        foreach ($defaults as $section => $defaultValue) {
+            $raw = $systems[$section] ?? $defaultValue;
+
+            if (is_string($raw)) {
+                $trimmed = trim($raw);
+                $normalized[$section] = $trimmed === '' ? null : $trimmed;
+                continue;
+            }
+
+            if (is_scalar($raw)) {
+                $normalized[$section] = trim((string) $raw) ?: null;
+                continue;
+            }
+
+            $normalized[$section] = null;
+        }
+
+        return array_merge($defaults, $normalized);
+    }
+
     private function normalizeBooleanField(mixed $value): mixed
     {
         if (is_bool($value)) {
@@ -260,6 +301,19 @@ trait ExpedienteFormRules
             ->all();
     }
 
+    /**
+     * @return array<string, array<int, string>>
+     */
+    private function systemsReviewRules(): array
+    {
+        return collect(Expediente::SYSTEMS_REVIEW_SECTIONS)
+            ->keys()
+            ->mapWithKeys(fn (string $section) => [
+                "aparatos_sistemas.$section" => ['required_with:aparatos_sistemas', 'nullable', 'string', 'max:1000'],
+            ])
+            ->all();
+    }
+
     protected function resolveExpedienteFromRoute(): ?Expediente
     {
         $expediente = $this->route('expediente');
@@ -292,6 +346,8 @@ trait ExpedienteFormRules
             'antecedentes_observaciones',
             'antecedentes_personales_patologicos',
             'antecedentes_personales_observaciones',
+            'antecedente_padecimiento_actual',
+            'aparatos_sistemas',
         ]);
     }
 }

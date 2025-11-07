@@ -71,6 +71,12 @@ class Expediente extends Model
         'alergias' => 'Alergias',
     ];
 
+    public const SYSTEMS_REVIEW_SECTIONS = [
+        'digestivo' => 'Historia Psicosocial y del Desarrollo',
+        'respiratorio' => 'Evaluación Psicológica (Estado Mental Actual)',
+        'cardiovascular' => 'Evaluación Psicológica Observaciones Clínicas Relevantes',
+    ];
+
     protected $fillable = [
         'no_control',
         'paciente',
@@ -85,12 +91,15 @@ class Expediente extends Model
         'antecedentes_observaciones',
         'antecedentes_personales_patologicos',
         'antecedentes_personales_observaciones',
+        'antecedente_padecimiento_actual',
+        'aparatos_sistemas',
     ];
 
     protected $casts = [
         'apertura' => SafeDate::class,
         'antecedentes_familiares' => 'array',
         'antecedentes_personales_patologicos' => 'array',
+        'aparatos_sistemas' => 'array',
     ];
 
     /**
@@ -132,6 +141,17 @@ class Expediente extends Model
 
                 return [$condition => $defaults];
             })
+            ->all();
+    }
+
+    /**
+     * @return array<string, ?string>
+     */
+    public static function defaultSystemsReview(): array
+    {
+        return collect(self::SYSTEMS_REVIEW_SECTIONS)
+            ->keys()
+            ->mapWithKeys(fn (string $section) => [$section => null])
             ->all();
     }
 
