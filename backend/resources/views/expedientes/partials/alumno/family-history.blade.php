@@ -92,72 +92,63 @@
         Registra los padecimientos que el alumno ha presentado, la fecha de diagnóstico conocida y agrega observaciones generales si es necesario.
     </p>
 
-    <div class="table-responsive">
-        <table class="table table-sm align-middle">
-            <thead>
-                <tr>
-                    <th class="w-35">Padecimientos</th>
-                    <th class="text-center">Presenta</th>
-                    <th class="w-25">Fecha de diagnóstico</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($personalPathologicalConditions as $conditionKey => $conditionLabel)
-                    @php
-                        $current = $personalHistory[$conditionKey] ?? [];
-                        $hasCondition = filter_var($current['padece'] ?? false, FILTER_VALIDATE_BOOLEAN);
-                        $diagnosisDate = $current['fecha'] ?? null;
-                        $diagnosisDateValue = '';
-                        if ($diagnosisDate !== null) {
-                            $carbonDate = \Illuminate\Support\Carbon::make($diagnosisDate);
-                            if ($carbonDate) {
-                                $diagnosisDateValue = $carbonDate->format('Y-m-d');
-                            } elseif (is_string($diagnosisDate)) {
-                                $diagnosisDateValue = $diagnosisDate;
-                            }
-                        }
-                        $inputId = "antecedentes_personales_{$conditionKey}";
-                    @endphp
-                    <tr>
-                        <td class="fw-semibold">{{ $conditionLabel }}</td>
-                        <td class="text-center">
-                            <div class="form-check d-inline-flex justify-content-center align-items-center">
-                                <input
-                                    type="hidden"
-                                    name="antecedentes_personales_patologicos[{{ $conditionKey }}][padece]"
-                                    value="0"
-                                >
-                                <input
-                                    type="checkbox"
-                                    class="form-check-input @error("antecedentes_personales_patologicos.$conditionKey.padece") is-invalid @enderror"
-                                    id="{{ $inputId }}"
-                                    name="antecedentes_personales_patologicos[{{ $conditionKey }}][padece]"
-                                    value="1"
-                                    @checked($hasCondition)
-                                >
-                                <label class="visually-hidden" for="{{ $inputId }}">{{ $conditionLabel }}</label>
-                            </div>
-                            @error("antecedentes_personales_patologicos.$conditionKey.padece")
-                                <div class="text-danger small mt-1">{{ $message }}</div>
-                            @enderror
-                        </td>
-                        <td>
-                            <input
-                                type="date"
-                                name="antecedentes_personales_patologicos[{{ $conditionKey }}][fecha]"
-                                id="{{ $inputId }}_fecha"
-                                class="form-control form-control-sm @error("antecedentes_personales_patologicos.$conditionKey.fecha") is-invalid @enderror"
-                                value="{{ $diagnosisDateValue }}"
-                                max="{{ now()->format('Y-m-d') }}"
-                            >
-                            @error("antecedentes_personales_patologicos.$conditionKey.fecha")
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
+    <div class="d-grid gap-3">
+        @foreach ($personalPathologicalConditions as $conditionKey => $conditionLabel)
+            @php
+                $current = $personalHistory[$conditionKey] ?? [];
+                $hasCondition = filter_var($current['padece'] ?? false, FILTER_VALIDATE_BOOLEAN);
+                $diagnosisDate = $current['fecha'] ?? null;
+                $diagnosisDateValue = '';
+                if ($diagnosisDate !== null) {
+                    $carbonDate = \Illuminate\Support\Carbon::make($diagnosisDate);
+                    if ($carbonDate) {
+                        $diagnosisDateValue = $carbonDate->format('Y-m-d');
+                    } elseif (is_string($diagnosisDate)) {
+                        $diagnosisDateValue = $diagnosisDate;
+                    }
+                }
+                $inputId = "antecedentes_personales_{$conditionKey}";
+            @endphp
+            <div class="row g-3 align-items-center">
+                <div class="col-12 col-md-7">
+                    <div class="form-check d-flex align-items-center gap-2 mb-0">
+                        <input
+                            type="hidden"
+                            name="antecedentes_personales_patologicos[{{ $conditionKey }}][padece]"
+                            value="0"
+                        >
+                        <input
+                            type="checkbox"
+                            class="form-check-input me-2 @error("antecedentes_personales_patologicos.$conditionKey.padece") is-invalid @enderror"
+                            id="{{ $inputId }}"
+                            name="antecedentes_personales_patologicos[{{ $conditionKey }}][padece]"
+                            value="1"
+                            @checked($hasCondition)
+                        >
+                        <label class="form-check-label fw-semibold mb-0" for="{{ $inputId }}">
+                            {{ $conditionLabel }}
+                        </label>
+                    </div>
+                    @error("antecedentes_personales_patologicos.$conditionKey.padece")
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
+                </div>
+                <div class="col-12 col-md-5">
+                    <label class="form-label small mb-1" for="{{ $inputId }}_fecha">Fecha de diagnóstico</label>
+                    <input
+                        type="date"
+                        name="antecedentes_personales_patologicos[{{ $conditionKey }}][fecha]"
+                        id="{{ $inputId }}_fecha"
+                        class="form-control form-control-sm @error("antecedentes_personales_patologicos.$conditionKey.fecha") is-invalid @enderror"
+                        value="{{ $diagnosisDateValue }}"
+                        max="{{ now()->format('Y-m-d') }}"
+                    >
+                    @error("antecedentes_personales_patologicos.$conditionKey.fecha")
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+            </div>
+        @endforeach
     </div>
 
     <div class="mt-3">
