@@ -109,7 +109,20 @@
                 }
                 $inputId = "antecedentes_personales_{$conditionKey}";
             @endphp
-            <div class="row g-3 align-items-center">
+            <div
+                class="row g-3 align-items-center"
+                x-data="{
+                    checked: @json($hasCondition),
+                    dateValue: @js($diagnosisDateValue),
+                    toggle(checked) {
+                        this.checked = Boolean(checked);
+                        if (!this.checked) {
+                            this.dateValue = '';
+                        }
+                    },
+                }"
+                x-init="toggle(checked)"
+            >
                 <div class="col-12 col-md-7">
                     <div class="form-check d-flex align-items-center gap-2 mb-0">
                         <input
@@ -123,7 +136,8 @@
                             id="{{ $inputId }}"
                             name="antecedentes_personales_patologicos[{{ $conditionKey }}][padece]"
                             value="1"
-                            @checked($hasCondition)
+                            :checked="checked"
+                            @change="toggle($event.target.checked)"
                         >
                         <label class="form-check-label fw-semibold mb-0" for="{{ $inputId }}">
                             {{ $conditionLabel }}
@@ -140,8 +154,10 @@
                         name="antecedentes_personales_patologicos[{{ $conditionKey }}][fecha]"
                         id="{{ $inputId }}_fecha"
                         class="form-control form-control-sm @error("antecedentes_personales_patologicos.$conditionKey.fecha") is-invalid @enderror"
+                        x-model="dateValue"
                         value="{{ $diagnosisDateValue }}"
                         max="{{ now()->format('Y-m-d') }}"
+                        :disabled="!checked"
                     >
                     @error("antecedentes_personales_patologicos.$conditionKey.fecha")
                         <div class="invalid-feedback">{{ $message }}</div>
