@@ -42,6 +42,8 @@ class ExpedienteController extends Controller
         'coordinador_id',
         'antecedentes_familiares',
         'antecedentes_observaciones',
+        'antecedentes_personales_patologicos',
+        'antecedentes_personales_observaciones',
     ];
 
     public function __construct(
@@ -126,12 +128,19 @@ class ExpedienteController extends Controller
         $data = $request->validatedExpedienteData();
         $historyProvided = array_key_exists('antecedentes_familiares', $data)
             || array_key_exists('antecedentes_observaciones', $data);
+        $personalHistoryProvided = array_key_exists('antecedentes_personales_patologicos', $data)
+            || array_key_exists('antecedentes_personales_observaciones', $data);
 
         if (! array_key_exists('antecedentes_familiares', $data)) {
             $data['antecedentes_familiares'] = Expediente::defaultFamilyHistory();
         }
 
         $data['antecedentes_observaciones'] = $data['antecedentes_observaciones'] ?? null;
+        if (! array_key_exists('antecedentes_personales_patologicos', $data)) {
+            $data['antecedentes_personales_patologicos'] = Expediente::defaultPersonalPathologicalHistory();
+        }
+
+        $data['antecedentes_personales_observaciones'] = $data['antecedentes_personales_observaciones'] ?? null;
         $data['creado_por'] = $request->user()->id;
         $data['estado'] = $data['estado'] ?? 'abierto';
 
@@ -141,11 +150,13 @@ class ExpedienteController extends Controller
             'datos' => Arr::only($expediente->toArray(), self::TIMELINE_FIELDS),
         ]);
 
-        if ($request->user()->hasRole('alumno') && $historyProvided) {
+        if ($request->user()->hasRole('alumno') && ($historyProvided || $personalHistoryProvided)) {
             $this->timelineLogger->log($expediente, 'expediente.antecedentes_registrados', $request->user(), [
                 'datos' => [
                     'familiares' => $expediente->antecedentes_familiares,
                     'observaciones' => $expediente->antecedentes_observaciones,
+                    'personales' => $expediente->antecedentes_personales_patologicos,
+                    'personales_observaciones' => $expediente->antecedentes_personales_observaciones,
                 ],
             ]);
         }
@@ -231,6 +242,7 @@ class ExpedienteController extends Controller
             'consentimientosUploadMax' => $consentimientoMax,
             'familyHistoryMembers' => Expediente::FAMILY_HISTORY_MEMBERS,
             'hereditaryHistoryConditions' => Expediente::HEREDITARY_HISTORY_CONDITIONS,
+            'personalPathologicalConditions' => Expediente::PERSONAL_PATHOLOGICAL_CONDITIONS,
         ]);
     }
 
@@ -251,9 +263,14 @@ class ExpedienteController extends Controller
         $before = Arr::only($expediente->getAttributes(), self::TIMELINE_FIELDS);
         $familyHistoryBefore = $expediente->antecedentes_familiares ?? Expediente::defaultFamilyHistory();
         $familyObservationsBefore = $expediente->antecedentes_observaciones;
+        $personalHistoryBefore = $expediente->antecedentes_personales_patologicos
+            ?? Expediente::defaultPersonalPathologicalHistory();
+        $personalObservationsBefore = $expediente->antecedentes_personales_observaciones;
         $antecedentesAntes = [
             'familiares' => $familyHistoryBefore,
             'observaciones' => $familyObservationsBefore,
+            'personales' => $personalHistoryBefore,
+            'personales_observaciones' => $personalObservationsBefore,
         ];
 
         $expediente->fill($data);
@@ -261,6 +278,8 @@ class ExpedienteController extends Controller
 
         $familyHistoryChanged = $expediente->wasChanged('antecedentes_familiares')
             || $expediente->wasChanged('antecedentes_observaciones');
+        $personalHistoryChanged = $expediente->wasChanged('antecedentes_personales_patologicos')
+            || $expediente->wasChanged('antecedentes_personales_observaciones');
 
         $expediente->refresh();
 
@@ -287,12 +306,15 @@ class ExpedienteController extends Controller
             }
         }
 
-        if ($request->user()->hasRole('alumno') && $familyHistoryChanged) {
+        if ($request->user()->hasRole('alumno') && ($familyHistoryChanged || $personalHistoryChanged)) {
             $this->timelineLogger->log($expediente, 'expediente.antecedentes_actualizados', $request->user(), [
                 'antes' => $antecedentesAntes,
                 'despues' => [
                     'familiares' => $expediente->antecedentes_familiares ?? Expediente::defaultFamilyHistory(),
                     'observaciones' => $expediente->antecedentes_observaciones,
+                    'personales' => $expediente->antecedentes_personales_patologicos
+                        ?? Expediente::defaultPersonalPathologicalHistory(),
+                    'personales_observaciones' => $expediente->antecedentes_personales_observaciones,
                 ],
             ]);
         }
@@ -374,6 +396,7 @@ class ExpedienteController extends Controller
             'coordinadores' => $coordinadores,
             'familyHistoryMembers' => Expediente::FAMILY_HISTORY_MEMBERS,
             'hereditaryHistoryConditions' => Expediente::HEREDITARY_HISTORY_CONDITIONS,
+            'personalPathologicalConditions' => Expediente::PERSONAL_PATHOLOGICAL_CONDITIONS,
         ];
     }
 
