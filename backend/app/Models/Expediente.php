@@ -31,13 +31,15 @@ class Expediente extends Model
         'hipertension_arterial' => 'Hipertensión arterial',
         'cardiopatias' => 'Cardiopatías',
         'cancer' => 'Neoplasias',
+        'obesidad' => 'Obesidad',
         'epilepsia' => 'Epilepsia',
-        'malformaciones' => 'Malformaciones',
-        'sida' => 'SIDA',
+        'malformaciones' => 'Malformaciones congénitas',
+        'sida' => 'VIH/SIDA',
         'enfermedad_renal' => 'Enfermedades renales',
         'hepatitis' => 'Hepatitis',
         'artritis' => 'Artritis',
-        'otra' => 'Otra',
+        'trastornos_mentales' => 'Trastornos mentales',
+        'otra' => 'Otro',
         'aparentemente_sano' => 'Aparentemente sano',
     ];
 
