@@ -293,26 +293,24 @@
                         <hr class="my-4">
 
                         <h6 class="mb-3">Antecedente y Padecimiento Actual</h6>
-                        @if (filled($expediente->antecedente_padecimiento_actual))
-                            <p>{!! nl2br(e($expediente->antecedente_padecimiento_actual)) !!}</p>
-                        @else
-                            <p class="text-muted fst-italic">Sin información registrada.</p>
-                        @endif
-
-                        <hr class="my-4">
-
                         @php
-                            $systemsReview = $expediente->aparatos_sistemas ?? \App\Models\Expediente::defaultSystemsReview();
+                            $currentConditionSections = [
+                                'musculo_esqueletico' => 'Músculo esquelético',
+                                'genito_urinario' => 'Genito urinario',
+                                'linfohematatico' => 'Linfohematático',
+                                'endocrino' => 'Endócrino',
+                                'nervioso' => 'Nervioso',
+                                'tegumentario' => 'Tegumentario',
+                            ];
                         @endphp
-                        <h6 class="mb-3">Aparatos y sistemas</h6>
                         <div class="row g-3">
-                            @foreach ($systemsReviewSections as $sectionKey => $sectionLabel)
-                                @php $sectionValue = $systemsReview[$sectionKey] ?? null; @endphp
+                            @foreach ($currentConditionSections as $field => $label)
+                                @php $fieldValue = $expediente->{$field}; @endphp
                                 <div class="col-12 col-lg-4">
                                     <div class="border rounded h-100 p-3">
-                                        <span class="text-muted small d-block mb-2">{{ $sectionLabel }}</span>
-                                        @if (filled($sectionValue))
-                                            <p class="mb-0">{!! nl2br(e($sectionValue)) !!}</p>
+                                        <span class="text-muted small d-block mb-2">{{ $label }}</span>
+                                        @if (filled($fieldValue))
+                                            <p class="mb-0">{!! nl2br(e($fieldValue)) !!}</p>
                                         @else
                                             <p class="mb-0 text-muted fst-italic">Sin información registrada.</p>
                                         @endif

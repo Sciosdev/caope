@@ -208,51 +208,90 @@
         Describe brevemente el motivo de atención, los síntomas actuales y cualquier antecedente inmediato relevante.
     </p>
 
-    <div>
-        <label for="antecedente_padecimiento_actual" class="form-label">Resumen clínico actual</label>
-        <textarea
-            name="antecedente_padecimiento_actual"
-            id="antecedente_padecimiento_actual"
-            class="form-control @error('antecedente_padecimiento_actual') is-invalid @enderror"
-            rows="4"
-            maxlength="1000"
-        >{{ old('antecedente_padecimiento_actual', $expediente->antecedente_padecimiento_actual ?? '') }}</textarea>
-        <div class="form-text">Máximo 1000 caracteres.</div>
-        @error('antecedente_padecimiento_actual')
-            <div class="invalid-feedback">{{ $message }}</div>
-        @enderror
-    </div>
-</div>
-
-@php
-    $systemsReviewState = old(
-        'aparatos_sistemas',
-        $expediente->aparatos_sistemas ?? \App\Models\Expediente::defaultSystemsReview()
-    );
-@endphp
-
-<div class="mt-5">
-    <h6 class="mb-3">Aparatos y sistemas</h6>
-    <p class="text-muted small mb-3">
-        Registra hallazgos relevantes por apartado para complementar la valoración psicológica del paciente.
-    </p>
-
     <div class="row g-3">
-        @foreach (\App\Models\Expediente::SYSTEMS_REVIEW_SECTIONS as $sectionKey => $sectionLabel)
-            <div class="col-12 col-lg-4">
-                <label class="form-label" for="aparatos_sistemas_{{ $sectionKey }}">{{ $sectionLabel }}</label>
-                <textarea
-                    name="aparatos_sistemas[{{ $sectionKey }}]"
-                    id="aparatos_sistemas_{{ $sectionKey }}"
-                    class="form-control @error("aparatos_sistemas.$sectionKey") is-invalid @enderror"
-                    rows="4"
-                    maxlength="1000"
-                >{{ old("aparatos_sistemas.$sectionKey", $systemsReviewState[$sectionKey] ?? '') }}</textarea>
-                <div class="form-text">Máximo 1000 caracteres.</div>
-                @error("aparatos_sistemas.$sectionKey")
-                    <div class="invalid-feedback">{{ $message }}</div>
-                @enderror
-            </div>
-        @endforeach
+        <div class="col-12 col-lg-4">
+            <label for="musculo_esqueletico" class="form-label">Músculo esquelético</label>
+            <textarea
+                name="musculo_esqueletico"
+                id="musculo_esqueletico"
+                class="form-control @error('musculo_esqueletico') is-invalid @enderror"
+                rows="4"
+                maxlength="1000"
+            >{{ old('musculo_esqueletico', $expediente->musculo_esqueletico ?? '') }}</textarea>
+            <div class="form-text">Máximo 1000 caracteres.</div>
+            @error('musculo_esqueletico')
+                <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
+        <div class="col-12 col-lg-4">
+            <label for="genito_urinario" class="form-label">Genito urinario</label>
+            <textarea
+                name="genito_urinario"
+                id="genito_urinario"
+                class="form-control @error('genito_urinario') is-invalid @enderror"
+                rows="4"
+                maxlength="1000"
+            >{{ old('genito_urinario', $expediente->genito_urinario ?? '') }}</textarea>
+            <div class="form-text">Máximo 1000 caracteres.</div>
+            @error('genito_urinario')
+                <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
+        <div class="col-12 col-lg-4">
+            <label for="linfohematatico" class="form-label">Linfohematático</label>
+            <textarea
+                name="linfohematatico"
+                id="linfohematatico"
+                class="form-control @error('linfohematatico') is-invalid @enderror"
+                rows="4"
+                maxlength="1000"
+            >{{ old('linfohematatico', $expediente->linfohematatico ?? '') }}</textarea>
+            <div class="form-text">Máximo 1000 caracteres.</div>
+            @error('linfohematatico')
+                <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
+        <div class="col-12 col-lg-4">
+            <label for="endocrino" class="form-label">Endócrino</label>
+            <textarea
+                name="endocrino"
+                id="endocrino"
+                class="form-control @error('endocrino') is-invalid @enderror"
+                rows="4"
+                maxlength="1000"
+            >{{ old('endocrino', $expediente->endocrino ?? '') }}</textarea>
+            <div class="form-text">Máximo 1000 caracteres.</div>
+            @error('endocrino')
+                <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
+        <div class="col-12 col-lg-4">
+            <label for="nervioso" class="form-label">Nervioso</label>
+            <textarea
+                name="nervioso"
+                id="nervioso"
+                class="form-control @error('nervioso') is-invalid @enderror"
+                rows="4"
+                maxlength="1000"
+            >{{ old('nervioso', $expediente->nervioso ?? '') }}</textarea>
+            <div class="form-text">Máximo 1000 caracteres.</div>
+            @error('nervioso')
+                <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
+        <div class="col-12 col-lg-4">
+            <label for="tegumentario" class="form-label">Tegumentario</label>
+            <textarea
+                name="tegumentario"
+                id="tegumentario"
+                class="form-control @error('tegumentario') is-invalid @enderror"
+                rows="4"
+                maxlength="1000"
+            >{{ old('tegumentario', $expediente->tegumentario ?? '') }}</textarea>
+            <div class="form-text">Máximo 1000 caracteres.</div>
+            @error('tegumentario')
+                <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
     </div>
 </div>
