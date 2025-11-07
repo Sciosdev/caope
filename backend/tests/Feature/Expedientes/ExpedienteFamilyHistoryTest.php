@@ -29,6 +29,24 @@ class ExpedienteFamilyHistoryTest extends TestCase
         CatalogoTurno::flushCache();
     }
 
+    public function test_hereditary_history_conditions_list_includes_new_entries(): void
+    {
+        $expectedConditions = [
+            'epilepsia' => 'Epilepsia',
+            'malformaciones' => 'Malformaciones congénitas',
+            'sida' => 'VIH/SIDA',
+            'hepatitis' => 'Hepatitis',
+            'artritis' => 'Artritis',
+            'otra' => 'Otro',
+            'aparentemente_sano' => 'Aparentemente sano',
+        ];
+
+        foreach ($expectedConditions as $key => $label) {
+            $this->assertArrayHasKey($key, Expediente::HEREDITARY_HISTORY_CONDITIONS);
+            $this->assertSame($label, Expediente::HEREDITARY_HISTORY_CONDITIONS[$key]);
+        }
+    }
+
     public function test_alumno_puede_crear_expediente_con_antecedentes(): void
     {
         $alumno = User::factory()->create();
