@@ -114,6 +114,12 @@ class ExpedienteFamilyHistoryTest extends TestCase
             'digestivo' => 'Sin antecedentes de retraso en el desarrollo temprano.',
             'respiratorio' => 'Estado mental orientado y colaborador.',
             'cardiovascular' => null,
+            'musculo_esqueletico' => 'Sin dolor musculoesquelético referido.',
+            'genito_urinario' => 'Control de esfínteres acorde a la edad.',
+            'linfohematatico' => 'Sin antecedentes de infecciones frecuentes.',
+            'endocrino' => 'Sin alteraciones hormonales reportadas.',
+            'nervioso' => 'Refiere episodios de ansiedad bajo control.',
+            'tegumentario' => 'No se observan lesiones cutáneas.',
         ];
 
         $payload = [
@@ -268,6 +274,12 @@ class ExpedienteFamilyHistoryTest extends TestCase
         $initialSystems['digestivo'] = 'Antecedentes de crianza significativa con apoyo familiar.';
         $initialSystems['respiratorio'] = 'Estado mental inicial sin alteraciones.';
         $initialSystems['cardiovascular'] = null;
+        $initialSystems['musculo_esqueletico'] = null;
+        $initialSystems['genito_urinario'] = null;
+        $initialSystems['linfohematatico'] = null;
+        $initialSystems['endocrino'] = null;
+        $initialSystems['nervioso'] = null;
+        $initialSystems['tegumentario'] = null;
 
         $expediente = Expediente::factory()->create([
             'creado_por' => $alumno->id,
@@ -315,6 +327,12 @@ class ExpedienteFamilyHistoryTest extends TestCase
             'digestivo' => 'Se reporta avance en habilidades sociales durante la infancia.',
             'respiratorio' => 'Estado mental actual con ligera ansiedad situacional.',
             'cardiovascular' => 'Observaciones clínicas sin cambios relevantes.',
+            'musculo_esqueletico' => 'Sin limitaciones en la movilidad ni dolor articular.',
+            'genito_urinario' => 'Función urinaria conservada, sin síntomas asociados.',
+            'linfohematatico' => 'Sin antecedentes de adenopatías o alteraciones hematológicas.',
+            'endocrino' => 'No refiere cambios en apetito o peso recientes.',
+            'nervioso' => 'Refiere ocasionales cefaleas de baja intensidad.',
+            'tegumentario' => 'Sin lesiones dérmicas observables al momento.',
         ];
 
         $payload = [
@@ -462,6 +480,12 @@ class ExpedienteFamilyHistoryTest extends TestCase
                 'digestivo' => str_repeat('d', 1200),
                 'respiratorio' => str_repeat('e', 1005),
                 'cardiovascular' => null,
+                'musculo_esqueletico' => 'Movilidad conservada.',
+                'genito_urinario' => 'Sin alteraciones referidas.',
+                'linfohematatico' => 'No se detectan adenopatías.',
+                'endocrino' => 'Hormonas bajo control médico.',
+                'nervioso' => 'Sueño regular.',
+                'tegumentario' => 'Piel íntegra.',
             ],
         ];
 
