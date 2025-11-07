@@ -31,6 +31,13 @@ class Expediente extends Model
         'obesidad' => 'Obesidad',
         'enfermedad_renal' => 'Enfermedad renal crónica',
         'trastornos_mentales' => 'Trastornos mentales',
+        'epilepsia' => 'Epilepsia',
+        'malformaciones' => 'Malformaciones congénitas',
+        'sida' => 'VIH/SIDA',
+        'hepatitis' => 'Hepatitis',
+        'artritis' => 'Artritis',
+        'otra' => 'Otro',
+        'aparentemente_sano' => 'Aparentemente sano',
     ];
 
     protected $fillable = [
