@@ -23,12 +23,14 @@ class Expediente extends Model
         'otros' => 'Otros',
     ];
 
-    public const CLINICAL_HISTORY_CONDITIONS = [
-        'diabetes' => 'Diabetes',
+    public const HEREDITARY_HISTORY_CONDITIONS = [
+        'diabetes_mellitus' => 'Diabetes mellitus',
         'hipertension_arterial' => 'Hipertensión arterial',
-        'enfermedad_cardiaca' => 'Enfermedad cardíaca',
+        'cardiopatias' => 'Cardiopatías',
         'cancer' => 'Cáncer',
         'obesidad' => 'Obesidad',
+        'enfermedad_renal' => 'Enfermedad renal crónica',
+        'trastornos_mentales' => 'Trastornos mentales',
     ];
 
     protected $fillable = [
@@ -43,36 +45,21 @@ class Expediente extends Model
         'coordinador_id',
         'antecedentes_familiares',
         'antecedentes_observaciones',
-        'antecedentes_clinicos',
-        'antecedentes_clinicos_otros',
-        'antecedentes_clinicos_observaciones',
     ];
 
     protected $casts = [
         'apertura' => SafeDate::class,
         'antecedentes_familiares' => 'array',
-        'antecedentes_clinicos' => 'array',
     ];
-
-    /**
-     * @return array<string, bool>
-     */
-    public static function defaultFamilyHistory(): array
-    {
-        return collect(self::FAMILY_HISTORY_MEMBERS)
-            ->keys()
-            ->mapWithKeys(fn (string $key) => [$key => false])
-            ->all();
-    }
 
     /**
      * @return array<string, array<string, bool>>
      */
-    public static function defaultClinicalHistory(): array
+    public static function defaultFamilyHistory(): array
     {
         $members = collect(self::FAMILY_HISTORY_MEMBERS)->keys();
 
-        return collect(self::CLINICAL_HISTORY_CONDITIONS)
+        return collect(self::HEREDITARY_HISTORY_CONDITIONS)
             ->keys()
             ->mapWithKeys(function (string $condition) use ($members) {
                 $defaults = $members

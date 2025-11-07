@@ -42,9 +42,6 @@ class ExpedienteController extends Controller
         'coordinador_id',
         'antecedentes_familiares',
         'antecedentes_observaciones',
-        'antecedentes_clinicos',
-        'antecedentes_clinicos_otros',
-        'antecedentes_clinicos_observaciones',
     ];
 
     public function __construct(
@@ -127,22 +124,14 @@ class ExpedienteController extends Controller
     public function store(StoreExpedienteRequest $request): RedirectResponse
     {
         $data = $request->validatedExpedienteData();
-        $familyHistoryProvided = array_key_exists('antecedentes_familiares', $data) || array_key_exists('antecedentes_observaciones', $data);
-        $clinicalHistoryProvided = array_key_exists('antecedentes_clinicos', $data)
-            || array_key_exists('antecedentes_clinicos_otros', $data)
-            || array_key_exists('antecedentes_clinicos_observaciones', $data);
+        $historyProvided = array_key_exists('antecedentes_familiares', $data)
+            || array_key_exists('antecedentes_observaciones', $data);
 
         if (! array_key_exists('antecedentes_familiares', $data)) {
             $data['antecedentes_familiares'] = Expediente::defaultFamilyHistory();
         }
 
         $data['antecedentes_observaciones'] = $data['antecedentes_observaciones'] ?? null;
-        if (! array_key_exists('antecedentes_clinicos', $data)) {
-            $data['antecedentes_clinicos'] = Expediente::defaultClinicalHistory();
-        }
-
-        $data['antecedentes_clinicos_otros'] = $data['antecedentes_clinicos_otros'] ?? null;
-        $data['antecedentes_clinicos_observaciones'] = $data['antecedentes_clinicos_observaciones'] ?? null;
         $data['creado_por'] = $request->user()->id;
         $data['estado'] = $data['estado'] ?? 'abierto';
 
@@ -152,16 +141,11 @@ class ExpedienteController extends Controller
             'datos' => Arr::only($expediente->toArray(), self::TIMELINE_FIELDS),
         ]);
 
-        if ($request->user()->hasRole('alumno') && ($familyHistoryProvided || $clinicalHistoryProvided)) {
+        if ($request->user()->hasRole('alumno') && $historyProvided) {
             $this->timelineLogger->log($expediente, 'expediente.antecedentes_registrados', $request->user(), [
                 'datos' => [
                     'familiares' => $expediente->antecedentes_familiares,
                     'observaciones' => $expediente->antecedentes_observaciones,
-                    'clinicos' => [
-                        'padecimientos' => $expediente->antecedentes_clinicos,
-                        'otros' => $expediente->antecedentes_clinicos_otros,
-                        'observaciones' => $expediente->antecedentes_clinicos_observaciones,
-                    ],
                 ],
             ]);
         }
@@ -246,7 +230,7 @@ class ExpedienteController extends Controller
             'consentimientosUploadMimes' => $consentimientoMimes,
             'consentimientosUploadMax' => $consentimientoMax,
             'familyHistoryMembers' => Expediente::FAMILY_HISTORY_MEMBERS,
-            'clinicalHistoryConditions' => Expediente::CLINICAL_HISTORY_CONDITIONS,
+            'hereditaryHistoryConditions' => Expediente::HEREDITARY_HISTORY_CONDITIONS,
         ]);
     }
 
@@ -267,15 +251,9 @@ class ExpedienteController extends Controller
         $before = Arr::only($expediente->getAttributes(), self::TIMELINE_FIELDS);
         $familyHistoryBefore = $expediente->antecedentes_familiares ?? Expediente::defaultFamilyHistory();
         $familyObservationsBefore = $expediente->antecedentes_observaciones;
-        $clinicalHistoryBefore = [
-            'padecimientos' => $expediente->antecedentes_clinicos ?? Expediente::defaultClinicalHistory(),
-            'otros' => $expediente->antecedentes_clinicos_otros,
-            'observaciones' => $expediente->antecedentes_clinicos_observaciones,
-        ];
         $antecedentesAntes = [
             'familiares' => $familyHistoryBefore,
             'observaciones' => $familyObservationsBefore,
-            'clinicos' => $clinicalHistoryBefore,
         ];
 
         $expediente->fill($data);
@@ -283,9 +261,6 @@ class ExpedienteController extends Controller
 
         $familyHistoryChanged = $expediente->wasChanged('antecedentes_familiares')
             || $expediente->wasChanged('antecedentes_observaciones');
-        $clinicalHistoryChanged = $expediente->wasChanged('antecedentes_clinicos')
-            || $expediente->wasChanged('antecedentes_clinicos_otros')
-            || $expediente->wasChanged('antecedentes_clinicos_observaciones');
 
         $expediente->refresh();
 
@@ -312,17 +287,12 @@ class ExpedienteController extends Controller
             }
         }
 
-        if ($request->user()->hasRole('alumno') && ($familyHistoryChanged || $clinicalHistoryChanged)) {
+        if ($request->user()->hasRole('alumno') && $familyHistoryChanged) {
             $this->timelineLogger->log($expediente, 'expediente.antecedentes_actualizados', $request->user(), [
                 'antes' => $antecedentesAntes,
                 'despues' => [
                     'familiares' => $expediente->antecedentes_familiares ?? Expediente::defaultFamilyHistory(),
                     'observaciones' => $expediente->antecedentes_observaciones,
-                    'clinicos' => [
-                        'padecimientos' => $expediente->antecedentes_clinicos ?? Expediente::defaultClinicalHistory(),
-                        'otros' => $expediente->antecedentes_clinicos_otros,
-                        'observaciones' => $expediente->antecedentes_clinicos_observaciones,
-                    ],
                 ],
             ]);
         }
@@ -403,7 +373,7 @@ class ExpedienteController extends Controller
             'tutores' => $tutores,
             'coordinadores' => $coordinadores,
             'familyHistoryMembers' => Expediente::FAMILY_HISTORY_MEMBERS,
-            'clinicalHistoryConditions' => Expediente::CLINICAL_HISTORY_CONDITIONS,
+            'hereditaryHistoryConditions' => Expediente::HEREDITARY_HISTORY_CONDITIONS,
         ];
     }
 

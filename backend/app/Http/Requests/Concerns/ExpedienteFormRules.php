@@ -16,12 +16,6 @@ trait ExpedienteFormRules
                 'antecedentes_familiares' => $this->sanitizeFamilyHistory($this->input('antecedentes_familiares')),
             ]);
         }
-
-        if ($this->has('antecedentes_clinicos')) {
-            $this->merge([
-                'antecedentes_clinicos' => $this->sanitizeClinicalHistory($this->input('antecedentes_clinicos')),
-            ]);
-        }
     }
 
     /**
@@ -38,8 +32,6 @@ trait ExpedienteFormRules
             'carrera',
             'turno',
             'antecedentes_observaciones',
-            'antecedentes_clinicos_otros',
-            'antecedentes_clinicos_observaciones',
         ] as $field) {
             if ($this->has($field)) {
                 $value = $this->input($field);
@@ -94,11 +86,7 @@ trait ExpedienteFormRules
             'coordinador_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
             'antecedentes_familiares' => ['sometimes', 'array'],
             'antecedentes_observaciones' => ['sometimes', 'nullable', 'string', 'max:500'],
-            'antecedentes_clinicos' => ['sometimes', 'array'],
-            'antecedentes_clinicos_otros' => ['sometimes', 'nullable', 'string', 'max:120'],
-            'antecedentes_clinicos_observaciones' => ['sometimes', 'nullable', 'string', 'max:500'],
             ...$this->familyHistoryMemberRules(),
-            ...$this->clinicalHistoryMemberRules(),
         ];
     }
 
@@ -107,69 +95,13 @@ trait ExpedienteFormRules
      */
     private function familyHistoryMemberRules(): array
     {
-        return collect(Expediente::FAMILY_HISTORY_MEMBERS)
-            ->keys()
-            ->mapWithKeys(fn (string $member) => [
-                "antecedentes_familiares.$member" => ['required_with:antecedentes_familiares', 'boolean'],
-            ])
-            ->all();
-    }
-
-    /**
-     * @param  mixed  $value
-     * @return array<string, bool>
-     */
-    private function sanitizeFamilyHistory(mixed $value): array
-    {
-        $family = is_array($value) ? $value : [];
-
-        $sanitized = [];
-
-        $defaults = Expediente::defaultFamilyHistory();
-
-        foreach (array_keys(Expediente::FAMILY_HISTORY_MEMBERS) as $member) {
-            if (! array_key_exists($member, $family)) {
-                $sanitized[$member] = $defaults[$member];
-                continue;
-            }
-
-            $raw = $family[$member];
-
-            if (is_bool($raw)) {
-                $sanitized[$member] = $raw;
-                continue;
-            }
-
-            if (is_scalar($raw)) {
-                $boolValue = filter_var($raw, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
-
-                if ($boolValue !== null) {
-                    $sanitized[$member] = $boolValue;
-                    continue;
-                }
-
-                $sanitized[$member] = $raw;
-                continue;
-            }
-
-            $sanitized[$member] = $raw;
-        }
-
-        return array_merge($defaults, $sanitized);
-    }
-
-    /**
-     * @return array<string, array<int, string>>
-     */
-    private function clinicalHistoryMemberRules(): array
-    {
         $members = collect(Expediente::FAMILY_HISTORY_MEMBERS)->keys();
 
-        return collect(Expediente::CLINICAL_HISTORY_CONDITIONS)
+        return collect(Expediente::HEREDITARY_HISTORY_CONDITIONS)
             ->keys()
             ->flatMap(function (string $condition) use ($members) {
                 return $members->mapWithKeys(fn (string $member) => [
-                    "antecedentes_clinicos.$condition.$member" => ['required_with:antecedentes_clinicos', 'boolean'],
+                    "antecedentes_familiares.$condition.$member" => ['required_with:antecedentes_familiares', 'boolean'],
                 ]);
             })
             ->all();
@@ -179,10 +111,10 @@ trait ExpedienteFormRules
      * @param  mixed  $value
      * @return array<string, array<string, bool>>
      */
-    private function sanitizeClinicalHistory(mixed $value): array
+    private function sanitizeFamilyHistory(mixed $value): array
     {
         $history = is_array($value) ? $value : [];
-        $defaults = Expediente::defaultClinicalHistory();
+        $defaults = Expediente::defaultFamilyHistory();
 
         $normalized = [];
 
@@ -254,9 +186,6 @@ trait ExpedienteFormRules
             'coordinador_id',
             'antecedentes_familiares',
             'antecedentes_observaciones',
-            'antecedentes_clinicos',
-            'antecedentes_clinicos_otros',
-            'antecedentes_clinicos_observaciones',
         ]);
     }
 }

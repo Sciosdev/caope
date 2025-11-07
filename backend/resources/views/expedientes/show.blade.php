@@ -152,12 +152,14 @@
             </div>
 
             @if (auth()->user()?->hasAnyRole(['alumno', 'docente']))
-                @php
-                    $clinicalHistory = $expediente->antecedentes_clinicos ?? \App\Models\Expediente::defaultClinicalHistory();
-                @endphp
                 <div class="card shadow-sm mt-4">
                     <div class="card-body">
                         <h6 class="mb-3">Antecedentes Familiares Hereditarios</h6>
+                        @php
+                            $hereditaryHistory = $expediente->antecedentes_familiares
+                                ?? \App\Models\Expediente::defaultFamilyHistory();
+                        @endphp
+
                         <div class="table-responsive">
                             <table class="table table-sm align-middle">
                                 <thead>
@@ -169,9 +171,9 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach ($clinicalHistoryConditions as $conditionKey => $conditionLabel)
+                                    @foreach ($hereditaryHistoryConditions as $conditionKey => $conditionLabel)
                                         @php
-                                            $members = $clinicalHistory[$conditionKey] ?? [];
+                                            $members = $hereditaryHistory[$conditionKey] ?? [];
                                         @endphp
                                         <tr>
                                             <td>{{ $conditionLabel }}</td>

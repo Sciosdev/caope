@@ -31,18 +31,37 @@ return new class extends Migration
         });
     }
 
-    /**
-     * @return array<string, bool>
-     */
     private function defaultFamilyHistory(): array
     {
-        return [
-            'madre' => false,
-            'padre' => false,
-            'hermanos' => false,
-            'abuelos' => false,
-            'tios' => false,
-            'otros' => false,
+        $members = [
+            'madre',
+            'padre',
+            'hermanos',
+            'abuelos',
+            'tios',
+            'otros',
         ];
+
+        $conditions = [
+            'diabetes_mellitus',
+            'hipertension_arterial',
+            'cardiopatias',
+            'cancer',
+            'obesidad',
+            'enfermedad_renal',
+            'trastornos_mentales',
+        ];
+
+        $defaults = [];
+
+        foreach ($conditions as $condition) {
+            $defaults[$condition] = [];
+
+            foreach ($members as $member) {
+                $defaults[$condition][$member] = false;
+            }
+        }
+
+        return $defaults;
     }
 };
