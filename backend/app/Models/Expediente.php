@@ -16,57 +16,28 @@ class Expediente extends Model
 
     public const FAMILY_HISTORY_MEMBERS = [
         'madre' => 'Madre',
-        'abuela_materna' => 'Abuela materna',
-        'abuelo_materno' => 'Abuelo materno',
-        'otros_maternos' => 'Otros maternos',
+        'abuela_materna' => 'Abuela',
+        'abuelo_materno' => 'Abuelo',
+        'otros_maternos' => 'Otros',
         'padre' => 'Padre',
-        'abuela_paterna' => 'Abuela paterna',
-        'abuelo_paterno' => 'Abuelo paterno',
-        'otros_paternos' => 'Otros paternos',
+        'abuela_paterna' => 'Abuela',
+        'abuelo_paterno' => 'Abuelo',
+        'otros_paternos' => 'Otros',
         'hermanos' => 'Hermanos',
     ];
 
-    public const FAMILY_HISTORY_BRANCHES = [
-        'materna' => [
-            'label' => 'Familia materna',
-            'members' => [
-                'madre' => self::FAMILY_HISTORY_MEMBERS['madre'],
-                'abuela_materna' => self::FAMILY_HISTORY_MEMBERS['abuela_materna'],
-                'abuelo_materno' => self::FAMILY_HISTORY_MEMBERS['abuelo_materno'],
-                'otros_maternos' => self::FAMILY_HISTORY_MEMBERS['otros_maternos'],
-            ],
-        ],
-        'paterna' => [
-            'label' => 'Familia paterna',
-            'members' => [
-                'padre' => self::FAMILY_HISTORY_MEMBERS['padre'],
-                'abuela_paterna' => self::FAMILY_HISTORY_MEMBERS['abuela_paterna'],
-                'abuelo_paterno' => self::FAMILY_HISTORY_MEMBERS['abuelo_paterno'],
-                'otros_paternos' => self::FAMILY_HISTORY_MEMBERS['otros_paternos'],
-            ],
-        ],
-        'hermanos' => [
-            'label' => 'Hermanos',
-            'members' => [
-                'hermanos' => self::FAMILY_HISTORY_MEMBERS['hermanos'],
-            ],
-        ],
-    ];
-
     public const HEREDITARY_HISTORY_CONDITIONS = [
-        'diabetes_mellitus' => 'Diabetes mellitus',
+        'diabetes_mellitus' => 'Diabetes',
         'hipertension_arterial' => 'Hipertensión arterial',
         'cardiopatias' => 'Cardiopatías',
-        'cancer' => 'Cáncer',
-        'obesidad' => 'Obesidad',
-        'enfermedad_renal' => 'Enfermedad renal crónica',
-        'trastornos_mentales' => 'Trastornos mentales',
+        'cancer' => 'Neoplasias',
         'epilepsia' => 'Epilepsia',
-        'malformaciones' => 'Malformaciones congénitas',
-        'sida' => 'VIH/SIDA',
+        'malformaciones' => 'Malformaciones',
+        'sida' => 'SIDA',
+        'enfermedad_renal' => 'Enfermedades renales',
         'hepatitis' => 'Hepatitis',
         'artritis' => 'Artritis',
-        'otra' => 'Otro',
+        'otra' => 'Otra',
         'aparentemente_sano' => 'Aparentemente sano',
     ];
 
@@ -106,11 +77,6 @@ class Expediente extends Model
                 return [$condition => $defaults];
             })
             ->all();
-    }
-
-    public static function familyHistoryBranches(): array
-    {
-        return self::FAMILY_HISTORY_BRANCHES;
     }
 
     public function creadoPor(): BelongsTo

@@ -158,31 +158,15 @@
                         @php
                             $hereditaryHistory = $expediente->antecedentes_familiares
                                 ?? \App\Models\Expediente::defaultFamilyHistory();
-                            $branches = $familyHistoryBranches ?? \App\Models\Expediente::familyHistoryBranches();
                         @endphp
 
                         <div class="table-responsive">
                             <table class="table table-sm align-middle">
                                 <thead>
                                     <tr>
-                                        <th rowspan="2">Padecimiento</th>
-                                        @foreach ($branches as $branch)
-                                            @php($memberCount = count($branch['members']))
-                                            @if ($memberCount > 1)
-                                                <th class="text-center" colspan="{{ $memberCount }}">{{ $branch['label'] }}</th>
-                                            @else
-                                                <th class="text-center" rowspan="2">{{ $branch['label'] }}</th>
-                                            @endif
-                                        @endforeach
-                                    </tr>
-                                    <tr>
-                                        @foreach ($branches as $branch)
-                                            @php($memberCount = count($branch['members']))
-                                            @if ($memberCount > 1)
-                                                @foreach ($branch['members'] as $memberLabel)
-                                                    <th class="text-center">{{ $memberLabel }}</th>
-                                                @endforeach
-                                            @endif
+                                        <th>Padecimientos</th>
+                                        @foreach ($familyHistoryMembers as $memberLabel)
+                                            <th class="text-center">{{ $memberLabel }}</th>
                                         @endforeach
                                     </tr>
                                 </thead>
@@ -193,8 +177,7 @@
                                         @endphp
                                         <tr>
                                             <td>{{ $conditionLabel }}</td>
-                                            @foreach ($branches as $branch)
-                                                @foreach ($branch['members'] as $memberKey => $memberLabel)
+                                            @foreach ($familyHistoryMembers as $memberKey => $memberLabel)
                                                 @php
                                                     $hasAntecedent = (bool) data_get($members, $memberKey, false);
                                                 @endphp
@@ -211,11 +194,10 @@
                                                             @if ($hasAntecedent) checked @endif
                                                         >
                                                         <label class="visually-hidden" for="{{ $checkboxId }}">
-                                                            {{ $conditionLabel }} – {{ $familyHistoryMembers[$memberKey] ?? $memberLabel }}
+                                                            {{ $conditionLabel }} – {{ $memberLabel }}
                                                         </label>
                                                     </div>
                                                 </td>
-                                                @endforeach
                                             @endforeach
                                         </tr>
                                     @endforeach

@@ -3,7 +3,6 @@
         'antecedentes_familiares',
         $expediente->antecedentes_familiares ?? \App\Models\Expediente::defaultFamilyHistory()
     );
-    $branches = $familyHistoryBranches ?? \App\Models\Expediente::familyHistoryBranches();
 @endphp
 
 <div class="mt-4" x-data="hereditaryHistory({
@@ -20,24 +19,9 @@
         <table class="table table-sm align-middle">
             <thead>
                 <tr>
-                    <th class="w-30" rowspan="2">Padecimiento</th>
-                    @foreach ($branches as $branch)
-                        @php($memberCount = count($branch['members']))
-                        @if ($memberCount > 1)
-                            <th class="text-center" colspan="{{ $memberCount }}">{{ $branch['label'] }}</th>
-                        @else
-                            <th class="text-center" rowspan="2">{{ $branch['label'] }}</th>
-                        @endif
-                    @endforeach
-                </tr>
-                <tr>
-                    @foreach ($branches as $branch)
-                        @php($memberCount = count($branch['members']))
-                        @if ($memberCount > 1)
-                            @foreach ($branch['members'] as $memberLabel)
-                                <th class="text-center">{{ $memberLabel }}</th>
-                            @endforeach
-                        @endif
+                    <th class="w-30">Padecimientos</th>
+                    @foreach ($familyHistoryMembers as $memberLabel)
+                        <th class="text-center">{{ $memberLabel }}</th>
                     @endforeach
                 </tr>
             </thead>
@@ -45,8 +29,7 @@
                 @foreach ($hereditaryHistoryConditions as $conditionKey => $conditionLabel)
                     <tr>
                         <td class="fw-semibold">{{ $conditionLabel }}</td>
-                        @foreach ($branches as $branch)
-                            @foreach ($branch['members'] as $memberKey => $memberLabel)
+                        @foreach ($familyHistoryMembers as $memberKey => $memberLabel)
                             <td class="text-center">
                                 <div class="form-check d-inline-flex justify-content-center align-items-center">
                                     <input
@@ -66,14 +49,13 @@
                                         class="visually-hidden"
                                         :for="checkboxId('{{ $conditionKey }}', '{{ $memberKey }}')"
                                     >
-                                        {{ $conditionLabel }} – {{ $familyHistoryMembers[$memberKey] ?? $memberLabel }}
+                                        {{ $conditionLabel }} – {{ $memberLabel }}
                                     </label>
                                 </div>
                                 @error("antecedentes_familiares.$conditionKey.$memberKey")
                                     <div class="text-danger small mt-1">{{ $message }}</div>
                                 @enderror
                             </td>
-                            @endforeach
                         @endforeach
                     </tr>
                 @endforeach

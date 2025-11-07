@@ -230,7 +230,6 @@ class ExpedienteController extends Controller
             'consentimientosUploadMimes' => $consentimientoMimes,
             'consentimientosUploadMax' => $consentimientoMax,
             'familyHistoryMembers' => Expediente::FAMILY_HISTORY_MEMBERS,
-            'familyHistoryBranches' => Expediente::familyHistoryBranches(),
             'hereditaryHistoryConditions' => Expediente::HEREDITARY_HISTORY_CONDITIONS,
         ]);
     }
@@ -374,7 +373,6 @@ class ExpedienteController extends Controller
             'tutores' => $tutores,
             'coordinadores' => $coordinadores,
             'familyHistoryMembers' => Expediente::FAMILY_HISTORY_MEMBERS,
-            'familyHistoryBranches' => Expediente::familyHistoryBranches(),
             'hereditaryHistoryConditions' => Expediente::HEREDITARY_HISTORY_CONDITIONS,
         ];
     }
