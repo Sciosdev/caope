@@ -202,6 +202,25 @@
     </div>
 </div>
 
+@php
+    $systemsReviewSections = $systemsReviewSections ?? [
+        'digestivo' => 'Historial Psicosocial y del Desarrollo',
+        'respiratorio' => 'Evaluación Psicológica (Estado Mental Actual)',
+        'cardiovascular' => 'Evaluación Psicológica Observaciones Clínicas Relevantes',
+        'musculo_esqueletico' => 'Músculo esquelético',
+        'genito_urinario' => 'Genito urinario',
+        'linfohematatico' => 'Linfohematático',
+        'endocrino' => 'Endócrino',
+        'nervioso' => 'Nervioso',
+        'tegumentario' => 'Tegumentario',
+    ];
+
+    if ($systemsReviewSections instanceof \Illuminate\Support\Collection) {
+        $systemsReviewSections = $systemsReviewSections->toArray();
+    }
+    $systemsReviewValues = old('aparatos_sistemas', $expediente->aparatos_sistemas ?? []);
+@endphp
+
 <div class="mt-5">
     <h6 class="mb-3">Antecedente y Padecimiento Actual</h6>
     <p class="text-muted small mb-3">
@@ -209,89 +228,26 @@
     </p>
 
     <div class="row g-3">
-        <div class="col-12 col-lg-4">
-            <label for="musculo_esqueletico" class="form-label">Músculo esquelético</label>
-            <textarea
-                name="musculo_esqueletico"
-                id="musculo_esqueletico"
-                class="form-control @error('musculo_esqueletico') is-invalid @enderror"
-                rows="4"
-                maxlength="1000"
-            >{{ old('musculo_esqueletico', $expediente->musculo_esqueletico ?? '') }}</textarea>
-            <div class="form-text">Máximo 1000 caracteres.</div>
-            @error('musculo_esqueletico')
-                <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
-        </div>
-        <div class="col-12 col-lg-4">
-            <label for="genito_urinario" class="form-label">Genito urinario</label>
-            <textarea
-                name="genito_urinario"
-                id="genito_urinario"
-                class="form-control @error('genito_urinario') is-invalid @enderror"
-                rows="4"
-                maxlength="1000"
-            >{{ old('genito_urinario', $expediente->genito_urinario ?? '') }}</textarea>
-            <div class="form-text">Máximo 1000 caracteres.</div>
-            @error('genito_urinario')
-                <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
-        </div>
-        <div class="col-12 col-lg-4">
-            <label for="linfohematatico" class="form-label">Linfohematático</label>
-            <textarea
-                name="linfohematatico"
-                id="linfohematatico"
-                class="form-control @error('linfohematatico') is-invalid @enderror"
-                rows="4"
-                maxlength="1000"
-            >{{ old('linfohematatico', $expediente->linfohematatico ?? '') }}</textarea>
-            <div class="form-text">Máximo 1000 caracteres.</div>
-            @error('linfohematatico')
-                <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
-        </div>
-        <div class="col-12 col-lg-4">
-            <label for="endocrino" class="form-label">Endócrino</label>
-            <textarea
-                name="endocrino"
-                id="endocrino"
-                class="form-control @error('endocrino') is-invalid @enderror"
-                rows="4"
-                maxlength="1000"
-            >{{ old('endocrino', $expediente->endocrino ?? '') }}</textarea>
-            <div class="form-text">Máximo 1000 caracteres.</div>
-            @error('endocrino')
-                <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
-        </div>
-        <div class="col-12 col-lg-4">
-            <label for="nervioso" class="form-label">Nervioso</label>
-            <textarea
-                name="nervioso"
-                id="nervioso"
-                class="form-control @error('nervioso') is-invalid @enderror"
-                rows="4"
-                maxlength="1000"
-            >{{ old('nervioso', $expediente->nervioso ?? '') }}</textarea>
-            <div class="form-text">Máximo 1000 caracteres.</div>
-            @error('nervioso')
-                <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
-        </div>
-        <div class="col-12 col-lg-4">
-            <label for="tegumentario" class="form-label">Tegumentario</label>
-            <textarea
-                name="tegumentario"
-                id="tegumentario"
-                class="form-control @error('tegumentario') is-invalid @enderror"
-                rows="4"
-                maxlength="1000"
-            >{{ old('tegumentario', $expediente->tegumentario ?? '') }}</textarea>
-            <div class="form-text">Máximo 1000 caracteres.</div>
-            @error('tegumentario')
-                <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
-        </div>
+        @foreach ($systemsReviewSections as $section => $label)
+            @php
+                $fieldName = "aparatos_sistemas[$section]";
+                $fieldId = 'aparatos_sistemas_' . $section;
+                $fieldValue = $systemsReviewValues[$section] ?? '';
+            @endphp
+            <div class="col-12 col-lg-4">
+                <label for="{{ $fieldId }}" class="form-label">{{ $label }}</label>
+                <textarea
+                    name="{{ $fieldName }}"
+                    id="{{ $fieldId }}"
+                    class="form-control @error("aparatos_sistemas.$section") is-invalid @enderror"
+                    rows="4"
+                    maxlength="1000"
+                >{{ old("aparatos_sistemas.$section", $fieldValue) }}</textarea>
+                <div class="form-text">Máximo 1000 caracteres.</div>
+                @error("aparatos_sistemas.$section")
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+        @endforeach
     </div>
 </div>
