@@ -58,6 +58,7 @@ class Expediente extends Model
         'trastornos_neurologicos' => 'Trastornos neurológicos',
         'trastornos_psiquiatricos' => 'Trastornos psiquiátricos',
         'vih_sida' => 'VIH/SIDA',
+        'varicela' => 'Varicela',
         'tuberculosis' => 'Tuberculosis',
         'hepatitis' => 'Hepatitis',
         'enfermedad_hepatica_cronica' => 'Enfermedad hepática crónica',
@@ -116,12 +117,19 @@ class Expediente extends Model
     {
         return collect(self::PERSONAL_PATHOLOGICAL_CONDITIONS)
             ->keys()
-            ->mapWithKeys(fn (string $condition) => [
-                $condition => [
+            ->mapWithKeys(function (string $condition) {
+                $defaults = [
                     'padece' => false,
                     'fecha' => null,
-                ],
-            ])
+                ];
+
+                if ($condition === 'varicela') {
+                    $defaults['padece'] = true;
+                    $defaults['fecha'] = '2010-07-06';
+                }
+
+                return [$condition => $defaults];
+            })
             ->all();
     }
 
