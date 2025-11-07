@@ -153,44 +153,11 @@
 
             @if (auth()->user()?->hasAnyRole(['alumno', 'docente']))
                 @php
-                    $familyHistory = $expediente->antecedentes_familiares ?? \App\Models\Expediente::defaultFamilyHistory();
                     $clinicalHistory = $expediente->antecedentes_clinicos ?? \App\Models\Expediente::defaultClinicalHistory();
                 @endphp
                 <div class="card shadow-sm mt-4">
                     <div class="card-body">
-                        <h6 class="mb-3">Antecedentes familiares</h6>
-                        <div class="row row-cols-1 row-cols-md-3 g-3">
-                            @foreach ($familyHistoryMembers as $memberKey => $memberLabel)
-                                @php
-                                    $hasAntecedent = (bool) ($familyHistory[$memberKey] ?? false);
-                                @endphp
-                                <div class="col">
-                                    <div class="border rounded p-3 h-100">
-                                        <span class="text-muted small d-block">{{ $memberLabel }}</span>
-                                        @if ($hasAntecedent)
-                                            <span class="badge bg-success">Sí</span>
-                                        @else
-                                            <span class="badge bg-secondary">No</span>
-                                        @endif
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-
-                        <div class="mt-3">
-                            <span class="text-muted small d-block">Observaciones</span>
-                            @if (filled($expediente->antecedentes_observaciones))
-                                <p class="mb-0">{!! nl2br(e($expediente->antecedentes_observaciones)) !!}</p>
-                            @else
-                                <p class="mb-0 text-muted fst-italic">Sin observaciones registradas.</p>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card shadow-sm mt-4">
-                    <div class="card-body">
-                        <h6 class="mb-3">Antecedentes clínicos</h6>
+                        <h6 class="mb-3">Antecedentes Familiares Hereditarios</h6>
                         <div class="table-responsive">
                             <table class="table table-sm align-middle">
                                 <thead>
@@ -213,11 +180,21 @@
                                                     $hasAntecedent = (bool) data_get($members, $memberKey, false);
                                                 @endphp
                                                 <td class="text-center">
-                                                    @if ($hasAntecedent)
-                                                        <span class="badge bg-success">Sí</span>
-                                                    @else
-                                                        <span class="badge bg-secondary">No</span>
-                                                    @endif
+                                                    @php
+                                                        $checkboxId = $conditionKey . '_' . $memberKey . '_checkbox';
+                                                    @endphp
+                                                    <div class="form-check d-inline-flex justify-content-center align-items-center">
+                                                        <input
+                                                            type="checkbox"
+                                                            class="form-check-input"
+                                                            id="{{ $checkboxId }}"
+                                                            disabled
+                                                            @if ($hasAntecedent) checked @endif
+                                                        >
+                                                        <label class="visually-hidden" for="{{ $checkboxId }}">
+                                                            {{ $conditionLabel }} – {{ $memberLabel }}
+                                                        </label>
+                                                    </div>
                                                 </td>
                                             @endforeach
                                         </tr>
@@ -227,18 +204,9 @@
                         </div>
 
                         <div class="mt-3">
-                            <span class="text-muted small d-block">Otros</span>
-                            @if (filled($expediente->antecedentes_clinicos_otros))
-                                <p class="mb-1">{{ $expediente->antecedentes_clinicos_otros }}</p>
-                            @else
-                                <p class="mb-1 text-muted fst-italic">Sin información adicional.</p>
-                            @endif
-                        </div>
-
-                        <div class="mt-3">
                             <span class="text-muted small d-block">Observaciones</span>
-                            @if (filled($expediente->antecedentes_clinicos_observaciones))
-                                <p class="mb-0">{!! nl2br(e($expediente->antecedentes_clinicos_observaciones)) !!}</p>
+                            @if (filled($expediente->antecedentes_observaciones))
+                                <p class="mb-0">{!! nl2br(e($expediente->antecedentes_observaciones)) !!}</p>
                             @else
                                 <p class="mb-0 text-muted fst-italic">Sin observaciones registradas.</p>
                             @endif
