@@ -47,6 +47,20 @@ class ExpedienteFamilyHistoryTest extends TestCase
         }
     }
 
+    public function test_personal_pathological_condition_labels_use_expected_spellings(): void
+    {
+        $expectedConditions = [
+            'trastornos_tiroideos' => 'Disfunciones endócrinas',
+            'vih_sida' => 'VIH/SIDA',
+            'epoc' => 'Enfermedad pulmonar obstructiva crónica (EPOC)',
+        ];
+
+        foreach ($expectedConditions as $key => $label) {
+            $this->assertArrayHasKey($key, Expediente::PERSONAL_PATHOLOGICAL_CONDITIONS);
+            $this->assertSame($label, Expediente::PERSONAL_PATHOLOGICAL_CONDITIONS[$key]);
+        }
+    }
+
     public function test_alumno_puede_crear_expediente_con_antecedentes(): void
     {
         $alumno = User::factory()->create();
