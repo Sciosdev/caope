@@ -57,7 +57,7 @@ class ExpedienteFamilyHistoryTest extends TestCase
 
         $familyPayload['diabetes_mellitus']['madre'] = '1';
         $familyPayload['hipertension_arterial']['padre'] = '1';
-        $familyPayload['cancer']['tios'] = '1';
+        $familyPayload['cancer']['otros_maternos'] = '1';
 
         $payload = [
             'no_control' => 'AL-2025-0001',
@@ -78,7 +78,7 @@ class ExpedienteFamilyHistoryTest extends TestCase
 
         $this->assertTrue($expediente->antecedentes_familiares['diabetes_mellitus']['madre']);
         $this->assertTrue($expediente->antecedentes_familiares['hipertension_arterial']['padre']);
-        $this->assertTrue($expediente->antecedentes_familiares['cancer']['tios']);
+        $this->assertTrue($expediente->antecedentes_familiares['cancer']['otros_maternos']);
         $this->assertFalse($expediente->antecedentes_familiares['obesidad']['madre']);
         $this->assertSame(
             $payload['antecedentes_observaciones'],
@@ -143,7 +143,7 @@ class ExpedienteFamilyHistoryTest extends TestCase
         $initialFamily = Expediente::defaultFamilyHistory();
         $initialFamily['diabetes_mellitus']['madre'] = true;
         $initialFamily['hipertension_arterial']['padre'] = false;
-        $initialFamily['cancer']['tios'] = false;
+        $initialFamily['cancer']['otros_maternos'] = false;
 
         $expediente = Expediente::factory()->create([
             'creado_por' => $alumno->id,
