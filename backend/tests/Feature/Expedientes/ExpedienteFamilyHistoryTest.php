@@ -50,9 +50,9 @@ class ExpedienteFamilyHistoryTest extends TestCase
     public function test_personal_pathological_condition_labels_use_expected_spellings(): void
     {
         $expectedConditions = [
-            'trastornos_tiroideos' => 'Disfunciones endócrinas',
-            'vih_sida' => 'VIH/SIDA',
-            'epoc' => 'Enfermedad pulmonar obstructiva crónica (EPOC)',
+            'rubeola' => 'Rubéola',
+            'sarampion' => 'Sarampión',
+            'parasitosis_intestinal' => 'Parasitosis intestinal',
         ];
 
         foreach ($expectedConditions as $key => $label) {
