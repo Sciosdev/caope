@@ -16,11 +16,41 @@ class Expediente extends Model
 
     public const FAMILY_HISTORY_MEMBERS = [
         'madre' => 'Madre',
+        'abuela_materna' => 'Abuela materna',
+        'abuelo_materno' => 'Abuelo materno',
+        'otros_maternos' => 'Otros maternos',
         'padre' => 'Padre',
+        'abuela_paterna' => 'Abuela paterna',
+        'abuelo_paterno' => 'Abuelo paterno',
+        'otros_paternos' => 'Otros paternos',
         'hermanos' => 'Hermanos',
-        'abuelos' => 'Abuelos',
-        'tios' => 'Tíos',
-        'otros' => 'Otros',
+    ];
+
+    public const FAMILY_HISTORY_BRANCHES = [
+        'materna' => [
+            'label' => 'Familia materna',
+            'members' => [
+                'madre' => self::FAMILY_HISTORY_MEMBERS['madre'],
+                'abuela_materna' => self::FAMILY_HISTORY_MEMBERS['abuela_materna'],
+                'abuelo_materno' => self::FAMILY_HISTORY_MEMBERS['abuelo_materno'],
+                'otros_maternos' => self::FAMILY_HISTORY_MEMBERS['otros_maternos'],
+            ],
+        ],
+        'paterna' => [
+            'label' => 'Familia paterna',
+            'members' => [
+                'padre' => self::FAMILY_HISTORY_MEMBERS['padre'],
+                'abuela_paterna' => self::FAMILY_HISTORY_MEMBERS['abuela_paterna'],
+                'abuelo_paterno' => self::FAMILY_HISTORY_MEMBERS['abuelo_paterno'],
+                'otros_paternos' => self::FAMILY_HISTORY_MEMBERS['otros_paternos'],
+            ],
+        ],
+        'hermanos' => [
+            'label' => 'Hermanos',
+            'members' => [
+                'hermanos' => self::FAMILY_HISTORY_MEMBERS['hermanos'],
+            ],
+        ],
     ];
 
     public const HEREDITARY_HISTORY_CONDITIONS = [
@@ -69,6 +99,11 @@ class Expediente extends Model
                 return [$condition => $defaults];
             })
             ->all();
+    }
+
+    public static function familyHistoryBranches(): array
+    {
+        return self::FAMILY_HISTORY_BRANCHES;
     }
 
     public function creadoPor(): BelongsTo
