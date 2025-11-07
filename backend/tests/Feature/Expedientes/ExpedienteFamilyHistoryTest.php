@@ -110,6 +110,12 @@ class ExpedienteFamilyHistoryTest extends TestCase
             'fecha' => Carbon::now()->subYear()->format('Y-m-d'),
         ];
 
+        $systemsPayload = [
+            'digestivo' => 'Sin antecedentes de retraso en el desarrollo temprano.',
+            'respiratorio' => 'Estado mental orientado y colaborador.',
+            'cardiovascular' => null,
+        ];
+
         $payload = [
             'no_control' => 'AL-2025-0001',
             'paciente' => 'Alumno Demo',
@@ -120,6 +126,8 @@ class ExpedienteFamilyHistoryTest extends TestCase
             'antecedentes_observaciones' => 'Antecedentes por madre y hermanos.',
             'antecedentes_personales_patologicos' => $personalPayload,
             'antecedentes_personales_observaciones' => 'Asma desde la infancia, cirugía en 2023.',
+            'antecedente_padecimiento_actual' => 'Acude por seguimiento psicológico posterior a cirugía de rodilla.',
+            'aparatos_sistemas' => $systemsPayload,
         ];
 
         $response = $this->actingAs($alumno)->post(route('expedientes.store'), $payload);
@@ -151,6 +159,14 @@ class ExpedienteFamilyHistoryTest extends TestCase
             $payload['antecedentes_personales_observaciones'],
             $expediente->antecedentes_personales_observaciones
         );
+        $this->assertSame(
+            $payload['antecedente_padecimiento_actual'],
+            $expediente->antecedente_padecimiento_actual
+        );
+        $this->assertSame(
+            $systemsPayload,
+            $expediente->aparatos_sistemas
+        );
 
         $this->assertDatabaseHas('timeline_eventos', [
             'expediente_id' => $expediente->id,
@@ -180,6 +196,14 @@ class ExpedienteFamilyHistoryTest extends TestCase
             $expediente->antecedentes_personales_observaciones,
             $creacionEvento->payload['datos']['antecedentes_personales_observaciones']
         );
+        $this->assertSame(
+            $expediente->antecedente_padecimiento_actual,
+            $creacionEvento->payload['datos']['antecedente_padecimiento_actual']
+        );
+        $this->assertSame(
+            $expediente->aparatos_sistemas,
+            $creacionEvento->payload['datos']['aparatos_sistemas']
+        );
 
         $antecedentesEvento = $expediente->timelineEventos()
             ->where('evento', 'expediente.antecedentes_registrados')
@@ -202,6 +226,14 @@ class ExpedienteFamilyHistoryTest extends TestCase
         $this->assertSame(
             $expediente->antecedentes_personales_observaciones,
             $antecedentesEvento->payload['datos']['personales_observaciones']
+        );
+        $this->assertSame(
+            $expediente->antecedente_padecimiento_actual,
+            $antecedentesEvento->payload['datos']['padecimiento_actual']
+        );
+        $this->assertSame(
+            $expediente->aparatos_sistemas,
+            $antecedentesEvento->payload['datos']['aparatos_sistemas']
         );
     }
 
@@ -232,6 +264,10 @@ class ExpedienteFamilyHistoryTest extends TestCase
         $initialPersonal['asma']['padece'] = true;
         $initialPersonal['asma']['fecha'] = Carbon::now()->subYears(3)->format('Y-m-d');
         $initialPersonal['intervenciones_quirurgicas']['padece'] = false;
+        $initialSystems = Expediente::defaultSystemsReview();
+        $initialSystems['digestivo'] = 'Antecedentes de crianza significativa con apoyo familiar.';
+        $initialSystems['respiratorio'] = 'Estado mental inicial sin alteraciones.';
+        $initialSystems['cardiovascular'] = null;
 
         $expediente = Expediente::factory()->create([
             'creado_por' => $alumno->id,
@@ -242,6 +278,8 @@ class ExpedienteFamilyHistoryTest extends TestCase
             'antecedentes_observaciones' => 'Observaciones iniciales.',
             'antecedentes_personales_patologicos' => $initialPersonal,
             'antecedentes_personales_observaciones' => 'Asma controlada con inhalador.',
+            'antecedente_padecimiento_actual' => 'Consulta inicial por crisis de ansiedad.',
+            'aparatos_sistemas' => $initialSystems,
         ]);
 
         $updatedFamily = [];
@@ -273,6 +311,12 @@ class ExpedienteFamilyHistoryTest extends TestCase
             'fecha' => Carbon::now()->subMonths(6)->format('Y-m-d'),
         ];
 
+        $updatedSystems = [
+            'digestivo' => 'Se reporta avance en habilidades sociales durante la infancia.',
+            'respiratorio' => 'Estado mental actual con ligera ansiedad situacional.',
+            'cardiovascular' => 'Observaciones clínicas sin cambios relevantes.',
+        ];
+
         $payload = [
             'no_control' => $expediente->no_control,
             'paciente' => $expediente->paciente,
@@ -283,6 +327,8 @@ class ExpedienteFamilyHistoryTest extends TestCase
             'antecedentes_observaciones' => 'Actualización por parte del alumno.',
             'antecedentes_personales_patologicos' => $updatedPersonal,
             'antecedentes_personales_observaciones' => 'Cirugía de rodilla en 2024.',
+            'antecedente_padecimiento_actual' => 'Seguimiento posterior a cirugía con buena evolución.',
+            'aparatos_sistemas' => $updatedSystems,
         ];
 
         $response = $this->actingAs($alumno)->put(route('expedientes.update', $expediente), $payload);
@@ -308,6 +354,14 @@ class ExpedienteFamilyHistoryTest extends TestCase
             $payload['antecedentes_personales_observaciones'],
             $expediente->antecedentes_personales_observaciones
         );
+        $this->assertSame(
+            $payload['antecedente_padecimiento_actual'],
+            $expediente->antecedente_padecimiento_actual
+        );
+        $this->assertSame(
+            $updatedSystems,
+            $expediente->aparatos_sistemas
+        );
 
         $actualizacionEvento = $expediente->timelineEventos()
             ->where('evento', 'expediente.actualizado')
@@ -319,6 +373,8 @@ class ExpedienteFamilyHistoryTest extends TestCase
         $this->assertContains('antecedentes_observaciones', $actualizacionEvento->payload['campos']);
         $this->assertContains('antecedentes_personales_patologicos', $actualizacionEvento->payload['campos']);
         $this->assertContains('antecedentes_personales_observaciones', $actualizacionEvento->payload['campos']);
+        $this->assertContains('antecedente_padecimiento_actual', $actualizacionEvento->payload['campos']);
+        $this->assertContains('aparatos_sistemas', $actualizacionEvento->payload['campos']);
 
         $antecedentesEvento = $expediente->timelineEventos()
             ->where('evento', 'expediente.antecedentes_actualizados')
@@ -345,6 +401,22 @@ class ExpedienteFamilyHistoryTest extends TestCase
         $this->assertSame(
             $payload['antecedentes_personales_observaciones'],
             $antecedentesEvento->payload['despues']['personales_observaciones']
+        );
+        $this->assertSame(
+            'Consulta inicial por crisis de ansiedad.',
+            $antecedentesEvento->payload['antes']['padecimiento_actual']
+        );
+        $this->assertSame(
+            $payload['antecedente_padecimiento_actual'],
+            $antecedentesEvento->payload['despues']['padecimiento_actual']
+        );
+        $this->assertSame(
+            $initialSystems,
+            $antecedentesEvento->payload['antes']['aparatos_sistemas']
+        );
+        $this->assertSame(
+            $updatedSystems,
+            $antecedentesEvento->payload['despues']['aparatos_sistemas']
         );
     }
 
@@ -385,6 +457,12 @@ class ExpedienteFamilyHistoryTest extends TestCase
                 ],
             ],
             'antecedentes_personales_observaciones' => str_repeat('b', 600),
+            'antecedente_padecimiento_actual' => str_repeat('c', 1200),
+            'aparatos_sistemas' => [
+                'digestivo' => str_repeat('d', 1200),
+                'respiratorio' => str_repeat('e', 1005),
+                'cardiovascular' => null,
+            ],
         ];
 
         $response = $this->actingAs($alumno)->post(route('expedientes.store'), $payload);
@@ -395,6 +473,9 @@ class ExpedienteFamilyHistoryTest extends TestCase
             'antecedentes_personales_patologicos.asma.padece',
             'antecedentes_personales_patologicos.asma.fecha',
             'antecedentes_personales_observaciones',
+            'antecedente_padecimiento_actual',
+            'aparatos_sistemas.digestivo',
+            'aparatos_sistemas.respiratorio',
         ]);
     }
 }

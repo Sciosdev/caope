@@ -201,3 +201,58 @@
         @enderror
     </div>
 </div>
+
+<div class="mt-5">
+    <h6 class="mb-3">Antecedente y Padecimiento Actual</h6>
+    <p class="text-muted small mb-3">
+        Describe brevemente el motivo de atención, los síntomas actuales y cualquier antecedente inmediato relevante.
+    </p>
+
+    <div>
+        <label for="antecedente_padecimiento_actual" class="form-label">Resumen clínico actual</label>
+        <textarea
+            name="antecedente_padecimiento_actual"
+            id="antecedente_padecimiento_actual"
+            class="form-control @error('antecedente_padecimiento_actual') is-invalid @enderror"
+            rows="4"
+            maxlength="1000"
+        >{{ old('antecedente_padecimiento_actual', $expediente->antecedente_padecimiento_actual ?? '') }}</textarea>
+        <div class="form-text">Máximo 1000 caracteres.</div>
+        @error('antecedente_padecimiento_actual')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+</div>
+
+@php
+    $systemsReviewState = old(
+        'aparatos_sistemas',
+        $expediente->aparatos_sistemas ?? \App\Models\Expediente::defaultSystemsReview()
+    );
+@endphp
+
+<div class="mt-5">
+    <h6 class="mb-3">Aparatos y sistemas</h6>
+    <p class="text-muted small mb-3">
+        Registra hallazgos relevantes por apartado para complementar la valoración psicológica del paciente.
+    </p>
+
+    <div class="row g-3">
+        @foreach (\App\Models\Expediente::SYSTEMS_REVIEW_SECTIONS as $sectionKey => $sectionLabel)
+            <div class="col-12 col-lg-4">
+                <label class="form-label" for="aparatos_sistemas_{{ $sectionKey }}">{{ $sectionLabel }}</label>
+                <textarea
+                    name="aparatos_sistemas[{{ $sectionKey }}]"
+                    id="aparatos_sistemas_{{ $sectionKey }}"
+                    class="form-control @error("aparatos_sistemas.$sectionKey") is-invalid @enderror"
+                    rows="4"
+                    maxlength="1000"
+                >{{ old("aparatos_sistemas.$sectionKey", $systemsReviewState[$sectionKey] ?? '') }}</textarea>
+                <div class="form-text">Máximo 1000 caracteres.</div>
+                @error("aparatos_sistemas.$sectionKey")
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+        @endforeach
+    </div>
+</div>

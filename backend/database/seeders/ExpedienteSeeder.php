@@ -78,6 +78,16 @@ class ExpedienteSeeder extends Seeder
             }
             $personalNotes = $faker->boolean(30) ? $faker->sentences($faker->numberBetween(1, 2), true) : null;
 
+            $systemsReview = Expediente::defaultSystemsReview();
+            foreach ($systemsReview as $section => $value) {
+                $systemsReview[$section] = $faker->boolean(45)
+                    ? $faker->sentences($faker->numberBetween(1, 2), true)
+                    : null;
+            }
+            $currentCondition = $faker->boolean(55)
+                ? $faker->paragraphs($faker->numberBetween(1, 2), true)
+                : null;
+
             $expediente = Expediente::factory()->create([
                 'estado' => $estado,
                 'carrera' => $carrera,
@@ -90,6 +100,8 @@ class ExpedienteSeeder extends Seeder
                 'antecedentes_observaciones' => $familyNotes,
                 'antecedentes_personales_patologicos' => $personalHistory,
                 'antecedentes_personales_observaciones' => $personalNotes,
+                'antecedente_padecimiento_actual' => $currentCondition,
+                'aparatos_sistemas' => $systemsReview,
             ]);
 
             $sesionesCount = $faker->numberBetween(2, 5);
