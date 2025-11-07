@@ -50,9 +50,11 @@ class ExpedienteFamilyHistoryTest extends TestCase
     public function test_personal_pathological_condition_labels_use_expected_spellings(): void
     {
         $expectedConditions = [
-            'rubeola' => 'Rubéola',
-            'sarampion' => 'Sarampión',
-            'parasitosis_intestinal' => 'Parasitosis intestinal',
+            'parotiditis' => 'Parotiditis',
+            'disfunciones_endocrinas' => 'Disfunciones endócrinas',
+            'enfermedades_transmision_sexual' => 'Enf. Transmisión Sexual',
+            'amigdalitis_repeticion' => 'Amigdalitis de repetición',
+            'transfusiones_sanguineas' => 'Transfusiones sanguíneas',
         ];
 
         foreach ($expectedConditions as $key => $label) {
@@ -103,7 +105,7 @@ class ExpedienteFamilyHistoryTest extends TestCase
             'padece' => '1',
             'fecha' => Carbon::now()->subYears(2)->format('Y-m-d'),
         ];
-        $personalPayload['cirugias_previas'] = [
+        $personalPayload['intervenciones_quirurgicas'] = [
             'padece' => '1',
             'fecha' => Carbon::now()->subYear()->format('Y-m-d'),
         ];
@@ -140,10 +142,10 @@ class ExpedienteFamilyHistoryTest extends TestCase
             $personalPayload['asma']['fecha'],
             $expediente->antecedentes_personales_patologicos['asma']['fecha']
         );
-        $this->assertTrue($expediente->antecedentes_personales_patologicos['cirugias_previas']['padece']);
+        $this->assertTrue($expediente->antecedentes_personales_patologicos['intervenciones_quirurgicas']['padece']);
         $this->assertSame(
-            $personalPayload['cirugias_previas']['fecha'],
-            $expediente->antecedentes_personales_patologicos['cirugias_previas']['fecha']
+            $personalPayload['intervenciones_quirurgicas']['fecha'],
+            $expediente->antecedentes_personales_patologicos['intervenciones_quirurgicas']['fecha']
         );
         $this->assertSame(
             $payload['antecedentes_personales_observaciones'],
@@ -229,7 +231,7 @@ class ExpedienteFamilyHistoryTest extends TestCase
         $initialPersonal = Expediente::defaultPersonalPathologicalHistory();
         $initialPersonal['asma']['padece'] = true;
         $initialPersonal['asma']['fecha'] = Carbon::now()->subYears(3)->format('Y-m-d');
-        $initialPersonal['cirugias_previas']['padece'] = false;
+        $initialPersonal['intervenciones_quirurgicas']['padece'] = false;
 
         $expediente = Expediente::factory()->create([
             'creado_por' => $alumno->id,
@@ -266,7 +268,7 @@ class ExpedienteFamilyHistoryTest extends TestCase
             'padece' => '0',
             'fecha' => '',
         ];
-        $updatedPersonal['cirugias_previas'] = [
+        $updatedPersonal['intervenciones_quirurgicas'] = [
             'padece' => '1',
             'fecha' => Carbon::now()->subMonths(6)->format('Y-m-d'),
         ];
@@ -297,10 +299,10 @@ class ExpedienteFamilyHistoryTest extends TestCase
             $expediente->antecedentes_observaciones
         );
         $this->assertFalse($expediente->antecedentes_personales_patologicos['asma']['padece']);
-        $this->assertTrue($expediente->antecedentes_personales_patologicos['cirugias_previas']['padece']);
+        $this->assertTrue($expediente->antecedentes_personales_patologicos['intervenciones_quirurgicas']['padece']);
         $this->assertSame(
-            $updatedPersonal['cirugias_previas']['fecha'],
-            $expediente->antecedentes_personales_patologicos['cirugias_previas']['fecha']
+            $updatedPersonal['intervenciones_quirurgicas']['fecha'],
+            $expediente->antecedentes_personales_patologicos['intervenciones_quirurgicas']['fecha']
         );
         $this->assertSame(
             $payload['antecedentes_personales_observaciones'],
