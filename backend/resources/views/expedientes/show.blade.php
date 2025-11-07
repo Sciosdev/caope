@@ -293,6 +293,36 @@
                         <hr class="my-4">
 
                         <h6 class="mb-3">Antecedente y Padecimiento Actual</h6>
+                        @if (isset($systemsReviewSections))
+                            @php
+                                if ($systemsReviewSections instanceof \Illuminate\Support\Collection) {
+                                    $systemsReviewSections = $systemsReviewSections->toArray();
+                                }
+
+                                $systemsReviewSections = (array) $systemsReviewSections;
+                                $systemsReviewValues = $expediente->aparatos_sistemas ?? [];
+                            @endphp
+
+                            @if (! empty($systemsReviewSections))
+                                <div class="row g-3 mb-4">
+                                    @foreach ($systemsReviewSections as $section => $label)
+                                        @php
+                                            $sectionValue = $systemsReviewValues[$section] ?? null;
+                                        @endphp
+                                        <div class="col-12 col-lg-4">
+                                            <div class="border rounded h-100 p-3">
+                                                <span class="text-muted small d-block mb-2">{{ $label }}</span>
+                                                @if (filled($sectionValue))
+                                                    <p class="mb-0">{!! nl2br(e($sectionValue)) !!}</p>
+                                                @else
+                                                    <p class="mb-0 text-muted fst-italic">Sin información registrada.</p>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
+                        @endif
                         @php
                             $currentConditionSections = [
                                 'musculo_esqueletico' => 'Músculo esquelético',
