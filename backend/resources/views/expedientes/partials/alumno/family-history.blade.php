@@ -78,3 +78,100 @@
         @enderror
     </div>
 </div>
+
+@php
+    $personalHistory = old(
+        'antecedentes_personales_patologicos',
+        $expediente->antecedentes_personales_patologicos ?? \App\Models\Expediente::defaultPersonalPathologicalHistory()
+    );
+@endphp
+
+<div class="mt-5">
+    <h6 class="mb-3">Antecedentes personales patológicos</h6>
+    <p class="text-muted small mb-3">
+        Registra los padecimientos que el alumno ha presentado, la fecha de diagnóstico conocida y agrega observaciones generales si es necesario.
+    </p>
+
+    <div class="table-responsive">
+        <table class="table table-sm align-middle">
+            <thead>
+                <tr>
+                    <th class="w-35">Padecimientos</th>
+                    <th class="text-center">Presenta</th>
+                    <th class="w-25">Fecha de diagnóstico</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($personalPathologicalConditions as $conditionKey => $conditionLabel)
+                    @php
+                        $current = $personalHistory[$conditionKey] ?? [];
+                        $hasCondition = filter_var($current['padece'] ?? false, FILTER_VALIDATE_BOOLEAN);
+                        $diagnosisDate = $current['fecha'] ?? null;
+                        $diagnosisDateValue = '';
+                        if ($diagnosisDate !== null) {
+                            $carbonDate = \Illuminate\Support\Carbon::make($diagnosisDate);
+                            if ($carbonDate) {
+                                $diagnosisDateValue = $carbonDate->format('Y-m-d');
+                            } elseif (is_string($diagnosisDate)) {
+                                $diagnosisDateValue = $diagnosisDate;
+                            }
+                        }
+                        $inputId = "antecedentes_personales_{$conditionKey}";
+                    @endphp
+                    <tr>
+                        <td class="fw-semibold">{{ $conditionLabel }}</td>
+                        <td class="text-center">
+                            <div class="form-check d-inline-flex justify-content-center align-items-center">
+                                <input
+                                    type="hidden"
+                                    name="antecedentes_personales_patologicos[{{ $conditionKey }}][padece]"
+                                    value="0"
+                                >
+                                <input
+                                    type="checkbox"
+                                    class="form-check-input @error("antecedentes_personales_patologicos.$conditionKey.padece") is-invalid @enderror"
+                                    id="{{ $inputId }}"
+                                    name="antecedentes_personales_patologicos[{{ $conditionKey }}][padece]"
+                                    value="1"
+                                    @checked($hasCondition)
+                                >
+                                <label class="visually-hidden" for="{{ $inputId }}">{{ $conditionLabel }}</label>
+                            </div>
+                            @error("antecedentes_personales_patologicos.$conditionKey.padece")
+                                <div class="text-danger small mt-1">{{ $message }}</div>
+                            @enderror
+                        </td>
+                        <td>
+                            <input
+                                type="date"
+                                name="antecedentes_personales_patologicos[{{ $conditionKey }}][fecha]"
+                                id="{{ $inputId }}_fecha"
+                                class="form-control form-control-sm @error("antecedentes_personales_patologicos.$conditionKey.fecha") is-invalid @enderror"
+                                value="{{ $diagnosisDateValue }}"
+                                max="{{ now()->format('Y-m-d') }}"
+                            >
+                            @error("antecedentes_personales_patologicos.$conditionKey.fecha")
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mt-3">
+        <label for="antecedentes_personales_observaciones" class="form-label">Observaciones</label>
+        <textarea
+            name="antecedentes_personales_observaciones"
+            id="antecedentes_personales_observaciones"
+            class="form-control @error('antecedentes_personales_observaciones') is-invalid @enderror"
+            rows="3"
+            maxlength="500"
+        >{{ old('antecedentes_personales_observaciones', $expediente->antecedentes_personales_observaciones ?? '') }}</textarea>
+        <div class="form-text">Máximo 500 caracteres.</div>
+        @error('antecedentes_personales_observaciones')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+</div>

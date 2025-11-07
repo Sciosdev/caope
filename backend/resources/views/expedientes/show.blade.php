@@ -213,6 +213,69 @@
                                 <p class="mb-0 text-muted fst-italic">Sin observaciones registradas.</p>
                             @endif
                         </div>
+
+                        <hr class="my-4">
+
+                        <h6 class="mb-3">Antecedentes Personales Patológicos</h6>
+                        @php
+                            $personalHistory = $expediente->antecedentes_personales_patologicos
+                                ?? \App\Models\Expediente::defaultPersonalPathologicalHistory();
+                        @endphp
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Padecimientos</th>
+                                        <th class="text-center">Presenta</th>
+                                        <th>Fecha de diagnóstico</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($personalPathologicalConditions as $conditionKey => $conditionLabel)
+                                        @php
+                                            $record = $personalHistory[$conditionKey] ?? [];
+                                            $hasCondition = (bool) ($record['padece'] ?? false);
+                                            $diagnosisDate = $record['fecha'] ?? null;
+                                            $carbonDate = \Illuminate\Support\Carbon::make($diagnosisDate);
+                                        @endphp
+                                        <tr>
+                                            <td>{{ $conditionLabel }}</td>
+                                            <td class="text-center">
+                                                @php $checkboxId = 'personal_' . $conditionKey . '_checkbox'; @endphp
+                                                <div class="form-check d-inline-flex justify-content-center align-items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        class="form-check-input"
+                                                        id="{{ $checkboxId }}"
+                                                        disabled
+                                                        @if ($hasCondition) checked @endif
+                                                    >
+                                                    <label class="visually-hidden" for="{{ $checkboxId }}">{{ $conditionLabel }}</label>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                @if ($carbonDate)
+                                                    {{ $carbonDate->format('Y-m-d') }}
+                                                @elseif (is_string($diagnosisDate) && $diagnosisDate !== '')
+                                                    {{ $diagnosisDate }}
+                                                @else
+                                                    <span class="text-muted fst-italic">Sin registro</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="mt-3">
+                            <span class="text-muted small d-block">Observaciones</span>
+                            @if (filled($expediente->antecedentes_personales_observaciones))
+                                <p class="mb-0">{!! nl2br(e($expediente->antecedentes_personales_observaciones)) !!}</p>
+                            @else
+                                <p class="mb-0 text-muted fst-italic">Sin observaciones registradas.</p>
+                            @endif
+                        </div>
                     </div>
                 </div>
             @endif

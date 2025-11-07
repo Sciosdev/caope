@@ -16,6 +16,14 @@ trait ExpedienteFormRules
                 'antecedentes_familiares' => $this->sanitizeFamilyHistory($this->input('antecedentes_familiares')),
             ]);
         }
+
+        if ($this->has('antecedentes_personales_patologicos')) {
+            $this->merge([
+                'antecedentes_personales_patologicos' => $this->sanitizePersonalPathologicalHistory(
+                    $this->input('antecedentes_personales_patologicos')
+                ),
+            ]);
+        }
     }
 
     /**
@@ -32,6 +40,7 @@ trait ExpedienteFormRules
             'carrera',
             'turno',
             'antecedentes_observaciones',
+            'antecedentes_personales_observaciones',
         ] as $field) {
             if ($this->has($field)) {
                 $value = $this->input($field);
@@ -86,7 +95,10 @@ trait ExpedienteFormRules
             'coordinador_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
             'antecedentes_familiares' => ['sometimes', 'array'],
             'antecedentes_observaciones' => ['sometimes', 'nullable', 'string', 'max:500'],
+            'antecedentes_personales_patologicos' => ['sometimes', 'array'],
+            'antecedentes_personales_observaciones' => ['sometimes', 'nullable', 'string', 'max:500'],
             ...$this->familyHistoryMemberRules(),
+            ...$this->personalPathologicalRules(),
         ];
     }
 
@@ -156,6 +168,98 @@ trait ExpedienteFormRules
         return array_merge($defaults, $normalized);
     }
 
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    private function sanitizePersonalPathologicalHistory(mixed $value): array
+    {
+        $history = is_array($value) ? $value : [];
+        $defaults = Expediente::defaultPersonalPathologicalHistory();
+
+        $normalized = [];
+
+        foreach ($defaults as $condition => $fields) {
+            $provided = is_array($history[$condition] ?? null) ? $history[$condition] : [];
+
+            $normalized[$condition] = [
+                'padece' => $this->normalizeBooleanField($provided['padece'] ?? false),
+                'fecha' => $this->normalizeDateField($provided['fecha'] ?? null),
+            ];
+        }
+
+        return array_merge($defaults, $normalized);
+    }
+
+    private function normalizeBooleanField(mixed $value): mixed
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_scalar($value)) {
+            $normalized = filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
+
+            if ($normalized !== null) {
+                return $normalized;
+            }
+
+            if (is_string($value)) {
+                $lower = strtolower(trim($value));
+
+                if (in_array($lower, ['si', 'sí', 'yes'], true)) {
+                    return true;
+                }
+
+                if (in_array($lower, ['no'], true)) {
+                    return false;
+                }
+            }
+
+            return $value;
+        }
+
+        return $value;
+    }
+
+    private function normalizeDateField(mixed $value): ?string
+    {
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+
+        if (is_string($value)) {
+            $trimmed = trim($value);
+
+            if ($trimmed === '') {
+                return null;
+            }
+
+            try {
+                return (new \DateTimeImmutable($trimmed))->format('Y-m-d');
+            } catch (\Exception) {
+                return $trimmed;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<string, array<int, string>>
+     */
+    private function personalPathologicalRules(): array
+    {
+        return collect(Expediente::PERSONAL_PATHOLOGICAL_CONDITIONS)
+            ->keys()
+            ->flatMap(function (string $condition) {
+                return [
+                    "antecedentes_personales_patologicos.$condition.padece" => ['required_with:antecedentes_personales_patologicos', 'boolean'],
+                    "antecedentes_personales_patologicos.$condition.fecha" => ['sometimes', 'nullable', 'date', 'before_or_equal:today'],
+                ];
+            })
+            ->all();
+    }
+
     protected function resolveExpedienteFromRoute(): ?Expediente
     {
         $expediente = $this->route('expediente');
@@ -186,6 +290,8 @@ trait ExpedienteFormRules
             'coordinador_id',
             'antecedentes_familiares',
             'antecedentes_observaciones',
+            'antecedentes_personales_patologicos',
+            'antecedentes_personales_observaciones',
         ]);
     }
 }

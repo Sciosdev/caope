@@ -59,6 +59,15 @@ class ExpedienteFactory extends Factory
             }
         }
 
+        $personalHistory = Expediente::defaultPersonalPathologicalHistory();
+        foreach ($personalHistory as $condition => $data) {
+            $hasCondition = $this->faker->boolean(20);
+            $personalHistory[$condition]['padece'] = $hasCondition;
+            $personalHistory[$condition]['fecha'] = $hasCondition
+                ? $this->faker->date('Y-m-d', 'now')
+                : null;
+        }
+
         return [
             'no_control' => sprintf('CA-%s-%04d', now()->format('Y'), $this->faker->unique()->numberBetween(1, 9999)),
             'paciente' => $this->faker->name(),
@@ -71,6 +80,8 @@ class ExpedienteFactory extends Factory
             'coordinador_id' => $coordinador,
             'antecedentes_familiares' => $familyHistory,
             'antecedentes_observaciones' => $this->faker->optional(0.4)->text(120),
+            'antecedentes_personales_patologicos' => $personalHistory,
+            'antecedentes_personales_observaciones' => $this->faker->optional(0.3)->text(120),
         ];
     }
 }

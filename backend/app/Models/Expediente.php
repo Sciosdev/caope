@@ -43,6 +43,21 @@ class Expediente extends Model
         'aparentemente_sano' => 'Aparentemente sano',
     ];
 
+    public const PERSONAL_PATHOLOGICAL_CONDITIONS = [
+        'diabetes_mellitus' => 'Diabetes mellitus',
+        'hipertension_arterial' => 'Hipertensión arterial',
+        'cardiopatias' => 'Cardiopatías',
+        'cancer' => 'Neoplasias',
+        'obesidad' => 'Obesidad',
+        'asma' => 'Asma',
+        'epilepsia' => 'Epilepsia',
+        'hepatitis' => 'Hepatitis',
+        'enfermedad_renal' => 'Enfermedad renal',
+        'alergias' => 'Alergias',
+        'cirugias_previas' => 'Cirugías previas',
+        'hospitalizaciones' => 'Hospitalizaciones',
+    ];
+
     protected $fillable = [
         'no_control',
         'paciente',
@@ -55,11 +70,14 @@ class Expediente extends Model
         'coordinador_id',
         'antecedentes_familiares',
         'antecedentes_observaciones',
+        'antecedentes_personales_patologicos',
+        'antecedentes_personales_observaciones',
     ];
 
     protected $casts = [
         'apertura' => SafeDate::class,
         'antecedentes_familiares' => 'array',
+        'antecedentes_personales_patologicos' => 'array',
     ];
 
     /**
@@ -78,6 +96,22 @@ class Expediente extends Model
 
                 return [$condition => $defaults];
             })
+            ->all();
+    }
+
+    /**
+     * @return array<string, array{padece: bool, fecha: ?string}>
+     */
+    public static function defaultPersonalPathologicalHistory(): array
+    {
+        return collect(self::PERSONAL_PATHOLOGICAL_CONDITIONS)
+            ->keys()
+            ->mapWithKeys(fn (string $condition) => [
+                $condition => [
+                    'padece' => false,
+                    'fecha' => null,
+                ],
+            ])
             ->all();
     }
 
