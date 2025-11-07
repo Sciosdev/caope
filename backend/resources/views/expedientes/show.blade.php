@@ -327,7 +327,7 @@
                             $currentConditionSections = [
                                 'musculo_esqueletico' => 'Músculo esquelético',
                                 'genito_urinario' => 'Genito urinario',
-                                'linfohematatico' => 'Linfohematático',
+                                'linfohematatico' => 'Linfohemático',
                                 'endocrino' => 'Endócrino',
                                 'nervioso' => 'Nervioso',
                                 'tegumentario' => 'Tegumentario',

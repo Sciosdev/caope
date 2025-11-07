@@ -203,17 +203,7 @@
 </div>
 
 @php
-    $systemsReviewSections = $systemsReviewSections ?? [
-        'digestivo' => 'Historial Psicosocial y del Desarrollo',
-        'respiratorio' => 'Evaluación Psicológica (Estado Mental Actual)',
-        'cardiovascular' => 'Evaluación Psicológica Observaciones Clínicas Relevantes',
-        'musculo_esqueletico' => 'Músculo esquelético',
-        'genito_urinario' => 'Genito urinario',
-        'linfohematatico' => 'Linfohematático',
-        'endocrino' => 'Endócrino',
-        'nervioso' => 'Nervioso',
-        'tegumentario' => 'Tegumentario',
-    ];
+    $systemsReviewSections = $systemsReviewSections ?? \App\Models\Expediente::SYSTEMS_REVIEW_SECTIONS;
 
     if ($systemsReviewSections instanceof \Illuminate\Support\Collection) {
         $systemsReviewSections = $systemsReviewSections->toArray();

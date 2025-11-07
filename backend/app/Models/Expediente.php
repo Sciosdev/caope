@@ -75,6 +75,12 @@ class Expediente extends Model
         'digestivo' => 'Historia Psicosocial y del Desarrollo',
         'respiratorio' => 'Evaluación Psicológica (Estado Mental Actual)',
         'cardiovascular' => 'Evaluación Psicológica Observaciones Clínicas Relevantes',
+        'musculo_esqueletico' => 'Músculo esquelético',
+        'genito_urinario' => 'Genito urinario',
+        'linfohematatico' => 'Linfohemático',
+        'endocrino' => 'Endócrino',
+        'nervioso' => 'Nervioso',
+        'tegumentario' => 'Tegumentario',
     ];
 
     protected $fillable = [
