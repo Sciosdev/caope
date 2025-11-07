@@ -154,6 +154,7 @@
             @if (auth()->user()?->hasAnyRole(['alumno', 'docente']))
                 @php
                     $familyHistory = $expediente->antecedentes_familiares ?? \App\Models\Expediente::defaultFamilyHistory();
+                    $clinicalHistory = $expediente->antecedentes_clinicos ?? \App\Models\Expediente::defaultClinicalHistory();
                 @endphp
                 <div class="card shadow-sm mt-4">
                     <div class="card-body">
@@ -180,6 +181,64 @@
                             <span class="text-muted small d-block">Observaciones</span>
                             @if (filled($expediente->antecedentes_observaciones))
                                 <p class="mb-0">{!! nl2br(e($expediente->antecedentes_observaciones)) !!}</p>
+                            @else
+                                <p class="mb-0 text-muted fst-italic">Sin observaciones registradas.</p>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm mt-4">
+                    <div class="card-body">
+                        <h6 class="mb-3">Antecedentes clínicos</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Padecimiento</th>
+                                        @foreach ($familyHistoryMembers as $memberLabel)
+                                            <th class="text-center">{{ $memberLabel }}</th>
+                                        @endforeach
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($clinicalHistoryConditions as $conditionKey => $conditionLabel)
+                                        @php
+                                            $members = $clinicalHistory[$conditionKey] ?? [];
+                                        @endphp
+                                        <tr>
+                                            <td>{{ $conditionLabel }}</td>
+                                            @foreach ($familyHistoryMembers as $memberKey => $memberLabel)
+                                                @php
+                                                    $hasAntecedent = (bool) data_get($members, $memberKey, false);
+                                                @endphp
+                                                <td class="text-center">
+                                                    @if ($hasAntecedent)
+                                                        <span class="badge bg-success">Sí</span>
+                                                    @else
+                                                        <span class="badge bg-secondary">No</span>
+                                                    @endif
+                                                </td>
+                                            @endforeach
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="mt-3">
+                            <span class="text-muted small d-block">Otros</span>
+                            @if (filled($expediente->antecedentes_clinicos_otros))
+                                <p class="mb-1">{{ $expediente->antecedentes_clinicos_otros }}</p>
+                            @else
+                                <p class="mb-1 text-muted fst-italic">Sin información adicional.</p>
+                            @endif
+                        </div>
+
+                        <div class="mt-3">
+                            <span class="text-muted small d-block">Observaciones</span>
+                            @if (filled($expediente->antecedentes_clinicos_observaciones))
+                                <p class="mb-0">{!! nl2br(e($expediente->antecedentes_clinicos_observaciones)) !!}</p>
                             @else
                                 <p class="mb-0 text-muted fst-italic">Sin observaciones registradas.</p>
                             @endif
