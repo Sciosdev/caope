@@ -61,8 +61,10 @@ class ExpedienteSeeder extends Seeder
             $apertura = Carbon::parse($faker->dateTimeBetween('-8 months', '-1 week'));
 
             $familyHistory = Expediente::defaultFamilyHistory();
-            foreach (array_keys($familyHistory) as $member) {
-                $familyHistory[$member] = $faker->boolean(30);
+            foreach ($familyHistory as $condition => $members) {
+                foreach ($members as $member => $value) {
+                    $familyHistory[$condition][$member] = $faker->boolean(25);
+                }
             }
             $familyNotes = $faker->boolean(35) ? $faker->sentences($faker->numberBetween(1, 2), true) : null;
 

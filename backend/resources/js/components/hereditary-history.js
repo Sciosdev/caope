@@ -24,7 +24,7 @@ const normalizeBoolean = (value) => {
     return false;
 };
 
-export default function clinicalHistory({ conditions = {}, members = {}, initialState = {} } = {}) {
+export default function hereditaryHistory({ conditions = {}, members = {}, initialState = {} } = {}) {
     return {
         conditions,
         members,
@@ -59,10 +59,10 @@ export default function clinicalHistory({ conditions = {}, members = {}, initial
             return Boolean(this.state?.[conditionKey]?.[memberKey]);
         },
         inputName(conditionKey, memberKey) {
-            return `antecedentes_clinicos[${conditionKey}][${memberKey}]`;
+            return `antecedentes_familiares[${conditionKey}][${memberKey}]`;
         },
         checkboxId(conditionKey, memberKey) {
-            return `antecedentes_clinicos_${conditionKey}_${memberKey}`;
+            return `antecedentes_familiares_${conditionKey}_${memberKey}`;
         },
     };
 }

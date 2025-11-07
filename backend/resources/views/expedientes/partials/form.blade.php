@@ -129,7 +129,6 @@
 
 @if (auth()->user()?->hasRole('alumno'))
     @include('expedientes.partials.alumno.family-history')
-    @include('expedientes.partials.alumno.clinical-history')
 @endif
 
 @once

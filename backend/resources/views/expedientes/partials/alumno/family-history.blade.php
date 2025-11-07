@@ -1,32 +1,66 @@
-<div class="mt-4">
-    <h6 class="mb-3">Antecedentes familiares</h6>
-    <p class="text-muted small">Selecciona los familiares con antecedentes relevantes y agrega observaciones si es necesario.</p>
+@php
+    $hereditaryHistory = old(
+        'antecedentes_familiares',
+        $expediente->antecedentes_familiares ?? \App\Models\Expediente::defaultFamilyHistory()
+    );
+@endphp
 
-    <div class="row g-3">
-        @php
-            $familyHistory = old('antecedentes_familiares', $expediente->antecedentes_familiares ?? \App\Models\Expediente::defaultFamilyHistory());
-        @endphp
-        @foreach ($familyHistoryMembers as $memberKey => $memberLabel)
-            <div class="col-12 col-md-4">
-                <div class="form-check">
-                    <input type="hidden" name="antecedentes_familiares[{{ $memberKey }}]" value="0">
-                    <input
-                        class="form-check-input"
-                        type="checkbox"
-                        name="antecedentes_familiares[{{ $memberKey }}]"
-                        id="antecedente_{{ $memberKey }}"
-                        value="1"
-                        @checked((bool) data_get($familyHistory, $memberKey, false))
-                    >
-                    <label class="form-check-label" for="antecedente_{{ $memberKey }}">
-                        {{ $memberLabel }}
-                    </label>
-                </div>
-                @error("antecedentes_familiares.$memberKey")
-                    <div class="text-danger small">{{ $message }}</div>
-                @enderror
-            </div>
-        @endforeach
+<div class="mt-4" x-data="hereditaryHistory({
+    conditions: @js($hereditaryHistoryConditions),
+    members: @js($familyHistoryMembers),
+    initialState: @js($hereditaryHistory),
+})">
+    <h6 class="mb-3">Antecedentes familiares hereditarios</h6>
+    <p class="text-muted small mb-3">
+        Selecciona los familiares que presentan cada padecimiento hereditario. Puedes agregar observaciones generales al final.
+    </p>
+
+    <div class="table-responsive">
+        <table class="table table-sm align-middle">
+            <thead>
+                <tr>
+                    <th class="w-30">Padecimiento</th>
+                    @foreach ($familyHistoryMembers as $memberLabel)
+                        <th class="text-center">{{ $memberLabel }}</th>
+                    @endforeach
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($hereditaryHistoryConditions as $conditionKey => $conditionLabel)
+                    <tr>
+                        <td class="fw-semibold">{{ $conditionLabel }}</td>
+                        @foreach ($familyHistoryMembers as $memberKey => $memberLabel)
+                            <td class="text-center">
+                                <div class="form-check d-inline-flex justify-content-center align-items-center">
+                                    <input
+                                        type="hidden"
+                                        :name="inputName('{{ $conditionKey }}', '{{ $memberKey }}')"
+                                        :value="isChecked('{{ $conditionKey }}', '{{ $memberKey }}') ? '1' : '0'"
+                                    >
+                                    <input
+                                        type="checkbox"
+                                        class="form-check-input"
+                                        :id="checkboxId('{{ $conditionKey }}', '{{ $memberKey }}')"
+                                        value="1"
+                                        :checked="isChecked('{{ $conditionKey }}', '{{ $memberKey }}')"
+                                        @change="toggle('{{ $conditionKey }}', '{{ $memberKey }}', $event.target.checked)"
+                                    >
+                                    <label
+                                        class="visually-hidden"
+                                        :for="checkboxId('{{ $conditionKey }}', '{{ $memberKey }}')"
+                                    >
+                                        {{ $conditionLabel }} – {{ $memberLabel }}
+                                    </label>
+                                </div>
+                                @error("antecedentes_familiares.$conditionKey.$memberKey")
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                            </td>
+                        @endforeach
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
     </div>
 
     <div class="mt-3">
