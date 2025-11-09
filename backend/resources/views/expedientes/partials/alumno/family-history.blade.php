@@ -79,28 +79,6 @@
     </div>
 </div>
 
-<div class="mt-5">
-    <h6 class="mb-3">Plan de Acción</h6>
-    <p class="text-muted small mb-3">
-        Describe el plan de intervención acordado, incluyendo actividades, responsables y tiempos de seguimiento.
-    </p>
-
-    <div class="mb-3">
-        <label for="plan_accion" class="form-label">Plan de Acción</label>
-        <textarea
-            name="plan_accion"
-            id="plan_accion"
-            class="form-control @error('plan_accion') is-invalid @enderror"
-            rows="4"
-            maxlength="1000"
-        >{{ old('plan_accion', $expediente->plan_accion ?? '') }}</textarea>
-        <div class="form-text">Máximo 1000 caracteres.</div>
-        @error('plan_accion')
-            <div class="invalid-feedback">{{ $message }}</div>
-        @enderror
-    </div>
-</div>
-
 @php
     $personalHistory = old(
         'antecedentes_personales_patologicos',
@@ -261,5 +239,27 @@
                 @enderror
             </div>
         @endforeach
+    </div>
+</div>
+
+<div class="mt-5">
+    <h6 class="mb-3">Plan de acción</h6>
+    <p class="text-muted small mb-3">
+        Describe el plan de intervención acordado, incluyendo actividades, responsables y tiempos de seguimiento.
+    </p>
+
+    <div class="mb-3">
+        <label for="plan_accion" class="form-label">Plan de Acción</label>
+        <textarea
+            name="plan_accion"
+            id="plan_accion"
+            class="form-control @error('plan_accion') is-invalid @enderror"
+            rows="4"
+            maxlength="1000"
+        >{{ old('plan_accion', $expediente->plan_accion ?? '') }}</textarea>
+        <div class="form-text">Máximo 1000 caracteres.</div>
+        @error('plan_accion')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
     </div>
 </div>
