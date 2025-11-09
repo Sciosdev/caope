@@ -145,6 +145,15 @@ class ExpedienteController extends Controller
         $planAccionProvided = array_key_exists('plan_accion', $data)
             && $data['plan_accion'] !== null
             && $data['plan_accion'] !== '';
+        $diagnosticoProvided = array_key_exists('diagnostico', $data)
+            && $data['diagnostico'] !== null
+            && $data['diagnostico'] !== '';
+        $dsmTrProvided = array_key_exists('dsm_tr', $data)
+            && $data['dsm_tr'] !== null
+            && $data['dsm_tr'] !== '';
+        $observacionesRelevantesProvided = array_key_exists('observaciones_relevantes', $data)
+            && $data['observaciones_relevantes'] !== null
+            && $data['observaciones_relevantes'] !== '';
 
         if (! array_key_exists('antecedentes_familiares', $data)) {
             $data['antecedentes_familiares'] = Expediente::defaultFamilyHistory();
@@ -175,7 +184,15 @@ class ExpedienteController extends Controller
 
         if (
             $request->user()->hasRole('alumno')
-            && ($historyProvided || $personalHistoryProvided || $systemsProvided || $planAccionProvided)
+            && (
+                $historyProvided
+                || $personalHistoryProvided
+                || $systemsProvided
+                || $planAccionProvided
+                || $diagnosticoProvided
+                || $dsmTrProvided
+                || $observacionesRelevantesProvided
+            )
         ) {
             $this->logTimelineEvent($expediente, 'expediente.antecedentes_registrados', $request->user(), [
                 'datos' => [
@@ -186,6 +203,9 @@ class ExpedienteController extends Controller
                     'padecimiento_actual' => $expediente->antecedente_padecimiento_actual,
                     'plan_accion' => $expediente->plan_accion,
                     'aparatos_sistemas' => $expediente->aparatos_sistemas,
+                    'diagnostico' => $expediente->diagnostico,
+                    'dsm_tr' => $expediente->dsm_tr,
+                    'observaciones_relevantes' => $expediente->observaciones_relevantes,
                 ],
             ]);
         }
