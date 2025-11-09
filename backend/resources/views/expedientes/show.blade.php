@@ -357,6 +357,39 @@
                         @else
                             <p class="mb-0 text-muted fst-italic">Sin información registrada.</p>
                         @endif
+
+                        <div class="mt-4">
+                            <h6 class="mb-3">Diagnóstico</h6>
+                            <div class="row g-3">
+                                <div class="col-12 col-lg-6">
+                                    <label for="diagnosticos" class="form-label">Diagnósticos</label>
+                                    <textarea
+                                        id="diagnosticos"
+                                        class="form-control"
+                                        rows="3"
+                                        readonly
+                                        placeholder="Sin información registrada.">{{ $expediente->diagnosticos ?? '' }}</textarea>
+                                </div>
+                                <div class="col-12 col-lg-6">
+                                    <label for="diagnosticos_dsm_tr" class="form-label">DSM y TR</label>
+                                    <textarea
+                                        id="diagnosticos_dsm_tr"
+                                        class="form-control"
+                                        rows="3"
+                                        readonly
+                                        placeholder="Sin información registrada.">{{ $expediente->diagnosticos_dsm_tr ?? '' }}</textarea>
+                                </div>
+                                <div class="col-12">
+                                    <label for="diagnosticos_observaciones" class="form-label">Observaciones relevantes</label>
+                                    <textarea
+                                        id="diagnosticos_observaciones"
+                                        class="form-control"
+                                        rows="3"
+                                        readonly
+                                        placeholder="Sin información registrada.">{{ $expediente->diagnosticos_observaciones ?? '' }}</textarea>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             @endif
