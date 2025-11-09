@@ -166,6 +166,11 @@ class Expediente extends Model
         return $this->belongsTo(User::class, 'creado_por');
     }
 
+    public function alumno(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'creado_por');
+    }
+
     public function tutor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'tutor_id');

@@ -35,4 +35,9 @@ return [
             'revert_failed' => 'No fue posible revertir la carga del archivo.',
         ],
     ],
+    'messages' => [
+        'store_success' => 'Expediente creado correctamente.',
+        'update_success' => 'Expediente actualizado correctamente.',
+        'student_save_error' => 'No pudimos guardar tu expediente. Revisa la información e inténtalo nuevamente o contacta a tu tutor si el problema persiste.',
+    ],
 ];
