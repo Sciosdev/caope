@@ -68,6 +68,9 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
             $createPayload['plan_accion'],
             $creado->plan_accion
         );
+        $this->assertSame('Diagnóstico integral ajustado a la valoración inicial.', $creado->diagnostico);
+        $this->assertSame('F41.1 Trastorno de ansiedad generalizada', $creado->dsm_tr);
+        $this->assertSame('Observaciones clínicas adicionales proporcionadas por el alumno.', $creado->observaciones_relevantes);
 
         $expediente = Expediente::factory()->create([
             'no_control' => 'AL-2024-0002',
@@ -87,6 +90,9 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
         $updatePayload['no_control'] = $expediente->no_control;
         $updatePayload['paciente'] = 'Alumno Actualizado';
         $updatePayload['plan_accion'] = 'Plan de acción actualizado con metas claras.';
+        $updatePayload['diagnostico'] = 'Diagnóstico actualizado con seguimiento interdisciplinario.';
+        $updatePayload['dsm_tr'] = 'F32.1 Episodio depresivo moderado';
+        $updatePayload['observaciones_relevantes'] = 'Observaciones relevantes revisadas durante tutoría.';
 
         $updateResponse = $this->actingAs($alumno)->put(route('expedientes.update', $expediente), $updatePayload);
         $updateStatus = $updateResponse->getStatusCode();
@@ -114,6 +120,9 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
             $updatePayload['plan_accion'],
             $expediente->plan_accion
         );
+        $this->assertSame($updatePayload['diagnostico'], $expediente->diagnostico);
+        $this->assertSame($updatePayload['dsm_tr'], $expediente->dsm_tr);
+        $this->assertSame($updatePayload['observaciones_relevantes'], $expediente->observaciones_relevantes);
     }
 
     private function createCatalogoOptions(): array
@@ -173,6 +182,9 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
                 'nervioso' => 'Refiere episodios de estrés académico.',
             ],
             'plan_accion' => 'Plan de acción colaborativo con el tutor.',
+            'diagnostico' => '  Diagnóstico integral ajustado a la valoración inicial.  ',
+            'dsm_tr' => ' F41.1 Trastorno de ansiedad generalizada ',
+            'observaciones_relevantes' => '  Observaciones clínicas adicionales proporcionadas por el alumno.  ',
         ];
     }
 }

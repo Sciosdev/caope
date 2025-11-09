@@ -44,6 +44,9 @@ class ExpedienteController extends Controller
         'estado',
         'tutor_id',
         'coordinador_id',
+        'diagnostico',
+        'dsm_tr',
+        'observaciones_relevantes',
         'antecedentes_familiares',
         'antecedentes_observaciones',
         'antecedentes_personales_patologicos',
@@ -155,6 +158,9 @@ class ExpedienteController extends Controller
         $data['antecedentes_personales_observaciones'] = $data['antecedentes_personales_observaciones'] ?? null;
         $data['antecedente_padecimiento_actual'] = $data['antecedente_padecimiento_actual'] ?? null;
         $data['plan_accion'] = $data['plan_accion'] ?? null;
+        $data['diagnostico'] = $data['diagnostico'] ?? null;
+        $data['dsm_tr'] = $data['dsm_tr'] ?? null;
+        $data['observaciones_relevantes'] = $data['observaciones_relevantes'] ?? null;
         if (! array_key_exists('aparatos_sistemas', $data)) {
             $data['aparatos_sistemas'] = Expediente::defaultSystemsReview();
         }
@@ -285,6 +291,9 @@ class ExpedienteController extends Controller
         $systemsReviewBefore = $expediente->aparatos_sistemas ?? Expediente::defaultSystemsReview();
         $currentConditionBefore = $expediente->antecedente_padecimiento_actual;
         $planActionBefore = $expediente->plan_accion;
+        $diagnosticoBefore = $expediente->diagnostico;
+        $dsmTrBefore = $expediente->dsm_tr;
+        $observacionesRelevantesBefore = $expediente->observaciones_relevantes;
         $antecedentesAntes = [
             'familiares' => $familyHistoryBefore,
             'observaciones' => $familyObservationsBefore,
@@ -293,6 +302,9 @@ class ExpedienteController extends Controller
             'padecimiento_actual' => $currentConditionBefore,
             'plan_accion' => $planActionBefore,
             'aparatos_sistemas' => $systemsReviewBefore,
+            'diagnostico' => $diagnosticoBefore,
+            'dsm_tr' => $dsmTrBefore,
+            'observaciones_relevantes' => $observacionesRelevantesBefore,
         ];
 
         $expediente->fill($data);
@@ -305,6 +317,9 @@ class ExpedienteController extends Controller
         $systemsHistoryChanged = $expediente->wasChanged('aparatos_sistemas')
             || $expediente->wasChanged('antecedente_padecimiento_actual');
         $planActionChanged = $expediente->wasChanged('plan_accion');
+        $diagnosticoChanged = $expediente->wasChanged('diagnostico')
+            || $expediente->wasChanged('dsm_tr')
+            || $expediente->wasChanged('observaciones_relevantes');
 
         $expediente->refresh();
 
@@ -333,7 +348,13 @@ class ExpedienteController extends Controller
 
         if (
             $request->user()->hasRole('alumno')
-            && ($familyHistoryChanged || $personalHistoryChanged || $systemsHistoryChanged || $planActionChanged)
+            && (
+                $familyHistoryChanged
+                || $personalHistoryChanged
+                || $systemsHistoryChanged
+                || $planActionChanged
+                || $diagnosticoChanged
+            )
         ) {
             $this->logTimelineEvent($expediente, 'expediente.antecedentes_actualizados', $request->user(), [
                 'antes' => $antecedentesAntes,
@@ -346,6 +367,9 @@ class ExpedienteController extends Controller
                     'padecimiento_actual' => $expediente->antecedente_padecimiento_actual,
                     'plan_accion' => $expediente->plan_accion,
                     'aparatos_sistemas' => $expediente->aparatos_sistemas ?? Expediente::defaultSystemsReview(),
+                    'diagnostico' => $expediente->diagnostico,
+                    'dsm_tr' => $expediente->dsm_tr,
+                    'observaciones_relevantes' => $expediente->observaciones_relevantes,
                 ],
             ]);
         }

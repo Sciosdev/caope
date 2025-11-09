@@ -362,31 +362,31 @@
                             <h6 class="mb-3">Diagnóstico</h6>
                             <div class="row g-3">
                                 <div class="col-12 col-lg-6">
-                                    <label for="diagnosticos" class="form-label">Diagnósticos</label>
+                                    <label for="diagnostico" class="form-label">Diagnósticos</label>
                                     <textarea
-                                        id="diagnosticos"
+                                        id="diagnostico"
                                         class="form-control"
                                         rows="3"
                                         readonly
-                                        placeholder="Sin información registrada.">{{ $expediente->diagnosticos ?? '' }}</textarea>
+                                        placeholder="Sin información registrada.">{{ $expediente->diagnostico ?? '' }}</textarea>
                                 </div>
                                 <div class="col-12 col-lg-6">
-                                    <label for="diagnosticos_dsm_tr" class="form-label">DSM y TR</label>
+                                    <label for="dsm_tr" class="form-label">DSM y TR</label>
                                     <textarea
-                                        id="diagnosticos_dsm_tr"
+                                        id="dsm_tr"
                                         class="form-control"
                                         rows="3"
                                         readonly
-                                        placeholder="Sin información registrada.">{{ $expediente->diagnosticos_dsm_tr ?? '' }}</textarea>
+                                        placeholder="Sin información registrada.">{{ $expediente->dsm_tr ?? '' }}</textarea>
                                 </div>
                                 <div class="col-12">
-                                    <label for="diagnosticos_observaciones" class="form-label">Observaciones relevantes</label>
+                                    <label for="observaciones_relevantes" class="form-label">Observaciones relevantes</label>
                                     <textarea
-                                        id="diagnosticos_observaciones"
+                                        id="observaciones_relevantes"
                                         class="form-control"
                                         rows="3"
                                         readonly
-                                        placeholder="Sin información registrada.">{{ $expediente->diagnosticos_observaciones ?? '' }}</textarea>
+                                        placeholder="Sin información registrada.">{{ $expediente->observaciones_relevantes ?? '' }}</textarea>
                                 </div>
                             </div>
                         </div>
