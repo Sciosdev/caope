@@ -123,7 +123,7 @@ trait ExpedienteFormRules
             ->keys()
             ->flatMap(function (string $condition) use ($members) {
                 return $members->mapWithKeys(fn (string $member) => [
-                    "antecedentes_familiares.$condition.$member" => ['required_with:antecedentes_familiares', 'boolean'],
+                    "antecedentes_familiares.$condition.$member" => ['sometimes', 'boolean'],
                 ]);
             })
             ->all();
@@ -138,44 +138,21 @@ trait ExpedienteFormRules
         $history = is_array($value) ? $value : [];
         $defaults = Expediente::defaultFamilyHistory();
 
-        $normalized = [];
+        return collect($defaults)
+            ->map(function (array $members, string $condition) use ($history) {
+                $providedMembers = is_array($history[$condition] ?? null) ? $history[$condition] : [];
 
-        foreach ($defaults as $condition => $members) {
-            $currentMembers = [];
-            $providedMembers = is_array($history[$condition] ?? null) ? $history[$condition] : [];
+                return collect($members)
+                    ->map(function (bool $default, string $member) use ($providedMembers) {
+                        if (! array_key_exists($member, $providedMembers)) {
+                            return $default;
+                        }
 
-            foreach ($members as $member => $default) {
-                if (! array_key_exists($member, $providedMembers)) {
-                    $currentMembers[$member] = $default;
-                    continue;
-                }
-
-                $raw = $providedMembers[$member];
-
-                if (is_bool($raw)) {
-                    $currentMembers[$member] = $raw;
-                    continue;
-                }
-
-                if (is_scalar($raw)) {
-                    $boolValue = filter_var($raw, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
-
-                    if ($boolValue !== null) {
-                        $currentMembers[$member] = $boolValue;
-                        continue;
-                    }
-
-                    $currentMembers[$member] = $raw;
-                    continue;
-                }
-
-                $currentMembers[$member] = $raw;
-            }
-
-            $normalized[$condition] = array_merge($members, $currentMembers);
-        }
-
-        return array_merge($defaults, $normalized);
+                        return $this->normalizeBooleanField($providedMembers[$member], $default);
+                    })
+                    ->all();
+            })
+            ->all();
     }
 
     /**
@@ -192,7 +169,7 @@ trait ExpedienteFormRules
             $provided = is_array($history[$condition] ?? null) ? $history[$condition] : [];
 
             $normalized[$condition] = [
-                'padece' => $this->normalizeBooleanField($provided['padece'] ?? false),
+                'padece' => $this->normalizeBooleanField($provided['padece'] ?? $fields['padece'], $fields['padece']),
                 'fecha' => $this->normalizeDateField($provided['fecha'] ?? null),
             ];
         }
@@ -231,32 +208,38 @@ trait ExpedienteFormRules
         return array_merge($defaults, $normalized);
     }
 
-    private function normalizeBooleanField(mixed $value): mixed
+    private function normalizeBooleanField(mixed $value, bool $default = false): mixed
     {
         if (is_bool($value)) {
             return $value;
         }
 
-        if (is_scalar($value)) {
+        if (is_numeric($value)) {
+            return (bool) $value;
+        }
+
+        if (is_string($value)) {
+            $trimmed = trim($value);
+
+            if ($trimmed === '') {
+                return $default;
+            }
+
             $normalized = filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
 
             if ($normalized !== null) {
                 return $normalized;
             }
 
-            if (is_string($value)) {
-                $lower = strtolower(trim($value));
+            $lower = strtolower($trimmed);
 
-                if (in_array($lower, ['si', 'sí', 'yes'], true)) {
-                    return true;
-                }
-
-                if (in_array($lower, ['no'], true)) {
-                    return false;
-                }
+            if (in_array($lower, ['si', 'sí', 'yes', 'true', '1'], true)) {
+                return true;
             }
 
-            return $value;
+            if (in_array($lower, ['no', 'false', '0'], true)) {
+                return false;
+            }
         }
 
         return $value;
@@ -294,7 +277,7 @@ trait ExpedienteFormRules
             ->keys()
             ->flatMap(function (string $condition) {
                 return [
-                    "antecedentes_personales_patologicos.$condition.padece" => ['required_with:antecedentes_personales_patologicos', 'boolean'],
+                    "antecedentes_personales_patologicos.$condition.padece" => ['sometimes', 'boolean'],
                     "antecedentes_personales_patologicos.$condition.fecha" => ['sometimes', 'nullable', 'date', 'before_or_equal:today'],
                 ];
             })
@@ -309,7 +292,7 @@ trait ExpedienteFormRules
         return collect(Expediente::SYSTEMS_REVIEW_SECTIONS)
             ->keys()
             ->mapWithKeys(fn (string $section) => [
-                "aparatos_sistemas.$section" => ['required_with:aparatos_sistemas', 'nullable', 'string', 'max:1000'],
+                "aparatos_sistemas.$section" => ['sometimes', 'nullable', 'string', 'max:1000'],
             ])
             ->all();
     }

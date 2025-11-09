@@ -86,4 +86,78 @@ class ExpedienteCreateTest extends TestCase
         $this->assertSame($payload['paciente'], $evento->payload['datos']['paciente']);
         $this->assertSame($payload['turno'], $evento->payload['datos']['turno']);
     }
+
+    public function test_creacion_con_json_incompletos_normaliza_con_defaults(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $carrera = CatalogoCarrera::create([
+            'nombre' => 'Licenciatura en Psicología',
+            'activo' => true,
+        ]);
+
+        $turno = CatalogoTurno::create([
+            'nombre' => 'Vespertino',
+            'activo' => true,
+        ]);
+
+        CatalogoCarrera::flushCache();
+        CatalogoTurno::flushCache();
+
+        $payload = [
+            'no_control' => 'CA-2025-0300',
+            'paciente' => 'Paciente con Historial',
+            'apertura' => Carbon::now()->toDateString(),
+            'carrera' => $carrera->nombre,
+            'turno' => $turno->nombre,
+            'antecedentes_familiares' => [
+                'diabetes_mellitus' => [
+                    'madre' => 'si',
+                    'padre' => 'no',
+                ],
+            ],
+            'antecedentes_personales_patologicos' => [
+                'asma' => [
+                    'padece' => 'Yes',
+                    'fecha' => '2024-01-10',
+                ],
+                'cancer' => [
+                    'padece' => '',
+                ],
+            ],
+            'aparatos_sistemas' => [
+                'digestivo' => '   ',
+                'respiratorio' => 'Sin alteraciones respiratorias',
+                'nervioso' => 0,
+            ],
+        ];
+
+        $response = $this->actingAs($admin)->post(route('expedientes.store'), $payload);
+
+        $response->assertSessionHasNoErrors();
+
+        $expediente = Expediente::where('no_control', $payload['no_control'])->first();
+        $this->assertNotNull($expediente);
+
+        $defaultsFamily = Expediente::defaultFamilyHistory();
+        $this->assertSame(array_keys($defaultsFamily), array_keys($expediente->antecedentes_familiares));
+        $this->assertSame(array_keys($defaultsFamily['diabetes_mellitus']), array_keys($expediente->antecedentes_familiares['diabetes_mellitus']));
+        $this->assertTrue($expediente->antecedentes_familiares['diabetes_mellitus']['madre']);
+        $this->assertFalse($expediente->antecedentes_familiares['diabetes_mellitus']['padre']);
+        $this->assertFalse($expediente->antecedentes_familiares['diabetes_mellitus']['hermanos']);
+
+        $defaultsPersonal = Expediente::defaultPersonalPathologicalHistory();
+        $this->assertSame(array_keys($defaultsPersonal), array_keys($expediente->antecedentes_personales_patologicos));
+        $this->assertTrue($expediente->antecedentes_personales_patologicos['asma']['padece']);
+        $this->assertSame('2024-01-10', $expediente->antecedentes_personales_patologicos['asma']['fecha']);
+        $this->assertFalse($expediente->antecedentes_personales_patologicos['cancer']['padece']);
+        $this->assertNull($expediente->antecedentes_personales_patologicos['cancer']['fecha']);
+
+        $defaultsSystems = Expediente::defaultSystemsReview();
+        $this->assertSame(array_keys($defaultsSystems), array_keys($expediente->aparatos_sistemas));
+        $this->assertNull($expediente->aparatos_sistemas['digestivo']);
+        $this->assertSame('Sin alteraciones respiratorias', $expediente->aparatos_sistemas['respiratorio']);
+        $this->assertNull($expediente->aparatos_sistemas['nervioso']);
+    }
 }
