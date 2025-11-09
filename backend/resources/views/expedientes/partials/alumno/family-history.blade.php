@@ -263,3 +263,57 @@
         @enderror
     </div>
 </div>
+
+<div class="mt-5">
+    <h6 class="mb-3">Diagnóstico</h6>
+    <p class="text-muted small mb-3">
+        Registra los diagnósticos clínicos relevantes, la clasificación DSM y TR correspondiente y cualquier observación complementaria.
+    </p>
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-4">
+            <label for="diagnosticos" class="form-label">Diagnósticos</label>
+            <textarea
+                name="diagnosticos"
+                id="diagnosticos"
+                class="form-control @error('diagnosticos') is-invalid @enderror"
+                rows="4"
+                maxlength="1000"
+            >{{ old('diagnosticos', $expediente->diagnosticos ?? '') }}</textarea>
+            <div class="form-text">Máximo 1000 caracteres.</div>
+            @error('diagnosticos')
+                <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
+
+        <div class="col-12 col-lg-4">
+            <label for="diagnosticos_dsm_tr" class="form-label">DSM y TR</label>
+            <textarea
+                name="diagnosticos_dsm_tr"
+                id="diagnosticos_dsm_tr"
+                class="form-control @error('diagnosticos_dsm_tr') is-invalid @enderror"
+                rows="4"
+                maxlength="1000"
+            >{{ old('diagnosticos_dsm_tr', $expediente->diagnosticos_dsm_tr ?? '') }}</textarea>
+            <div class="form-text">Máximo 1000 caracteres.</div>
+            @error('diagnosticos_dsm_tr')
+                <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
+
+        <div class="col-12 col-lg-4">
+            <label for="diagnosticos_observaciones" class="form-label">Observaciones relevantes</label>
+            <textarea
+                name="diagnosticos_observaciones"
+                id="diagnosticos_observaciones"
+                class="form-control @error('diagnosticos_observaciones') is-invalid @enderror"
+                rows="4"
+                maxlength="1000"
+            >{{ old('diagnosticos_observaciones', $expediente->diagnosticos_observaciones ?? '') }}</textarea>
+            <div class="form-text">Máximo 1000 caracteres.</div>
+            @error('diagnosticos_observaciones')
+                <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
+    </div>
+</div>
