@@ -47,6 +47,24 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
         $storeResponse = $this->actingAs($alumno)->post(route('expedientes.store'), $createPayload);
         $storeStatus = $storeResponse->getStatusCode();
 
+        $this->assertSame(302, $storeStatus, 'La creación del expediente debe redirigir correctamente.');
+        $this->assertTrue($storeResponse->isRedirect(), 'La creación del expediente debería redirigir.');
+
+        $creado = Expediente::where('no_control', $createPayload['no_control'])->first();
+        $this->assertNotNull($creado, 'El expediente del alumno no se creó en la base de datos.');
+        $this->assertSame($alumno->id, $creado->creado_por);
+        $this->assertTrue($creado->antecedentes_familiares['diabetes_mellitus']['madre']);
+        $this->assertTrue($creado->antecedentes_familiares['hipertension_arterial']['padre']);
+        $this->assertSame(
+            $createPayload['antecedentes_personales_patologicos']['asma']['fecha'],
+            $creado->antecedentes_personales_patologicos['asma']['fecha']
+        );
+        $this->assertTrue($creado->antecedentes_personales_patologicos['asma']['padece']);
+        $this->assertSame(
+            $createPayload['aparatos_sistemas']['nervioso'],
+            $creado->aparatos_sistemas['nervioso']
+        );
+
         $expediente = Expediente::factory()->create([
             'no_control' => 'AL-2024-0002',
             'paciente' => 'Alumno Existente',
@@ -56,6 +74,7 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
             'tutor_id' => $tutor->id,
             'coordinador_id' => $coordinador->id,
             'creado_por' => $alumno->id,
+            'estado' => 'abierto',
         ]);
 
         $nuevoTutor = User::factory()->create();
@@ -67,8 +86,25 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
         $updateResponse = $this->actingAs($alumno)->put(route('expedientes.update', $expediente), $updatePayload);
         $updateStatus = $updateResponse->getStatusCode();
 
-        $this->assertSame(500, $storeStatus, 'La creación del expediente no generó el error esperado.');
-        $this->assertSame(500, $updateStatus, 'La actualización del expediente no generó el error esperado.');
+        $this->assertSame(302, $updateStatus, 'La actualización del expediente debe redirigir correctamente.');
+        $this->assertTrue($updateResponse->isRedirect(), 'La actualización del expediente debería redirigir.');
+
+        $expediente->refresh();
+
+        $this->assertSame('Alumno Actualizado', $expediente->paciente);
+        $this->assertSame($nuevoTutor->id, $expediente->tutor_id);
+        $this->assertSame(
+            $updatePayload['antecedentes_observaciones'],
+            $expediente->antecedentes_observaciones
+        );
+        $this->assertSame(
+            $updatePayload['antecedentes_personales_patologicos']['asma']['padece'] === '1',
+            $expediente->antecedentes_personales_patologicos['asma']['padece']
+        );
+        $this->assertSame(
+            $updatePayload['aparatos_sistemas']['nervioso'],
+            $expediente->aparatos_sistemas['nervioso']
+        );
     }
 
     private function createCatalogoOptions(): array
