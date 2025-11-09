@@ -90,6 +90,15 @@ class ExpedienteSeeder extends Seeder
             $planAccion = $faker->boolean(60)
                 ? $faker->paragraphs($faker->numberBetween(1, 2), true)
                 : null;
+            $diagnostico = $faker->boolean(60)
+                ? $faker->paragraphs($faker->numberBetween(1, 2), true)
+                : null;
+            $dsmTr = $faker->boolean(55)
+                ? sprintf('DSM-5 %s', $faker->bothify('F##.##'))
+                : null;
+            $observacionesRelevantes = $faker->boolean(55)
+                ? $faker->sentences($faker->numberBetween(1, 2), true)
+                : null;
 
             $expediente = Expediente::factory()->create([
                 'estado' => $estado,
@@ -99,6 +108,9 @@ class ExpedienteSeeder extends Seeder
                 'creado_por' => $creadoPor,
                 'tutor_id' => $tutor,
                 'coordinador_id' => $coordinador,
+                'diagnostico' => $diagnostico,
+                'dsm_tr' => $dsmTr,
+                'observaciones_relevantes' => $observacionesRelevantes,
                 'antecedentes_familiares' => $familyHistory,
                 'antecedentes_observaciones' => $familyNotes,
                 'antecedentes_personales_patologicos' => $personalHistory,

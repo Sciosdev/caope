@@ -135,6 +135,9 @@ class ExpedienteFamilyHistoryTest extends TestCase
             'antecedente_padecimiento_actual' => 'Acude por seguimiento psicológico posterior a cirugía de rodilla.',
             'aparatos_sistemas' => $systemsPayload,
             'plan_accion' => 'Plan de acompañamiento individual con sesiones quincenales.',
+            'diagnostico' => 'Diagnóstico inicial registrado por el alumno.',
+            'dsm_tr' => 'F40.01 Trastorno de pánico con agorafobia',
+            'observaciones_relevantes' => 'Observaciones clínicas iniciales aportadas por el alumno.',
         ];
 
         $response = $this->actingAs($alumno)->post(route('expedientes.store'), $payload);
@@ -178,6 +181,9 @@ class ExpedienteFamilyHistoryTest extends TestCase
             $systemsPayload,
             $expediente->aparatos_sistemas
         );
+        $this->assertSame($payload['diagnostico'], $expediente->diagnostico);
+        $this->assertSame($payload['dsm_tr'], $expediente->dsm_tr);
+        $this->assertSame($payload['observaciones_relevantes'], $expediente->observaciones_relevantes);
 
         $this->assertDatabaseHas('timeline_eventos', [
             'expediente_id' => $expediente->id,
@@ -219,6 +225,9 @@ class ExpedienteFamilyHistoryTest extends TestCase
             $expediente->plan_accion,
             $creacionEvento->payload['datos']['plan_accion']
         );
+        $this->assertSame($expediente->diagnostico, $creacionEvento->payload['datos']['diagnostico']);
+        $this->assertSame($expediente->dsm_tr, $creacionEvento->payload['datos']['dsm_tr']);
+        $this->assertSame($expediente->observaciones_relevantes, $creacionEvento->payload['datos']['observaciones_relevantes']);
 
         $antecedentesEvento = $expediente->timelineEventos()
             ->where('evento', 'expediente.antecedentes_registrados')
@@ -253,6 +262,12 @@ class ExpedienteFamilyHistoryTest extends TestCase
         $this->assertSame(
             $expediente->plan_accion,
             $antecedentesEvento->payload['datos']['plan_accion']
+        );
+        $this->assertSame($expediente->diagnostico, $antecedentesEvento->payload['datos']['diagnostico']);
+        $this->assertSame($expediente->dsm_tr, $antecedentesEvento->payload['datos']['dsm_tr']);
+        $this->assertSame(
+            $expediente->observaciones_relevantes,
+            $antecedentesEvento->payload['datos']['observaciones_relevantes']
         );
     }
 
@@ -306,6 +321,9 @@ class ExpedienteFamilyHistoryTest extends TestCase
             'antecedente_padecimiento_actual' => 'Consulta inicial por crisis de ansiedad.',
             'plan_accion' => 'Plan inicial con seguimiento mensual.',
             'aparatos_sistemas' => $initialSystems,
+            'diagnostico' => 'Diagnóstico clínico inicial con énfasis en ansiedad.',
+            'dsm_tr' => 'F41.1 Trastorno de ansiedad generalizada',
+            'observaciones_relevantes' => 'Observaciones relevantes recopiladas en la primera sesión.',
         ]);
 
         $updatedFamily = [];
@@ -362,6 +380,9 @@ class ExpedienteFamilyHistoryTest extends TestCase
             'antecedente_padecimiento_actual' => 'Seguimiento posterior a cirugía con buena evolución.',
             'aparatos_sistemas' => $updatedSystems,
             'plan_accion' => 'Plan actualizado con actividades semanales.',
+            'diagnostico' => 'Diagnóstico actualizado con enfoque interdisciplinario.',
+            'dsm_tr' => 'F32.1 Episodio depresivo moderado',
+            'observaciones_relevantes' => 'Observaciones relevantes posteriores a la intervención.',
         ];
 
         $response = $this->actingAs($alumno)->put(route('expedientes.update', $expediente), $payload);
@@ -399,6 +420,9 @@ class ExpedienteFamilyHistoryTest extends TestCase
             $updatedSystems,
             $expediente->aparatos_sistemas
         );
+        $this->assertSame($payload['diagnostico'], $expediente->diagnostico);
+        $this->assertSame($payload['dsm_tr'], $expediente->dsm_tr);
+        $this->assertSame($payload['observaciones_relevantes'], $expediente->observaciones_relevantes);
 
         $actualizacionEvento = $expediente->timelineEventos()
             ->where('evento', 'expediente.actualizado')
@@ -413,6 +437,9 @@ class ExpedienteFamilyHistoryTest extends TestCase
         $this->assertContains('antecedente_padecimiento_actual', $actualizacionEvento->payload['campos']);
         $this->assertContains('aparatos_sistemas', $actualizacionEvento->payload['campos']);
         $this->assertContains('plan_accion', $actualizacionEvento->payload['campos']);
+        $this->assertContains('diagnostico', $actualizacionEvento->payload['campos']);
+        $this->assertContains('dsm_tr', $actualizacionEvento->payload['campos']);
+        $this->assertContains('observaciones_relevantes', $actualizacionEvento->payload['campos']);
 
         $antecedentesEvento = $expediente->timelineEventos()
             ->where('evento', 'expediente.antecedentes_actualizados')
@@ -463,6 +490,30 @@ class ExpedienteFamilyHistoryTest extends TestCase
         $this->assertSame(
             $payload['plan_accion'],
             $antecedentesEvento->payload['despues']['plan_accion']
+        );
+        $this->assertSame(
+            'Diagnóstico clínico inicial con énfasis en ansiedad.',
+            $antecedentesEvento->payload['antes']['diagnostico']
+        );
+        $this->assertSame(
+            $payload['diagnostico'],
+            $antecedentesEvento->payload['despues']['diagnostico']
+        );
+        $this->assertSame(
+            'F41.1 Trastorno de ansiedad generalizada',
+            $antecedentesEvento->payload['antes']['dsm_tr']
+        );
+        $this->assertSame(
+            $payload['dsm_tr'],
+            $antecedentesEvento->payload['despues']['dsm_tr']
+        );
+        $this->assertSame(
+            'Observaciones relevantes recopiladas en la primera sesión.',
+            $antecedentesEvento->payload['antes']['observaciones_relevantes']
+        );
+        $this->assertSame(
+            $payload['observaciones_relevantes'],
+            $antecedentesEvento->payload['despues']['observaciones_relevantes']
         );
     }
 
@@ -516,6 +567,9 @@ class ExpedienteFamilyHistoryTest extends TestCase
                 'tegumentario' => 'Piel íntegra.',
             ],
             'plan_accion' => str_repeat('p', 1200),
+            'diagnostico' => str_repeat('d', 1100),
+            'dsm_tr' => str_repeat('f', 260),
+            'observaciones_relevantes' => str_repeat('o', 1100),
         ];
 
         $response = $this->actingAs($alumno)->post(route('expedientes.store'), $payload);
@@ -530,6 +584,9 @@ class ExpedienteFamilyHistoryTest extends TestCase
             'aparatos_sistemas.digestivo',
             'aparatos_sistemas.respiratorio',
             'plan_accion',
+            'diagnostico',
+            'dsm_tr',
+            'observaciones_relevantes',
         ]);
     }
 }

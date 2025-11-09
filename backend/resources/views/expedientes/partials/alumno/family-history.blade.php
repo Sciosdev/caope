@@ -272,46 +272,46 @@
 
     <div class="row g-3">
         <div class="col-12 col-lg-4">
-            <label for="diagnosticos" class="form-label">Diagnósticos</label>
+            <label for="diagnostico" class="form-label">Diagnósticos</label>
             <textarea
-                name="diagnosticos"
-                id="diagnosticos"
-                class="form-control @error('diagnosticos') is-invalid @enderror"
+                name="diagnostico"
+                id="diagnostico"
+                class="form-control @error('diagnostico') is-invalid @enderror"
                 rows="4"
                 maxlength="1000"
-            >{{ old('diagnosticos', $expediente->diagnosticos ?? '') }}</textarea>
+            >{{ old('diagnostico', $expediente->diagnostico ?? '') }}</textarea>
             <div class="form-text">Máximo 1000 caracteres.</div>
-            @error('diagnosticos')
+            @error('diagnostico')
                 <div class="invalid-feedback">{{ $message }}</div>
             @enderror
         </div>
 
         <div class="col-12 col-lg-4">
-            <label for="diagnosticos_dsm_tr" class="form-label">DSM y TR</label>
+            <label for="dsm_tr" class="form-label">DSM y TR</label>
             <textarea
-                name="diagnosticos_dsm_tr"
-                id="diagnosticos_dsm_tr"
-                class="form-control @error('diagnosticos_dsm_tr') is-invalid @enderror"
+                name="dsm_tr"
+                id="dsm_tr"
+                class="form-control @error('dsm_tr') is-invalid @enderror"
                 rows="4"
-                maxlength="1000"
-            >{{ old('diagnosticos_dsm_tr', $expediente->diagnosticos_dsm_tr ?? '') }}</textarea>
-            <div class="form-text">Máximo 1000 caracteres.</div>
-            @error('diagnosticos_dsm_tr')
+                maxlength="255"
+            >{{ old('dsm_tr', $expediente->dsm_tr ?? '') }}</textarea>
+            <div class="form-text">Máximo 255 caracteres.</div>
+            @error('dsm_tr')
                 <div class="invalid-feedback">{{ $message }}</div>
             @enderror
         </div>
 
         <div class="col-12 col-lg-4">
-            <label for="diagnosticos_observaciones" class="form-label">Observaciones relevantes</label>
+            <label for="observaciones_relevantes" class="form-label">Observaciones relevantes</label>
             <textarea
-                name="diagnosticos_observaciones"
-                id="diagnosticos_observaciones"
-                class="form-control @error('diagnosticos_observaciones') is-invalid @enderror"
+                name="observaciones_relevantes"
+                id="observaciones_relevantes"
+                class="form-control @error('observaciones_relevantes') is-invalid @enderror"
                 rows="4"
                 maxlength="1000"
-            >{{ old('diagnosticos_observaciones', $expediente->diagnosticos_observaciones ?? '') }}</textarea>
+            >{{ old('observaciones_relevantes', $expediente->observaciones_relevantes ?? '') }}</textarea>
             <div class="form-text">Máximo 1000 caracteres.</div>
-            @error('diagnosticos_observaciones')
+            @error('observaciones_relevantes')
                 <div class="invalid-feedback">{{ $message }}</div>
             @enderror
         </div>
