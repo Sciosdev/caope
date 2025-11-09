@@ -75,6 +75,10 @@ class ExpedienteFactory extends Factory
                 : null;
         }
 
+        $planAccion = $this->faker->boolean(50)
+            ? $this->faker->paragraphs($this->faker->numberBetween(1, 2), true)
+            : null;
+
         return [
             'no_control' => sprintf('CA-%s-%04d', now()->format('Y'), $this->faker->unique()->numberBetween(1, 9999)),
             'paciente' => $this->faker->name(),
@@ -90,6 +94,7 @@ class ExpedienteFactory extends Factory
             'antecedentes_personales_patologicos' => $personalHistory,
             'antecedentes_personales_observaciones' => $this->faker->optional(0.3)->text(120),
             'antecedente_padecimiento_actual' => $this->faker->optional(0.5)->paragraph(),
+            'plan_accion' => $planAccion,
             'aparatos_sistemas' => $systemsReview,
         ];
     }

@@ -98,6 +98,7 @@ class Expediente extends Model
         'antecedentes_personales_patologicos',
         'antecedentes_personales_observaciones',
         'antecedente_padecimiento_actual',
+        'plan_accion',
         'aparatos_sistemas',
     ];
 

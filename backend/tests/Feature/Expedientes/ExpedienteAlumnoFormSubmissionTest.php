@@ -64,6 +64,10 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
             $createPayload['aparatos_sistemas']['nervioso'],
             $creado->aparatos_sistemas['nervioso']
         );
+        $this->assertSame(
+            $createPayload['plan_accion'],
+            $creado->plan_accion
+        );
 
         $expediente = Expediente::factory()->create([
             'no_control' => 'AL-2024-0002',
@@ -82,6 +86,7 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
         $updatePayload = $this->representativePayload($carrera, $turno, $nuevoTutor->id, $coordinador->id);
         $updatePayload['no_control'] = $expediente->no_control;
         $updatePayload['paciente'] = 'Alumno Actualizado';
+        $updatePayload['plan_accion'] = 'Plan de acción actualizado con metas claras.';
 
         $updateResponse = $this->actingAs($alumno)->put(route('expedientes.update', $expediente), $updatePayload);
         $updateStatus = $updateResponse->getStatusCode();
@@ -104,6 +109,10 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
         $this->assertSame(
             $updatePayload['aparatos_sistemas']['nervioso'],
             $expediente->aparatos_sistemas['nervioso']
+        );
+        $this->assertSame(
+            $updatePayload['plan_accion'],
+            $expediente->plan_accion
         );
     }
 
@@ -163,6 +172,7 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
                 'digestivo' => 'Sin alteraciones digestivas reportadas.',
                 'nervioso' => 'Refiere episodios de estrés académico.',
             ],
+            'plan_accion' => 'Plan de acción colaborativo con el tutor.',
         ];
     }
 }
