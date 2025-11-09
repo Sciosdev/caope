@@ -229,4 +229,88 @@ class ExpedienteUpdateTest extends TestCase
 
         $this->assertSame($originalPaciente, $expediente->fresh()->paciente);
     }
+
+    public function test_actualizacion_con_json_incompletos_aplica_defaults(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $creator = User::factory()->create();
+
+        $carrera = CatalogoCarrera::create([
+            'nombre' => 'Licenciatura en Trabajo Social',
+            'activo' => true,
+        ]);
+
+        $turno = CatalogoTurno::create([
+            'nombre' => 'Mixto',
+            'activo' => true,
+        ]);
+
+        CatalogoCarrera::flushCache();
+        CatalogoTurno::flushCache();
+
+        $expediente = Expediente::factory()->create([
+            'creado_por' => $creator->id,
+            'carrera' => $carrera->nombre,
+            'turno' => $turno->nombre,
+        ]);
+
+        $payload = [
+            'no_control' => $expediente->no_control,
+            'paciente' => 'Paciente Actualizado',
+            'apertura' => Carbon::now()->toDateString(),
+            'carrera' => $carrera->nombre,
+            'turno' => $turno->nombre,
+            'antecedentes_familiares' => [
+                'hipertension_arterial' => [
+                    'madre' => '1',
+                    'padre' => 'no',
+                    'otros_maternos' => 'true',
+                ],
+            ],
+            'antecedentes_personales_patologicos' => [
+                'asma' => [
+                    'padece' => 'no',
+                    'fecha' => '',
+                ],
+                'alergias' => [
+                    'padece' => 1,
+                    'fecha' => '2023-05-05',
+                ],
+            ],
+            'aparatos_sistemas' => [
+                'respiratorio' => 'Paciente con ligera tos',
+                'cardiovascular' => null,
+                'tegumentario' => '  Observaciones cutáneas  ',
+            ],
+        ];
+
+        $response = $this->actingAs($admin)->put(route('expedientes.update', $expediente), $payload);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertSessionHas('status', 'Expediente actualizado correctamente.');
+
+        $expediente->refresh();
+
+        $defaultsFamily = Expediente::defaultFamilyHistory();
+        $this->assertSame(array_keys($defaultsFamily), array_keys($expediente->antecedentes_familiares));
+        $this->assertTrue($expediente->antecedentes_familiares['hipertension_arterial']['madre']);
+        $this->assertFalse($expediente->antecedentes_familiares['hipertension_arterial']['padre']);
+        $this->assertTrue($expediente->antecedentes_familiares['hipertension_arterial']['otros_maternos']);
+        $this->assertFalse($expediente->antecedentes_familiares['hipertension_arterial']['abuela_materna']);
+
+        $defaultsPersonal = Expediente::defaultPersonalPathologicalHistory();
+        $this->assertSame(array_keys($defaultsPersonal), array_keys($expediente->antecedentes_personales_patologicos));
+        $this->assertFalse($expediente->antecedentes_personales_patologicos['asma']['padece']);
+        $this->assertNull($expediente->antecedentes_personales_patologicos['asma']['fecha']);
+        $this->assertTrue($expediente->antecedentes_personales_patologicos['alergias']['padece']);
+        $this->assertSame('2023-05-05', $expediente->antecedentes_personales_patologicos['alergias']['fecha']);
+
+        $defaultsSystems = Expediente::defaultSystemsReview();
+        $this->assertSame(array_keys($defaultsSystems), array_keys($expediente->aparatos_sistemas));
+        $this->assertSame('Paciente con ligera tos', $expediente->aparatos_sistemas['respiratorio']);
+        $this->assertNull($expediente->aparatos_sistemas['cardiovascular']);
+        $this->assertSame('Observaciones cutáneas', $expediente->aparatos_sistemas['tegumentario']);
+    }
 }

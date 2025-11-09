@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Expediente;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -12,14 +13,14 @@ return new class extends Migration
         Schema::table('expedientes', function (Blueprint $table) {
             $table->json('antecedentes_familiares')
                 ->after('coordinador_id')
-                ->default(json_encode($this->defaultFamilyHistory(), JSON_UNESCAPED_UNICODE));
+                ->default(json_encode(Expediente::defaultFamilyHistory(), JSON_UNESCAPED_UNICODE));
             $table->text('antecedentes_observaciones')
                 ->after('antecedentes_familiares')
                 ->nullable();
         });
 
         DB::table('expedientes')->update([
-            'antecedentes_familiares' => json_encode($this->defaultFamilyHistory(), JSON_UNESCAPED_UNICODE),
+            'antecedentes_familiares' => json_encode(Expediente::defaultFamilyHistory(), JSON_UNESCAPED_UNICODE),
             'antecedentes_observaciones' => null,
         ]);
     }
@@ -31,37 +32,4 @@ return new class extends Migration
         });
     }
 
-    private function defaultFamilyHistory(): array
-    {
-        $members = [
-            'madre',
-            'padre',
-            'hermanos',
-            'abuelos',
-            'tios',
-            'otros',
-        ];
-
-        $conditions = [
-            'diabetes_mellitus',
-            'hipertension_arterial',
-            'cardiopatias',
-            'cancer',
-            'obesidad',
-            'enfermedad_renal',
-            'trastornos_mentales',
-        ];
-
-        $defaults = [];
-
-        foreach ($conditions as $condition) {
-            $defaults[$condition] = [];
-
-            foreach ($members as $member) {
-                $defaults[$condition][$member] = false;
-            }
-        }
-
-        return $defaults;
-    }
 };
