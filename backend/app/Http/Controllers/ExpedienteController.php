@@ -16,10 +16,13 @@ use App\Notifications\TutorAssignedNotification;
 use App\Services\ExpedienteStateValidator;
 use App\Services\TimelineLogger;
 use Carbon\Carbon;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -154,12 +157,12 @@ class ExpedienteController extends Controller
 
         $expediente = Expediente::create($data);
 
-        $this->timelineLogger->log($expediente, 'expediente.creado', $request->user(), [
+        $this->logTimelineEvent($expediente, 'expediente.creado', $request->user(), [
             'datos' => Arr::only($expediente->toArray(), self::TIMELINE_FIELDS),
         ]);
 
         if ($request->user()->hasRole('alumno') && ($historyProvided || $personalHistoryProvided || $systemsProvided)) {
-            $this->timelineLogger->log($expediente, 'expediente.antecedentes_registrados', $request->user(), [
+            $this->logTimelineEvent($expediente, 'expediente.antecedentes_registrados', $request->user(), [
                 'datos' => [
                     'familiares' => $expediente->antecedentes_familiares,
                     'observaciones' => $expediente->antecedentes_observaciones,
@@ -307,7 +310,7 @@ class ExpedienteController extends Controller
             ->all();
 
         if (! empty($cambios)) {
-            $this->timelineLogger->log($expediente, 'expediente.actualizado', $request->user(), [
+            $this->logTimelineEvent($expediente, 'expediente.actualizado', $request->user(), [
                 'antes' => Arr::only($before, $cambios),
                 'despues' => Arr::only($after, $cambios),
                 'campos' => $cambios,
@@ -324,7 +327,7 @@ class ExpedienteController extends Controller
         }
 
         if ($request->user()->hasRole('alumno') && ($familyHistoryChanged || $personalHistoryChanged || $systemsHistoryChanged)) {
-            $this->timelineLogger->log($expediente, 'expediente.antecedentes_actualizados', $request->user(), [
+            $this->logTimelineEvent($expediente, 'expediente.antecedentes_actualizados', $request->user(), [
                 'antes' => $antecedentesAntes,
                 'despues' => [
                     'familiares' => $expediente->antecedentes_familiares ?? Expediente::defaultFamilyHistory(),
@@ -397,6 +400,19 @@ class ExpedienteController extends Controller
         return redirect()
             ->route('expedientes.show', $expediente)
             ->with('status', 'Estado del expediente actualizado correctamente.');
+    }
+
+    private function logTimelineEvent(Expediente $expediente, string $event, ?Authenticatable $actor, array $payload = []): void
+    {
+        if (! Schema::hasTable('timeline_eventos')) {
+            return;
+        }
+
+        try {
+            $this->timelineLogger->log($expediente, $event, $actor, $payload);
+        } catch (QueryException $exception) {
+            report($exception);
+        }
     }
 
     protected function formOptions(): array
