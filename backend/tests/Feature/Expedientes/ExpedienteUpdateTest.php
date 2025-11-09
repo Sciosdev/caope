@@ -285,6 +285,7 @@ class ExpedienteUpdateTest extends TestCase
                 'cardiovascular' => null,
                 'tegumentario' => '  Observaciones cutáneas  ',
             ],
+            'plan_accion' => '  Plan de acción enfocado en hábitos saludables.  ',
         ];
 
         $response = $this->actingAs($admin)->put(route('expedientes.update', $expediente), $payload);
@@ -313,6 +314,7 @@ class ExpedienteUpdateTest extends TestCase
         $this->assertSame('Paciente con ligera tos', $expediente->aparatos_sistemas['respiratorio']);
         $this->assertNull($expediente->aparatos_sistemas['cardiovascular']);
         $this->assertSame('Observaciones cutáneas', $expediente->aparatos_sistemas['tegumentario']);
+        $this->assertSame('Plan de acción enfocado en hábitos saludables.', $expediente->plan_accion);
     }
 
     public function test_update_returns_json_payload_with_loaded_relations(): void

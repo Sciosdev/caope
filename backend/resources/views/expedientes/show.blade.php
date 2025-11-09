@@ -348,6 +348,15 @@
                                 </div>
                             @endforeach
                         </div>
+
+                        <hr class="my-4">
+
+                        <h6 class="mb-3">Plan de Acción</h6>
+                        @if (filled($expediente->plan_accion))
+                            <p class="mb-0">{!! nl2br(e($expediente->plan_accion)) !!}</p>
+                        @else
+                            <p class="mb-0 text-muted fst-italic">Sin información registrada.</p>
+                        @endif
                     </div>
                 </div>
             @endif

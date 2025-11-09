@@ -48,6 +48,7 @@ trait ExpedienteFormRules
             'antecedentes_observaciones',
             'antecedentes_personales_observaciones',
             'antecedente_padecimiento_actual',
+            'plan_accion',
         ] as $field) {
             if ($this->has($field)) {
                 $value = $this->input($field);
@@ -105,6 +106,7 @@ trait ExpedienteFormRules
             'antecedentes_personales_patologicos' => ['sometimes', 'array'],
             'antecedentes_personales_observaciones' => ['sometimes', 'nullable', 'string', 'max:500'],
             'antecedente_padecimiento_actual' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'plan_accion' => ['sometimes', 'nullable', 'string', 'max:1000'],
             'aparatos_sistemas' => ['sometimes', 'array'],
             ...$this->familyHistoryMemberRules(),
             ...$this->personalPathologicalRules(),
@@ -330,6 +332,7 @@ trait ExpedienteFormRules
             'antecedentes_personales_patologicos',
             'antecedentes_personales_observaciones',
             'antecedente_padecimiento_actual',
+            'plan_accion',
             'aparatos_sistemas',
         ]);
     }

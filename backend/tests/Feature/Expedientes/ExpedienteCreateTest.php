@@ -159,6 +159,7 @@ class ExpedienteCreateTest extends TestCase
         $this->assertNull($expediente->aparatos_sistemas['digestivo']);
         $this->assertSame('Sin alteraciones respiratorias', $expediente->aparatos_sistemas['respiratorio']);
         $this->assertNull($expediente->aparatos_sistemas['nervioso']);
+        $this->assertNull($expediente->plan_accion);
     }
 
     public function test_store_returns_json_payload_with_loaded_relations(): void

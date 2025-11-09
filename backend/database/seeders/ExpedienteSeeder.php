@@ -87,6 +87,9 @@ class ExpedienteSeeder extends Seeder
             $currentCondition = $faker->boolean(55)
                 ? $faker->paragraphs($faker->numberBetween(1, 2), true)
                 : null;
+            $planAccion = $faker->boolean(60)
+                ? $faker->paragraphs($faker->numberBetween(1, 2), true)
+                : null;
 
             $expediente = Expediente::factory()->create([
                 'estado' => $estado,
@@ -101,6 +104,7 @@ class ExpedienteSeeder extends Seeder
                 'antecedentes_personales_patologicos' => $personalHistory,
                 'antecedentes_personales_observaciones' => $personalNotes,
                 'antecedente_padecimiento_actual' => $currentCondition,
+                'plan_accion' => $planAccion,
                 'aparatos_sistemas' => $systemsReview,
             ]);
 

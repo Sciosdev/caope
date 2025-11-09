@@ -134,6 +134,7 @@ class ExpedienteFamilyHistoryTest extends TestCase
             'antecedentes_personales_observaciones' => 'Asma desde la infancia, cirugía en 2023.',
             'antecedente_padecimiento_actual' => 'Acude por seguimiento psicológico posterior a cirugía de rodilla.',
             'aparatos_sistemas' => $systemsPayload,
+            'plan_accion' => 'Plan de acompañamiento individual con sesiones quincenales.',
         ];
 
         $response = $this->actingAs($alumno)->post(route('expedientes.store'), $payload);
@@ -168,6 +169,10 @@ class ExpedienteFamilyHistoryTest extends TestCase
         $this->assertSame(
             $payload['antecedente_padecimiento_actual'],
             $expediente->antecedente_padecimiento_actual
+        );
+        $this->assertSame(
+            $payload['plan_accion'],
+            $expediente->plan_accion
         );
         $this->assertSame(
             $systemsPayload,
@@ -210,6 +215,10 @@ class ExpedienteFamilyHistoryTest extends TestCase
             $expediente->aparatos_sistemas,
             $creacionEvento->payload['datos']['aparatos_sistemas']
         );
+        $this->assertSame(
+            $expediente->plan_accion,
+            $creacionEvento->payload['datos']['plan_accion']
+        );
 
         $antecedentesEvento = $expediente->timelineEventos()
             ->where('evento', 'expediente.antecedentes_registrados')
@@ -240,6 +249,10 @@ class ExpedienteFamilyHistoryTest extends TestCase
         $this->assertSame(
             $expediente->aparatos_sistemas,
             $antecedentesEvento->payload['datos']['aparatos_sistemas']
+        );
+        $this->assertSame(
+            $expediente->plan_accion,
+            $antecedentesEvento->payload['datos']['plan_accion']
         );
     }
 
@@ -291,6 +304,7 @@ class ExpedienteFamilyHistoryTest extends TestCase
             'antecedentes_personales_patologicos' => $initialPersonal,
             'antecedentes_personales_observaciones' => 'Asma controlada con inhalador.',
             'antecedente_padecimiento_actual' => 'Consulta inicial por crisis de ansiedad.',
+            'plan_accion' => 'Plan inicial con seguimiento mensual.',
             'aparatos_sistemas' => $initialSystems,
         ]);
 
@@ -347,6 +361,7 @@ class ExpedienteFamilyHistoryTest extends TestCase
             'antecedentes_personales_observaciones' => 'Cirugía de rodilla en 2024.',
             'antecedente_padecimiento_actual' => 'Seguimiento posterior a cirugía con buena evolución.',
             'aparatos_sistemas' => $updatedSystems,
+            'plan_accion' => 'Plan actualizado con actividades semanales.',
         ];
 
         $response = $this->actingAs($alumno)->put(route('expedientes.update', $expediente), $payload);
@@ -377,6 +392,10 @@ class ExpedienteFamilyHistoryTest extends TestCase
             $expediente->antecedente_padecimiento_actual
         );
         $this->assertSame(
+            $payload['plan_accion'],
+            $expediente->plan_accion
+        );
+        $this->assertSame(
             $updatedSystems,
             $expediente->aparatos_sistemas
         );
@@ -393,6 +412,7 @@ class ExpedienteFamilyHistoryTest extends TestCase
         $this->assertContains('antecedentes_personales_observaciones', $actualizacionEvento->payload['campos']);
         $this->assertContains('antecedente_padecimiento_actual', $actualizacionEvento->payload['campos']);
         $this->assertContains('aparatos_sistemas', $actualizacionEvento->payload['campos']);
+        $this->assertContains('plan_accion', $actualizacionEvento->payload['campos']);
 
         $antecedentesEvento = $expediente->timelineEventos()
             ->where('evento', 'expediente.antecedentes_actualizados')
@@ -435,6 +455,14 @@ class ExpedienteFamilyHistoryTest extends TestCase
         $this->assertSame(
             $updatedSystems,
             $antecedentesEvento->payload['despues']['aparatos_sistemas']
+        );
+        $this->assertSame(
+            'Plan inicial con seguimiento mensual.',
+            $antecedentesEvento->payload['antes']['plan_accion']
+        );
+        $this->assertSame(
+            $payload['plan_accion'],
+            $antecedentesEvento->payload['despues']['plan_accion']
         );
     }
 
@@ -487,6 +515,7 @@ class ExpedienteFamilyHistoryTest extends TestCase
                 'nervioso' => 'Sueño regular.',
                 'tegumentario' => 'Piel íntegra.',
             ],
+            'plan_accion' => str_repeat('p', 1200),
         ];
 
         $response = $this->actingAs($alumno)->post(route('expedientes.store'), $payload);
@@ -500,6 +529,7 @@ class ExpedienteFamilyHistoryTest extends TestCase
             'antecedente_padecimiento_actual',
             'aparatos_sistemas.digestivo',
             'aparatos_sistemas.respiratorio',
+            'plan_accion',
         ]);
     }
 }
