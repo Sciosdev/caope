@@ -160,4 +160,44 @@ class ExpedienteCreateTest extends TestCase
         $this->assertSame('Sin alteraciones respiratorias', $expediente->aparatos_sistemas['respiratorio']);
         $this->assertNull($expediente->aparatos_sistemas['nervioso']);
     }
+
+    public function test_store_returns_json_payload_with_loaded_relations(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $carrera = CatalogoCarrera::create([
+            'nombre' => 'Licenciatura en Enfermería',
+            'activo' => true,
+        ]);
+
+        $turno = CatalogoTurno::create([
+            'nombre' => 'Matutino',
+            'activo' => true,
+        ]);
+
+        CatalogoCarrera::flushCache();
+        CatalogoTurno::flushCache();
+
+        $payload = [
+            'no_control' => 'CA-2025-0400',
+            'paciente' => 'Paciente API',
+            'apertura' => Carbon::now()->toDateString(),
+            'carrera' => $carrera->nombre,
+            'turno' => $turno->nombre,
+        ];
+
+        $response = $this->actingAs($admin)->postJson(route('expedientes.store'), $payload);
+
+        $response->assertCreated();
+        $response->assertJsonPath('message', 'Expediente creado correctamente.');
+        $response->assertJsonPath('student_error_message', __('expedientes.messages.student_save_error'));
+
+        $expediente = Expediente::where('no_control', $payload['no_control'])->first();
+        $this->assertNotNull($expediente);
+
+        $response->assertJsonPath('expediente.id', $expediente->id);
+        $response->assertJsonPath('expediente.alumno.id', $admin->id);
+        $response->assertJsonPath('expediente.anexos', []);
+    }
 }

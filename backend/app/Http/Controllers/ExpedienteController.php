@@ -18,6 +18,7 @@ use App\Services\TimelineLogger;
 use Carbon\Carbon;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\QueryException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -128,7 +129,7 @@ class ExpedienteController extends Controller
         ]));
     }
 
-    public function store(StoreExpedienteRequest $request): RedirectResponse
+    public function store(StoreExpedienteRequest $request): JsonResponse|RedirectResponse
     {
         $data = $request->validatedExpedienteData();
         $historyProvided = array_key_exists('antecedentes_familiares', $data)
@@ -174,9 +175,19 @@ class ExpedienteController extends Controller
             ]);
         }
 
+        if ($request->expectsJson()) {
+            $this->loadExpedienteForApi($expediente);
+
+            return response()->json([
+                'message' => __('expedientes.messages.store_success'),
+                'expediente' => $expediente,
+                'student_error_message' => __('expedientes.messages.student_save_error'),
+            ], 201);
+        }
+
         return redirect()
             ->route('expedientes.show', $expediente)
-            ->with('status', 'Expediente creado correctamente.');
+            ->with('status', __('expedientes.messages.store_success'));
     }
 
     public function show(Request $request, Expediente $expediente): View
@@ -209,25 +220,7 @@ class ExpedienteController extends Controller
             'timelineEventos' => fn ($q) => $q->with('actor')->orderByDesc('created_at'),
         ]);
 
-        $expediente->anexos->each(function (Anexo $anexo) use ($expediente) {
-            $anexo->setAttribute(
-                'download_url',
-                URL::temporarySignedRoute(
-                    'expedientes.anexos.show',
-                    now()->addMinutes(30),
-                    [$expediente, $anexo]
-                )
-            );
-
-            $anexo->setAttribute(
-                'preview_url',
-                URL::temporarySignedRoute(
-                    'expedientes.anexos.preview',
-                    now()->addMinutes(30),
-                    [$expediente, $anexo]
-                )
-            );
-        });
+        $this->hydrateAnexoLinks($expediente);
 
         $anexosMimes = (string) Parametro::obtener('uploads.anexos.mimes', 'pdf,jpg,jpeg,png,doc,docx,xls,xlsx,ppt,pptx,txt,csv');
         $anexosMax = (int) Parametro::obtener('uploads.anexos.max', 51200);
@@ -271,7 +264,7 @@ class ExpedienteController extends Controller
         ]));
     }
 
-    public function update(UpdateExpedienteRequest $request, Expediente $expediente): RedirectResponse
+    public function update(UpdateExpedienteRequest $request, Expediente $expediente): JsonResponse|RedirectResponse
     {
         $data = $request->validatedExpedienteData();
         $before = Arr::only($expediente->getAttributes(), self::TIMELINE_FIELDS);
@@ -341,9 +334,20 @@ class ExpedienteController extends Controller
             ]);
         }
 
+        if ($request->expectsJson()) {
+            $expediente->refresh();
+            $this->loadExpedienteForApi($expediente);
+
+            return response()->json([
+                'message' => __('expedientes.messages.update_success'),
+                'expediente' => $expediente,
+                'student_error_message' => __('expedientes.messages.student_save_error'),
+            ]);
+        }
+
         return redirect()
             ->route('expedientes.show', $expediente)
-            ->with('status', 'Expediente actualizado correctamente.');
+            ->with('status', __('expedientes.messages.update_success'));
     }
 
     public function destroy(Expediente $expediente): RedirectResponse
@@ -434,6 +438,41 @@ class ExpedienteController extends Controller
             'personalPathologicalConditions' => Expediente::PERSONAL_PATHOLOGICAL_CONDITIONS,
             'systemsReviewSections' => Expediente::SYSTEMS_REVIEW_SECTIONS,
         ];
+    }
+
+    private function loadExpedienteForApi(Expediente $expediente): void
+    {
+        $expediente->load([
+            'alumno',
+            'tutor',
+            'coordinador',
+            'anexos' => fn ($query) => $query->with('subidoPor')->latest(),
+        ]);
+
+        $this->hydrateAnexoLinks($expediente);
+    }
+
+    private function hydrateAnexoLinks(Expediente $expediente): void
+    {
+        $expediente->anexos->each(function (Anexo $anexo) use ($expediente) {
+            $anexo->setAttribute(
+                'download_url',
+                URL::temporarySignedRoute(
+                    'expedientes.anexos.show',
+                    now()->addMinutes(30),
+                    [$expediente, $anexo]
+                )
+            );
+
+            $anexo->setAttribute(
+                'preview_url',
+                URL::temporarySignedRoute(
+                    'expedientes.anexos.preview',
+                    now()->addMinutes(30),
+                    [$expediente, $anexo]
+                )
+            );
+        });
     }
 
     /**

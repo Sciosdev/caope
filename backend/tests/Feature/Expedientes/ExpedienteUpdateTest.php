@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Expedientes;
 
+use App\Models\Anexo;
 use App\Models\CatalogoCarrera;
 use App\Models\CatalogoTurno;
 use App\Models\Expediente;
@@ -312,5 +313,64 @@ class ExpedienteUpdateTest extends TestCase
         $this->assertSame('Paciente con ligera tos', $expediente->aparatos_sistemas['respiratorio']);
         $this->assertNull($expediente->aparatos_sistemas['cardiovascular']);
         $this->assertSame('Observaciones cutáneas', $expediente->aparatos_sistemas['tegumentario']);
+    }
+
+    public function test_update_returns_json_payload_with_loaded_relations(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $carrera = CatalogoCarrera::create([
+            'nombre' => 'Licenciatura en Enfermería',
+            'activo' => true,
+        ]);
+
+        $turno = CatalogoTurno::create([
+            'nombre' => 'Matutino',
+            'activo' => true,
+        ]);
+
+        CatalogoCarrera::flushCache();
+        CatalogoTurno::flushCache();
+
+        $expediente = Expediente::factory()->create([
+            'creado_por' => $admin->id,
+            'carrera' => $carrera->nombre,
+            'turno' => $turno->nombre,
+        ]);
+
+        $anexo = Anexo::create([
+            'expediente_id' => $expediente->id,
+            'titulo' => 'Plan de trabajo',
+            'tipo' => 'pdf',
+            'ruta' => 'expedientes/'.$expediente->id.'/anexos/plan.pdf',
+            'disk' => 'private',
+            'tamano' => 1024,
+            'subido_por' => $admin->id,
+        ]);
+
+        $payload = [
+            'no_control' => $expediente->no_control,
+            'paciente' => 'Paciente Actualizado',
+            'apertura' => Carbon::now()->toDateString(),
+            'carrera' => $carrera->nombre,
+            'turno' => $turno->nombre,
+        ];
+
+        $response = $this->actingAs($admin)->putJson(route('expedientes.update', $expediente), $payload);
+
+        $response->assertOk();
+        $response->assertJsonPath('message', 'Expediente actualizado correctamente.');
+        $response->assertJsonPath('student_error_message', __('expedientes.messages.student_save_error'));
+        $response->assertJsonPath('expediente.id', $expediente->id);
+        $response->assertJsonPath('expediente.alumno.id', $admin->id);
+
+        $json = $response->json('expediente.anexos');
+        $this->assertIsArray($json);
+        $this->assertNotEmpty($json);
+        $this->assertSame($anexo->id, $json[0]['id']);
+        $this->assertArrayHasKey('download_url', $json[0]);
+        $this->assertArrayHasKey('preview_url', $json[0]);
+        $this->assertStringContainsString((string) $anexo->id, $json[0]['download_url']);
     }
 }
