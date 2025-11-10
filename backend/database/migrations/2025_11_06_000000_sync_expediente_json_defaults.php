@@ -207,13 +207,13 @@ return new class extends Migration
         $this->ensureColumnsFilled($familyDefaults, $personalDefaults, $systemsDefaults);
 
         if ($supportsJsonDefaults) {
-            $familyJson = $connection->getPdo()->quote(json_encode($familyDefaults, JSON_UNESCAPED_UNICODE));
-            $personalJson = $connection->getPdo()->quote(json_encode($personalDefaults, JSON_UNESCAPED_UNICODE));
-            $systemsJson = $connection->getPdo()->quote(json_encode($systemsDefaults, JSON_UNESCAPED_UNICODE));
+            $familyJson = $connection->getPdo()->quote(json_encode($familyDefaults, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            $personalJson = $connection->getPdo()->quote(json_encode($personalDefaults, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            $systemsJson = $connection->getPdo()->quote(json_encode($systemsDefaults, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 
             DB::statement("ALTER TABLE `expedientes` MODIFY `antecedentes_familiares` JSON NOT NULL DEFAULT {$familyJson}");
             DB::statement("ALTER TABLE `expedientes` MODIFY `antecedentes_personales_patologicos` JSON NOT NULL DEFAULT {$personalJson}");
-            DB::statement("ALTER TABLE `expedientes` MODIFY `aparatos_sistemas` JSON NULL DEFAULT {$systemsJson}");
+            DB::statement("ALTER TABLE `expedientes` MODIFY `aparatos_sistemas` JSON NOT NULL DEFAULT {$systemsJson}");
 
             return;
         }
@@ -225,9 +225,9 @@ return new class extends Migration
 
     private function ensureColumnsFilled(array $familyDefaults, array $personalDefaults, array $systemsDefaults): void
     {
-        $familyJson = json_encode($familyDefaults, JSON_UNESCAPED_UNICODE);
-        $personalJson = json_encode($personalDefaults, JSON_UNESCAPED_UNICODE);
-        $systemsJson = json_encode($systemsDefaults, JSON_UNESCAPED_UNICODE);
+        $familyJson = json_encode($familyDefaults, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $personalJson = json_encode($personalDefaults, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $systemsJson = json_encode($systemsDefaults, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
         DB::table('expedientes')
             ->whereNull('antecedentes_familiares')
@@ -246,19 +246,7 @@ return new class extends Migration
     {
         $result = DB::selectOne('select version() as version');
 
-        if ($result === null) {
-            return null;
-        }
-
-        if (is_object($result) && isset($result->version)) {
-            return (string) $result->version;
-        }
-
-        if (is_array($result) && isset($result['version'])) {
-            return (string) $result['version'];
-        }
-
-        return null;
+        return $this->normalizeVersionResult($result);
     }
 
     private function supportsJsonDefaults(string $driver, ?string $version): bool
@@ -267,17 +255,77 @@ return new class extends Migration
             return false;
         }
 
-        if (stripos($version, 'mariadb') !== false || $driver === 'mariadb') {
+        $normalized = $this->normalizeVersionString($version);
+
+        if ($normalized === null) {
             return false;
         }
 
-        $normalizedVersion = $this->extractVersionNumber($version);
-
-        if ($normalizedVersion === null) {
+        if (stripos($normalized, 'mariadb') !== false || $driver === 'mariadb') {
             return false;
         }
 
-        return version_compare($normalizedVersion, '8.0.13', '>=');
+        $versionNumber = $this->extractVersionNumber($normalized);
+
+        if ($versionNumber === null) {
+            return false;
+        }
+
+        return version_compare($versionNumber, '8.0.13', '>=');
+    }
+
+    private function normalizeVersionResult(mixed $result): ?string
+    {
+        if ($result === null) {
+            return null;
+        }
+
+        if (is_object($result)) {
+            if (isset($result->version)) {
+                return $this->normalizeVersionString((string) $result->version);
+            }
+
+            if (isset($result->{'VERSION()'})) {
+                return $this->normalizeVersionString((string) $result->{'VERSION()'});
+            }
+        }
+
+        if (is_array($result)) {
+            if (isset($result['version'])) {
+                return $this->normalizeVersionString((string) $result['version']);
+            }
+
+            if (isset($result['VERSION()'])) {
+                return $this->normalizeVersionString((string) $result['VERSION()']);
+            }
+        }
+
+        if (is_string($result)) {
+            return $this->normalizeVersionString($result);
+        }
+
+        return null;
+    }
+
+    private function normalizeVersionString(?string $version): ?string
+    {
+        if ($version === null) {
+            return null;
+        }
+
+        $trimmed = trim($version);
+
+        if ($trimmed === '') {
+            return null;
+        }
+
+        $collapsed = preg_replace('/\s+/', ' ', $trimmed);
+
+        if (! is_string($collapsed)) {
+            return null;
+        }
+
+        return $collapsed;
     }
 
     private function extractVersionNumber(string $version): ?string
