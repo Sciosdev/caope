@@ -338,7 +338,7 @@ trait ExpedienteFormRules
             }
         }
 
-        return $value;
+        return $default;
     }
 
     private function normalizeDateField(mixed $value): ?string
