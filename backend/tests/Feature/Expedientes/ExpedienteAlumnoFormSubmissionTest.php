@@ -52,6 +52,16 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
 
         $creado = Expediente::where('no_control', $createPayload['no_control'])->first();
         $this->assertNotNull($creado, 'El expediente del alumno no se creó en la base de datos.');
+
+        $storeResponse->assertRedirect(route('expedientes.show', $creado));
+        $storeResponse->assertSessionHas('status', __('expedientes.messages.store_success'));
+
+        $this->actingAs($alumno)
+            ->get(route('expedientes.index'))
+            ->assertOk()
+            ->assertSee($createPayload['no_control'])
+            ->assertSee($createPayload['paciente']);
+
         $this->assertSame($alumno->id, $creado->creado_por);
         $this->assertTrue($creado->antecedentes_familiares['diabetes_mellitus']['madre']);
         $this->assertTrue($creado->antecedentes_familiares['hipertension_arterial']['padre']);

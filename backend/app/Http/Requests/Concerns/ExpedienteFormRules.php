@@ -30,6 +30,12 @@ trait ExpedienteFormRules
                 'aparatos_sistemas' => $this->sanitizeSystemsReview($this->input('aparatos_sistemas')),
             ]);
         }
+
+        if ($this->has('apertura')) {
+            $this->merge([
+                'apertura' => $this->normalizeDateField($this->input('apertura')),
+            ]);
+        }
     }
 
     /**
