@@ -42,7 +42,27 @@ return new class extends Migration
 
     public function down(): void
     {
-        // No se requiere revertir los datos normalizados.
+        $connection = DB::connection();
+        $driver = $connection->getDriverName();
+
+        if ($driver !== 'mysql' && $driver !== 'mariadb') {
+            return;
+        }
+
+        $version = $this->getDatabaseVersion();
+        $supportsJsonDefaults = $this->supportsJsonDefaults($driver, $version);
+
+        if ($supportsJsonDefaults) {
+            DB::statement('ALTER TABLE `expedientes` MODIFY `antecedentes_familiares` JSON NOT NULL');
+            DB::statement('ALTER TABLE `expedientes` MODIFY `antecedentes_personales_patologicos` JSON NOT NULL');
+            DB::statement('ALTER TABLE `expedientes` MODIFY `aparatos_sistemas` JSON NOT NULL');
+
+            return;
+        }
+
+        DB::statement('ALTER TABLE `expedientes` MODIFY `antecedentes_familiares` JSON NULL');
+        DB::statement('ALTER TABLE `expedientes` MODIFY `antecedentes_personales_patologicos` JSON NULL');
+        DB::statement('ALTER TABLE `expedientes` MODIFY `aparatos_sistemas` JSON NULL');
     }
 
     /**
@@ -181,12 +201,95 @@ return new class extends Migration
             return;
         }
 
-        $familyJson = $connection->getPdo()->quote(json_encode($familyDefaults, JSON_UNESCAPED_UNICODE));
-        $personalJson = $connection->getPdo()->quote(json_encode($personalDefaults, JSON_UNESCAPED_UNICODE));
-        $systemsJson = $connection->getPdo()->quote(json_encode($systemsDefaults, JSON_UNESCAPED_UNICODE));
+        $version = $this->getDatabaseVersion();
+        $supportsJsonDefaults = $this->supportsJsonDefaults($driver, $version);
 
-        DB::statement("ALTER TABLE `expedientes` MODIFY `antecedentes_familiares` JSON NOT NULL DEFAULT {$familyJson}");
-        DB::statement("ALTER TABLE `expedientes` MODIFY `antecedentes_personales_patologicos` JSON NOT NULL DEFAULT {$personalJson}");
-        DB::statement("ALTER TABLE `expedientes` MODIFY `aparatos_sistemas` JSON NULL DEFAULT {$systemsJson}");
+        $this->ensureColumnsFilled($familyDefaults, $personalDefaults, $systemsDefaults);
+
+        if ($supportsJsonDefaults) {
+            $familyJson = $connection->getPdo()->quote(json_encode($familyDefaults, JSON_UNESCAPED_UNICODE));
+            $personalJson = $connection->getPdo()->quote(json_encode($personalDefaults, JSON_UNESCAPED_UNICODE));
+            $systemsJson = $connection->getPdo()->quote(json_encode($systemsDefaults, JSON_UNESCAPED_UNICODE));
+
+            DB::statement("ALTER TABLE `expedientes` MODIFY `antecedentes_familiares` JSON NOT NULL DEFAULT {$familyJson}");
+            DB::statement("ALTER TABLE `expedientes` MODIFY `antecedentes_personales_patologicos` JSON NOT NULL DEFAULT {$personalJson}");
+            DB::statement("ALTER TABLE `expedientes` MODIFY `aparatos_sistemas` JSON NULL DEFAULT {$systemsJson}");
+
+            return;
+        }
+
+        DB::statement('ALTER TABLE `expedientes` MODIFY `antecedentes_familiares` JSON NOT NULL');
+        DB::statement('ALTER TABLE `expedientes` MODIFY `antecedentes_personales_patologicos` JSON NOT NULL');
+        DB::statement('ALTER TABLE `expedientes` MODIFY `aparatos_sistemas` JSON NOT NULL');
+    }
+
+    private function ensureColumnsFilled(array $familyDefaults, array $personalDefaults, array $systemsDefaults): void
+    {
+        $familyJson = json_encode($familyDefaults, JSON_UNESCAPED_UNICODE);
+        $personalJson = json_encode($personalDefaults, JSON_UNESCAPED_UNICODE);
+        $systemsJson = json_encode($systemsDefaults, JSON_UNESCAPED_UNICODE);
+
+        DB::table('expedientes')
+            ->whereNull('antecedentes_familiares')
+            ->update(['antecedentes_familiares' => $familyJson]);
+
+        DB::table('expedientes')
+            ->whereNull('antecedentes_personales_patologicos')
+            ->update(['antecedentes_personales_patologicos' => $personalJson]);
+
+        DB::table('expedientes')
+            ->whereNull('aparatos_sistemas')
+            ->update(['aparatos_sistemas' => $systemsJson]);
+    }
+
+    private function getDatabaseVersion(): ?string
+    {
+        $result = DB::selectOne('select version() as version');
+
+        if ($result === null) {
+            return null;
+        }
+
+        if (is_object($result) && isset($result->version)) {
+            return (string) $result->version;
+        }
+
+        if (is_array($result) && isset($result['version'])) {
+            return (string) $result['version'];
+        }
+
+        return null;
+    }
+
+    private function supportsJsonDefaults(string $driver, ?string $version): bool
+    {
+        if ($version === null) {
+            return false;
+        }
+
+        if (stripos($version, 'mariadb') !== false || $driver === 'mariadb') {
+            return false;
+        }
+
+        $normalizedVersion = $this->extractVersionNumber($version);
+
+        if ($normalizedVersion === null) {
+            return false;
+        }
+
+        return version_compare($normalizedVersion, '8.0.13', '>=');
+    }
+
+    private function extractVersionNumber(string $version): ?string
+    {
+        if (preg_match('/(\d+\.\d+\.\d+)/', $version, $matches)) {
+            return $matches[1];
+        }
+
+        if (preg_match('/(\d+\.\d+)/', $version, $matches)) {
+            return $matches[1];
+        }
+
+        return null;
     }
 };
