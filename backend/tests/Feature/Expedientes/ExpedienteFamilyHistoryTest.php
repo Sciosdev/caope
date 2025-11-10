@@ -729,4 +729,102 @@ class ExpedienteFamilyHistoryTest extends TestCase
             $expediente->antecedentes_personales_patologicos['asma']['fecha']
         );
     }
+
+    public function test_prepare_for_validation_sanitizes_boolean_values_on_store_and_update(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $carrera = CatalogoCarrera::create([
+            'nombre' => 'Ingeniería en Producción',
+            'activo' => true,
+        ]);
+
+        $turno = CatalogoTurno::create([
+            'nombre' => 'Nocturno',
+            'activo' => true,
+        ]);
+
+        CatalogoCarrera::flushCache();
+        CatalogoTurno::flushCache();
+
+        $storePayload = [
+            'no_control' => 'AL-2025-0100',
+            'paciente' => 'Paciente Valores Booleanos',
+            'apertura' => Carbon::now()->toDateString(),
+            'carrera' => $carrera->nombre,
+            'turno' => $turno->nombre,
+            'antecedentes_familiares' => [
+                'epilepsia' => [
+                    'madre' => 'Sí',
+                    'padre' => 'off',
+                    'otros_maternos' => 'On',
+                    'otros_paternos' => '   ',
+                ],
+            ],
+            'antecedentes_personales_patologicos' => [
+                'asma' => [
+                    'padece' => 'sí',
+                    'fecha' => '',
+                ],
+                'alergias' => [
+                    'padece' => 'OFF',
+                    'fecha' => null,
+                ],
+            ],
+        ];
+
+        $storeResponse = $this->actingAs($admin)->post(route('expedientes.store'), $storePayload);
+
+        $storeResponse->assertSessionHasNoErrors();
+
+        $expediente = Expediente::where('no_control', $storePayload['no_control'])->first();
+        $this->assertNotNull($expediente);
+
+        $this->assertTrue($expediente->antecedentes_familiares['epilepsia']['madre']);
+        $this->assertFalse($expediente->antecedentes_familiares['epilepsia']['padre']);
+        $this->assertTrue($expediente->antecedentes_familiares['epilepsia']['otros_maternos']);
+        $this->assertFalse($expediente->antecedentes_familiares['epilepsia']['otros_paternos']);
+
+        $this->assertTrue($expediente->antecedentes_personales_patologicos['asma']['padece']);
+        $this->assertFalse($expediente->antecedentes_personales_patologicos['alergias']['padece']);
+
+        $updatePayload = [
+            'no_control' => $expediente->no_control,
+            'paciente' => 'Paciente Valores Booleanos Actualizado',
+            'apertura' => Carbon::now()->toDateString(),
+            'carrera' => $carrera->nombre,
+            'turno' => $turno->nombre,
+            'antecedentes_familiares' => [
+                'epilepsia' => [
+                    'madre' => 'Off',
+                    'padre' => 'sí',
+                    'otros_maternos' => 'NO',
+                ],
+            ],
+            'antecedentes_personales_patologicos' => [
+                'asma' => [
+                    'padece' => 'off',
+                    'fecha' => '',
+                ],
+                'alergias' => [
+                    'padece' => 'On',
+                    'fecha' => null,
+                ],
+            ],
+        ];
+
+        $updateResponse = $this->actingAs($admin)->put(route('expedientes.update', $expediente), $updatePayload);
+
+        $updateResponse->assertSessionHasNoErrors();
+
+        $expediente->refresh();
+
+        $this->assertFalse($expediente->antecedentes_familiares['epilepsia']['madre']);
+        $this->assertTrue($expediente->antecedentes_familiares['epilepsia']['padre']);
+        $this->assertFalse($expediente->antecedentes_familiares['epilepsia']['otros_maternos']);
+
+        $this->assertFalse($expediente->antecedentes_personales_patologicos['asma']['padece']);
+        $this->assertTrue($expediente->antecedentes_personales_patologicos['alergias']['padece']);
+    }
 }

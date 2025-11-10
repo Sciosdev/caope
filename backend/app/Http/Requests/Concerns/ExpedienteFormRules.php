@@ -304,14 +304,18 @@ trait ExpedienteFormRules
         return array_merge($defaults, $normalized);
     }
 
-    private function normalizeBooleanField(mixed $value, bool $default = false): mixed
+    private function normalizeBooleanField(mixed $value, bool $default = false): bool
     {
         if (is_bool($value)) {
             return $value;
         }
 
+        if ($value === null) {
+            return $default;
+        }
+
         if (is_numeric($value)) {
-            return (bool) $value;
+            return (float) $value !== 0.0;
         }
 
         if (is_string($value)) {
@@ -321,19 +325,26 @@ trait ExpedienteFormRules
                 return $default;
             }
 
-            $normalized = filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
+            if (is_numeric($trimmed)) {
+                return (float) $trimmed !== 0.0;
+            }
+
+            $normalized = filter_var($trimmed, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
 
             if ($normalized !== null) {
                 return $normalized;
             }
 
-            $lower = strtolower($trimmed);
+            $lower = mb_strtolower($trimmed);
 
-            if (in_array($lower, ['si', 'sí', 'yes', 'true', '1'], true)) {
+            $truthy = ['si', 'sí', 'yes', 'true', 'on'];
+            $falsy = ['no', 'false', 'off'];
+
+            if (in_array($lower, $truthy, true)) {
                 return true;
             }
 
-            if (in_array($lower, ['no', 'false', '0'], true)) {
+            if (in_array($lower, $falsy, true)) {
                 return false;
             }
         }
