@@ -135,6 +135,70 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
         $this->assertSame($updatePayload['observaciones_relevantes'], $expediente->observaciones_relevantes);
     }
 
+    public function test_family_history_payload_with_boolean_strings_is_accepted(): void
+    {
+        Schema::dropIfExists('timeline_eventos');
+
+        [$carrera, $turno] = $this->createCatalogoOptions();
+
+        $tutor = User::factory()->create();
+        $coordinador = User::factory()->create();
+
+        $alumno = User::factory()->create();
+        $alumno->assignRole('alumno');
+
+        $payload = $this->representativePayload($carrera, $turno, $tutor->id, $coordinador->id);
+
+        $payload['antecedentes_familiares'] = collect(Expediente::defaultFamilyHistory())
+            ->map(function (array $members) {
+                return collect($members)
+                    ->map(fn (bool $value) => $value ? 'true' : 'false')
+                    ->all();
+            })
+            ->all();
+
+        $payload['antecedentes_familiares']['diabetes_mellitus']['madre'] = 'true';
+        $payload['antecedentes_familiares']['hipertension_arterial']['padre'] = 'true';
+
+        $response = $this->actingAs($alumno)->post(route('expedientes.store'), $payload);
+
+        $response->assertSessionDoesntHaveErrors();
+
+        $expediente = Expediente::where('no_control', $payload['no_control'])->firstOrFail();
+
+        $this->assertTrue($expediente->antecedentes_familiares['diabetes_mellitus']['madre']);
+        $this->assertTrue($expediente->antecedentes_familiares['hipertension_arterial']['padre']);
+        $this->assertFalse($expediente->antecedentes_familiares['diabetes_mellitus']['padre']);
+    }
+
+    public function test_family_history_payload_with_all_checkboxes_off_is_accepted(): void
+    {
+        Schema::dropIfExists('timeline_eventos');
+
+        [$carrera, $turno] = $this->createCatalogoOptions();
+
+        $tutor = User::factory()->create();
+        $coordinador = User::factory()->create();
+
+        $alumno = User::factory()->create();
+        $alumno->assignRole('alumno');
+
+        $payload = $this->representativePayload($carrera, $turno, $tutor->id, $coordinador->id);
+
+        $payload['antecedentes_familiares'] = collect(Expediente::defaultFamilyHistory())
+            ->map(fn (array $members) => collect($members)->map(fn () => '0')->all())
+            ->all();
+
+        $response = $this->actingAs($alumno)->post(route('expedientes.store'), $payload);
+
+        $response->assertSessionDoesntHaveErrors();
+
+        $expediente = Expediente::where('no_control', $payload['no_control'])->firstOrFail();
+
+        $this->assertFalse($expediente->antecedentes_familiares['diabetes_mellitus']['madre']);
+        $this->assertFalse($expediente->antecedentes_familiares['hipertension_arterial']['padre']);
+    }
+
     private function createCatalogoOptions(): array
     {
         $carrera = CatalogoCarrera::create([

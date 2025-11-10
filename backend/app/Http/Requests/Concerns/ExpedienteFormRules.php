@@ -14,13 +14,13 @@ trait ExpedienteFormRules
 
         $this->merge($this->normalizedArrayFields());
 
-        if ($this->has('antecedentes_familiares')) {
+        if ($this->exists('antecedentes_familiares')) {
             $this->merge([
                 'antecedentes_familiares' => $this->sanitizeFamilyHistory($this->input('antecedentes_familiares')),
             ]);
         }
 
-        if ($this->has('antecedentes_personales_patologicos')) {
+        if ($this->exists('antecedentes_personales_patologicos')) {
             $this->merge([
                 'antecedentes_personales_patologicos' => $this->sanitizePersonalPathologicalHistory(
                     $this->input('antecedentes_personales_patologicos')
@@ -28,13 +28,13 @@ trait ExpedienteFormRules
             ]);
         }
 
-        if ($this->has('aparatos_sistemas')) {
+        if ($this->exists('aparatos_sistemas')) {
             $this->merge([
                 'aparatos_sistemas' => $this->sanitizeSystemsReview($this->input('aparatos_sistemas')),
             ]);
         }
 
-        if ($this->has('apertura')) {
+        if ($this->exists('apertura')) {
             $this->merge([
                 'apertura' => $this->normalizeDateField($this->input('apertura')),
             ]);
