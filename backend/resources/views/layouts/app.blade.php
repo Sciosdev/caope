@@ -153,7 +153,7 @@
     {{-- Core scripts --}}
     <script src="{{ asset('assets/vendors/jquery/jquery.min.js') }}"></script>
     <script src="{{ asset('assets/vendors/core/core.js') }}"></script>
-    <script src="{{ asset('assets/js/app.js') }}" defer></script>
+    <script src="{{ asset('assets/build/js/app.js') }}" defer></script>
 
     {{-- Third-party libraries via CDN (listos para migrar a build) --}}
     <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
