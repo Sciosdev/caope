@@ -13,7 +13,7 @@ return new class extends Migration
         Schema::table('expedientes', function (Blueprint $table) {
             $table->json('antecedentes_familiares')
                 ->after('coordinador_id')
-                ->default(json_encode(Expediente::defaultFamilyHistory(), JSON_UNESCAPED_UNICODE));
+                ->nullable();
             $table->text('antecedentes_observaciones')
                 ->after('antecedentes_familiares')
                 ->nullable();
@@ -23,6 +23,8 @@ return new class extends Migration
             'antecedentes_familiares' => json_encode(Expediente::defaultFamilyHistory(), JSON_UNESCAPED_UNICODE),
             'antecedentes_observaciones' => null,
         ]);
+
+        DB::statement("ALTER TABLE `expedientes` MODIFY `antecedentes_familiares` JSON NOT NULL");
     }
 
     public function down(): void
