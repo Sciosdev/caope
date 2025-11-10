@@ -308,6 +308,8 @@ class ExpedienteUpdateTest extends TestCase
         $this->assertNull($expediente->antecedentes_personales_patologicos['asma']['fecha']);
         $this->assertTrue($expediente->antecedentes_personales_patologicos['alergias']['padece']);
         $this->assertSame('2023-05-05', $expediente->antecedentes_personales_patologicos['alergias']['fecha']);
+        $this->assertFalse($expediente->antecedentes_personales_patologicos['varicela']['padece']);
+        $this->assertNull($expediente->antecedentes_personales_patologicos['varicela']['fecha']);
 
         $defaultsSystems = Expediente::defaultSystemsReview();
         $this->assertSame(array_keys($defaultsSystems), array_keys($expediente->aparatos_sistemas));
