@@ -19,10 +19,12 @@ return new class extends Migration
                 ->nullable();
         });
 
-        DB::table('expedientes')->update([
-            'antecedentes_familiares' => json_encode(Expediente::defaultFamilyHistory(), JSON_UNESCAPED_UNICODE),
-            'antecedentes_observaciones' => null,
-        ]);
+        DB::table('expedientes')
+            ->whereNull('antecedentes_familiares')
+            ->update([
+                'antecedentes_familiares' => json_encode(Expediente::defaultFamilyHistory(), JSON_UNESCAPED_UNICODE),
+                'antecedentes_observaciones' => null,
+            ]);
 
         DB::statement("ALTER TABLE `expedientes` MODIFY `antecedentes_familiares` JSON NOT NULL");
     }
@@ -30,7 +32,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('expedientes', function (Blueprint $table) {
-            $table->dropColumn(['antecedentes_familiares', 'antecedentes_observaciones']);
+            $table->dropColumn('antecedentes_familiares');
         });
     }
 
