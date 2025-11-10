@@ -53,10 +53,12 @@ export default function hereditaryHistory({ conditions = {}, members = {}, initi
                 this.state[conditionKey] = {};
             }
 
-            this.state[conditionKey][memberKey] = Boolean(checked);
+            this.state[conditionKey][memberKey] = normalizeBoolean(checked);
         },
         isChecked(conditionKey, memberKey) {
-            return Boolean(this.state?.[conditionKey]?.[memberKey]);
+            const value = this.state?.[conditionKey]?.[memberKey];
+
+            return normalizeBoolean(value);
         },
     };
 }
