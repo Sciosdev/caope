@@ -27,6 +27,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use RuntimeException;
 
 class ExpedienteController extends Controller
 {
@@ -155,24 +156,41 @@ class ExpedienteController extends Controller
             && $data['observaciones_relevantes'] !== null
             && $data['observaciones_relevantes'] !== '';
 
-        if (! array_key_exists('antecedentes_familiares', $data)) {
-            $data['antecedentes_familiares'] = Expediente::defaultFamilyHistory();
+        $table = (new Expediente())->getTable();
+        $missingColumns = [];
+
+        $columnDefaults = [
+            'antecedentes_familiares' => static fn () => Expediente::defaultFamilyHistory(),
+            'antecedentes_observaciones' => static fn () => null,
+            'antecedentes_personales_patologicos' => static fn () => Expediente::defaultPersonalPathologicalHistory(),
+            'antecedentes_personales_observaciones' => static fn () => null,
+            'antecedente_padecimiento_actual' => static fn () => null,
+            'plan_accion' => static fn () => null,
+            'diagnostico' => static fn () => null,
+            'dsm_tr' => static fn () => null,
+            'observaciones_relevantes' => static fn () => null,
+            'aparatos_sistemas' => static fn () => Expediente::defaultSystemsReview(),
+        ];
+
+        foreach ($columnDefaults as $column => $resolver) {
+            if (! Schema::hasColumn($table, $column)) {
+                unset($data[$column]);
+                $missingColumns[] = $column;
+
+                continue;
+            }
+
+            if (! array_key_exists($column, $data)) {
+                $data[$column] = $resolver();
+            }
         }
 
-        $data['antecedentes_observaciones'] = $data['antecedentes_observaciones'] ?? null;
-        if (! array_key_exists('antecedentes_personales_patologicos', $data)) {
-            $data['antecedentes_personales_patologicos'] = Expediente::defaultPersonalPathologicalHistory();
+        if (! empty($missingColumns)) {
+            report(new RuntimeException('Missing expedientes columns: '.implode(', ', $missingColumns)));
+
+            return $this->respondWithStoreError($request, __('expedientes.messages.student_save_error'));
         }
 
-        $data['antecedentes_personales_observaciones'] = $data['antecedentes_personales_observaciones'] ?? null;
-        $data['antecedente_padecimiento_actual'] = $data['antecedente_padecimiento_actual'] ?? null;
-        $data['plan_accion'] = $data['plan_accion'] ?? null;
-        $data['diagnostico'] = $data['diagnostico'] ?? null;
-        $data['dsm_tr'] = $data['dsm_tr'] ?? null;
-        $data['observaciones_relevantes'] = $data['observaciones_relevantes'] ?? null;
-        if (! array_key_exists('aparatos_sistemas', $data)) {
-            $data['aparatos_sistemas'] = Expediente::defaultSystemsReview();
-        }
         $data['creado_por'] = $request->user()->id;
         $data['estado'] = $data['estado'] ?? 'abierto';
 
@@ -181,20 +199,7 @@ class ExpedienteController extends Controller
         } catch (QueryException $exception) {
             report($exception);
 
-            $errorMessage = __('expedientes.messages.student_save_error');
-
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'message' => $errorMessage,
-                    'errors' => [
-                        'expediente' => [$errorMessage],
-                    ],
-                ], 422);
-            }
-
-            return back()
-                ->withInput()
-                ->withErrors(['expediente' => $errorMessage]);
+            return $this->respondWithStoreError($request, __('expedientes.messages.student_save_error'));
         }
 
         $this->logTimelineEvent($expediente, 'expediente.creado', $request->user(), [
@@ -242,6 +247,22 @@ class ExpedienteController extends Controller
         return redirect()
             ->route('expedientes.show', $expediente)
             ->with('status', __('expedientes.messages.store_success'));
+    }
+
+    private function respondWithStoreError(Request $request, string $message): JsonResponse|RedirectResponse
+    {
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => $message,
+                'errors' => [
+                    'expediente' => [$message],
+                ],
+            ], 422);
+        }
+
+        return back()
+            ->withInput()
+            ->withErrors(['expediente' => $message]);
     }
 
     public function show(Request $request, Expediente $expediente): View

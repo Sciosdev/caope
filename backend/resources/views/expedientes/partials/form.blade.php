@@ -1,3 +1,9 @@
+@error('expediente')
+    <div class="alert alert-danger" role="alert">
+        {{ $message }}
+    </div>
+@enderror
+
 <div class="row g-3">
     <div class="col-md-4">
         <label for="no_control" class="form-label">Número de control</label>
