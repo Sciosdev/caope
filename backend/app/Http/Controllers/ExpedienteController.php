@@ -176,7 +176,26 @@ class ExpedienteController extends Controller
         $data['creado_por'] = $request->user()->id;
         $data['estado'] = $data['estado'] ?? 'abierto';
 
-        $expediente = Expediente::create($data);
+        try {
+            $expediente = Expediente::create($data);
+        } catch (QueryException $exception) {
+            report($exception);
+
+            $errorMessage = __('expedientes.messages.student_save_error');
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => $errorMessage,
+                    'errors' => [
+                        'expediente' => [$errorMessage],
+                    ],
+                ], 422);
+            }
+
+            return back()
+                ->withInput()
+                ->withErrors(['expediente' => $errorMessage]);
+        }
 
         $this->logTimelineEvent($expediente, 'expediente.creado', $request->user(), [
             'datos' => Arr::only($expediente->toArray(), self::TIMELINE_FIELDS),

@@ -47,25 +47,33 @@ class ExpedienteOptionalContactsTest extends TestCase
         CatalogoCarrera::flushCache();
         CatalogoTurno::flushCache();
 
-        $payload = [
-            'no_control' => 'CA-2025-0999',
-            'paciente' => 'Paciente sin asignaciones',
-            'apertura' => Carbon::now()->toDateString(),
-            'carrera' => $carrera->nombre,
-            'turno' => $turno->nombre,
-            'tutor_id' => '0',
-            'coordinador_id' => '0',
+        $idVariants = [
+            ['tutor_id' => '0', 'coordinador_id' => '0'],
+            ['tutor_id' => ' 0 ', 'coordinador_id' => ' 0 '],
+            ['tutor_id' => '000', 'coordinador_id' => '000'],
         ];
 
-        $response = $this->actingAs($admin)->post(route('expedientes.store'), $payload);
+        foreach ($idVariants as $index => $ids) {
+            $payload = [
+                'no_control' => sprintf('CA-2025-%04d', 9990 + $index),
+                'paciente' => 'Paciente sin asignaciones',
+                'apertura' => Carbon::now()->toDateString(),
+                'carrera' => $carrera->nombre,
+                'turno' => $turno->nombre,
+                'tutor_id' => $ids['tutor_id'],
+                'coordinador_id' => $ids['coordinador_id'],
+            ];
 
-        $response->assertStatus(302);
-        $response->assertSessionHasNoErrors();
+            $response = $this->actingAs($admin)->post(route('expedientes.store'), $payload);
 
-        $expediente = Expediente::where('no_control', $payload['no_control'])->first();
-        $this->assertNotNull($expediente, 'El expediente no se creó en la base de datos.');
-        $this->assertNull($expediente->tutor_id, 'El tutor debe quedar sin asignar cuando el formulario envía 0.');
-        $this->assertNull($expediente->coordinador_id, 'El coordinador debe quedar sin asignar cuando el formulario envía 0.');
-        $this->assertSame($admin->id, $expediente->creado_por);
+            $response->assertStatus(302);
+            $response->assertSessionHasNoErrors();
+
+            $expediente = Expediente::where('no_control', $payload['no_control'])->first();
+            $this->assertNotNull($expediente, 'El expediente no se creó en la base de datos.');
+            $this->assertNull($expediente->tutor_id, 'El tutor debe quedar sin asignar cuando el formulario envía 0.');
+            $this->assertNull($expediente->coordinador_id, 'El coordinador debe quedar sin asignar cuando el formulario envía 0.');
+            $this->assertSame($admin->id, $expediente->creado_por);
+        }
     }
 }
