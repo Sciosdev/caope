@@ -575,9 +575,7 @@ class ExpedienteFamilyHistoryTest extends TestCase
         $response = $this->actingAs($alumno)->post(route('expedientes.store'), $payload);
 
         $response->assertSessionHasErrors([
-            'antecedentes_familiares.diabetes_mellitus.madre',
             'antecedentes_observaciones',
-            'antecedentes_personales_patologicos.asma.padece',
             'antecedentes_personales_patologicos.asma.fecha',
             'antecedentes_personales_observaciones',
             'antecedente_padecimiento_actual',
@@ -587,6 +585,11 @@ class ExpedienteFamilyHistoryTest extends TestCase
             'diagnostico',
             'dsm_tr',
             'observaciones_relevantes',
+        ]);
+
+        $response->assertSessionDoesntHaveErrors([
+            'antecedentes_familiares.diabetes_mellitus.madre',
+            'antecedentes_personales_patologicos.asma.padece',
         ]);
     }
 
@@ -670,5 +673,60 @@ class ExpedienteFamilyHistoryTest extends TestCase
         $this->assertNotNull($decodedInitialState);
         $this->assertTrue(data_get($decodedInitialState, 'diabetes_mellitus.madre'));
         $this->assertTrue(data_get($decodedInitialState, 'cancer.hermanos'));
+    }
+
+    public function test_store_normalizes_invalid_family_history_values_to_defaults(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $carrera = CatalogoCarrera::create([
+            'nombre' => 'Licenciatura en Trabajo Social',
+            'activo' => true,
+        ]);
+
+        $turno = CatalogoTurno::create([
+            'nombre' => 'Mixto',
+            'activo' => true,
+        ]);
+
+        CatalogoCarrera::flushCache();
+        CatalogoTurno::flushCache();
+
+        $payload = [
+            'no_control' => 'AL-2025-0099',
+            'paciente' => 'Paciente Historial Irregular',
+            'apertura' => Carbon::now()->toDateString(),
+            'carrera' => $carrera->nombre,
+            'turno' => $turno->nombre,
+            'antecedentes_familiares' => [
+                'epilepsia' => [
+                    'madre' => 'tal vez',
+                    'padre' => '1',
+                ],
+            ],
+            'antecedentes_personales_patologicos' => [
+                'asma' => [
+                    'padece' => 'tal vez',
+                    'fecha' => Carbon::now()->subYear()->toDateString(),
+                ],
+            ],
+        ];
+
+        $response = $this->actingAs($admin)->post(route('expedientes.store'), $payload);
+
+        $response->assertSessionHasNoErrors();
+
+        $expediente = Expediente::where('no_control', $payload['no_control'])->first();
+        $this->assertNotNull($expediente);
+
+        $this->assertFalse($expediente->antecedentes_familiares['epilepsia']['madre']);
+        $this->assertTrue($expediente->antecedentes_familiares['epilepsia']['padre']);
+
+        $this->assertFalse($expediente->antecedentes_personales_patologicos['asma']['padece']);
+        $this->assertSame(
+            $payload['antecedentes_personales_patologicos']['asma']['fecha'],
+            $expediente->antecedentes_personales_patologicos['asma']['fecha']
+        );
     }
 }
