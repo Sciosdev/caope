@@ -1,8 +1,31 @@
 @php
-    $hereditaryHistory = old(
+    $rawHereditaryHistory = old(
         'antecedentes_familiares',
         $expediente->antecedentes_familiares ?? \App\Models\Expediente::defaultFamilyHistory()
     );
+
+    $hereditaryHistory = collect(\App\Models\Expediente::defaultFamilyHistory())
+        ->mapWithKeys(function (array $members, string $condition) use ($rawHereditaryHistory) {
+            $providedMembers = is_array($rawHereditaryHistory[$condition] ?? null)
+                ? $rawHereditaryHistory[$condition]
+                : [];
+
+            $normalizedMembers = collect($members)
+                ->mapWithKeys(function (bool $default, string $member) use ($providedMembers) {
+                    $value = $providedMembers[$member] ?? $default;
+                    $normalized = filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
+
+                    if ($normalized === null) {
+                        return [$member => (bool) $value];
+                    }
+
+                    return [$member => $normalized];
+                })
+                ->all();
+
+            return [$condition => $normalizedMembers];
+        })
+        ->all();
 @endphp
 
 <div class="mt-4" x-data="hereditaryHistory({
@@ -32,22 +55,28 @@
                         @foreach ($familyHistoryMembers as $memberKey => $memberLabel)
                             <td class="text-center">
                                 <div class="form-check d-inline-flex justify-content-center align-items-center">
+                                    @php
+                                        $isChecked = $hereditaryHistory[$conditionKey][$memberKey] ?? false;
+                                        $inputId = "antecedentes_familiares_{$conditionKey}_{$memberKey}";
+                                    @endphp
                                     <input
                                         type="hidden"
-                                        :name="inputName('{{ $conditionKey }}', '{{ $memberKey }}')"
+                                        name="antecedentes_familiares[{{ $conditionKey }}][{{ $memberKey }}]"
+                                        value="{{ $isChecked ? '1' : '0' }}"
                                         :value="isChecked('{{ $conditionKey }}', '{{ $memberKey }}') ? '1' : '0'"
                                     >
                                     <input
                                         type="checkbox"
                                         class="form-check-input"
-                                        :id="checkboxId('{{ $conditionKey }}', '{{ $memberKey }}')"
+                                        id="{{ $inputId }}"
                                         value="1"
+                                        @checked($isChecked)
                                         :checked="isChecked('{{ $conditionKey }}', '{{ $memberKey }}')"
                                         @change="toggle('{{ $conditionKey }}', '{{ $memberKey }}', $event.target.checked)"
                                     >
                                     <label
                                         class="visually-hidden"
-                                        :for="checkboxId('{{ $conditionKey }}', '{{ $memberKey }}')"
+                                        for="{{ $inputId }}"
                                     >
                                         {{ $conditionLabel }} – {{ $memberLabel }}
                                     </label>
