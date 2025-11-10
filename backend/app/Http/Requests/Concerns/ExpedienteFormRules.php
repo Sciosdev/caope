@@ -64,11 +64,37 @@ trait ExpedienteFormRules
         }
 
         foreach (['tutor_id', 'coordinador_id'] as $field) {
-            if ($this->has($field)) {
-                $value = $this->input($field);
-
-                $sanitized[$field] = $value === '' || $value === null ? null : (int) $value;
+            if (! $this->has($field)) {
+                continue;
             }
+
+            $value = $this->input($field);
+
+            if ($value === null) {
+                $sanitized[$field] = null;
+                continue;
+            }
+
+            if (is_int($value)) {
+                $sanitized[$field] = $value > 0 ? $value : null;
+                continue;
+            }
+
+            if (is_string($value)) {
+                $trimmed = trim($value);
+
+                if ($trimmed === '' || $trimmed === '0') {
+                    $sanitized[$field] = null;
+                    continue;
+                }
+
+                if (is_numeric($trimmed)) {
+                    $sanitized[$field] = (int) $trimmed;
+                    continue;
+                }
+            }
+
+            $sanitized[$field] = $value;
         }
 
         return $sanitized;
