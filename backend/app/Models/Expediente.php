@@ -138,19 +138,12 @@ class Expediente extends Model
     {
         return collect(self::PERSONAL_PATHOLOGICAL_CONDITIONS)
             ->keys()
-            ->mapWithKeys(function (string $condition) {
-                $defaults = [
+            ->mapWithKeys(fn (string $condition) => [
+                $condition => [
                     'padece' => false,
                     'fecha' => null,
-                ];
-
-                if ($condition === 'varicela') {
-                    $defaults['padece'] = true;
-                    $defaults['fecha'] = '2010-07-06';
-                }
-
-                return [$condition => $defaults];
-            })
+                ],
+            ])
             ->all();
     }
 
