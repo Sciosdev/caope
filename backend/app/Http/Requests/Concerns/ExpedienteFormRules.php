@@ -89,7 +89,8 @@ trait ExpedienteFormRules
                 }
 
                 if (is_numeric($trimmed)) {
-                    $sanitized[$field] = (int) $trimmed;
+                    $intValue = (int) $trimmed;
+                    $sanitized[$field] = $intValue > 0 ? $intValue : null;
                     continue;
                 }
             }
@@ -128,8 +129,8 @@ trait ExpedienteFormRules
                 'max:20',
                 Rule::exists('catalogo_turnos', 'nombre')->where('activo', true),
             ],
-            'tutor_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
-            'coordinador_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
+            'tutor_id' => ['sometimes', 'nullable', 'integer', 'min:1', 'exists:users,id'],
+            'coordinador_id' => ['sometimes', 'nullable', 'integer', 'min:1', 'exists:users,id'],
             'antecedentes_familiares' => ['sometimes', 'array'],
             'antecedentes_observaciones' => ['sometimes', 'nullable', 'string', 'max:500'],
             'antecedentes_personales_patologicos' => ['sometimes', 'array'],
