@@ -94,6 +94,49 @@ class ExpedienteAlumnoStoreTest extends TestCase
         ]);
     }
 
+    public function test_student_update_returns_error_when_optional_columns_missing(): void
+    {
+        $student = $this->createStudent();
+
+        $expediente = Expediente::factory()->create([
+            'no_control' => 'NC-0003',
+            'paciente' => 'Alumno Existente',
+            'apertura' => now()->subDay(),
+            'carrera' => $student->carrera,
+            'turno' => $student->turno,
+            'creado_por' => $student->id,
+            'estado' => 'abierto',
+            'plan_accion' => 'Plan previo',
+            'diagnostico' => 'Diagnóstico previo',
+            'dsm_tr' => 'F32.0',
+            'observaciones_relevantes' => 'Observaciones previas',
+        ]);
+
+        Schema::table('expedientes', function (Blueprint $table): void {
+            if (Schema::hasColumn('expedientes', 'plan_accion')) {
+                $table->dropColumn('plan_accion');
+            }
+        });
+
+        $payload = [
+            'no_control' => $expediente->no_control,
+            'paciente' => 'Alumno Actualizado',
+            'apertura' => now()->format('Y-m-d'),
+            'carrera' => $student->carrera,
+            'turno' => $student->turno,
+            'plan_accion' => 'Nuevo plan',
+        ];
+
+        $response = $this->from(route('expedientes.edit', $expediente))
+            ->actingAs($student)
+            ->put(route('expedientes.update', $expediente), $payload);
+
+        $response->assertRedirect(route('expedientes.edit', $expediente));
+        $response->assertSessionHasErrors([
+            'expediente' => __('expedientes.messages.student_save_error'),
+        ]);
+    }
+
     private function createStudent(): User
     {
         $student = User::factory()->create([

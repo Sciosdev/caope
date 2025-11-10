@@ -156,39 +156,12 @@ class ExpedienteController extends Controller
             && $data['observaciones_relevantes'] !== null
             && $data['observaciones_relevantes'] !== '';
 
-        $table = (new Expediente())->getTable();
-        $missingColumns = [];
-
-        $columnDefaults = [
-            'antecedentes_familiares' => static fn () => Expediente::defaultFamilyHistory(),
-            'antecedentes_observaciones' => static fn () => null,
-            'antecedentes_personales_patologicos' => static fn () => Expediente::defaultPersonalPathologicalHistory(),
-            'antecedentes_personales_observaciones' => static fn () => null,
-            'antecedente_padecimiento_actual' => static fn () => null,
-            'plan_accion' => static fn () => null,
-            'diagnostico' => static fn () => null,
-            'dsm_tr' => static fn () => null,
-            'observaciones_relevantes' => static fn () => null,
-            'aparatos_sistemas' => static fn () => Expediente::defaultSystemsReview(),
-        ];
-
-        foreach ($columnDefaults as $column => $resolver) {
-            if (! Schema::hasColumn($table, $column)) {
-                unset($data[$column]);
-                $missingColumns[] = $column;
-
-                continue;
-            }
-
-            if (! array_key_exists($column, $data)) {
-                $data[$column] = $resolver();
-            }
-        }
+        [$data, $missingColumns] = $this->prepareExpedienteColumns($data, new Expediente());
 
         if (! empty($missingColumns)) {
             report(new RuntimeException('Missing expedientes columns: '.implode(', ', $missingColumns)));
 
-            return $this->respondWithStoreError($request, __('expedientes.messages.student_save_error'));
+            return $this->respondWithSaveError($request, __('expedientes.messages.student_save_error'));
         }
 
         $data['creado_por'] = $request->user()->id;
@@ -199,7 +172,7 @@ class ExpedienteController extends Controller
         } catch (QueryException $exception) {
             report($exception);
 
-            return $this->respondWithStoreError($request, __('expedientes.messages.student_save_error'));
+            return $this->respondWithSaveError($request, __('expedientes.messages.student_save_error'));
         }
 
         $this->logTimelineEvent($expediente, 'expediente.creado', $request->user(), [
@@ -249,7 +222,7 @@ class ExpedienteController extends Controller
             ->with('status', __('expedientes.messages.store_success'));
     }
 
-    private function respondWithStoreError(Request $request, string $message): JsonResponse|RedirectResponse
+    private function respondWithSaveError(Request $request, string $message): JsonResponse|RedirectResponse
     {
         if ($request->expectsJson()) {
             return response()->json([
@@ -257,6 +230,7 @@ class ExpedienteController extends Controller
                 'errors' => [
                     'expediente' => [$message],
                 ],
+                'student_error_message' => __('expedientes.messages.student_save_error'),
             ], 422);
         }
 
@@ -342,6 +316,14 @@ class ExpedienteController extends Controller
     public function update(UpdateExpedienteRequest $request, Expediente $expediente): JsonResponse|RedirectResponse
     {
         $data = $request->validatedExpedienteData();
+        [$data, $missingColumns] = $this->prepareExpedienteColumns($data, $expediente, applyDefaults: false);
+
+        if (! empty($missingColumns)) {
+            report(new RuntimeException('Missing expedientes columns: '.implode(', ', $missingColumns)));
+
+            return $this->respondWithSaveError($request, __('expedientes.messages.student_save_error'));
+        }
+
         $before = Arr::only($expediente->getAttributes(), self::TIMELINE_FIELDS);
         $familyHistoryBefore = $expediente->antecedentes_familiares ?? Expediente::defaultFamilyHistory();
         $familyObservationsBefore = $expediente->antecedentes_observaciones;
@@ -367,8 +349,14 @@ class ExpedienteController extends Controller
             'observaciones_relevantes' => $observacionesRelevantesBefore,
         ];
 
-        $expediente->fill($data);
-        $expediente->save();
+        try {
+            $expediente->fill($data);
+            $expediente->save();
+        } catch (QueryException $exception) {
+            report($exception);
+
+            return $this->respondWithSaveError($request, __('expedientes.messages.unexpected_save_error'));
+        }
 
         $familyHistoryChanged = $expediente->wasChanged('antecedentes_familiares')
             || $expediente->wasChanged('antecedentes_observaciones');
@@ -448,6 +436,47 @@ class ExpedienteController extends Controller
         return redirect()
             ->route('expedientes.show', $expediente)
             ->with('status', __('expedientes.messages.update_success'));
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{0: array<string, mixed>, 1: list<string>}
+     */
+    private function prepareExpedienteColumns(array $data, Expediente $reference, bool $applyDefaults = true): array
+    {
+        $table = $reference->getTable();
+        $missingColumns = [];
+
+        $columnDefaults = [
+            'antecedentes_familiares' => static fn () => Expediente::defaultFamilyHistory(),
+            'antecedentes_observaciones' => static fn () => null,
+            'antecedentes_personales_patologicos' => static fn () => Expediente::defaultPersonalPathologicalHistory(),
+            'antecedentes_personales_observaciones' => static fn () => null,
+            'antecedente_padecimiento_actual' => static fn () => null,
+            'plan_accion' => static fn () => null,
+            'diagnostico' => static fn () => null,
+            'dsm_tr' => static fn () => null,
+            'observaciones_relevantes' => static fn () => null,
+            'aparatos_sistemas' => static fn () => Expediente::defaultSystemsReview(),
+        ];
+
+        foreach ($columnDefaults as $column => $resolver) {
+            if (! Schema::hasColumn($table, $column)) {
+                if (array_key_exists($column, $data)) {
+                    unset($data[$column]);
+                }
+
+                $missingColumns[] = $column;
+
+                continue;
+            }
+
+            if ($applyDefaults && ! array_key_exists($column, $data)) {
+                $data[$column] = $resolver();
+            }
+        }
+
+        return [$data, $missingColumns];
     }
 
     public function destroy(Expediente $expediente): RedirectResponse

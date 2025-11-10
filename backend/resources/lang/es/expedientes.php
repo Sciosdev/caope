@@ -39,5 +39,6 @@ return [
         'store_success' => 'Expediente creado correctamente.',
         'update_success' => 'Expediente actualizado correctamente.',
         'student_save_error' => 'No pudimos guardar tu expediente. Revisa la información e inténtalo nuevamente o contacta a tu tutor si el problema persiste.',
+        'unexpected_save_error' => 'Ocurrió un error al guardar el expediente. Inténtalo nuevamente o contacta al soporte si el problema persiste.',
     ],
 ];
