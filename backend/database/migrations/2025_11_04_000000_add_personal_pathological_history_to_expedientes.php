@@ -13,7 +13,7 @@ return new class extends Migration
         Schema::table('expedientes', function (Blueprint $table) {
             $table->json('antecedentes_personales_patologicos')
                 ->after('antecedentes_observaciones')
-                ->default(json_encode(Expediente::defaultPersonalPathologicalHistory(), JSON_UNESCAPED_UNICODE));
+                ->nullable();
             $table->text('antecedentes_personales_observaciones')
                 ->after('antecedentes_personales_patologicos')
                 ->nullable();
@@ -23,6 +23,12 @@ return new class extends Migration
             'antecedentes_personales_patologicos' => json_encode(Expediente::defaultPersonalPathologicalHistory(), JSON_UNESCAPED_UNICODE),
             'antecedentes_personales_observaciones' => null,
         ]);
+
+        Schema::table('expedientes', function (Blueprint $table) {
+            $table->json('antecedentes_personales_patologicos')
+                ->nullable(false)
+                ->change();
+        });
     }
 
     public function down(): void
