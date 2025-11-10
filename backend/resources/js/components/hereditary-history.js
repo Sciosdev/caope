@@ -58,11 +58,5 @@ export default function hereditaryHistory({ conditions = {}, members = {}, initi
         isChecked(conditionKey, memberKey) {
             return Boolean(this.state?.[conditionKey]?.[memberKey]);
         },
-        inputName(conditionKey, memberKey) {
-            return `antecedentes_familiares[${conditionKey}][${memberKey}]`;
-        },
-        checkboxId(conditionKey, memberKey) {
-            return `antecedentes_familiares_${conditionKey}_${memberKey}`;
-        },
     };
 }

@@ -589,4 +589,86 @@ class ExpedienteFamilyHistoryTest extends TestCase
             'observaciones_relevantes',
         ]);
     }
+
+    public function test_family_history_old_input_is_preserved_after_validation_error(): void
+    {
+        $alumno = User::factory()->create();
+        $alumno->assignRole('alumno');
+
+        $carrera = CatalogoCarrera::create([
+            'nombre' => 'Licenciatura en Psicología',
+            'activo' => true,
+        ]);
+
+        $turno = CatalogoTurno::create([
+            'nombre' => 'Vespertino',
+            'activo' => true,
+        ]);
+
+        CatalogoCarrera::flushCache();
+        CatalogoTurno::flushCache();
+
+        $payload = [
+            'no_control' => 'AL-2025-0003',
+            'paciente' => '',
+            'apertura' => Carbon::now()->toDateString(),
+            'carrera' => $carrera->nombre,
+            'turno' => $turno->nombre,
+            'antecedentes_familiares' => [
+                'diabetes_mellitus' => [
+                    'madre' => '1',
+                    'padre' => '0',
+                ],
+                'cancer' => [
+                    'hermanos' => '1',
+                ],
+            ],
+        ];
+
+        $initialResponse = $this->actingAs($alumno)
+            ->from(route('expedientes.create'))
+            ->post(route('expedientes.store'), $payload);
+
+        $initialResponse->assertSessionHasErrors(['paciente']);
+
+        $oldInput = session()->getOldInput();
+        $this->assertTrue(filter_var(
+            data_get($oldInput, 'antecedentes_familiares.diabetes_mellitus.madre'),
+            FILTER_VALIDATE_BOOL
+        ));
+        $this->assertTrue(filter_var(
+            data_get($oldInput, 'antecedentes_familiares.cancer.hermanos'),
+            FILTER_VALIDATE_BOOL
+        ));
+
+        $followUp = $this->actingAs($alumno)
+            ->withSession(session()->all())
+            ->get(route('expedientes.create'));
+
+        $followUp->assertOk();
+
+        $normalizedHtml = preg_replace('/\s+/', ' ', $followUp->getContent());
+        $this->assertStringContainsString(
+            'name="antecedentes_familiares[diabetes_mellitus][madre]" value="1"',
+            $normalizedHtml
+        );
+        $this->assertStringContainsString(
+            'name="antecedentes_familiares[cancer][hermanos]" value="1"',
+            $normalizedHtml
+        );
+
+        $this->assertSame(1, preg_match(
+            "/initialState:\\s*JSON\\.parse\\('(.*?)'\\)/s",
+            $followUp->getContent(),
+            $matches
+        ));
+
+        $initialStatePayload = $matches[1];
+
+        $decodedInitialState = json_decode(str_replace('\\u0022', '"', $initialStatePayload), true);
+
+        $this->assertNotNull($decodedInitialState);
+        $this->assertTrue(data_get($decodedInitialState, 'diabetes_mellitus.madre'));
+        $this->assertTrue(data_get($decodedInitialState, 'cancer.hermanos'));
+    }
 }
