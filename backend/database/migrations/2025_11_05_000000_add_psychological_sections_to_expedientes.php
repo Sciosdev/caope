@@ -25,6 +25,13 @@ return new class extends Migration
         DB::table('expedientes')
             ->whereNull('aparatos_sistemas')
             ->update(['aparatos_sistemas' => $defaultSystems]);
+
+        Schema::table('expedientes', function (Blueprint $table) use ($defaultSystems) {
+            $table->json('aparatos_sistemas')
+                ->default($defaultSystems)
+                ->nullable(false)
+                ->change();
+        });
     }
 
     public function down(): void
