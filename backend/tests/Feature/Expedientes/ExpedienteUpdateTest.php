@@ -377,4 +377,101 @@ class ExpedienteUpdateTest extends TestCase
         $this->assertArrayHasKey('preview_url', $json[0]);
         $this->assertStringContainsString((string) $anexo->id, $json[0]['download_url']);
     }
+
+    public function test_update_accepts_json_encoded_history_payloads(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $creator = User::factory()->create();
+
+        $carrera = CatalogoCarrera::create([
+            'nombre' => 'Licenciatura en Trabajo Social',
+            'activo' => true,
+        ]);
+
+        $turno = CatalogoTurno::create([
+            'nombre' => 'Mixto',
+            'activo' => true,
+        ]);
+
+        CatalogoCarrera::flushCache();
+        CatalogoTurno::flushCache();
+
+        $expediente = Expediente::factory()->create([
+            'creado_por' => $creator->id,
+            'carrera' => $carrera->nombre,
+            'turno' => $turno->nombre,
+        ]);
+
+        $familyHistory = [
+            'diabetes_mellitus' => [
+                'madre' => true,
+                'padre' => false,
+            ],
+            'hipertension_arterial' => [
+                'otros_maternos' => true,
+            ],
+        ];
+
+        $personalHistory = [
+            'asma' => [
+                'padece' => true,
+                'fecha' => '2024-02-15',
+            ],
+            'alergias' => [
+                'padece' => false,
+                'fecha' => null,
+            ],
+        ];
+
+        $systemsReview = [
+            'respiratorio' => 'Actualización respiratoria proporcionada por JSON.',
+            'tegumentario' => '  Observaciones desde la app móvil.  ',
+        ];
+
+        $payload = [
+            'no_control' => $expediente->no_control,
+            'paciente' => 'Paciente Actualizado JSON',
+            'apertura' => Carbon::now()->toDateString(),
+            'carrera' => $carrera->nombre,
+            'turno' => $turno->nombre,
+            'antecedentes_familiares' => json_encode($familyHistory, JSON_THROW_ON_ERROR),
+            'antecedentes_personales_patologicos' => json_encode($personalHistory, JSON_THROW_ON_ERROR),
+            'antecedentes_personales_observaciones' => 'Observaciones personales desde JSON.',
+            'antecedente_padecimiento_actual' => 'Descripción enviada como JSON.',
+            'aparatos_sistemas' => json_encode($systemsReview, JSON_THROW_ON_ERROR),
+            'plan_accion' => '  Plan actualizado con datos JSON.  ',
+            'diagnostico' => 'Diagnóstico recibido en payload JSON.',
+            'dsm_tr' => 'F41.1 Trastorno de ansiedad generalizada',
+            'observaciones_relevantes' => 'Observaciones relevantes capturadas en la app.',
+        ];
+
+        $response = $this->actingAs($admin)->put(route('expedientes.update', $expediente), $payload);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertSessionHas('status', 'Expediente actualizado correctamente.');
+
+        $expediente->refresh();
+
+        $this->assertSame('Paciente Actualizado JSON', $expediente->paciente);
+        $this->assertTrue($expediente->antecedentes_familiares['diabetes_mellitus']['madre']);
+        $this->assertFalse($expediente->antecedentes_familiares['diabetes_mellitus']['padre']);
+        $this->assertTrue($expediente->antecedentes_familiares['hipertension_arterial']['otros_maternos']);
+
+        $this->assertTrue($expediente->antecedentes_personales_patologicos['asma']['padece']);
+        $this->assertSame('2024-02-15', $expediente->antecedentes_personales_patologicos['asma']['fecha']);
+        $this->assertFalse($expediente->antecedentes_personales_patologicos['alergias']['padece']);
+        $this->assertNull($expediente->antecedentes_personales_patologicos['alergias']['fecha']);
+
+        $this->assertSame('Actualización respiratoria proporcionada por JSON.', $expediente->aparatos_sistemas['respiratorio']);
+        $this->assertSame('Observaciones desde la app móvil.', $expediente->aparatos_sistemas['tegumentario']);
+
+        $this->assertSame('Observaciones personales desde JSON.', $expediente->antecedentes_personales_observaciones);
+        $this->assertSame('Descripción enviada como JSON.', $expediente->antecedente_padecimiento_actual);
+        $this->assertSame('Plan actualizado con datos JSON.', $expediente->plan_accion);
+        $this->assertSame('Diagnóstico recibido en payload JSON.', $expediente->diagnostico);
+        $this->assertSame('F41.1 Trastorno de ansiedad generalizada', $expediente->dsm_tr);
+        $this->assertSame('Observaciones relevantes capturadas en la app.', $expediente->observaciones_relevantes);
+    }
 }

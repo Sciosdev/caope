@@ -4,12 +4,15 @@ namespace App\Http\Requests\Concerns;
 
 use App\Models\Expediente;
 use Illuminate\Validation\Rule;
+use JsonException;
 
 trait ExpedienteFormRules
 {
     protected function prepareForValidation(): void
     {
         $this->merge($this->sanitizedStringFields());
+
+        $this->merge($this->normalizedArrayFields());
 
         if ($this->has('antecedentes_familiares')) {
             $this->merge([
@@ -105,6 +108,58 @@ trait ExpedienteFormRules
         }
 
         return $sanitized;
+    }
+
+    /**
+     * @return array<string, array<mixed>>
+     */
+    protected function normalizedArrayFields(): array
+    {
+        $fields = [];
+
+        foreach ([
+            'antecedentes_familiares',
+            'antecedentes_personales_patologicos',
+            'aparatos_sistemas',
+        ] as $field) {
+            if (! $this->has($field)) {
+                continue;
+            }
+
+            $fields[$field] = $this->normalizeArrayPayload($this->input($field));
+        }
+
+        return $fields;
+    }
+
+    /**
+     * @return array<mixed>
+     */
+    private function normalizeArrayPayload(mixed $value): array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (is_string($value)) {
+            $trimmed = trim($value);
+
+            if ($trimmed === '') {
+                return [];
+            }
+
+            try {
+                $decoded = json_decode($trimmed, true, 512, JSON_THROW_ON_ERROR);
+
+                if (is_array($decoded)) {
+                    return $decoded;
+                }
+            } catch (JsonException) {
+                // Ignore and fallback to empty array
+            }
+        }
+
+        return [];
     }
 
     /**
