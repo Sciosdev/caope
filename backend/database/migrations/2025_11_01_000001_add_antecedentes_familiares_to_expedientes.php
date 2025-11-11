@@ -11,29 +11,46 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('expedientes', function (Blueprint $table) {
-            $table->json('antecedentes_familiares')
-                ->after('coordinador_id')
-                ->nullable();
-            $table->text('antecedentes_observaciones')
-                ->after('antecedentes_familiares')
-                ->nullable();
+            if (! Schema::hasColumn('expedientes', 'antecedentes_familiares')) {
+                $table->json('antecedentes_familiares')
+                    ->after('coordinador_id')
+                    ->nullable();
+            }
+
+            if (! Schema::hasColumn('expedientes', 'antecedentes_observaciones')) {
+                $table->text('antecedentes_observaciones')
+                    ->after('antecedentes_familiares')
+                    ->nullable();
+            }
         });
 
         DB::table('expedientes')
             ->whereNull('antecedentes_familiares')
             ->update([
-                'antecedentes_familiares' => json_encode(Expediente::defaultFamilyHistory(), JSON_UNESCAPED_UNICODE),
+                'antecedentes_familiares' => json_encode(
+                    Expediente::defaultFamilyHistory(),
+                    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES,
+                ),
                 'antecedentes_observaciones' => null,
             ]);
 
-        DB::statement("ALTER TABLE `expedientes` MODIFY `antecedentes_familiares` JSON NOT NULL");
+        $driver = DB::getDriverName();
+
+        if ($driver === 'mysql' || $driver === 'mariadb') {
+            DB::statement('ALTER TABLE `expedientes` MODIFY `antecedentes_familiares` JSON NOT NULL');
+        }
     }
 
     public function down(): void
     {
         Schema::table('expedientes', function (Blueprint $table) {
-            $table->dropColumn('antecedentes_familiares');
+            if (Schema::hasColumn('expedientes', 'antecedentes_observaciones')) {
+                $table->dropColumn('antecedentes_observaciones');
+            }
+
+            if (Schema::hasColumn('expedientes', 'antecedentes_familiares')) {
+                $table->dropColumn('antecedentes_familiares');
+            }
         });
     }
-
 };

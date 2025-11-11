@@ -11,6 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Testing\Fluent\AssertableJson;
 use Mockery;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
@@ -242,7 +243,10 @@ class ExpedienteCreateTest extends TestCase
 
         $response->assertStatus(422);
         $response->assertJsonPath('context.reason', 'missing_columns');
-        $response->assertJson(fn ($json) => $json->has('context.columns'));
+        $response->assertJson(fn (AssertableJson $json) => $json
+            ->has('context.columns')
+            ->etc()
+        );
 
         Log::shouldHaveReceived('info')->with(
             'Received request to create expediente',
