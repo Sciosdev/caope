@@ -24,11 +24,13 @@ return new class extends Migration
             }
         });
 
-        $defaultSystems = json_encode(Expediente::defaultSystemsReview(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if (Schema::hasColumn('expedientes', 'aparatos_sistemas')) {
+            $defaultSystems = json_encode(Expediente::defaultSystemsReview(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
-        DB::table('expedientes')
-            ->whereNull('aparatos_sistemas')
-            ->update(['aparatos_sistemas' => $defaultSystems]);
+            DB::table('expedientes')
+                ->whereNull('aparatos_sistemas')
+                ->update(['aparatos_sistemas' => $defaultSystems]);
+        }
 
         $connection = DB::connection();
         $driver = $connection->getDriverName();
@@ -37,12 +39,16 @@ return new class extends Migration
             $version = $this->getDatabaseVersion();
             $supportsJsonDefaults = $this->supportsJsonDefaults($driver, $version);
 
-            if ($supportsJsonDefaults) {
-                $quotedDefault = $connection->getPdo()->quote($defaultSystems);
+            if (Schema::hasColumn('expedientes', 'aparatos_sistemas') && $this->columnIsNullable('expedientes', 'aparatos_sistemas')) {
+                $defaultSystems = json_encode(Expediente::defaultSystemsReview(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
-                DB::statement("ALTER TABLE `expedientes` MODIFY `aparatos_sistemas` JSON NOT NULL DEFAULT {$quotedDefault}");
-            } else {
-                DB::statement('ALTER TABLE `expedientes` MODIFY `aparatos_sistemas` JSON NOT NULL');
+                if ($supportsJsonDefaults) {
+                    $quotedDefault = $connection->getPdo()->quote($defaultSystems);
+
+                    DB::statement("ALTER TABLE `expedientes` MODIFY `aparatos_sistemas` JSON NOT NULL DEFAULT {$quotedDefault}");
+                } else {
+                    DB::statement('ALTER TABLE `expedientes` MODIFY `aparatos_sistemas` JSON NOT NULL');
+                }
             }
         }
     }
@@ -154,6 +160,42 @@ return new class extends Migration
 
         if (preg_match('/(\d+\.\d+)/', $version, $matches)) {
             return $matches[1];
+        }
+
+        return null;
+    }
+
+    private function columnIsNullable(string $table, string $column): bool
+    {
+        $connection = DB::connection();
+        $database = $connection->getDatabaseName();
+
+        $result = $connection->selectOne(
+            'SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?',
+            [$database, $table, $column]
+        );
+
+        $value = $this->extractIsNullableValue($result);
+
+        if ($value === null) {
+            return false;
+        }
+
+        return strtoupper($value) === 'YES';
+    }
+
+    private function extractIsNullableValue(mixed $result): ?string
+    {
+        if ($result === null) {
+            return null;
+        }
+
+        if (is_object($result) && isset($result->IS_NULLABLE)) {
+            return (string) $result->IS_NULLABLE;
+        }
+
+        if (is_array($result) && isset($result['IS_NULLABLE'])) {
+            return (string) $result['IS_NULLABLE'];
         }
 
         return null;
