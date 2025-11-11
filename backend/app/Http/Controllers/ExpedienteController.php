@@ -23,6 +23,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\Rule;
@@ -136,7 +137,19 @@ class ExpedienteController extends Controller
 
     public function store(StoreExpedienteRequest $request): JsonResponse|RedirectResponse
     {
+        $clientContext = $request->input('client_context', []);
+        Log::info('Received request to create expediente', [
+            'user_id' => $request->user()?->id,
+            'expects_json' => $request->expectsJson(),
+            'payload_keys' => array_keys($request->all()),
+            'client_context' => $clientContext,
+        ]);
+
         $data = $request->validatedExpedienteData();
+        Log::debug('Validated expediente data for creation', [
+            'user_id' => $request->user()?->id,
+            'validated_keys' => array_keys($data),
+        ]);
         $historyProvided = array_key_exists('antecedentes_familiares', $data)
             || array_key_exists('antecedentes_observaciones', $data);
         $personalHistoryProvided = array_key_exists('antecedentes_personales_patologicos', $data)
@@ -159,21 +172,57 @@ class ExpedienteController extends Controller
         [$data, $missingColumns] = $this->prepareExpedienteColumns($data, new Expediente());
 
         if (! empty($missingColumns)) {
+            Log::error('Expediente creation aborted due to missing columns', [
+                'user_id' => $request->user()?->id,
+                'missing_columns' => $missingColumns,
+            ]);
             report(new RuntimeException('Missing expedientes columns: '.implode(', ', $missingColumns)));
 
-            return $this->respondWithSaveError($request, __('expedientes.messages.student_save_error'));
+            return $this->respondWithSaveError(
+                $request,
+                __('expedientes.messages.student_save_error'),
+                [
+                    'reason' => 'missing_columns',
+                    'columns' => $missingColumns,
+                ]
+            );
         }
 
         $data['creado_por'] = $request->user()->id;
         $data['estado'] = $data['estado'] ?? 'abierto';
 
         try {
+            Log::info('Attempting to create expediente', [
+                'user_id' => $request->user()?->id,
+                'no_control' => $data['no_control'] ?? null,
+            ]);
             $expediente = Expediente::create($data);
         } catch (QueryException $exception) {
+            Log::error('Failed to create expediente', [
+                'user_id' => $request->user()?->id,
+                'no_control' => $data['no_control'] ?? null,
+                'code' => $exception->getCode(),
+                'sql_state' => $exception->errorInfo[0] ?? null,
+                'message' => $exception->getMessage(),
+            ]);
             report($exception);
 
-            return $this->respondWithSaveError($request, __('expedientes.messages.student_save_error'));
+            return $this->respondWithSaveError(
+                $request,
+                __('expedientes.messages.student_save_error'),
+                [
+                    'reason' => 'database_error',
+                    'code' => $exception->getCode(),
+                    'sql_state' => $exception->errorInfo[0] ?? null,
+                ]
+            );
         }
+
+        Log::info('Expediente created successfully', [
+            'user_id' => $request->user()?->id,
+            'expediente_id' => $expediente->id,
+            'no_control' => $expediente->no_control,
+        ]);
 
         $this->logTimelineEvent($expediente, 'expediente.creado', $request->user(), [
             'datos' => Arr::only($expediente->toArray(), self::TIMELINE_FIELDS),
@@ -222,7 +271,10 @@ class ExpedienteController extends Controller
             ->with('status', __('expedientes.messages.store_success'));
     }
 
-    private function respondWithSaveError(Request $request, string $message): JsonResponse|RedirectResponse
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function respondWithSaveError(Request $request, string $message, array $context = []): JsonResponse|RedirectResponse
     {
         if ($request->expectsJson()) {
             return response()->json([
@@ -231,12 +283,14 @@ class ExpedienteController extends Controller
                     'expediente' => [$message],
                 ],
                 'student_error_message' => __('expedientes.messages.student_save_error'),
+                'context' => $context,
             ], 422);
         }
 
         return back()
             ->withInput()
-            ->withErrors(['expediente' => $message]);
+            ->withErrors(['expediente' => $message])
+            ->with('expediente_error_context', $context);
     }
 
     public function show(Request $request, Expediente $expediente): View
@@ -319,9 +373,21 @@ class ExpedienteController extends Controller
         [$data, $missingColumns] = $this->prepareExpedienteColumns($data, $expediente, applyDefaults: false);
 
         if (! empty($missingColumns)) {
+            Log::error('Expediente update aborted due to missing columns', [
+                'user_id' => $request->user()?->id,
+                'expediente_id' => $expediente->id,
+                'missing_columns' => $missingColumns,
+            ]);
             report(new RuntimeException('Missing expedientes columns: '.implode(', ', $missingColumns)));
 
-            return $this->respondWithSaveError($request, __('expedientes.messages.student_save_error'));
+            return $this->respondWithSaveError(
+                $request,
+                __('expedientes.messages.student_save_error'),
+                [
+                    'reason' => 'missing_columns',
+                    'columns' => $missingColumns,
+                ]
+            );
         }
 
         $before = Arr::only($expediente->getAttributes(), self::TIMELINE_FIELDS);
@@ -353,9 +419,24 @@ class ExpedienteController extends Controller
             $expediente->fill($data);
             $expediente->save();
         } catch (QueryException $exception) {
+            Log::error('Failed to update expediente', [
+                'user_id' => $request->user()?->id,
+                'expediente_id' => $expediente->id,
+                'code' => $exception->getCode(),
+                'sql_state' => $exception->errorInfo[0] ?? null,
+                'message' => $exception->getMessage(),
+            ]);
             report($exception);
 
-            return $this->respondWithSaveError($request, __('expedientes.messages.unexpected_save_error'));
+            return $this->respondWithSaveError(
+                $request,
+                __('expedientes.messages.unexpected_save_error'),
+                [
+                    'reason' => 'database_error',
+                    'code' => $exception->getCode(),
+                    'sql_state' => $exception->errorInfo[0] ?? null,
+                ]
+            );
         }
 
         $familyHistoryChanged = $expediente->wasChanged('antecedentes_familiares')
