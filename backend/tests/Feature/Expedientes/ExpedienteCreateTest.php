@@ -9,6 +9,9 @@ use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
+use Mockery;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
@@ -202,5 +205,93 @@ class ExpedienteCreateTest extends TestCase
         $response->assertJsonPath('expediente.id', $expediente->id);
         $response->assertJsonPath('expediente.alumno.id', $admin->id);
         $response->assertJsonPath('expediente.anexos', []);
+    }
+
+    public function test_store_includes_context_and_logs_when_columns_are_missing(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $carrera = CatalogoCarrera::create([
+            'nombre' => 'Licenciatura en Derecho',
+            'activo' => true,
+        ]);
+
+        $turno = CatalogoTurno::create([
+            'nombre' => 'Nocturno',
+            'activo' => true,
+        ]);
+
+        CatalogoCarrera::flushCache();
+        CatalogoTurno::flushCache();
+
+        Schema::shouldReceive('hasColumn')->andReturnFalse();
+        Log::spy();
+
+        $payload = [
+            'no_control' => 'CA-2025-0500',
+            'paciente' => 'Paciente con error',
+            'apertura' => Carbon::now()->toDateString(),
+            'carrera' => $carrera->nombre,
+            'turno' => $turno->nombre,
+        ];
+
+        $response = $this->actingAs($admin)
+            ->from(route('expedientes.create'))
+            ->postJson(route('expedientes.store'), $payload);
+
+        $response->assertStatus(422);
+        $response->assertJsonPath('context.reason', 'missing_columns');
+        $response->assertJson(fn ($json) => $json->has('context.columns'));
+
+        Log::shouldHaveReceived('info')->with(
+            'Received request to create expediente',
+            Mockery::on(fn ($context) => ($context['user_id'] ?? null) === $admin->id)
+        )->once();
+        Log::shouldHaveReceived('debug')->with(
+            'Validated expediente data for creation',
+            Mockery::on(fn ($context) => ($context['validated_keys'] ?? []) !== [])
+        )->once();
+        Log::shouldHaveReceived('error')->with(
+            'Expediente creation aborted due to missing columns',
+            Mockery::on(fn ($context) => ($context['missing_columns'] ?? null) !== null)
+        )->once();
+    }
+
+    public function test_store_redirects_with_context_when_columns_are_missing(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $carrera = CatalogoCarrera::create([
+            'nombre' => 'Licenciatura en Trabajo Social',
+            'activo' => true,
+        ]);
+
+        $turno = CatalogoTurno::create([
+            'nombre' => 'Mixto',
+            'activo' => true,
+        ]);
+
+        CatalogoCarrera::flushCache();
+        CatalogoTurno::flushCache();
+
+        Schema::shouldReceive('hasColumn')->andReturnFalse();
+
+        $payload = [
+            'no_control' => 'CA-2025-0600',
+            'paciente' => 'Paciente formulario',
+            'apertura' => Carbon::now()->toDateString(),
+            'carrera' => $carrera->nombre,
+            'turno' => $turno->nombre,
+        ];
+
+        $response = $this->actingAs($admin)
+            ->from(route('expedientes.create'))
+            ->post(route('expedientes.store'), $payload);
+
+        $response->assertRedirect(route('expedientes.create'));
+        $response->assertSessionHasErrors('expediente');
+        $response->assertSessionHas('expediente_error_context.reason', 'missing_columns');
     }
 }

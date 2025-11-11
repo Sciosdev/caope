@@ -4,6 +4,26 @@
     </div>
 @enderror
 
+@php($errorContext = session('expediente_error_context', []))
+
+@if (! empty($errorContext))
+    <div class="alert alert-warning" role="status">
+        <h6 class="alert-heading mb-2">Hubo un problema técnico al guardar el expediente.</h6>
+        @if (($errorContext['reason'] ?? null) === 'missing_columns')
+            <p class="mb-2">Faltan columnas en la base de datos. Informa al equipo de soporte con la siguiente lista:</p>
+            <ul class="mb-0 small">
+                @foreach ($errorContext['columns'] ?? [] as $column)
+                    <li><code>{{ $column }}</code></li>
+                @endforeach
+            </ul>
+        @elseif (($errorContext['reason'] ?? null) === 'database_error')
+            <p class="mb-0">Ocurrió un error al comunicarse con la base de datos. Código: <strong>{{ $errorContext['code'] ?? 'desconocido' }}</strong>. Intenta nuevamente y, si el problema persiste, contacta al equipo técnico.</p>
+        @else
+            <p class="mb-0">El sistema registró el incidente y el equipo técnico ha sido notificado.</p>
+        @endif
+    </div>
+@endif
+
 <div class="row g-3">
     <div class="col-md-4">
         <label for="no_control" class="form-label">Número de control</label>
@@ -137,6 +157,9 @@
     @include('expedientes.partials.alumno.family-history')
 @endif
 
+<input type="hidden" name="client_context[browser]" id="expediente_client_context_browser">
+<input type="hidden" name="client_context[timezone]" id="expediente_client_context_timezone">
+
 @once
     @push('styles')
         <link rel="stylesheet" href="{{ asset('assets/vendors/select2/select2.min.css') }}">
@@ -167,6 +190,21 @@
                                 width: '100%'
                             });
                         });
+                    }
+                }
+
+                const browserField = document.getElementById('expediente_client_context_browser');
+                const timezoneField = document.getElementById('expediente_client_context_timezone');
+
+                if (browserField) {
+                    browserField.value = window.navigator.userAgent;
+                }
+
+                if (timezoneField) {
+                    try {
+                        timezoneField.value = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                    } catch (error) {
+                        timezoneField.value = 'unknown';
                     }
                 }
             });
