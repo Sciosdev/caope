@@ -4,14 +4,11 @@ namespace App\Notifications;
 
 use App\Models\Expediente;
 use App\Models\User;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class ExpedienteClosureAttemptNotification extends Notification implements ShouldQueue
+class ExpedienteClosureAttemptNotification extends Notification
 {
-    use Queueable;
 
     /**
      * @param  list<string>  $errores

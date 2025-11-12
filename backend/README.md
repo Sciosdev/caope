@@ -19,6 +19,7 @@ php artisan serve
 
 ### Colas y caché
 
+- Por defecto las notificaciones críticas (como el cierre de expedientes) se envían con el driver `sync`, por lo que no es necesario levantar un worker salvo que configures una conexión de colas asíncrona.
 - Inicia el worker de colas cuando requieras procesar trabajos en segundo plano:
 
   ```bash
