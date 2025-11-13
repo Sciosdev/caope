@@ -602,7 +602,7 @@ class ExpedienteController extends Controller
 
         $expediente->update(['estado' => $nuevoEstado]);
 
-        $this->timelineLogger->log($expediente, 'expediente.estado_cambiado', $request->user(), [
+        $this->logTimelineEvent($expediente, 'expediente.estado_cambiado', $request->user(), [
             'antes' => $estadoAnterior,
             'despues' => $nuevoEstado,
         ]);

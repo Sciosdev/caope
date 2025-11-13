@@ -8,6 +8,7 @@ use App\Models\Sesion;
 use App\Models\TimelineEvento;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
@@ -155,5 +156,43 @@ class ExpedienteChangeStateTest extends TestCase
         $this->assertNotNull($evento);
         $this->assertSame('revision', $evento->payload['antes']);
         $this->assertSame('cerrado', $evento->payload['despues']);
+    }
+
+    public function test_cierre_exitoso_cuando_no_existe_tabla_timeline(): void
+    {
+        $usuario = User::factory()->create();
+        $usuario->givePermissionTo('expedientes.manage');
+
+        $expediente = Expediente::factory()->create([
+            'estado' => 'revision',
+            'creado_por' => $usuario->id,
+        ]);
+
+        $validador = User::factory()->create();
+
+        Sesion::factory()->create([
+            'expediente_id' => $expediente->id,
+            'status_revision' => 'validada',
+            'validada_por' => $validador->id,
+        ]);
+
+        Consentimiento::factory()->create([
+            'expediente_id' => $expediente->id,
+            'requerido' => true,
+            'aceptado' => true,
+            'archivo_path' => 'consentimientos/prueba.pdf',
+        ]);
+
+        Schema::dropIfExists('timeline_eventos');
+
+        $response = $this->actingAs($usuario)->post(route('expedientes.change-state', $expediente), [
+            'estado' => 'cerrado',
+        ]);
+
+        $response
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('expedientes.show', $expediente));
+
+        $this->assertSame('cerrado', $expediente->fresh()->estado);
     }
 }
