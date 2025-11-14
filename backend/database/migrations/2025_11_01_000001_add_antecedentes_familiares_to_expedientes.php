@@ -10,19 +10,24 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('expedientes', function (Blueprint $table) {
-            if (! Schema::hasColumn('expedientes', 'antecedentes_familiares')) {
-                $table->json('antecedentes_familiares')
-                    ->after('coordinador_id')
-                    ->nullable();
-            }
+        $shouldAddFamilyHistory = ! $this->columnExists('expedientes', 'antecedentes_familiares');
+        $shouldAddObservaciones = ! $this->columnExists('expedientes', 'antecedentes_observaciones');
 
-            if (! Schema::hasColumn('expedientes', 'antecedentes_observaciones')) {
-                $table->text('antecedentes_observaciones')
-                    ->after('antecedentes_familiares')
-                    ->nullable();
-            }
-        });
+        if ($shouldAddFamilyHistory || $shouldAddObservaciones) {
+            Schema::table('expedientes', function (Blueprint $table) use ($shouldAddFamilyHistory, $shouldAddObservaciones) {
+                if ($shouldAddFamilyHistory) {
+                    $table->json('antecedentes_familiares')
+                        ->after('coordinador_id')
+                        ->nullable();
+                }
+
+                if ($shouldAddObservaciones) {
+                    $table->text('antecedentes_observaciones')
+                        ->after('antecedentes_familiares')
+                        ->nullable();
+                }
+            });
+        }
 
         DB::table('expedientes')
             ->whereNull('antecedentes_familiares')
@@ -43,14 +48,39 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('expedientes', function (Blueprint $table) {
-            if (Schema::hasColumn('expedientes', 'antecedentes_observaciones')) {
-                $table->dropColumn('antecedentes_observaciones');
+        $shouldDropObservaciones = $this->columnExists('expedientes', 'antecedentes_observaciones');
+        $shouldDropFamilyHistory = $this->columnExists('expedientes', 'antecedentes_familiares');
+
+        if ($shouldDropObservaciones || $shouldDropFamilyHistory) {
+            Schema::table('expedientes', function (Blueprint $table) use ($shouldDropObservaciones, $shouldDropFamilyHistory) {
+                if ($shouldDropObservaciones) {
+                    $table->dropColumn('antecedentes_observaciones');
+                }
+
+                if ($shouldDropFamilyHistory) {
+                    $table->dropColumn('antecedentes_familiares');
+                }
+            });
+        }
+    }
+
+    protected function columnExists(string $table, string $column): bool
+    {
+        $connection = Schema::getConnection();
+        $driver = $connection->getDriverName();
+
+        if ($driver === 'sqlite') {
+            $results = DB::select("PRAGMA table_info('{$table}')");
+
+            foreach ($results as $result) {
+                if ($result->name === $column) {
+                    return true;
+                }
             }
 
-            if (Schema::hasColumn('expedientes', 'antecedentes_familiares')) {
-                $table->dropColumn('antecedentes_familiares');
-            }
-        });
+            return false;
+        }
+
+        return Schema::hasColumn($table, $column);
     }
 };
