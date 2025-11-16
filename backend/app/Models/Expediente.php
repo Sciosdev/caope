@@ -83,6 +83,23 @@ class Expediente extends Model
         'tegumentario' => 'Tegumentario',
     ];
 
+    public const GENERO_OPTIONS = [
+        'femenino',
+        'masculino',
+        'no_binario',
+        'otro',
+        'prefiere_no_decir',
+    ];
+
+    public const ESTADO_CIVIL_OPTIONS = [
+        'soltero',
+        'casado',
+        'divorciado',
+        'viudo',
+        'union_libre',
+        'prefiere_no_decir',
+    ];
+
     protected $fillable = [
         'no_control',
         'paciente',
@@ -90,6 +107,31 @@ class Expediente extends Model
         'apertura',
         'carrera',
         'turno',
+        'clinica',
+        'recibo_expediente',
+        'recibo_diagnostico',
+        'genero',
+        'estado_civil',
+        'ocupacion',
+        'escolaridad',
+        'fecha_nacimiento',
+        'lugar_nacimiento',
+        'domicilio_calle',
+        'colonia',
+        'delegacion_municipio',
+        'entidad',
+        'telefono_principal',
+        'fecha_inicio_real',
+        'motivo_consulta',
+        'alerta_ingreso',
+        'contacto_emergencia_nombre',
+        'contacto_emergencia_parentesco',
+        'contacto_emergencia_correo',
+        'contacto_emergencia_telefono',
+        'contacto_emergencia_horario',
+        'medico_referencia_nombre',
+        'medico_referencia_correo',
+        'medico_referencia_telefono',
         'creado_por',
         'tutor_id',
         'coordinador_id',
@@ -107,9 +149,14 @@ class Expediente extends Model
 
     protected $casts = [
         'apertura' => SafeDate::class,
+        'fecha_inicio_real' => SafeDate::class,
+        'fecha_nacimiento' => SafeDate::class,
         'antecedentes_familiares' => 'array',
         'antecedentes_personales_patologicos' => 'array',
         'aparatos_sistemas' => 'array',
+        'telefono_principal' => 'string',
+        'contacto_emergencia_telefono' => 'string',
+        'medico_referencia_telefono' => 'string',
     ];
 
     /**

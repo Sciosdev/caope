@@ -76,4 +76,59 @@ class ExpedienteOptionalContactsTest extends TestCase
             $this->assertSame($admin->id, $expediente->creado_por);
         }
     }
+
+    public function test_contact_payloads_accept_json_and_optional_values(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $carrera = CatalogoCarrera::create([
+            'nombre' => 'Licenciatura en Trabajo Social',
+            'activo' => true,
+        ]);
+
+        $turno = CatalogoTurno::create([
+            'nombre' => 'Mixto',
+            'activo' => true,
+        ]);
+
+        CatalogoCarrera::flushCache();
+        CatalogoTurno::flushCache();
+
+        $payload = [
+            'no_control' => 'CA-2025-7777',
+            'paciente' => 'Paciente Contactos',
+            'apertura' => Carbon::now()->toDateString(),
+            'carrera' => $carrera->nombre,
+            'turno' => $turno->nombre,
+            'contacto_emergencia' => json_encode([
+                'nombre' => '   ',
+                'parentesco' => '',
+                'correo' => '  ',
+                'telefono' => '',
+                'horario' => 'Noches',
+            ]),
+            'medico_referencia' => json_encode([
+                'nombre' => 'Dr. JSON',
+                'correo' => 'json@example.com',
+                'telefono' => '+52 55 9999 8888',
+            ]),
+        ];
+
+        $response = $this->actingAs($admin)->post(route('expedientes.store'), $payload);
+
+        $response->assertSessionHasNoErrors();
+
+        $expediente = Expediente::where('no_control', $payload['no_control'])->first();
+        $this->assertNotNull($expediente);
+
+        $this->assertNull($expediente->contacto_emergencia_nombre);
+        $this->assertNull($expediente->contacto_emergencia_parentesco);
+        $this->assertNull($expediente->contacto_emergencia_correo);
+        $this->assertNull($expediente->contacto_emergencia_telefono);
+        $this->assertSame('Noches', $expediente->contacto_emergencia_horario);
+        $this->assertSame('Dr. JSON', $expediente->medico_referencia_nombre);
+        $this->assertSame('json@example.com', $expediente->medico_referencia_correo);
+        $this->assertSame('+52 55 9999 8888', $expediente->medico_referencia_telefono);
+    }
 }

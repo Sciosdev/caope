@@ -8,6 +8,8 @@ use JsonException;
 
 trait ExpedienteFormRules
 {
+    private const PHONE_REGEX = '/^[0-9+\-\s]{7,20}$/';
+
     protected function prepareForValidation(): void
     {
         $this->merge($this->sanitizedStringFields());
@@ -39,6 +41,33 @@ trait ExpedienteFormRules
                 'apertura' => $this->normalizeDateField($this->input('apertura')),
             ]);
         }
+
+        foreach (['fecha_inicio_real', 'fecha_nacimiento'] as $dateField) {
+            if ($this->exists($dateField)) {
+                $this->merge([
+                    $dateField => $this->normalizeDateField($this->input($dateField)),
+                ]);
+            }
+        }
+
+        foreach ([
+            'contacto_emergencia' => [
+                'nombre' => 'contacto_emergencia_nombre',
+                'parentesco' => 'contacto_emergencia_parentesco',
+                'correo' => 'contacto_emergencia_correo',
+                'telefono' => 'contacto_emergencia_telefono',
+                'horario' => 'contacto_emergencia_horario',
+            ],
+            'medico_referencia' => [
+                'nombre' => 'medico_referencia_nombre',
+                'correo' => 'medico_referencia_correo',
+                'telefono' => 'medico_referencia_telefono',
+            ],
+        ] as $payloadField => $mapping) {
+            if ($this->exists($payloadField)) {
+                $this->merge($this->sanitizeContactPayload($payloadField, $mapping));
+            }
+        }
     }
 
     /**
@@ -54,6 +83,29 @@ trait ExpedienteFormRules
             'estado',
             'carrera',
             'turno',
+            'clinica',
+            'recibo_expediente',
+            'recibo_diagnostico',
+            'genero',
+            'estado_civil',
+            'ocupacion',
+            'escolaridad',
+            'lugar_nacimiento',
+            'domicilio_calle',
+            'colonia',
+            'delegacion_municipio',
+            'entidad',
+            'telefono_principal',
+            'motivo_consulta',
+            'alerta_ingreso',
+            'contacto_emergencia_nombre',
+            'contacto_emergencia_parentesco',
+            'contacto_emergencia_correo',
+            'contacto_emergencia_horario',
+            'contacto_emergencia_telefono',
+            'medico_referencia_nombre',
+            'medico_referencia_correo',
+            'medico_referencia_telefono',
             'antecedentes_observaciones',
             'antecedentes_personales_observaciones',
             'antecedente_padecimiento_actual',
@@ -190,6 +242,31 @@ trait ExpedienteFormRules
                 'max:20',
                 Rule::exists('catalogo_turnos', 'nombre')->where('activo', true),
             ],
+            'clinica' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'recibo_expediente' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'recibo_diagnostico' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'genero' => ['sometimes', 'nullable', 'string', 'max:40', Rule::in(Expediente::GENERO_OPTIONS)],
+            'estado_civil' => ['sometimes', 'nullable', 'string', 'max:60', Rule::in(Expediente::ESTADO_CIVIL_OPTIONS)],
+            'ocupacion' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'escolaridad' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'fecha_nacimiento' => ['sometimes', 'nullable', 'date', 'before_or_equal:today'],
+            'lugar_nacimiento' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'domicilio_calle' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'colonia' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'delegacion_municipio' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'entidad' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'telefono_principal' => ['sometimes', 'nullable', 'string', 'max:25', 'regex:'.self::PHONE_REGEX],
+            'fecha_inicio_real' => ['sometimes', 'nullable', 'date', 'before_or_equal:today'],
+            'motivo_consulta' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'alerta_ingreso' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'contacto_emergencia_nombre' => ['sometimes', 'nullable', 'string', 'max:150'],
+            'contacto_emergencia_parentesco' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'contacto_emergencia_correo' => ['sometimes', 'nullable', 'string', 'email:rfc'],
+            'contacto_emergencia_telefono' => ['sometimes', 'nullable', 'string', 'max:25', 'regex:'.self::PHONE_REGEX],
+            'contacto_emergencia_horario' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'medico_referencia_nombre' => ['sometimes', 'nullable', 'string', 'max:150'],
+            'medico_referencia_correo' => ['sometimes', 'nullable', 'string', 'email:rfc'],
+            'medico_referencia_telefono' => ['sometimes', 'nullable', 'string', 'max:25', 'regex:'.self::PHONE_REGEX],
             'tutor_id' => ['sometimes', 'nullable', 'integer', 'min:1', 'exists:users,id'],
             'coordinador_id' => ['sometimes', 'nullable', 'integer', 'min:1', 'exists:users,id'],
             'antecedentes_familiares' => ['sometimes', 'array'],
@@ -442,6 +519,64 @@ trait ExpedienteFormRules
             'dsm_tr',
             'observaciones_relevantes',
             'aparatos_sistemas',
+            'clinica',
+            'recibo_expediente',
+            'recibo_diagnostico',
+            'genero',
+            'estado_civil',
+            'ocupacion',
+            'escolaridad',
+            'fecha_nacimiento',
+            'lugar_nacimiento',
+            'domicilio_calle',
+            'colonia',
+            'delegacion_municipio',
+            'entidad',
+            'telefono_principal',
+            'fecha_inicio_real',
+            'motivo_consulta',
+            'alerta_ingreso',
+            'contacto_emergencia_nombre',
+            'contacto_emergencia_parentesco',
+            'contacto_emergencia_correo',
+            'contacto_emergencia_telefono',
+            'contacto_emergencia_horario',
+            'medico_referencia_nombre',
+            'medico_referencia_correo',
+            'medico_referencia_telefono',
         ]);
+    }
+
+    /**
+     * @param  array<string, string>  $mapping
+     * @return array<string, ?string>
+     */
+    private function sanitizeContactPayload(string $field, array $mapping): array
+    {
+        $payload = $this->normalizeArrayPayload($this->input($field));
+        $sanitized = [];
+
+        foreach ($mapping as $source => $target) {
+            if (! array_key_exists($source, $payload)) {
+                continue;
+            }
+
+            $value = $payload[$source];
+
+            if (is_string($value)) {
+                $trimmed = trim($value);
+                $sanitized[$target] = $trimmed === '' ? null : $trimmed;
+                continue;
+            }
+
+            if (is_scalar($value)) {
+                $sanitized[$target] = trim((string) $value) ?: null;
+                continue;
+            }
+
+            $sanitized[$target] = null;
+        }
+
+        return $sanitized;
     }
 }
