@@ -298,4 +298,148 @@ class ExpedienteCreateTest extends TestCase
         $response->assertSessionHasErrors('expediente');
         $response->assertSessionHas('expediente_error_context.reason', 'missing_columns');
     }
+
+    public function test_admin_can_store_extended_profile_fields(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $carrera = CatalogoCarrera::create([
+            'nombre' => 'Licenciatura en Nutrición',
+            'activo' => true,
+        ]);
+
+        $turno = CatalogoTurno::create([
+            'nombre' => 'Mixto',
+            'activo' => true,
+        ]);
+
+        CatalogoCarrera::flushCache();
+        CatalogoTurno::flushCache();
+
+        $fechaNacimiento = Carbon::now()->subYears(22)->toDateString();
+        $fechaInicioReal = Carbon::now()->subWeeks(1)->toDateString();
+
+        $payload = [
+            'no_control' => 'CA-2025-5555',
+            'paciente' => 'Paciente Integral',
+            'apertura' => Carbon::now()->toDateString(),
+            'carrera' => $carrera->nombre,
+            'turno' => $turno->nombre,
+            'clinica' => 'Clínica Norte',
+            'recibo_expediente' => 'EXP-2025-55',
+            'recibo_diagnostico' => 'DX-2025-33',
+            'genero' => 'femenino',
+            'estado_civil' => 'soltero',
+            'ocupacion' => 'Estudiante',
+            'escolaridad' => 'Licenciatura',
+            'fecha_nacimiento' => $fechaNacimiento,
+            'lugar_nacimiento' => 'Ciudad de México',
+            'domicilio_calle' => 'Av. Siempre Viva 742',
+            'colonia' => 'Centro',
+            'delegacion_municipio' => 'Cuauhtémoc',
+            'entidad' => 'CDMX',
+            'telefono_principal' => '+52 55 1111 2222',
+            'fecha_inicio_real' => $fechaInicioReal,
+            'motivo_consulta' => 'Motivo extendido para la consulta del paciente.',
+            'alerta_ingreso' => 'Alergia a penicilina',
+            'contacto_emergencia' => [
+                'nombre' => 'María Pérez',
+                'parentesco' => 'Madre',
+                'correo' => 'maria@example.com',
+                'telefono' => '55 4444 3333',
+                'horario' => '9:00 - 18:00',
+            ],
+            'medico_referencia' => [
+                'nombre' => 'Dr. Juan Pérez',
+                'correo' => 'doctor@example.com',
+                'telefono' => '+52 55 7777 6666',
+            ],
+        ];
+
+        $response = $this->actingAs($admin)->post(route('expedientes.store'), $payload);
+
+        $response->assertSessionHasNoErrors();
+
+        $expediente = Expediente::where('no_control', $payload['no_control'])->first();
+        $this->assertNotNull($expediente);
+
+        $this->assertSame('Clínica Norte', $expediente->clinica);
+        $this->assertSame('EXP-2025-55', $expediente->recibo_expediente);
+        $this->assertSame('DX-2025-33', $expediente->recibo_diagnostico);
+        $this->assertSame('femenino', $expediente->genero);
+        $this->assertSame('soltero', $expediente->estado_civil);
+        $this->assertSame('Estudiante', $expediente->ocupacion);
+        $this->assertSame('Licenciatura', $expediente->escolaridad);
+        $this->assertSame($fechaNacimiento, optional($expediente->fecha_nacimiento)->format('Y-m-d'));
+        $this->assertSame('Ciudad de México', $expediente->lugar_nacimiento);
+        $this->assertSame('Av. Siempre Viva 742', $expediente->domicilio_calle);
+        $this->assertSame('Centro', $expediente->colonia);
+        $this->assertSame('Cuauhtémoc', $expediente->delegacion_municipio);
+        $this->assertSame('CDMX', $expediente->entidad);
+        $this->assertSame('+52 55 1111 2222', $expediente->telefono_principal);
+        $this->assertSame($fechaInicioReal, optional($expediente->fecha_inicio_real)->format('Y-m-d'));
+        $this->assertSame('Motivo extendido para la consulta del paciente.', $expediente->motivo_consulta);
+        $this->assertSame('Alergia a penicilina', $expediente->alerta_ingreso);
+        $this->assertSame('María Pérez', $expediente->contacto_emergencia_nombre);
+        $this->assertSame('Madre', $expediente->contacto_emergencia_parentesco);
+        $this->assertSame('maria@example.com', $expediente->contacto_emergencia_correo);
+        $this->assertSame('55 4444 3333', $expediente->contacto_emergencia_telefono);
+        $this->assertSame('9:00 - 18:00', $expediente->contacto_emergencia_horario);
+        $this->assertSame('Dr. Juan Pérez', $expediente->medico_referencia_nombre);
+        $this->assertSame('doctor@example.com', $expediente->medico_referencia_correo);
+        $this->assertSame('+52 55 7777 6666', $expediente->medico_referencia_telefono);
+    }
+
+    public function test_store_rejects_invalid_extended_profile_fields(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $carrera = CatalogoCarrera::create([
+            'nombre' => 'Licenciatura en Psicología Clínica',
+            'activo' => true,
+        ]);
+
+        $turno = CatalogoTurno::create([
+            'nombre' => 'Vespertino',
+            'activo' => true,
+        ]);
+
+        CatalogoCarrera::flushCache();
+        CatalogoTurno::flushCache();
+
+        $payload = [
+            'no_control' => 'CA-2025-9090',
+            'paciente' => 'Paciente Inválido',
+            'apertura' => Carbon::now()->toDateString(),
+            'carrera' => $carrera->nombre,
+            'turno' => $turno->nombre,
+            'genero' => 'desconocido',
+            'estado_civil' => 'complicado',
+            'fecha_nacimiento' => Carbon::now()->addDay()->toDateString(),
+            'telefono_principal' => 'abc123',
+            'contacto_emergencia' => [
+                'correo' => 'correo-invalido',
+                'telefono' => '123',
+            ],
+            'medico_referencia' => [
+                'correo' => 'doctor-invalido',
+                'telefono' => 'abc',
+            ],
+        ];
+
+        $response = $this->actingAs($admin)->post(route('expedientes.store'), $payload);
+
+        $response->assertSessionHasErrors([
+            'genero',
+            'estado_civil',
+            'fecha_nacimiento',
+            'telefono_principal',
+            'contacto_emergencia_correo',
+            'contacto_emergencia_telefono',
+            'medico_referencia_correo',
+            'medico_referencia_telefono',
+        ]);
+    }
 }

@@ -75,6 +75,13 @@ class ExpedienteFactory extends Factory
                 : null;
         }
 
+        $apertura = $this->faker->dateTimeBetween('-6 months', 'now');
+        $fechaInicioReal = $this->faker->boolean(65)
+            ? $this->faker->dateTimeBetween($apertura, 'now')
+            : null;
+        $fechaNacimiento = $this->faker->boolean(80)
+            ? $this->faker->dateTimeBetween('-40 years', '-18 years')
+            : null;
         $planAccion = $this->faker->boolean(50)
             ? $this->faker->paragraphs($this->faker->numberBetween(1, 2), true)
             : null;
@@ -87,14 +94,57 @@ class ExpedienteFactory extends Factory
         $observacionesRelevantes = $this->faker->boolean(50)
             ? $this->faker->sentences($this->faker->numberBetween(1, 2), true)
             : null;
+        $telefonoPrincipal = $this->faker->boolean(85)
+            ? sprintf('+52 55 %04d %04d', $this->faker->numberBetween(0, 9999), $this->faker->numberBetween(0, 9999))
+            : null;
+        $contactoEmergenciaNombre = $this->faker->name();
+        $contactoEmergenciaTelefono = sprintf('+52 55 %04d %04d', $this->faker->numberBetween(0, 9999), $this->faker->numberBetween(0, 9999));
+        $medicoReferenciaTelefono = sprintf('+52 55 %04d %04d', $this->faker->numberBetween(0, 9999), $this->faker->numberBetween(0, 9999));
+        $motivoConsulta = $this->faker->boolean(70)
+            ? $this->faker->paragraphs($this->faker->numberBetween(2, 3), true)
+            : null;
+        $alertaIngreso = $this->faker->boolean(30)
+            ? $this->faker->sentence(12)
+            : null;
 
         return [
             'no_control' => sprintf('CA-%s-%04d', now()->format('Y'), $this->faker->unique()->numberBetween(1, 9999)),
             'paciente' => $this->faker->name(),
             'estado' => $this->faker->randomElement($estados),
-            'apertura' => $this->faker->dateTimeBetween('-6 months', 'now'),
+            'apertura' => $apertura,
             'carrera' => $this->faker->randomElement($carreras->all()),
             'turno' => $this->faker->randomElement($turnos->all()),
+            'clinica' => $this->faker->optional(0.6)->company(),
+            'recibo_expediente' => $this->faker->optional(0.5)->bothify('EXP-####'),
+            'recibo_diagnostico' => $this->faker->optional(0.5)->bothify('DX-####'),
+            'genero' => $this->faker->optional(0.8)->randomElement(Expediente::GENERO_OPTIONS),
+            'estado_civil' => $this->faker->optional(0.7)->randomElement(Expediente::ESTADO_CIVIL_OPTIONS),
+            'ocupacion' => $this->faker->optional(0.7)->jobTitle(),
+            'escolaridad' => $this->faker->optional(0.7)->randomElement([
+                'Primaria',
+                'Secundaria',
+                'Preparatoria',
+                'Licenciatura',
+                'Posgrado',
+            ]),
+            'fecha_nacimiento' => $fechaNacimiento,
+            'lugar_nacimiento' => $this->faker->optional(0.6)->city(),
+            'domicilio_calle' => $this->faker->optional(0.8)->streetAddress(),
+            'colonia' => $this->faker->optional(0.7)->streetName(),
+            'delegacion_municipio' => $this->faker->optional(0.7)->city(),
+            'entidad' => $this->faker->optional(0.7)->state(),
+            'telefono_principal' => $telefonoPrincipal,
+            'fecha_inicio_real' => $fechaInicioReal,
+            'motivo_consulta' => $motivoConsulta,
+            'alerta_ingreso' => $alertaIngreso,
+            'contacto_emergencia_nombre' => $contactoEmergenciaNombre,
+            'contacto_emergencia_parentesco' => $this->faker->randomElement(['Madre', 'Padre', 'Hermano/a', 'Pareja', 'Amigo/a']),
+            'contacto_emergencia_correo' => $this->faker->safeEmail(),
+            'contacto_emergencia_telefono' => $contactoEmergenciaTelefono,
+            'contacto_emergencia_horario' => $this->faker->optional(0.5)->randomElement(['Mañanas', 'Tardes', 'Noches', 'Horario laboral']),
+            'medico_referencia_nombre' => $this->faker->optional(0.6)->name(),
+            'medico_referencia_correo' => $this->faker->optional(0.6)->companyEmail(),
+            'medico_referencia_telefono' => $this->faker->optional(0.6)->randomElement([$medicoReferenciaTelefono, null]),
             'creado_por' => $creadoPor,
             'tutor_id' => $tutor,
             'coordinador_id' => $coordinador,

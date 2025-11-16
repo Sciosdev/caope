@@ -99,6 +99,49 @@ class ExpedienteSeeder extends Seeder
             $observacionesRelevantes = $faker->boolean(55)
                 ? $faker->sentences($faker->numberBetween(1, 2), true)
                 : null;
+            $clinica = $faker->boolean(70) ? $faker->company() : null;
+            $reciboExpediente = $faker->boolean(60) ? $faker->bothify('EXP-####') : null;
+            $reciboDiagnostico = $faker->boolean(60) ? $faker->bothify('DX-####') : null;
+            $genero = $faker->boolean(85) ? $faker->randomElement(Expediente::GENERO_OPTIONS) : null;
+            $estadoCivil = $faker->boolean(80) ? $faker->randomElement(Expediente::ESTADO_CIVIL_OPTIONS) : null;
+            $ocupacion = $faker->boolean(70) ? $faker->jobTitle() : null;
+            $escolaridad = $faker->boolean(70)
+                ? $faker->randomElement(['Primaria', 'Secundaria', 'Preparatoria', 'Licenciatura', 'Posgrado'])
+                : null;
+            $fechaNacimiento = $faker->boolean(80)
+                ? Carbon::parse($faker->dateTimeBetween('-40 years', '-18 years'))
+                : null;
+            $lugarNacimiento = $faker->boolean(70) ? $faker->city() : null;
+            $domicilioCalle = $faker->boolean(80) ? $faker->streetAddress() : null;
+            $colonia = $faker->boolean(70) ? $faker->streetName() : null;
+            $delegacion = $faker->boolean(70) ? $faker->city() : null;
+            $entidad = $faker->boolean(70) ? $faker->state() : null;
+            $telefonoPrincipal = $faker->boolean(85)
+                ? sprintf('+52 55 %04d %04d', $faker->numberBetween(0, 9999), $faker->numberBetween(0, 9999))
+                : null;
+            $fechaInicioReal = $faker->boolean(60)
+                ? Carbon::parse($faker->dateTimeBetween($apertura, 'now'))
+                : null;
+            $motivoConsulta = $faker->boolean(65)
+                ? $faker->paragraphs($faker->numberBetween(2, 3), true)
+                : null;
+            $alertaIngreso = $faker->boolean(30) ? $faker->sentence(10) : null;
+            $contactoEmergenciaNombre = $faker->boolean(80) ? $faker->name() : null;
+            $contactoEmergenciaParentesco = $contactoEmergenciaNombre
+                ? $faker->randomElement(['Madre', 'Padre', 'Hermano/a', 'Pareja', 'Amistad'])
+                : null;
+            $contactoEmergenciaCorreo = $contactoEmergenciaNombre ? $faker->safeEmail() : null;
+            $contactoEmergenciaTelefono = $contactoEmergenciaNombre
+                ? sprintf('+52 55 %04d %04d', $faker->numberBetween(0, 9999), $faker->numberBetween(0, 9999))
+                : null;
+            $contactoEmergenciaHorario = $contactoEmergenciaNombre
+                ? $faker->randomElement(['Mañanas', 'Tardes', 'Noches', 'Horario laboral'])
+                : null;
+            $medicoReferenciaNombre = $faker->boolean(60) ? $faker->name() : null;
+            $medicoReferenciaCorreo = $medicoReferenciaNombre ? $faker->companyEmail() : null;
+            $medicoReferenciaTelefono = $medicoReferenciaNombre
+                ? sprintf('+52 55 %04d %04d', $faker->numberBetween(0, 9999), $faker->numberBetween(0, 9999))
+                : null;
 
             $expediente = Expediente::factory()->create([
                 'estado' => $estado,
@@ -108,6 +151,31 @@ class ExpedienteSeeder extends Seeder
                 'creado_por' => $creadoPor,
                 'tutor_id' => $tutor,
                 'coordinador_id' => $coordinador,
+                'clinica' => $clinica,
+                'recibo_expediente' => $reciboExpediente,
+                'recibo_diagnostico' => $reciboDiagnostico,
+                'genero' => $genero,
+                'estado_civil' => $estadoCivil,
+                'ocupacion' => $ocupacion,
+                'escolaridad' => $escolaridad,
+                'fecha_nacimiento' => $fechaNacimiento,
+                'lugar_nacimiento' => $lugarNacimiento,
+                'domicilio_calle' => $domicilioCalle,
+                'colonia' => $colonia,
+                'delegacion_municipio' => $delegacion,
+                'entidad' => $entidad,
+                'telefono_principal' => $telefonoPrincipal,
+                'fecha_inicio_real' => $fechaInicioReal,
+                'motivo_consulta' => $motivoConsulta,
+                'alerta_ingreso' => $alertaIngreso,
+                'contacto_emergencia_nombre' => $contactoEmergenciaNombre,
+                'contacto_emergencia_parentesco' => $contactoEmergenciaParentesco,
+                'contacto_emergencia_correo' => $contactoEmergenciaCorreo,
+                'contacto_emergencia_telefono' => $contactoEmergenciaTelefono,
+                'contacto_emergencia_horario' => $contactoEmergenciaHorario,
+                'medico_referencia_nombre' => $medicoReferenciaNombre,
+                'medico_referencia_correo' => $medicoReferenciaCorreo,
+                'medico_referencia_telefono' => $medicoReferenciaTelefono,
                 'diagnostico' => $diagnostico,
                 'dsm_tr' => $dsmTr,
                 'observaciones_relevantes' => $observacionesRelevantes,
