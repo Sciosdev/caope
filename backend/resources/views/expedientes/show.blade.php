@@ -126,6 +126,126 @@
                     </dl>
 
                     <div class="mt-4">
+                        <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+                            <h6 class="mb-0">Ficha clínica</h6>
+                            @if ($expediente->alerta_ingreso)
+                                <span class="badge bg-danger">Alerta al ingreso</span>
+                            @endif
+                        </div>
+
+                        @if ($expediente->alerta_ingreso)
+                            <div class="alert alert-danger" role="alert">
+                                <strong>Alerta:</strong>
+                                {{ $expediente->alerta_ingreso }}
+                            </div>
+                        @endif
+
+                        <div class="row g-4">
+                            <div class="col-xl-4">
+                                <h6 class="text-muted text-uppercase small mb-2">Datos institucionales</h6>
+                                <dl class="row mb-0 small">
+                                    <dt class="col-sm-5">Clínica</dt>
+                                    <dd class="col-sm-7">{{ $expediente->clinica ?: '—' }}</dd>
+
+                                    <dt class="col-sm-5">Recibo expediente</dt>
+                                    <dd class="col-sm-7">{{ $expediente->recibo_expediente ?: '—' }}</dd>
+
+                                    <dt class="col-sm-5">Recibo diagnóstico</dt>
+                                    <dd class="col-sm-7">{{ $expediente->recibo_diagnostico ?: '—' }}</dd>
+
+                                    <dt class="col-sm-5">Inicio real</dt>
+                                    <dd class="col-sm-7">{{ optional($expediente->fecha_inicio_real)->format('Y-m-d') ?? '—' }}</dd>
+                                </dl>
+                            </div>
+                            <div class="col-xl-4">
+                                <h6 class="text-muted text-uppercase small mb-2">Identidad</h6>
+                                <dl class="row mb-0 small">
+                                    <dt class="col-sm-5">Género</dt>
+                                    <dd class="col-sm-7">{{ $expediente->genero ?: '—' }}</dd>
+
+                                    <dt class="col-sm-5">Estado civil</dt>
+                                    <dd class="col-sm-7">{{ $expediente->estado_civil ?: '—' }}</dd>
+
+                                    <dt class="col-sm-5">Ocupación</dt>
+                                    <dd class="col-sm-7">{{ $expediente->ocupacion ?: '—' }}</dd>
+
+                                    <dt class="col-sm-5">Escolaridad</dt>
+                                    <dd class="col-sm-7">{{ $expediente->escolaridad ?: '—' }}</dd>
+
+                                    <dt class="col-sm-5">Nacimiento</dt>
+                                    <dd class="col-sm-7">
+                                        {{ optional($expediente->fecha_nacimiento)->format('Y-m-d') ?? '—' }}
+                                        @if ($expediente->lugar_nacimiento)
+                                            <span class="d-block text-muted">{{ $expediente->lugar_nacimiento }}</span>
+                                        @endif
+                                    </dd>
+                                </dl>
+                            </div>
+                            <div class="col-xl-4">
+                                <h6 class="text-muted text-uppercase small mb-2">Domicilio</h6>
+                                <dl class="row mb-0 small">
+                                    <dt class="col-sm-5">Calle / número</dt>
+                                    <dd class="col-sm-7">{{ $expediente->domicilio_calle ?: '—' }}</dd>
+
+                                    <dt class="col-sm-5">Colonia</dt>
+                                    <dd class="col-sm-7">{{ $expediente->colonia ?: '—' }}</dd>
+
+                                    <dt class="col-sm-5">Municipio</dt>
+                                    <dd class="col-sm-7">{{ $expediente->delegacion_municipio ?: '—' }}</dd>
+
+                                    <dt class="col-sm-5">Entidad</dt>
+                                    <dd class="col-sm-7">{{ $expediente->entidad ?: '—' }}</dd>
+
+                                    <dt class="col-sm-5">Teléfono</dt>
+                                    <dd class="col-sm-7">{{ $expediente->telefono_principal ?: '—' }}</dd>
+                                </dl>
+                            </div>
+                        </div>
+
+                        <div class="row g-4 mt-3">
+                            <div class="col-lg-6">
+                                <h6 class="text-muted text-uppercase small mb-2">Contacto de emergencia</h6>
+                                <dl class="row mb-0 small">
+                                    <dt class="col-sm-5">Nombre</dt>
+                                    <dd class="col-sm-7">{{ $expediente->contacto_emergencia_nombre ?: '—' }}</dd>
+
+                                    <dt class="col-sm-5">Parentesco</dt>
+                                    <dd class="col-sm-7">{{ $expediente->contacto_emergencia_parentesco ?: '—' }}</dd>
+
+                                    <dt class="col-sm-5">Correo</dt>
+                                    <dd class="col-sm-7">{{ $expediente->contacto_emergencia_correo ?: '—' }}</dd>
+
+                                    <dt class="col-sm-5">Teléfono</dt>
+                                    <dd class="col-sm-7">{{ $expediente->contacto_emergencia_telefono ?: '—' }}</dd>
+
+                                    <dt class="col-sm-5">Horario</dt>
+                                    <dd class="col-sm-7">{{ $expediente->contacto_emergencia_horario ?: '—' }}</dd>
+                                </dl>
+                            </div>
+                            <div class="col-lg-6">
+                                <h6 class="text-muted text-uppercase small mb-2">Médico de referencia</h6>
+                                <dl class="row mb-0 small">
+                                    <dt class="col-sm-5">Nombre</dt>
+                                    <dd class="col-sm-7">{{ $expediente->medico_referencia_nombre ?: '—' }}</dd>
+
+                                    <dt class="col-sm-5">Correo</dt>
+                                    <dd class="col-sm-7">{{ $expediente->medico_referencia_correo ?: '—' }}</dd>
+
+                                    <dt class="col-sm-5">Teléfono</dt>
+                                    <dd class="col-sm-7">{{ $expediente->medico_referencia_telefono ?: '—' }}</dd>
+                                </dl>
+                            </div>
+                        </div>
+
+                        @if ($expediente->motivo_consulta)
+                            <div class="mt-4">
+                                <h6 class="text-muted text-uppercase small mb-2">Motivo de la consulta / Nota de ingreso</h6>
+                                <p class="mb-0">{!! nl2br(e($expediente->motivo_consulta)) !!}</p>
+                            </div>
+                        @endif
+                    </div>
+
+                    <div class="mt-4">
                         <h6 class="mb-3">Últimos eventos</h6>
                         @if ($timelineEventosRecientes->isEmpty())
                             <p class="text-muted mb-0">Todavía no hay actividad registrada.</p>

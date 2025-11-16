@@ -23,6 +23,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
@@ -663,11 +664,33 @@ class ExpedienteController extends Controller
         $tutores = User::role('docente')->orderBy('name')->get();
         $coordinadores = User::role('coordinador')->orderBy('name')->get();
 
+        $generos = collect(Expediente::GENERO_OPTIONS)
+            ->mapWithKeys(function (string $value) {
+                $label = Str::of($value)
+                    ->replace('_', ' ')
+                    ->replace('-', ' ')
+                    ->title();
+
+                return [$value => (string) $label];
+            });
+
+        $estadosCiviles = collect(Expediente::ESTADO_CIVIL_OPTIONS)
+            ->mapWithKeys(function (string $value) {
+                $label = Str::of($value)
+                    ->replace('_', ' ')
+                    ->replace('-', ' ')
+                    ->title();
+
+                return [$value => (string) $label];
+            });
+
         return [
             'carreras' => $carreras,
             'turnos' => $turnos,
             'tutores' => $tutores,
             'coordinadores' => $coordinadores,
+            'generos' => $generos,
+            'estadosCiviles' => $estadosCiviles,
             'familyHistoryMembers' => Expediente::FAMILY_HISTORY_MEMBERS,
             'hereditaryHistoryConditions' => Expediente::HEREDITARY_HISTORY_CONDITIONS,
             'personalPathologicalConditions' => Expediente::PERSONAL_PATHOLOGICAL_CONDITIONS,
