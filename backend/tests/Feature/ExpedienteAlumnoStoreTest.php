@@ -94,6 +94,68 @@ class ExpedienteAlumnoStoreTest extends TestCase
         ]);
     }
 
+    public function test_student_receives_error_when_form_columns_missing_in_schema(): void
+    {
+        $student = $this->createStudent();
+
+        Schema::table('expedientes', function (Blueprint $table): void {
+            if (Schema::hasColumn('expedientes', 'contacto_emergencia_horario')) {
+                $table->dropColumn('contacto_emergencia_horario');
+            }
+        });
+
+        $payload = [
+            'no_control' => 'NC-0100',
+            'paciente' => 'Alumno Completo',
+            'apertura' => now()->format('Y-m-d'),
+            'carrera' => $student->carrera,
+            'turno' => $student->turno,
+            'clinica' => 'Clínica Norte',
+            'fecha_inicio_real' => now()->format('Y-m-d'),
+            'recibo_expediente' => 'REC-EXP-01',
+            'recibo_diagnostico' => 'REC-DIAG-02',
+            'genero' => 'femenino',
+            'estado_civil' => 'soltero',
+            'ocupacion' => 'Estudiante',
+            'escolaridad' => 'Licenciatura',
+            'fecha_nacimiento' => now()->subYears(20)->format('Y-m-d'),
+            'lugar_nacimiento' => 'Ciudad de México',
+            'domicilio_calle' => 'Calle Falsa 123',
+            'colonia' => 'Centro',
+            'delegacion_municipio' => 'Benito Juárez',
+            'entidad' => 'CDMX',
+            'telefono_principal' => '+52 5512345678',
+            'motivo_consulta' => 'Motivo de prueba',
+            'alerta_ingreso' => 'Alerta de prueba',
+            'contacto_emergencia_nombre' => 'Contacto Emergencia',
+            'contacto_emergencia_parentesco' => 'Hermano',
+            'contacto_emergencia_correo' => 'contacto@example.com',
+            'contacto_emergencia_telefono' => '+52 5587654321',
+            'contacto_emergencia_horario' => '9am - 5pm',
+            'medico_referencia_nombre' => 'Dr. Demo',
+            'medico_referencia_correo' => 'doctor@example.com',
+            'medico_referencia_telefono' => '+52 5543216789',
+        ];
+
+        $response = $this->from(route('expedientes.create'))
+            ->actingAs($student)
+            ->post(route('expedientes.store'), $payload);
+
+        $response->assertRedirect(route('expedientes.create'));
+        $response->assertSessionHasErrors([
+            'expediente' => __('expedientes.messages.student_save_error'),
+        ]);
+
+        $response->assertSessionHas('expediente_error_context', function ($context) {
+            return ($context['reason'] ?? null) === 'missing_columns'
+                && in_array('contacto_emergencia_horario', $context['columns'] ?? [], true);
+        });
+
+        $this->assertDatabaseMissing('expedientes', [
+            'no_control' => 'NC-0100',
+        ]);
+    }
+
     public function test_student_update_returns_error_when_optional_columns_missing(): void
     {
         $student = $this->createStudent();

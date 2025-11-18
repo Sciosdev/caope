@@ -229,6 +229,8 @@ class ExpedienteController extends Controller
                 'no_control' => $data['no_control'] ?? null,
                 'code' => $exception->getCode(),
                 'sql_state' => $exception->errorInfo[0] ?? null,
+                'sql' => $exception->getSql(),
+                'bindings' => $exception->getBindings(),
                 'message' => $exception->getMessage(),
             ]);
             report($exception);
@@ -552,6 +554,7 @@ class ExpedienteController extends Controller
     private function prepareExpedienteColumns(array $data, Expediente $reference, bool $applyDefaults = true): array
     {
         $table = $reference->getTable();
+        $columns = array_flip(Schema::getColumnListing($table));
         $missingColumns = [];
 
         $columnDefaults = [
@@ -568,7 +571,7 @@ class ExpedienteController extends Controller
         ];
 
         foreach ($columnDefaults as $column => $resolver) {
-            if (! Schema::hasColumn($table, $column)) {
+            if (! array_key_exists($column, $columns)) {
                 if (array_key_exists($column, $data)) {
                     unset($data[$column]);
                 }
@@ -582,6 +585,17 @@ class ExpedienteController extends Controller
                 $data[$column] = $resolver();
             }
         }
+
+        foreach (array_keys($data) as $column) {
+            if (array_key_exists($column, $columns)) {
+                continue;
+            }
+
+            unset($data[$column]);
+            $missingColumns[] = $column;
+        }
+
+        $missingColumns = array_values(array_unique($missingColumns));
 
         return [$data, $missingColumns];
     }
