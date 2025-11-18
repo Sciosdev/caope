@@ -339,7 +339,7 @@ class ExpedienteCreateTest extends TestCase
             'colonia' => 'Centro',
             'delegacion_municipio' => 'Cuauhtémoc',
             'entidad' => 'CDMX',
-            'telefono_principal' => '+52 55 1111 2222',
+            'telefono_principal' => '(55) 2424-8260',
             'fecha_inicio_real' => $fechaInicioReal,
             'motivo_consulta' => 'Motivo extendido para la consulta del paciente.',
             'alerta_ingreso' => 'Alergia a penicilina',
@@ -347,13 +347,13 @@ class ExpedienteCreateTest extends TestCase
                 'nombre' => 'María Pérez',
                 'parentesco' => 'Madre',
                 'correo' => 'maria@example.com',
-                'telefono' => '55 4444 3333',
+                'telefono' => '(33) 1234-5678',
                 'horario' => '9:00 - 18:00',
             ],
             'medico_referencia' => [
                 'nombre' => 'Dr. Juan Pérez',
                 'correo' => 'doctor@example.com',
-                'telefono' => '+52 55 7777 6666',
+                'telefono' => '+52 (81) 5555-4444',
             ],
         ];
 
@@ -377,18 +377,18 @@ class ExpedienteCreateTest extends TestCase
         $this->assertSame('Centro', $expediente->colonia);
         $this->assertSame('Cuauhtémoc', $expediente->delegacion_municipio);
         $this->assertSame('CDMX', $expediente->entidad);
-        $this->assertSame('+52 55 1111 2222', $expediente->telefono_principal);
+        $this->assertSame('(55) 2424-8260', $expediente->telefono_principal);
         $this->assertSame($fechaInicioReal, optional($expediente->fecha_inicio_real)->format('Y-m-d'));
         $this->assertSame('Motivo extendido para la consulta del paciente.', $expediente->motivo_consulta);
         $this->assertSame('Alergia a penicilina', $expediente->alerta_ingreso);
         $this->assertSame('María Pérez', $expediente->contacto_emergencia_nombre);
         $this->assertSame('Madre', $expediente->contacto_emergencia_parentesco);
         $this->assertSame('maria@example.com', $expediente->contacto_emergencia_correo);
-        $this->assertSame('55 4444 3333', $expediente->contacto_emergencia_telefono);
+        $this->assertSame('(33) 1234-5678', $expediente->contacto_emergencia_telefono);
         $this->assertSame('9:00 - 18:00', $expediente->contacto_emergencia_horario);
         $this->assertSame('Dr. Juan Pérez', $expediente->medico_referencia_nombre);
         $this->assertSame('doctor@example.com', $expediente->medico_referencia_correo);
-        $this->assertSame('+52 55 7777 6666', $expediente->medico_referencia_telefono);
+        $this->assertSame('+52 (81) 5555-4444', $expediente->medico_referencia_telefono);
     }
 
     /**

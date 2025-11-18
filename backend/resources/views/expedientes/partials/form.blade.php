@@ -692,9 +692,10 @@
                 if (window.jQuery && typeof window.jQuery.fn.inputmask === 'function') {
                     const $ = window.jQuery;
                     const maskOptions = {
-                        mask: '(99) 9999-9999[9]',
+                        regex: '\\+?(?:\\d{1,3}[\\s.\\-]?)?(?:\\(\\d{2,5}\\)|\\d{2,5})(?:[\\s.\\-]?\\d{2,5})+(?:\\s?(?:ext\\.?|x)\\s?\\d{1,5})?',
                         greedy: false,
                         showMaskOnHover: false,
+                        jitMasking: true,
                     };
 
                     $('#telefono_principal, #contacto_emergencia_telefono, #medico_referencia_telefono').inputmask(maskOptions);
