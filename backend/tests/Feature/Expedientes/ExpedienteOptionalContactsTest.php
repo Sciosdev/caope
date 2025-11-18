@@ -111,7 +111,7 @@ class ExpedienteOptionalContactsTest extends TestCase
             'medico_referencia' => json_encode([
                 'nombre' => 'Dr. JSON',
                 'correo' => 'json@example.com',
-                'telefono' => '+52 55 9999 8888',
+                'telefono' => '(55) 2424-8260',
             ]),
         ];
 
@@ -129,6 +129,6 @@ class ExpedienteOptionalContactsTest extends TestCase
         $this->assertSame('Noches', $expediente->contacto_emergencia_horario);
         $this->assertSame('Dr. JSON', $expediente->medico_referencia_nombre);
         $this->assertSame('json@example.com', $expediente->medico_referencia_correo);
-        $this->assertSame('+52 55 9999 8888', $expediente->medico_referencia_telefono);
+        $this->assertSame('(55) 2424-8260', $expediente->medico_referencia_telefono);
     }
 }

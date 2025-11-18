@@ -8,7 +8,7 @@ use JsonException;
 
 trait ExpedienteFormRules
 {
-    private const PHONE_REGEX = '/^(?=.{7,25}$)(?=(?:.*\d){7,})\+?(?:(?:\(\d+\)|\d+)[\s.\-]?)+(?:\s?(?:ext\.?|x)\s?\d{1,5})?$/i';
+    private const PHONE_REGEX = '/^(?=.{7,25}$)(?=(?:.*\d){7,})(?:\+?\d{1,3}[\s.\-]?)?(?:\(\d{2,5}\)|\d{2,5})(?:[\s.\-]?\d{2,5})+(?:\s?(?:ext\.?|x)\s?\d{1,5})?$/i';
 
     protected function prepareForValidation(): void
     {
