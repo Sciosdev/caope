@@ -391,6 +391,56 @@ class ExpedienteCreateTest extends TestCase
         $this->assertSame('+52 55 7777 6666', $expediente->medico_referencia_telefono);
     }
 
+    /**
+     * @dataProvider phoneFormatProvider
+     */
+    public function test_phone_fields_accept_common_formats(string $phoneNumber): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $carrera = CatalogoCarrera::create([
+            'nombre' => 'Licenciatura en Terapia Física',
+            'activo' => true,
+        ]);
+
+        $turno = CatalogoTurno::create([
+            'nombre' => 'Nocturno',
+            'activo' => true,
+        ]);
+
+        CatalogoCarrera::flushCache();
+        CatalogoTurno::flushCache();
+
+        $payload = [
+            'no_control' => 'CA-2025-8585',
+            'paciente' => 'Paciente con Teléfonos',
+            'apertura' => Carbon::now()->toDateString(),
+            'carrera' => $carrera->nombre,
+            'turno' => $turno->nombre,
+            'telefono_principal' => $phoneNumber,
+            'contacto_emergencia' => [
+                'nombre' => 'Contacto Válido',
+                'telefono' => $phoneNumber,
+            ],
+            'medico_referencia' => [
+                'nombre' => 'Médico Válido',
+                'telefono' => $phoneNumber,
+            ],
+        ];
+
+        $response = $this->actingAs($admin)->post(route('expedientes.store'), $payload);
+
+        $response->assertSessionHasNoErrors();
+
+        $expediente = Expediente::where('no_control', $payload['no_control'])->first();
+        $this->assertNotNull($expediente);
+
+        $this->assertSame($phoneNumber, $expediente->telefono_principal);
+        $this->assertSame($phoneNumber, $expediente->contacto_emergencia_telefono);
+        $this->assertSame($phoneNumber, $expediente->medico_referencia_telefono);
+    }
+
     public function test_store_rejects_invalid_extended_profile_fields(): void
     {
         $admin = User::factory()->create();
@@ -421,11 +471,11 @@ class ExpedienteCreateTest extends TestCase
             'telefono_principal' => 'abc123',
             'contacto_emergencia' => [
                 'correo' => 'correo-invalido',
-                'telefono' => '123',
+                'telefono' => '(55 1111-2222',
             ],
             'medico_referencia' => [
                 'correo' => 'doctor-invalido',
-                'telefono' => 'abc',
+                'telefono' => '55 3333-4444 ext',
             ],
         ];
 
@@ -441,5 +491,14 @@ class ExpedienteCreateTest extends TestCase
             'medico_referencia_correo',
             'medico_referencia_telefono',
         ]);
+    }
+
+    public static function phoneFormatProvider(): array
+    {
+        return [
+            'parentheses_and_dash' => ['(55) 2424-8260'],
+            'country_code_and_spaces' => ['+52 (55) 1234 5678'],
+            'dots_and_extension' => ['55.1234.5678 ext 123'],
+        ];
     }
 }
