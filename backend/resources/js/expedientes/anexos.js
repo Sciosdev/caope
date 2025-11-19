@@ -584,9 +584,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     if (uploadTrigger) {
-        uploadTrigger.disabled = true;
-        uploadTrigger.setAttribute('aria-disabled', 'true');
-
         uploadTrigger.addEventListener('click', (event) => {
             if (isProcessingUploads) {
                 event.preventDefault();
