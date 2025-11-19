@@ -15,7 +15,23 @@ class Sesion extends Model
 
     protected $table = 'sesiones';
 
-    protected $guarded = [];
+    protected $fillable = [
+        'expediente_id',
+        'fecha',
+        'tipo',
+        'hora_atencion',
+        'referencia_externa',
+        'estrategia',
+        'nota',
+        'interconsulta',
+        'especialidad_referida',
+        'motivo_referencia',
+        'nombre_facilitador',
+        'autorizacion_estratega',
+        'realizada_por',
+        'status_revision',
+        'validada_por',
+    ];
 
     protected $casts = [
         'fecha' => SafeDate::class,
