@@ -86,6 +86,9 @@
             <button class="nav-link active" id="resumen-tab" data-bs-toggle="tab" data-bs-target="#resumen" type="button" role="tab">Resumen</button>
         </li>
         <li class="nav-item" role="presentation">
+            <button class="nav-link" id="resumen-clinico-tab" data-bs-toggle="tab" data-bs-target="#resumen-clinico" type="button" role="tab">Resumen Clínico</button>
+        </li>
+        <li class="nav-item" role="presentation">
             <button class="nav-link" id="sesiones-tab" data-bs-toggle="tab" data-bs-target="#sesiones" type="button" role="tab">Sesiones ({{ $sesiones->count() }})</button>
         </li>
         <li class="nav-item" role="presentation">
@@ -237,12 +240,10 @@
                             </div>
                         </div>
 
-                        @if ($expediente->motivo_consulta)
-                            <div class="mt-4">
-                                <h6 class="text-muted text-uppercase small mb-2">Motivo de la consulta / Nota de ingreso</h6>
-                                <p class="mb-0">{!! nl2br(e($expediente->motivo_consulta)) !!}</p>
-                            </div>
-                        @endif
+                        @include('expedientes.partials.motivo-consulta', [
+                            'expediente' => $expediente,
+                            'hideWhenEmpty' => true,
+                        ])
                     </div>
 
                     <div class="mt-4">
@@ -336,79 +337,10 @@
 
                         <hr class="my-4">
 
-                        <h6 class="mb-3">Antecedentes Personales Patológicos</h6>
-                        @php
-                            $personalHistory = $expediente->antecedentes_personales_patologicos
-                                ?? \App\Models\Expediente::defaultPersonalPathologicalHistory();
-                        @endphp
-                        @php
-                            $personalHistoryColumns = collect($personalPathologicalConditions)
-                                ->chunk((int) ceil(count($personalPathologicalConditions) / 2));
-                        @endphp
-
-                        <div class="row g-3">
-                            @foreach ($personalHistoryColumns as $column)
-                                <div class="col-12 col-lg-6">
-                                    <div class="border rounded h-100">
-                                        <div class="row g-0 align-items-center bg-light text-muted small fw-semibold border-bottom px-3 py-2">
-                                            <div class="col-7">Padecimientos</div>
-                                            <div class="col-5 text-end">Fechas</div>
-                                        </div>
-                                        @foreach ($column as $conditionKey => $conditionLabel)
-                                            @php
-                                                $record = $personalHistory[$conditionKey] ?? [];
-                                                $hasCondition = (bool) ($record['padece'] ?? false);
-                                                $diagnosisDate = $record['fecha'] ?? null;
-                                                $carbonDate = \Illuminate\Support\Carbon::make($diagnosisDate);
-                                                $displayDate = null;
-                                                if ($carbonDate) {
-                                                    $displayDate = $carbonDate->format('Y-m-d');
-                                                } elseif (is_string($diagnosisDate) && $diagnosisDate !== '') {
-                                                    $displayDate = $diagnosisDate;
-                                                }
-                                                $rowClasses = 'row g-0 align-items-center px-3 py-3';
-                                                if (! $loop->last) {
-                                                    $rowClasses .= ' border-bottom';
-                                                }
-                                            @endphp
-                                            <div class="{{ $rowClasses }}">
-                                                <div class="col-7 pe-3">
-                                                    @php $checkboxId = 'personal_' . $conditionKey . '_checkbox'; @endphp
-                                                    <div class="form-check d-flex align-items-center gap-2 mb-0">
-                                                        <input
-                                                            type="checkbox"
-                                                            class="form-check-input"
-                                                            id="{{ $checkboxId }}"
-                                                            disabled
-                                                            @if ($hasCondition) checked @endif
-                                                        >
-                                                        <label class="form-check-label fw-semibold mb-0" for="{{ $checkboxId }}">
-                                                            {{ $conditionLabel }}
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                                <div class="col-5 ps-3 text-end">
-                                                    @if ($displayDate)
-                                                        <span class="small">{{ $displayDate }}</span>
-                                                    @else
-                                                        <span class="text-muted small fst-italic">Sin registro</span>
-                                                    @endif
-                                                </div>
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-
-                        <div class="mt-3">
-                            <span class="text-muted small d-block">Observaciones</span>
-                            @if (filled($expediente->antecedentes_personales_observaciones))
-                                <p class="mb-0">{!! nl2br(e($expediente->antecedentes_personales_observaciones)) !!}</p>
-                            @else
-                                <p class="mb-0 text-muted fst-italic">Sin observaciones registradas.</p>
-                            @endif
-                        </div>
+                        @include('expedientes.partials.personal-pathological-history', [
+                            'expediente' => $expediente,
+                            'personalPathologicalConditions' => $personalPathologicalConditions,
+                        ])
 
                         <hr class="my-4">
 
@@ -478,41 +410,85 @@
                             <p class="mb-0 text-muted fst-italic">Sin información registrada.</p>
                         @endif
 
-                        <div class="mt-4">
-                            <h6 class="mb-3">Diagnóstico Médico Odontológico</h6>
-                            <div class="row g-3">
-                                <div class="col-12 col-lg-6">
-                                    <label for="diagnostico" class="form-label">Diagnóstico Médico Odontológico</label>
-                                    <textarea
-                                        id="diagnostico"
-                                        class="form-control"
-                                        rows="3"
-                                        readonly
-                                        placeholder="Sin información registrada.">{{ $expediente->diagnostico ?? '' }}</textarea>
-                                </div>
-                                <div class="col-12 col-lg-6">
-                                    <label for="dsm_tr" class="form-label">DSM y TR</label>
-                                    <textarea
-                                        id="dsm_tr"
-                                        class="form-control"
-                                        rows="3"
-                                        readonly
-                                        placeholder="Sin información registrada.">{{ $expediente->dsm_tr ?? '' }}</textarea>
-                                </div>
-                                <div class="col-12">
-                                    <label for="observaciones_relevantes" class="form-label">Observaciones relevantes</label>
-                                    <textarea
-                                        id="observaciones_relevantes"
-                                        class="form-control"
-                                        rows="3"
-                                        readonly
-                                        placeholder="Sin información registrada.">{{ $expediente->observaciones_relevantes ?? '' }}</textarea>
-                                </div>
-                            </div>
-                        </div>
+                        @include('expedientes.partials.diagnostico-medico-odontologico', [
+                            'expediente' => $expediente,
+                        ])
                     </div>
                 </div>
             @endif
+        </div>
+
+        <div class="tab-pane fade" id="resumen-clinico" role="tabpanel" aria-labelledby="resumen-clinico-tab">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    @php
+                        $birthDate = optional($expediente->fecha_nacimiento);
+                        $edad = $birthDate ? $birthDate->age : null;
+                    @endphp
+
+                    <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+                        <h6 class="mb-0">Ficha de identificación</h6>
+                        @if ($expediente->alerta_ingreso)
+                            <span class="badge bg-danger">Alerta al ingreso</span>
+                        @endif
+                    </div>
+
+                    @if ($expediente->alerta_ingreso)
+                        <div class="alert alert-danger small" role="alert">
+                            <strong>Alerta:</strong>
+                            {{ $expediente->alerta_ingreso }}
+                        </div>
+                    @endif
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <span class="text-muted small d-block">Clínica</span>
+                            <span class="fw-semibold">{{ $expediente->clinica ?: '—' }}</span>
+                        </div>
+                        <div class="col-md-4">
+                            <span class="text-muted small d-block">Número de expediente</span>
+                            <span class="fw-semibold">{{ $expediente->no_control }}</span>
+                        </div>
+                        <div class="col-md-4">
+                            <span class="text-muted small d-block">Paciente</span>
+                            <span class="fw-semibold">{{ $expediente->paciente }}</span>
+                        </div>
+                        <div class="col-md-4">
+                            <span class="text-muted small d-block">Género</span>
+                            <span class="fw-semibold">{{ $expediente->genero ?: '—' }}</span>
+                        </div>
+                        <div class="col-md-4">
+                            <span class="text-muted small d-block">Fecha de nacimiento</span>
+                            <span class="fw-semibold">{{ optional($expediente->fecha_nacimiento)->format('Y-m-d') ?? '—' }}</span>
+                        </div>
+                        <div class="col-md-4">
+                            <span class="text-muted small d-block">Edad</span>
+                            @if ($edad !== null)
+                                <span class="fw-semibold">{{ $edad }} años</span>
+                            @else
+                                <span class="text-muted fw-semibold">—</span>
+                            @endif
+                        </div>
+                    </div>
+
+                    @include('expedientes.partials.motivo-consulta', [
+                        'expediente' => $expediente,
+                    ])
+
+                    <div class="mt-4">
+                        @include('expedientes.partials.personal-pathological-history', [
+                            'expediente' => $expediente,
+                            'personalPathologicalConditions' => $personalPathologicalConditions ?? null,
+                        ])
+                    </div>
+
+                    <hr class="my-4">
+
+                    @include('expedientes.partials.diagnostico-medico-odontologico', [
+                        'expediente' => $expediente,
+                    ])
+                </div>
+            </div>
         </div>
 
         <div class="tab-pane fade" id="sesiones" role="tabpanel" aria-labelledby="sesiones-tab">
