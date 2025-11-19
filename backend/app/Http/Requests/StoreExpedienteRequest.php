@@ -19,4 +19,9 @@ class StoreExpedienteRequest extends FormRequest
     {
         return $this->expedienteRules();
     }
+
+    public function messages(): array
+    {
+        return $this->expedienteMessages();
+    }
 }

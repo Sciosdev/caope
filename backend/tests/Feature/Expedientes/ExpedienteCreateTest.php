@@ -92,6 +92,88 @@ class ExpedienteCreateTest extends TestCase
         $this->assertSame($payload['turno'], $evento->payload['datos']['turno']);
     }
 
+    public function test_no_control_debe_cumplir_formato_por_defecto(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $carrera = CatalogoCarrera::create([
+            'nombre' => 'Licenciatura en Enfermería',
+            'activo' => true,
+        ]);
+
+        $turno = CatalogoTurno::create([
+            'nombre' => 'Matutino',
+            'activo' => true,
+        ]);
+
+        CatalogoCarrera::flushCache();
+        CatalogoTurno::flushCache();
+
+        $payload = [
+            'no_control' => '2025-0001',
+            'paciente' => 'Paciente Fuera de Formato',
+            'apertura' => Carbon::now()->toDateString(),
+            'carrera' => $carrera->nombre,
+            'turno' => $turno->nombre,
+        ];
+
+        $response = $this->actingAs($admin)->post(route('expedientes.store'), $payload);
+
+        $response->assertSessionHasErrors([
+            'no_control' => 'El No. de Control debe cumplir con el formato esperado. Ejemplo: CA-2025-0001.',
+        ]);
+    }
+
+    public function test_no_control_admite_formato_personalizado_por_configuracion(): void
+    {
+        config([
+            'expedientes.no_control.pattern' => '/^TS-[A-Z]{3}$/',
+            'expedientes.no_control.example' => 'TS-ABC',
+        ]);
+
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $carrera = CatalogoCarrera::create([
+            'nombre' => 'Licenciatura en Psicología',
+            'activo' => true,
+        ]);
+
+        $turno = CatalogoTurno::create([
+            'nombre' => 'Vespertino',
+            'activo' => true,
+        ]);
+
+        CatalogoCarrera::flushCache();
+        CatalogoTurno::flushCache();
+
+        $payload = [
+            'no_control' => 'CA-2025-9999',
+            'paciente' => 'Paciente Formato Personalizado',
+            'apertura' => Carbon::now()->toDateString(),
+            'carrera' => $carrera->nombre,
+            'turno' => $turno->nombre,
+        ];
+
+        $response = $this->actingAs($admin)->post(route('expedientes.store'), $payload);
+
+        $response->assertSessionHasErrors([
+            'no_control' => 'El No. de Control debe cumplir con el formato esperado. Ejemplo: TS-ABC.',
+        ]);
+
+        $payload['no_control'] = 'TS-XYZ';
+
+        $successResponse = $this->actingAs($admin)->post(route('expedientes.store'), $payload);
+
+        $successResponse->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('expedientes', [
+            'no_control' => 'TS-XYZ',
+            'paciente' => $payload['paciente'],
+        ]);
+    }
+
     public function test_creacion_con_json_incompletos_normaliza_con_defaults(): void
     {
         $admin = User::factory()->create();
