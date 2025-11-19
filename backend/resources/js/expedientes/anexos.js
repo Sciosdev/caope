@@ -73,7 +73,10 @@ document.addEventListener('DOMContentLoaded', () => {
             pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
             txt: 'text/plain',
             csv: 'text/csv',
+            zip: 'application/zip',
         };
+
+        const normalizedTypes = new Set();
 
         return value
             .split(',')
@@ -87,6 +90,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const normalized = item.replace(/^\./, '').toLowerCase();
 
                 return knownTypes[normalized] ?? `.${normalized}`;
+            })
+            .filter((item) => {
+                if (normalizedTypes.has(item)) {
+                    return false;
+                }
+
+                normalizedTypes.add(item);
+
+                return true;
             });
     };
 

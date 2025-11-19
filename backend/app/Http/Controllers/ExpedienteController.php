@@ -15,6 +15,7 @@ use App\Notifications\ExpedienteClosureAttemptNotification;
 use App\Notifications\TutorAssignedNotification;
 use App\Services\ExpedienteStateValidator;
 use App\Services\TimelineLogger;
+use App\Support\Uploads\AnexoUploadOptions;
 use Carbon\Carbon;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\QueryException;
@@ -353,8 +354,9 @@ class ExpedienteController extends Controller
 
         $this->hydrateAnexoLinks($expediente);
 
-        $anexosMimes = (string) Parametro::obtener('uploads.anexos.mimes', 'pdf,jpg,jpeg,png,doc,docx,xls,xlsx,ppt,pptx,txt,csv');
-        $anexosMax = (int) Parametro::obtener('uploads.anexos.max', 51200);
+        $anexosAcceptedTypes = AnexoUploadOptions::acceptedTypesString();
+        $anexosExtensions = AnexoUploadOptions::allowedExtensions();
+        $anexosMax = AnexoUploadOptions::maxKilobytes();
         $consentimientoMimes = (string) Parametro::obtener('uploads.consentimientos.mimes', 'pdf,jpg,jpeg');
         $consentimientoMax = (int) Parametro::obtener('uploads.consentimientos.max', 5120);
 
@@ -373,7 +375,8 @@ class ExpedienteController extends Controller
                 'revision' => 'En revisión',
                 'cerrado' => 'Cerrado',
             ],
-            'anexosUploadMimes' => $anexosMimes,
+            'anexosUploadExtensions' => $anexosExtensions,
+            'anexosUploadAcceptedTypes' => $anexosAcceptedTypes,
             'anexosUploadMax' => $anexosMax,
             'consentimientosUploadMimes' => $consentimientoMimes,
             'consentimientosUploadMax' => $consentimientoMax,
