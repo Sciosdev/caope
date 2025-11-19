@@ -90,8 +90,22 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     };
 
-    const acceptedTypes = parseAcceptedTypes(uploader.dataset.acceptedTypes || '');
-    const maxFileSize = Number.parseInt(uploader.dataset.maxSize ?? '', 10);
+    const rawAcceptedTypes = uploader.dataset.acceptedTypes || '';
+    const rawMaxSize = uploader.dataset.maxSize ?? '';
+    const acceptedTypes = parseAcceptedTypes(rawAcceptedTypes);
+    const maxFileSize = Number.parseInt(rawMaxSize, 10);
+    const normalizedMaxFileSize = Number.isFinite(maxFileSize) && maxFileSize > 0 ? `${maxFileSize}KB` : null;
+
+    console.info('[Anexos] Uploader config from dataset', {
+        acceptedTypes: rawAcceptedTypes,
+        parsedAcceptedFileTypes: acceptedTypes,
+        maxSize: rawMaxSize,
+        parsedMaxFileSizeKb: Number.isFinite(maxFileSize) ? maxFileSize : null,
+        filePondOptions: {
+            acceptedFileTypes: acceptedTypes,
+            maxFileSize: normalizedMaxFileSize,
+        },
+    });
 
     const formatBytesToKilobytes = (bytes) => {
         if (!Number.isFinite(bytes) || bytes <= 0) {
@@ -412,7 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const pond = create(uploader, {
         allowMultiple: true,
-        maxFileSize: Number.isFinite(maxFileSize) && maxFileSize > 0 ? `${maxFileSize}KB` : null,
+        maxFileSize: normalizedMaxFileSize,
         acceptedFileTypes: acceptedTypes,
         labelIdle: t('pond.idle', 'Arrastra y suelta tus archivos o <span class="filepond--label-action">explora</span>'),
         instantUpload: false,
@@ -423,6 +437,14 @@ document.addEventListener('DOMContentLoaded', () => {
         credits: false,
         server: {
             process: (fieldName, file, metadata, load, error, progress, abort) => {
+                console.info('[Anexos] Iniciando subida', {
+                    fileName: file?.name,
+                    fileType: file?.type,
+                    fileSize: file?.size,
+                    acceptedFileTypes: acceptedTypes,
+                    maxFileSize: normalizedMaxFileSize,
+                });
+
                 const formData = new FormData();
                 formData.append('archivo', file, file.name);
 
@@ -441,6 +463,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 request.onload = () => {
                     const status = request.status;
                     const response = request.response ?? {};
+
+                    console.info('[Anexos] Respuesta de subida', {
+                        status,
+                        response,
+                    });
 
                     if (status >= 200 && status < 300) {
                         const anexoId = String(response.id ?? '');
@@ -580,7 +607,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
         });
 
-        pond.on('addfile', () => {
+        pond.on('addfile', (error, fileItem) => {
+            console.info('[Anexos] addfile', {
+                error: error
+                    ? error?.message || error?.body || error?.main || String(error)
+                    : null,
+                fileName: fileItem?.filename,
+                fileType: fileItem?.fileType,
+                fileSize: fileItem?.fileSize,
+                fileExtension: fileItem?.fileExtension,
+                status: fileItem?.status,
+            });
+
             refreshPendingUploads();
         });
 
