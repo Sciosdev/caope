@@ -479,10 +479,10 @@
                         @endif
 
                         <div class="mt-4">
-                            <h6 class="mb-3">Diagnóstico</h6>
+                            <h6 class="mb-3">Diagnóstico Médico Odontológico</h6>
                             <div class="row g-3">
                                 <div class="col-12 col-lg-6">
-                                    <label for="diagnostico" class="form-label">Diagnósticos</label>
+                                    <label for="diagnostico" class="form-label">Diagnóstico Médico Odontológico</label>
                                     <textarea
                                         id="diagnostico"
                                         class="form-control"

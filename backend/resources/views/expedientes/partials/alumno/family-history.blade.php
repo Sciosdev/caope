@@ -294,14 +294,14 @@
 </div>
 
 <div class="mt-5">
-    <h6 class="mb-3">Diagnóstico</h6>
+    <h6 class="mb-3">Diagnóstico Médico Odontológico</h6>
     <p class="text-muted small mb-3">
         Registra los diagnósticos clínicos relevantes, la clasificación DSM y TR correspondiente y cualquier observación complementaria.
     </p>
 
     <div class="row g-3">
         <div class="col-12 col-lg-4">
-            <label for="diagnostico" class="form-label">Diagnósticos</label>
+            <label for="diagnostico" class="form-label">Diagnóstico Médico Odontológico</label>
             <textarea
                 name="diagnostico"
                 id="diagnostico"
