@@ -105,14 +105,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const rawAcceptedTypes = uploader.dataset.acceptedTypes || '';
     const rawMaxSize = uploader.dataset.maxSize ?? '';
     const acceptedTypes = parseAcceptedTypes(rawAcceptedTypes);
-    const maxFileSize = Number.parseInt(rawMaxSize, 10);
-    const normalizedMaxFileSize = Number.isFinite(maxFileSize) && maxFileSize > 0 ? `${maxFileSize}KB` : null;
+    const maxFileSizeKilobytes = Number.parseInt(rawMaxSize, 10);
+    const maxFileSizeMegabytes = Number.isFinite(maxFileSizeKilobytes)
+        ? Number.parseFloat((maxFileSizeKilobytes / 1024).toFixed(1))
+        : null;
+    const normalizedMaxFileSize =
+        Number.isFinite(maxFileSizeMegabytes) && maxFileSizeMegabytes > 0
+            ? `${Number.isInteger(maxFileSizeMegabytes) ? maxFileSizeMegabytes : maxFileSizeMegabytes.toString()}MB`
+            : null;
 
     console.info('[Anexos] Uploader config from dataset', {
         acceptedTypes: rawAcceptedTypes,
         parsedAcceptedFileTypes: acceptedTypes,
         maxSize: rawMaxSize,
-        parsedMaxFileSizeKb: Number.isFinite(maxFileSize) ? maxFileSize : null,
+        parsedMaxFileSizeKb: Number.isFinite(maxFileSizeKilobytes) ? maxFileSizeKilobytes : null,
+        parsedMaxFileSizeMb: Number.isFinite(maxFileSizeMegabytes) ? maxFileSizeMegabytes : null,
         filePondOptions: {
             acceptedFileTypes: acceptedTypes,
             maxFileSize: normalizedMaxFileSize,
