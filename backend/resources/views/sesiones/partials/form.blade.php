@@ -1,5 +1,5 @@
 <div class="row g-3">
-    <div class="col-md-4">
+    <div class="col-md-3">
         <label for="fecha" class="form-label">Fecha</label>
         <input type="date" name="fecha" id="fecha" value="{{ old('fecha', optional($sesion->fecha)->format('Y-m-d')) }}"
             class="form-control @error('fecha') is-invalid @enderror">
@@ -7,7 +7,7 @@
             <div class="invalid-feedback">{{ $message }}</div>
         @enderror
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
         <label for="tipo" class="form-label">Tipo de sesión</label>
         <input type="text" name="tipo" id="tipo" maxlength="60" value="{{ old('tipo', $sesion->tipo) }}"
             class="form-control @error('tipo') is-invalid @enderror" placeholder="Ej. Seguimiento">
@@ -15,12 +15,30 @@
             <div class="invalid-feedback">{{ $message }}</div>
         @enderror
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
+        <label for="hora_atencion" class="form-label">Hora de atención</label>
+        <input type="time" name="hora_atencion" id="hora_atencion" maxlength="5"
+            value="{{ old('hora_atencion', $sesion->hora_atencion ? \Illuminate\Support\Carbon::parse($sesion->hora_atencion)->format('H:i') : '') }}"
+            class="form-control @error('hora_atencion') is-invalid @enderror">
+        @error('hora_atencion')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+    <div class="col-md-3">
         <label for="referencia_externa" class="form-label">Referencia externa</label>
         <input type="text" name="referencia_externa" id="referencia_externa" maxlength="120"
             value="{{ old('referencia_externa', $sesion->referencia_externa) }}"
             class="form-control @error('referencia_externa') is-invalid @enderror" placeholder="Opcional">
         @error('referencia_externa')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+    <div class="col-12">
+        <label for="estrategia" class="form-label">Estrategia</label>
+        <textarea name="estrategia" id="estrategia" maxlength="1000"
+            class="form-control @error('estrategia') is-invalid @enderror" rows="3"
+            placeholder="Describe la estrategia acordada">{{ old('estrategia', $sesion->estrategia) }}</textarea>
+        @error('estrategia')
             <div class="invalid-feedback">{{ $message }}</div>
         @enderror
     </div>
@@ -32,6 +50,55 @@
         @error('nota')
             <div class="invalid-feedback">{{ $message }}</div>
         @enderror
+    </div>
+    <div class="col-12 border-top pt-3">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label for="interconsulta" class="form-label">Interconsulta</label>
+                <input type="text" name="interconsulta" id="interconsulta" maxlength="120"
+                    value="{{ old('interconsulta', $sesion->interconsulta) }}"
+                    class="form-control @error('interconsulta') is-invalid @enderror" placeholder="Opcional">
+                @error('interconsulta')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+            <div class="col-md-4">
+                <label for="especialidad_referida" class="form-label">Especialidad referida</label>
+                <input type="text" name="especialidad_referida" id="especialidad_referida" maxlength="120"
+                    value="{{ old('especialidad_referida', $sesion->especialidad_referida) }}"
+                    class="form-control @error('especialidad_referida') is-invalid @enderror" placeholder="Opcional">
+                @error('especialidad_referida')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+            <div class="col-md-4">
+                <label for="nombre_facilitador" class="form-label">Nombre del facilitador</label>
+                <input type="text" name="nombre_facilitador" id="nombre_facilitador" maxlength="120"
+                    value="{{ old('nombre_facilitador', $sesion->nombre_facilitador) }}"
+                    class="form-control @error('nombre_facilitador') is-invalid @enderror" placeholder="Opcional">
+                @error('nombre_facilitador')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+            <div class="col-md-6">
+                <label for="motivo_referencia" class="form-label">Motivo de referencia</label>
+                <textarea name="motivo_referencia" id="motivo_referencia" maxlength="1000" rows="3"
+                    class="form-control @error('motivo_referencia') is-invalid @enderror"
+                    placeholder="Detalla el motivo de la referencia">{{ old('motivo_referencia', $sesion->motivo_referencia) }}</textarea>
+                @error('motivo_referencia')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+            <div class="col-md-6">
+                <label for="autorizacion_estratega" class="form-label">Autorización del estratega</label>
+                <input type="text" name="autorizacion_estratega" id="autorizacion_estratega" maxlength="120"
+                    value="{{ old('autorizacion_estratega', $sesion->autorizacion_estratega) }}"
+                    class="form-control @error('autorizacion_estratega') is-invalid @enderror" placeholder="Opcional">
+                @error('autorizacion_estratega')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+        </div>
     </div>
     <div class="col-12">
         <label for="adjuntos" class="form-label">Adjuntos</label>
