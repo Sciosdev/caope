@@ -10,6 +10,7 @@ use App\Models\Consentimiento;
 use App\Models\Expediente;
 use App\Models\Sesion;
 use App\Models\User;
+use Database\Factories\ExpedienteFactory;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -34,6 +35,8 @@ class ExpedienteSeeder extends Seeder
         $usuarios = $usuarios->values();
 
         $totalExpedientes = 40;
+
+        ExpedienteFactory::resetNoControlCounter();
 
         for ($i = 0; $i < $totalExpedientes; $i++) {
             $estado = $estados->get($i % $estados->count());

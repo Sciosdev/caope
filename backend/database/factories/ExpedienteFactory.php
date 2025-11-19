@@ -11,7 +11,27 @@ use Illuminate\Support\Collection;
 
 class ExpedienteFactory extends Factory
 {
+    protected static int $noControlCounter = 1;
+
     protected $model = Expediente::class;
+
+    public static function resetNoControlCounter(): void
+    {
+        static::$noControlCounter = 1;
+    }
+
+    protected function makeNoControl(): string
+    {
+        $example = config('expedientes.no_control.example', sprintf('CA-%s-0001', now()->format('Y')));
+        $segments = explode('-', $example);
+
+        $prefix = $segments[0] ?? 'CA';
+        $counterWidth = isset($segments[2]) ? strlen($segments[2]) : 4;
+
+        $counter = str_pad((string) static::$noControlCounter++, $counterWidth, '0', STR_PAD_LEFT);
+
+        return sprintf('%s-%s-%s', $prefix, now()->format('Y'), $counter);
+    }
 
     public function definition(): array
     {
@@ -108,7 +128,7 @@ class ExpedienteFactory extends Factory
             : null;
 
         return [
-            'no_control' => sprintf('CA-%s-%04d', now()->format('Y'), $this->faker->unique()->numberBetween(1, 9999)),
+            'no_control' => $this->makeNoControl(),
             'paciente' => $this->faker->name(),
             'estado' => $this->faker->randomElement($estados),
             'apertura' => $apertura,
