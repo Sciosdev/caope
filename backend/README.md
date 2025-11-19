@@ -31,6 +31,9 @@ php artisan serve
   php artisan cache:clear
   ```
 
+- Ajusta el tiempo de cacheo de métricas del dashboard con `DASHBOARD_CACHE_TTL`
+  (segundos). Usa `0` para desactivar la caché si necesitas datos al instante.
+
 ## Datos de ejemplo
 `php artisan migrate --seed` registra los catálogos base (carreras, turnos, padecimientos y tratamientos), crea 80 expedientes de ejemplo con vínculos a esos catálogos y genera un usuario de muestra (`test@example.com`).
 
