@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Testing\Fluent\AssertableJson;
 use Mockery;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
@@ -393,9 +394,7 @@ class ExpedienteCreateTest extends TestCase
         $this->assertSame('+52 (81) 5555-4444', $expediente->medico_referencia_telefono);
     }
 
-    /**
-     * @dataProvider phoneFormatProvider
-     */
+    #[DataProvider('phoneFormatProvider')]
     public function test_phone_fields_accept_common_formats(string $phoneNumber): void
     {
         $admin = User::factory()->create();
