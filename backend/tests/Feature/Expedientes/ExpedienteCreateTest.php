@@ -226,6 +226,7 @@ class ExpedienteCreateTest extends TestCase
         CatalogoCarrera::flushCache();
         CatalogoTurno::flushCache();
 
+        Schema::shouldReceive('getColumnListing')->andReturn([]);
         Schema::shouldReceive('hasColumn')->andReturnFalse();
         Log::spy();
 
@@ -280,6 +281,7 @@ class ExpedienteCreateTest extends TestCase
         CatalogoCarrera::flushCache();
         CatalogoTurno::flushCache();
 
+        Schema::shouldReceive('getColumnListing')->andReturn([]);
         Schema::shouldReceive('hasColumn')->andReturnFalse();
 
         $payload = [

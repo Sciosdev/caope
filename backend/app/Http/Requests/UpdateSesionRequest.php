@@ -33,8 +33,15 @@ class UpdateSesionRequest extends StoreSesionRequest
         return Arr::only($data, [
             'fecha',
             'tipo',
+            'hora_atencion',
             'referencia_externa',
+            'estrategia',
             'nota',
+            'interconsulta',
+            'especialidad_referida',
+            'motivo_referencia',
+            'nombre_facilitador',
+            'autorizacion_estratega',
         ]);
     }
 }
