@@ -727,7 +727,7 @@
                             </div>
                             <p class="text-muted small mt-2 mb-0">
                                 Formatos permitidos: {{ $formatosParaMostrar }}.
-                                Tamaño máximo: {{ $formattedMaxSize }} MB por archivo.
+                                Tamaño máximo: {{ $formattedMaxSize }} MB ({{ number_format($anexosUploadMax) }} KB) por archivo.
                             </p>
                         </div>
                     @endcan
