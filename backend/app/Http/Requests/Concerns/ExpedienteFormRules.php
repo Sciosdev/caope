@@ -8,6 +8,9 @@ use JsonException;
 
 trait ExpedienteFormRules
 {
+    private const DEFAULT_NO_CONTROL_PATTERN = '/^(?:[A-Z]{2}-\d{4}-\d{4}|[A-Z]{2}-\d{4})$/';
+    private const DEFAULT_NO_CONTROL_EXAMPLE = 'CA-2025-0001';
+
     private const PHONE_REGEX = '/^(?=.{7,25}$)(?=(?:.*\d){7,})(?:\+?\d{1,3}[\s.\-]?)?(?:\(\d{2,5}\)|\d{2,5})(?:[\s.\-]?\d{2,5})+(?:\s?(?:ext\.?|x)\s?\d{1,5})?$/i';
 
     protected function prepareForValidation(): void
@@ -220,13 +223,20 @@ trait ExpedienteFormRules
     protected function expedienteRules(?Expediente $expediente = null): array
     {
         $uniqueNoControl = Rule::unique('expedientes', 'no_control');
+        $noControlPattern = $this->noControlPattern();
+
+        $noControlRules = ['required', 'string', 'max:30', $uniqueNoControl];
+
+        if ($noControlPattern) {
+            $noControlRules[] = 'regex:'.$noControlPattern;
+        }
 
         if ($expediente) {
             $uniqueNoControl = $uniqueNoControl->ignore($expediente);
         }
 
         return [
-            'no_control' => ['required', 'string', 'max:30', $uniqueNoControl],
+            'no_control' => $noControlRules,
             'paciente' => ['required', 'string', 'min:2', 'max:140'],
             'estado' => ['sometimes', 'nullable', 'string', Rule::in(['abierto', 'revision', 'cerrado'])],
             'apertura' => ['required', 'date', 'before_or_equal:today'],
@@ -547,6 +557,15 @@ trait ExpedienteFormRules
         ]);
     }
 
+    protected function expedienteMessages(): array
+    {
+        return [
+            'no_control.regex' => __('expedientes.validation.no_control_format', [
+                'example' => $this->noControlExample(),
+            ]),
+        ];
+    }
+
     /**
      * @param  array<string, string>  $mapping
      * @return array<string, ?string>
@@ -578,5 +597,27 @@ trait ExpedienteFormRules
         }
 
         return $sanitized;
+    }
+
+    private function noControlPattern(): ?string
+    {
+        $configuredPattern = config('expedientes.no_control.pattern');
+
+        $pattern = is_string($configuredPattern) && trim($configuredPattern) !== ''
+            ? trim($configuredPattern)
+            : self::DEFAULT_NO_CONTROL_PATTERN;
+
+        return $pattern !== '' ? $pattern : null;
+    }
+
+    private function noControlExample(): string
+    {
+        $configuredExample = config('expedientes.no_control.example');
+
+        if (is_string($configuredExample) && trim($configuredExample) !== '') {
+            return trim($configuredExample);
+        }
+
+        return self::DEFAULT_NO_CONTROL_EXAMPLE;
     }
 }
