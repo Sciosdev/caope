@@ -36,6 +36,15 @@
                     <span class="fw-semibold">{{ $sesion->tipo }}</span>
                 </div>
                 <div class="col-md-3">
+                    <span class="text-muted small d-block">Hora de atención</span>
+                    @php
+                        $horaAtencion = $sesion->hora_atencion
+                            ? \Illuminate\Support\Carbon::parse($sesion->hora_atencion)
+                            : null;
+                    @endphp
+                    <span class="fw-semibold">{{ optional($horaAtencion)->format('H:i') ?? '—' }}</span>
+                </div>
+                <div class="col-md-3">
                     <span class="text-muted small d-block">Referencia externa</span>
                     <span class="fw-semibold">{{ $sesion->referencia_externa ?? '—' }}</span>
                 </div>
@@ -68,6 +77,49 @@
                 <h6 class="mb-2">Notas de la sesión</h6>
                 <div class="bg-light border rounded p-3 small trix-content">
                     {!! $sesion->nota !!}
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <div class="row g-4">
+                    <div class="col-lg-6">
+                        <div class="border rounded p-3 h-100">
+                            <h6 class="text-muted text-uppercase small mb-2">Estrategia acordada</h6>
+                            @if ($sesion->estrategia)
+                                <p class="mb-0 small">{!! nl2br(e($sesion->estrategia)) !!}</p>
+                            @else
+                                <p class="mb-0 text-muted small">Sin estrategia registrada.</p>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="border rounded p-3 h-100">
+                            <h6 class="text-muted text-uppercase small mb-2">Datos de referencia</h6>
+                            <dl class="row mb-0 small">
+                                <dt class="col-sm-5">Interconsulta</dt>
+                                <dd class="col-sm-7">{{ $sesion->interconsulta ?? '—' }}</dd>
+
+                                <dt class="col-sm-5">Especialidad referida</dt>
+                                <dd class="col-sm-7">{{ $sesion->especialidad_referida ?? '—' }}</dd>
+
+                                <dt class="col-sm-5">Facilitador</dt>
+                                <dd class="col-sm-7">{{ $sesion->nombre_facilitador ?? '—' }}</dd>
+
+                                <dt class="col-sm-5">Autorización estratega</dt>
+                                <dd class="col-sm-7">{{ $sesion->autorizacion_estratega ?? '—' }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="border rounded p-3">
+                            <h6 class="text-muted text-uppercase small mb-2">Motivo de referencia</h6>
+                            @if ($sesion->motivo_referencia)
+                                <p class="mb-0 small">{!! nl2br(e($sesion->motivo_referencia)) !!}</p>
+                            @else
+                                <p class="mb-0 text-muted small">Sin motivo registrado.</p>
+                            @endif
+                        </div>
+                    </div>
                 </div>
             </div>
 
