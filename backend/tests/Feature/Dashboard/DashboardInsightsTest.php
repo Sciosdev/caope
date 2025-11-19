@@ -9,6 +9,7 @@ use App\Models\User;
 use Carbon\CarbonInterval;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -184,6 +185,35 @@ class DashboardInsightsTest extends TestCase
         );
 
         Carbon::setTestNow();
+    }
+
+    public function test_dashboard_metrics_respect_cache_ttl(): void
+    {
+        config(['dashboard.cache_ttl' => 300]);
+
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        Expediente::factory()->create(['estado' => 'abierto']);
+
+        $first = $this->getJson(route('dashboard.metrics'));
+        $first->assertOk();
+        $this->assertSame(1, $first->json('expedientes.total'));
+        $this->assertSame(1, $first->json('expedientes.por_estado.abierto'));
+
+        Expediente::factory()->create(['estado' => 'revision']);
+
+        $cached = $this->getJson(route('dashboard.metrics'));
+        $cached->assertOk();
+        $this->assertSame(1, $cached->json('expedientes.total'));
+        $this->assertSame(0, $cached->json('expedientes.por_estado.revision'));
+
+        Cache::flush();
+
+        $refreshed = $this->getJson(route('dashboard.metrics'));
+        $refreshed->assertOk();
+        $this->assertSame(2, $refreshed->json('expedientes.total'));
+        $this->assertSame(1, $refreshed->json('expedientes.por_estado.revision'));
     }
 }
 
