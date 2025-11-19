@@ -677,13 +677,15 @@
                         $puedeEliminarAlguno = $anexos->contains(fn ($anexo) => $usuarioActual?->can('delete', $anexo));
                         $mostrarDescarga = $anexos->contains(fn ($anexo) => ! empty($anexo->download_url));
                         $mostrarAcciones = $mostrarDescarga || $puedeEliminarAlguno;
-                        $formatosAceptados = collect(explode(',', (string) $anexosUploadMimes))
+                        $formatosAceptados = collect(explode(',', (string) ($anexosUploadAcceptedTypes ?? '')))
                             ->map(fn ($valor) => trim($valor))
                             ->filter()
-                            ->map(fn ($valor) => str_contains($valor, '/') ? $valor : '.'.$valor)
                             ->implode(',');
                         $maxSizeInMb = $anexosUploadMax / 1024;
                         $formattedMaxSize = rtrim(rtrim(number_format($maxSizeInMb, 1), '0'), '.');
+                        $formatosParaMostrar = collect($anexosUploadExtensions ?? [])
+                            ->map(fn ($extension) => '.'.$extension)
+                            ->implode(', ');
                     @endphp
                     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                         <div class="d-flex align-items-center gap-3 flex-wrap">
@@ -710,7 +712,7 @@
                                     data-table-wrapper="#anexos-table-wrapper"
                                     data-gallery-wrapper="#anexos-gallery-wrapper"
                                     data-gallery-target="#anexos-gallery-grid"
-                                    data-accepted-types="{{ $anexosUploadMimes }}"
+                                    data-accepted-types="{{ $formatosAceptados }}"
                                     data-max-size="{{ $anexosUploadMax }}"
                                     data-can-delete="true"
                                     multiple
@@ -724,7 +726,7 @@
                                 >{{ __('expedientes.anexos.upload_button') }}</button>
                             </div>
                             <p class="text-muted small mt-2 mb-0">
-                                Formatos permitidos: {{ str_replace(',', ', ', $anexosUploadMimes) }}.
+                                Formatos permitidos: {{ $formatosParaMostrar }}.
                                 Tamaño máximo: {{ $formattedMaxSize }} MB por archivo.
                             </p>
                         </div>
