@@ -4,7 +4,7 @@ import laravel from 'laravel-vite-plugin';
 export default defineConfig({
     build: {
         emptyOutDir: true,
-        manifest: true,
+        manifest: 'manifest.json',
         outDir: 'public/assets/build',
         rollupOptions: {
             output: {

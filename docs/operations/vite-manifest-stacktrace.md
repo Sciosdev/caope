@@ -11,3 +11,8 @@ Stack trace:
 ```
 
 El problema ocurre porque el despliegue copia los bundles a `public/assets/build`, pero la configuración por defecto de Laravel busca el manifiesto en `public/build/manifest.json`.
+
+## Solución aplicada
+- Se configuró Vite para generar el manifiesto como `public/assets/build/manifest.json` en lugar de colocarlo bajo `.vite/`.
+- Laravel ahora busca ese archivo por defecto mediante `config/vite.php` (`build_path = assets/build`, `manifest = manifest.json`).
+- Con estos ajustes el manifiesto deja de depender de directorios ocultos que podrían ser omitidos durante la publicación de los bundles.

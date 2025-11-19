@@ -18,10 +18,10 @@ return [
     | Manifest File
     |--------------------------------------------------------------------------
     |
-    | When Vite compila los assets, genera un manifiesto dentro del directorio
-    | indicado anteriormente. El valor por defecto apunta a `.vite/manifest.json`
-    | ya que Vite anida el manifiesto en esta carpeta interna.
+    | Cuando Vite compila los assets, genera un manifiesto dentro del directorio
+    | indicado anteriormente. El valor por defecto apunta a `manifest.json` en la
+    | raíz del directorio de salida para evitar depender de carpetas ocultas.
     |
     */
-    'manifest' => env('VITE_MANIFEST', '.vite/manifest.json'),
+    'manifest' => env('VITE_MANIFEST', 'manifest.json'),
 ];
