@@ -401,29 +401,41 @@ trait ExpedienteFormRules
 
     /**
      * @param  mixed  $value
-     * @return array<string, array{titulo: ?string, fecha: ?string, profesional: ?string, observaciones: ?string}>
+     * @return array{
+     *     nota_alta: ?string,
+     *     resumen_evaluacion: ?string,
+     *     recomendaciones: ?string,
+     *     fecha: ?string,
+     *     facilitador: ?string,
+     *     autorizacion_responsable: ?string,
+     *     resultado: ?string,
+     *     resultado_detalle: ?string,
+     * }
      */
     private function sanitizeClinicalSummary(mixed $value): array
     {
         $summary = is_array($value) ? $value : [];
         $defaults = Expediente::defaultClinicalSummary();
 
-        return collect($defaults)
-            ->map(function (array $fields, string $section) use ($summary) {
-                $provided = is_array($summary[$section] ?? null) ? $summary[$section] : [];
+        $normalized = [];
 
-                $titulo = $this->sanitizeNullableString($provided['titulo'] ?? $fields['titulo']);
-                $profesional = $this->sanitizeNullableString($provided['profesional'] ?? $fields['profesional']);
-                $observaciones = $this->sanitizeNullableString($provided['observaciones'] ?? $fields['observaciones']);
+        foreach ($defaults as $field => $default) {
+            $provided = $summary[$field] ?? $default;
 
-                return [
-                    'titulo' => $titulo ?: $fields['titulo'],
-                    'fecha' => $this->normalizeDateField($provided['fecha'] ?? null),
-                    'profesional' => $profesional,
-                    'observaciones' => $observaciones,
-                ];
-            })
-            ->all();
+            if ($field === 'fecha') {
+                $normalized[$field] = $this->normalizeDateField($provided);
+                continue;
+            }
+
+            if ($field === 'resultado') {
+                $normalized[$field] = is_string($provided) ? (trim($provided) ?: null) : null;
+                continue;
+            }
+
+            $normalized[$field] = $this->sanitizeNullableString($provided);
+        }
+
+        return $normalized;
     }
 
     private function normalizeBooleanField(mixed $value, bool $default = false): bool
@@ -542,17 +554,16 @@ trait ExpedienteFormRules
      */
     private function clinicalSummaryRules(): array
     {
-        return collect(Expediente::CLINICAL_SUMMARY_ITEMS)
-            ->keys()
-            ->flatMap(function (string $section) {
-                return [
-                    "resumen_clinico.$section.titulo" => ['sometimes', 'nullable', 'string', 'max:150'],
-                    "resumen_clinico.$section.fecha" => ['sometimes', 'nullable', 'date', 'before_or_equal:today'],
-                    "resumen_clinico.$section.profesional" => ['sometimes', 'nullable', 'string', 'max:150'],
-                    "resumen_clinico.$section.observaciones" => ['sometimes', 'nullable', 'string', 'max:1000'],
-                ];
-            })
-            ->all();
+        return [
+            'resumen_clinico.nota_alta' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'resumen_clinico.resumen_evaluacion' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'resumen_clinico.recomendaciones' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'resumen_clinico.fecha' => ['sometimes', 'nullable', 'date', 'before_or_equal:today'],
+            'resumen_clinico.facilitador' => ['sometimes', 'nullable', 'string', 'max:150'],
+            'resumen_clinico.autorizacion_responsable' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'resumen_clinico.resultado' => ['sometimes', 'nullable', Rule::in(array_keys(Expediente::CLINICAL_OUTCOME_OPTIONS))],
+            'resumen_clinico.resultado_detalle' => ['sometimes', 'nullable', 'string', 'max:1000'],
+        ];
     }
 
     protected function resolveExpedienteFromRoute(): ?Expediente

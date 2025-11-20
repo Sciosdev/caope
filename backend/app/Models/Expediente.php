@@ -101,14 +101,11 @@ class Expediente extends Model
         'prefiere_no_decir',
     ];
 
-    public const CLINICAL_SUMMARY_ITEMS = [
-        'valoracion_inicial' => 'Valoración inicial',
-        'diagnostico_presuntivo' => 'Diagnóstico presuntivo',
-        'diagnostico_definitivo' => 'Diagnóstico definitivo',
-        'tratamiento_intervencion' => 'Intervención / Tratamiento',
-        'referencias_canalizaciones' => 'Referencias y canalizaciones',
-        'evolucion_seguimiento' => 'Evolución y seguimiento',
-        'pronostico' => 'Pronóstico',
+    public const CLINICAL_OUTCOME_OPTIONS = [
+        'mejoria' => 'Mejoría',
+        'abandono' => 'Abandono',
+        'referencia' => 'Referencia',
+        'termino_proceso' => 'Término del Proceso',
     ];
 
     protected $fillable = [
@@ -219,20 +216,29 @@ class Expediente extends Model
     }
 
     /**
-     * @return array<string, array<string, ?string>>
+     * @return array{
+     *     nota_alta: ?string,
+     *     resumen_evaluacion: ?string,
+     *     recomendaciones: ?string,
+     *     fecha: ?string,
+     *     facilitador: ?string,
+     *     autorizacion_responsable: ?string,
+     *     resultado: ?string,
+     *     resultado_detalle: ?string,
+     * }
      */
     public static function defaultClinicalSummary(): array
     {
-        return collect(self::CLINICAL_SUMMARY_ITEMS)
-            ->mapWithKeys(function (string $label, string $key) {
-                return [$key => [
-                    'titulo' => $label,
-                    'fecha' => null,
-                    'profesional' => null,
-                    'observaciones' => null,
-                ]];
-            })
-            ->all();
+        return [
+            'nota_alta' => null,
+            'resumen_evaluacion' => null,
+            'recomendaciones' => null,
+            'fecha' => null,
+            'facilitador' => null,
+            'autorizacion_responsable' => null,
+            'resultado' => null,
+            'resultado_detalle' => null,
+        ];
     }
 
     public function creadoPor(): BelongsTo

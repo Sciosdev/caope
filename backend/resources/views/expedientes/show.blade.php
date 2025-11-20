@@ -445,43 +445,89 @@
                     ])
 
                     @php
-                        $clinicalSummaryItems = $clinicalSummaryItems ?? \App\Models\Expediente::CLINICAL_SUMMARY_ITEMS;
-                        $clinicalSummary = $clinicalSummary ?? \App\Models\Expediente::defaultClinicalSummary();
+                        $clinicalSummaryDefaults = \App\Models\Expediente::defaultClinicalSummary();
+                        $rawClinicalSummary = is_array($clinicalSummary ?? null)
+                            ? $clinicalSummary
+                            : ($expediente->resumen_clinico ?? []);
+                        $clinicalSummaryData = array_merge(
+                            $clinicalSummaryDefaults,
+                            array_intersect_key(is_array($rawClinicalSummary) ? $rawClinicalSummary : [], $clinicalSummaryDefaults),
+                        );
+                        $clinicalOutcomeOptions = $clinicalOutcomeOptions ?? \App\Models\Expediente::CLINICAL_OUTCOME_OPTIONS;
+
+                        if ($clinicalOutcomeOptions instanceof \Illuminate\Support\Collection) {
+                            $clinicalOutcomeOptions = $clinicalOutcomeOptions->toArray();
+                        }
+
+                        $outcomeLabel = $clinicalSummaryData['resultado']
+                            ? ($clinicalOutcomeOptions[$clinicalSummaryData['resultado']] ?? ucfirst(str_replace('_', ' ', $clinicalSummaryData['resultado'])))
+                            : null;
                     @endphp
 
                     <div class="mt-4">
                         <h6 class="mb-3">Resumen clínico</h6>
-                        <div class="row g-3">
-                            @foreach ($clinicalSummaryItems as $section => $label)
-                                @php
-                                    $entry = $clinicalSummary[$section] ?? ['titulo' => $label, 'fecha' => null, 'profesional' => null, 'observaciones' => null];
-                                    $formattedDate = $entry['fecha']
-                                        ? optional(\Illuminate\Support\Carbon::make($entry['fecha']))->format('Y-m-d')
-                                        : null;
-                                @endphp
-                                <div class="col-12 col-lg-6">
-                                    <div class="border rounded h-100 p-3">
-                                        <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
-                                            <div>
-                                                <p class="text-muted text-uppercase small mb-1">{{ $label }}</p>
-                                                <h6 class="mb-0">{{ $entry['titulo'] ?: $label }}</h6>
-                                            </div>
-                                            <div class="text-end small text-muted">
-                                                <span class="d-block fw-semibold">{{ $formattedDate ?? 'Fecha no registrada' }}</span>
-                                                <span class="d-block">Profesional: {{ $entry['profesional'] ?: '—' }}</span>
-                                            </div>
-                                        </div>
-                                        <div class="mt-2">
-                                            <span class="text-muted small d-block mb-1">Observaciones</span>
-                                            @if (filled($entry['observaciones']))
-                                                <p class="mb-0">{!! nl2br(e($entry['observaciones'])) !!}</p>
-                                            @else
-                                                <p class="mb-0 text-muted fst-italic">Sin observaciones registradas.</p>
-                                            @endif
-                                        </div>
+                        <div class="card shadow-sm">
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <span class="text-muted small d-block">Nota de Alta o Cese del Servicio</span>
+                                        @if (filled($clinicalSummaryData['nota_alta']))
+                                            <p class="mb-0">{!! nl2br(e($clinicalSummaryData['nota_alta'])) !!}</p>
+                                        @else
+                                            <p class="mb-0 text-muted fst-italic">Sin información capturada.</p>
+                                        @endif
                                     </div>
+
+                                    <div class="col-12">
+                                        <span class="text-muted small d-block">Resumen de evaluación y resultado</span>
+                                        @if (filled($clinicalSummaryData['resumen_evaluacion']))
+                                            <p class="mb-0">{!! nl2br(e($clinicalSummaryData['resumen_evaluacion'])) !!}</p>
+                                        @else
+                                            <p class="mb-0 text-muted fst-italic">Sin información capturada.</p>
+                                        @endif
+                                    </div>
+
+                                    <div class="col-12">
+                                        <span class="text-muted small d-block">Recomendaciones</span>
+                                        @if (filled($clinicalSummaryData['recomendaciones']))
+                                            <p class="mb-0">{!! nl2br(e($clinicalSummaryData['recomendaciones'])) !!}</p>
+                                        @else
+                                            <p class="mb-0 text-muted fst-italic">Sin información capturada.</p>
+                                        @endif
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <span class="text-muted small d-block">Fecha</span>
+                                        <span class="fw-semibold">{{ optional(\Illuminate\Support\Carbon::make($clinicalSummaryData['fecha']))->format('Y-m-d') ?? '—' }}</span>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <span class="text-muted small d-block">Facilitador</span>
+                                        <span class="fw-semibold">{{ $clinicalSummaryData['facilitador'] ?: '—' }}</span>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <span class="text-muted small d-block">Autorización del Responsable Académico (Estratega)</span>
+                                        @if (filled($clinicalSummaryData['autorizacion_responsable']))
+                                            <p class="mb-0">{!! nl2br(e($clinicalSummaryData['autorizacion_responsable'])) !!}</p>
+                                        @else
+                                            <p class="mb-0 text-muted fst-italic">Sin información capturada.</p>
+                                        @endif
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <span class="text-muted small d-block">Mejoría / Abandono / Referencia / Término del Proceso</span>
+                                        <span class="fw-semibold">{{ $outcomeLabel ?? '—' }}</span>
+                                    </div>
+
+                                    @if (filled($clinicalSummaryData['resultado_detalle']))
+                                        <div class="col-12">
+                                            <span class="text-muted small d-block">Detalles del estatus seleccionado</span>
+                                            <p class="mb-0">{!! nl2br(e($clinicalSummaryData['resultado_detalle'])) !!}</p>
+                                        </div>
+                                    @endif
                                 </div>
-                            @endforeach
+                            </div>
                         </div>
                     </div>
 
