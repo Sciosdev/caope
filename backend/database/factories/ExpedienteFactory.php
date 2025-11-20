@@ -180,6 +180,18 @@ class ExpedienteFactory extends Factory
             'antecedente_padecimiento_actual' => $this->faker->optional(0.5)->paragraph(),
             'plan_accion' => $planAccion,
             'aparatos_sistemas' => $systemsReview,
+            'resumen_clinico' => collect(\App\Models\Expediente::defaultClinicalSummary())
+                ->map(function (array $fields) {
+                    $fecha = $this->faker->optional(0.6)->dateTimeBetween('-2 years', 'now');
+
+                    return [
+                        'titulo' => $fields['titulo'],
+                        'fecha' => $fecha?->format('Y-m-d'),
+                        'profesional' => $this->faker->optional(0.5)->name(),
+                        'observaciones' => $this->faker->optional(0.6)->paragraph(),
+                    ];
+                })
+                ->all(),
         ];
     }
 }

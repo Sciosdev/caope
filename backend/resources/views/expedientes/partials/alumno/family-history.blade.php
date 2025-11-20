@@ -238,6 +238,28 @@
         $systemsReviewSections = $systemsReviewSections->toArray();
     }
     $systemsReviewValues = old('aparatos_sistemas', $expediente->aparatos_sistemas ?? []);
+
+    $clinicalSummaryItems = $clinicalSummaryItems ?? \App\Models\Expediente::CLINICAL_SUMMARY_ITEMS;
+    $rawClinicalSummary = old('resumen_clinico', $expediente->resumen_clinico ?? []);
+    $clinicalSummary = collect(\App\Models\Expediente::defaultClinicalSummary())
+        ->mapWithKeys(function (array $defaults, string $section) use ($rawClinicalSummary) {
+            $provided = is_array($rawClinicalSummary[$section] ?? null) ? $rawClinicalSummary[$section] : [];
+            $rawDate = $provided['fecha'] ?? $defaults['fecha'];
+            $normalizedDate = '';
+
+            if ($rawDate) {
+                $carbonDate = \Illuminate\Support\Carbon::make($rawDate);
+                $normalizedDate = $carbonDate?->format('Y-m-d') ?? (is_string($rawDate) ? $rawDate : '');
+            }
+
+            return [$section => [
+                'titulo' => $provided['titulo'] ?? $defaults['titulo'],
+                'fecha' => $normalizedDate,
+                'profesional' => $provided['profesional'] ?? $defaults['profesional'],
+                'observaciones' => $provided['observaciones'] ?? $defaults['observaciones'],
+            ]];
+        })
+        ->all();
 @endphp
 
 <div class="mt-5">
@@ -266,6 +288,97 @@
                 @error("aparatos_sistemas.$section")
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
+            </div>
+        @endforeach
+    </div>
+</div>
+
+<div class="mt-5">
+    <h6 class="mb-3">Resumen clínico</h6>
+    <p class="text-muted small mb-3">
+        Documenta los principales hitos clínicos del caso. Cada bloque permite registrar un título breve, la fecha del evento,
+        el nombre del profesional responsable y las observaciones correspondientes.
+    </p>
+
+    <div class="row g-3">
+        @foreach ($clinicalSummaryItems as $section => $label)
+            @php
+                $entry = $clinicalSummary[$section] ?? ['titulo' => $label, 'fecha' => null, 'profesional' => null, 'observaciones' => null];
+                $baseId = 'resumen_clinico_'.$section;
+            @endphp
+            <div class="col-12">
+                <div class="border rounded p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-3 flex-wrap">
+                        <div>
+                            <p class="text-muted text-uppercase small mb-1">Registro {{ $loop->iteration }} de {{ count($clinicalSummaryItems) }}</p>
+                            <h6 class="mb-0">{{ $entry['titulo'] ?: $label }}</h6>
+                            <span class="text-muted small">{{ $label }}</span>
+                        </div>
+                        @if (! empty($entry['fecha']))
+                            <span class="badge bg-primary-subtle text-primary fw-semibold">{{ $entry['fecha'] }}</span>
+                        @endif
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-lg-5">
+                            <label for="{{ $baseId }}_titulo" class="form-label">Título del hito</label>
+                            <input
+                                type="text"
+                                name="resumen_clinico[{{ $section }}][titulo]"
+                                id="{{ $baseId }}_titulo"
+                                value="{{ old("resumen_clinico.$section.titulo", $entry['titulo']) }}"
+                                class="form-control @error("resumen_clinico.$section.titulo") is-invalid @enderror"
+                                maxlength="150"
+                            >
+                            <div class="form-text">Ej. {{ $label }}</div>
+                            @error("resumen_clinico.$section.titulo")
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="col-lg-3">
+                            <label for="{{ $baseId }}_fecha" class="form-label">Fecha</label>
+                            <input
+                                type="date"
+                                name="resumen_clinico[{{ $section }}][fecha]"
+                                id="{{ $baseId }}_fecha"
+                                value="{{ old("resumen_clinico.$section.fecha", $entry['fecha']) }}"
+                                class="form-control js-flatpickr @error("resumen_clinico.$section.fecha") is-invalid @enderror"
+                                data-max-date="today"
+                            >
+                            @error("resumen_clinico.$section.fecha")
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="col-lg-4">
+                            <label for="{{ $baseId }}_profesional" class="form-label">Profesional responsable</label>
+                            <input
+                                type="text"
+                                name="resumen_clinico[{{ $section }}][profesional]"
+                                id="{{ $baseId }}_profesional"
+                                value="{{ old("resumen_clinico.$section.profesional", $entry['profesional']) }}"
+                                class="form-control @error("resumen_clinico.$section.profesional") is-invalid @enderror"
+                                maxlength="150"
+                            >
+                            @error("resumen_clinico.$section.profesional")
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="col-12">
+                            <label for="{{ $baseId }}_observaciones" class="form-label">Observaciones</label>
+                            <textarea
+                                name="resumen_clinico[{{ $section }}][observaciones]"
+                                id="{{ $baseId }}_observaciones"
+                                class="form-control @error("resumen_clinico.$section.observaciones") is-invalid @enderror"
+                                rows="3"
+                                maxlength="1000"
+                            >{{ old("resumen_clinico.$section.observaciones", $entry['observaciones']) }}</textarea>
+                            <div class="form-text">Máximo 1000 caracteres.</div>
+                            @error("resumen_clinico.$section.observaciones")
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                    </div>
+                </div>
             </div>
         @endforeach
     </div>

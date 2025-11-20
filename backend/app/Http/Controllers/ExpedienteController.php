@@ -83,6 +83,7 @@ class ExpedienteController extends Controller
         'antecedente_padecimiento_actual',
         'plan_accion',
         'aparatos_sistemas',
+        'resumen_clinico',
     ];
 
     public function __construct(
@@ -359,6 +360,15 @@ class ExpedienteController extends Controller
         $personalPathologicalHistory = $expediente->antecedentes_personales_patologicos
             ?? Expediente::defaultPersonalPathologicalHistory();
         $systemsReview = $expediente->aparatos_sistemas ?? Expediente::defaultSystemsReview();
+        $clinicalSummary = collect(Expediente::defaultClinicalSummary())
+            ->mapWithKeys(function (array $defaults, string $section) use ($expediente) {
+                $stored = is_array($expediente->resumen_clinico[$section] ?? null)
+                    ? $expediente->resumen_clinico[$section]
+                    : [];
+
+                return [$section => array_merge($defaults, $stored)];
+            })
+            ->all();
 
         return view('expedientes.show', [
             'expediente' => $expediente,
@@ -389,6 +399,8 @@ class ExpedienteController extends Controller
             'personalPathologicalObservations' => $expediente->antecedentes_personales_observaciones ?? '',
             'systemsReviewSections' => Expediente::SYSTEMS_REVIEW_SECTIONS,
             'systemsReviewValues' => $systemsReview,
+            'clinicalSummaryItems' => Expediente::CLINICAL_SUMMARY_ITEMS,
+            'clinicalSummary' => $clinicalSummary,
         ]);
     }
 
@@ -531,6 +543,7 @@ class ExpedienteController extends Controller
                     'aparatos_sistemas' => $expediente->aparatos_sistemas ?? Expediente::defaultSystemsReview(),
                     'diagnostico' => $expediente->diagnostico,
                     'observaciones_relevantes' => $expediente->observaciones_relevantes,
+                    'resumen_clinico' => $expediente->resumen_clinico ?? Expediente::defaultClinicalSummary(),
                 ],
             ]);
         }
@@ -572,6 +585,7 @@ class ExpedienteController extends Controller
             'dsm_tr' => static fn () => null,
             'observaciones_relevantes' => static fn () => null,
             'aparatos_sistemas' => static fn () => Expediente::defaultSystemsReview(),
+            'resumen_clinico' => static fn () => Expediente::defaultClinicalSummary(),
         ];
 
         foreach ($columnDefaults as $column => $resolver) {
@@ -713,6 +727,7 @@ class ExpedienteController extends Controller
             'hereditaryHistoryConditions' => Expediente::HEREDITARY_HISTORY_CONDITIONS,
             'personalPathologicalConditions' => Expediente::PERSONAL_PATHOLOGICAL_CONDITIONS,
             'systemsReviewSections' => Expediente::SYSTEMS_REVIEW_SECTIONS,
+            'clinicalSummaryItems' => Expediente::CLINICAL_SUMMARY_ITEMS,
         ];
     }
 
