@@ -137,6 +137,7 @@ class Expediente extends Model
         'tutor_id',
         'coordinador_id',
         'diagnostico',
+        'dsm_tr',
         'observaciones_relevantes',
         'antecedentes_familiares',
         'antecedentes_observaciones',
