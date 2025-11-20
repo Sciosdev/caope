@@ -1,9 +1,14 @@
 @php
-    $personalHistory = $expediente->antecedentes_personales_patologicos
+    $personalHistory = $personalPathologicalHistory
+        ?? $expediente->antecedentes_personales_patologicos
         ?? \App\Models\Expediente::defaultPersonalPathologicalHistory();
 
     $pathologicalConditions = $personalPathologicalConditions
         ?? \App\Models\Expediente::PERSONAL_PATHOLOGICAL_CONDITIONS;
+
+    $personalHistoryObservations = $personalPathologicalObservations
+        ?? $expediente->antecedentes_personales_observaciones
+        ?? '';
 
     $personalHistoryColumns = collect($pathologicalConditions)
         ->chunk((int) ceil(count($pathologicalConditions) / 2));
@@ -68,8 +73,8 @@
 
 <div class="mt-3">
     <span class="text-muted small d-block">Observaciones</span>
-    @if (filled($expediente->antecedentes_personales_observaciones))
-        <p class="mb-0">{!! nl2br(e($expediente->antecedentes_personales_observaciones)) !!}</p>
+    @if (filled($personalHistoryObservations))
+        <p class="mb-0">{!! nl2br(e($personalHistoryObservations)) !!}</p>
     @else
         <p class="mb-0 text-muted fst-italic">Sin observaciones registradas.</p>
     @endif

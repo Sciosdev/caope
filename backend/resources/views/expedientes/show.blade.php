@@ -277,7 +277,7 @@
                     <div class="card-body">
                         <h6 class="mb-3">Antecedentes Familiares Hereditarios</h6>
                         @php
-                            $hereditaryHistory = $expediente->antecedentes_familiares
+                            $hereditaryHistory = $familyHistory
                                 ?? \App\Models\Expediente::defaultFamilyHistory();
                         @endphp
 
@@ -328,8 +328,8 @@
 
                         <div class="mt-3">
                             <span class="text-muted small d-block">Observaciones</span>
-                            @if (filled($expediente->antecedentes_observaciones))
-                                <p class="mb-0">{!! nl2br(e($expediente->antecedentes_observaciones)) !!}</p>
+                            @if (filled($familyHistoryObservations))
+                                <p class="mb-0">{!! nl2br(e($familyHistoryObservations)) !!}</p>
                             @else
                                 <p class="mb-0 text-muted fst-italic">Sin observaciones registradas.</p>
                             @endif
@@ -340,6 +340,8 @@
                         @include('expedientes.partials.personal-pathological-history', [
                             'expediente' => $expediente,
                             'personalPathologicalConditions' => $personalPathologicalConditions,
+                            'personalPathologicalHistory' => $personalPathologicalHistory,
+                            'personalPathologicalObservations' => $personalPathologicalObservations,
                         ])
 
                         <hr class="my-4">
@@ -352,7 +354,7 @@
                                 }
 
                                 $systemsReviewSections = (array) $systemsReviewSections;
-                                $systemsReviewValues = $expediente->aparatos_sistemas ?? [];
+                                $systemsReviewValues = $systemsReviewValues ?? [];
                             @endphp
 
                             @if (! empty($systemsReviewSections))
@@ -421,11 +423,6 @@
         <div class="tab-pane fade" id="resumen-clinico" role="tabpanel" aria-labelledby="resumen-clinico-tab">
             <div class="card shadow-sm">
                 <div class="card-body">
-                    @php
-                        $birthDate = optional($expediente->fecha_nacimiento);
-                        $edad = $birthDate ? $birthDate->age : null;
-                    @endphp
-
                     <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
                         <h6 class="mb-0">Ficha de identificación</h6>
                         @if ($expediente->alerta_ingreso)
@@ -463,8 +460,8 @@
                         </div>
                         <div class="col-md-4">
                             <span class="text-muted small d-block">Edad</span>
-                            @if ($edad !== null)
-                                <span class="fw-semibold">{{ $edad }} años</span>
+                            @if ($expediente->edad !== null)
+                                <span class="fw-semibold">{{ $expediente->edad }} años</span>
                             @else
                                 <span class="text-muted fw-semibold">—</span>
                             @endif
@@ -479,6 +476,8 @@
                         @include('expedientes.partials.personal-pathological-history', [
                             'expediente' => $expediente,
                             'personalPathologicalConditions' => $personalPathologicalConditions ?? null,
+                            'personalPathologicalHistory' => $personalPathologicalHistory ?? null,
+                            'personalPathologicalObservations' => $personalPathologicalObservations ?? null,
                         ])
                     </div>
 

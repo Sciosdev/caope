@@ -360,6 +360,11 @@ class ExpedienteController extends Controller
         $consentimientoMimes = (string) Parametro::obtener('uploads.consentimientos.mimes', 'pdf,jpg,jpeg');
         $consentimientoMax = (int) Parametro::obtener('uploads.consentimientos.max', 5120);
 
+        $familyHistory = $expediente->antecedentes_familiares ?? Expediente::defaultFamilyHistory();
+        $personalPathologicalHistory = $expediente->antecedentes_personales_patologicos
+            ?? Expediente::defaultPersonalPathologicalHistory();
+        $systemsReview = $expediente->aparatos_sistemas ?? Expediente::defaultSystemsReview();
+
         return view('expedientes.show', [
             'expediente' => $expediente,
             'sesiones' => $expediente->sesiones,
@@ -381,9 +386,14 @@ class ExpedienteController extends Controller
             'consentimientosUploadMimes' => $consentimientoMimes,
             'consentimientosUploadMax' => $consentimientoMax,
             'familyHistoryMembers' => Expediente::FAMILY_HISTORY_MEMBERS,
+            'familyHistory' => $familyHistory,
+            'familyHistoryObservations' => $expediente->antecedentes_observaciones ?? '',
             'hereditaryHistoryConditions' => Expediente::HEREDITARY_HISTORY_CONDITIONS,
             'personalPathologicalConditions' => Expediente::PERSONAL_PATHOLOGICAL_CONDITIONS,
+            'personalPathologicalHistory' => $personalPathologicalHistory,
+            'personalPathologicalObservations' => $expediente->antecedentes_personales_observaciones ?? '',
             'systemsReviewSections' => Expediente::SYSTEMS_REVIEW_SECTIONS,
+            'systemsReviewValues' => $systemsReview,
         ]);
     }
 

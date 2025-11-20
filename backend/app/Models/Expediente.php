@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Casts\SafeDate;
 use App\Services\Masking\NameMasker;
+use Illuminate\Support\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -253,5 +254,20 @@ class Expediente extends Model
     public function getPacienteMaskedAttribute(): string
     {
         return NameMasker::mask($this->paciente);
+    }
+
+    public function getEdadAttribute(): ?int
+    {
+        $birthDate = $this->fecha_nacimiento;
+
+        if ($birthDate instanceof Carbon) {
+            return $birthDate->age;
+        }
+
+        if ($birthDate) {
+            return Carbon::make($birthDate)?->age;
+        }
+
+        return null;
     }
 }
