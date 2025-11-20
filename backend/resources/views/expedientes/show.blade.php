@@ -483,6 +483,7 @@
 
                     @include('expedientes.partials.diagnostico-medico-odontologico', [
                         'expediente' => $expediente,
+                        'mostrarDSM' => false,
                     ])
                 </div>
             </div>
