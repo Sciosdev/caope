@@ -444,6 +444,47 @@
                         'expediente' => $expediente,
                     ])
 
+                    @php
+                        $clinicalSummaryItems = $clinicalSummaryItems ?? \App\Models\Expediente::CLINICAL_SUMMARY_ITEMS;
+                        $clinicalSummary = $clinicalSummary ?? \App\Models\Expediente::defaultClinicalSummary();
+                    @endphp
+
+                    <div class="mt-4">
+                        <h6 class="mb-3">Resumen clínico</h6>
+                        <div class="row g-3">
+                            @foreach ($clinicalSummaryItems as $section => $label)
+                                @php
+                                    $entry = $clinicalSummary[$section] ?? ['titulo' => $label, 'fecha' => null, 'profesional' => null, 'observaciones' => null];
+                                    $formattedDate = $entry['fecha']
+                                        ? optional(\Illuminate\Support\Carbon::make($entry['fecha']))->format('Y-m-d')
+                                        : null;
+                                @endphp
+                                <div class="col-12 col-lg-6">
+                                    <div class="border rounded h-100 p-3">
+                                        <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                                            <div>
+                                                <p class="text-muted text-uppercase small mb-1">{{ $label }}</p>
+                                                <h6 class="mb-0">{{ $entry['titulo'] ?: $label }}</h6>
+                                            </div>
+                                            <div class="text-end small text-muted">
+                                                <span class="d-block fw-semibold">{{ $formattedDate ?? 'Fecha no registrada' }}</span>
+                                                <span class="d-block">Profesional: {{ $entry['profesional'] ?: '—' }}</span>
+                                            </div>
+                                        </div>
+                                        <div class="mt-2">
+                                            <span class="text-muted small d-block mb-1">Observaciones</span>
+                                            @if (filled($entry['observaciones']))
+                                                <p class="mb-0">{!! nl2br(e($entry['observaciones'])) !!}</p>
+                                            @else
+                                                <p class="mb-0 text-muted fst-italic">Sin observaciones registradas.</p>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+
                     <div class="mt-4">
                         @include('expedientes.partials.personal-pathological-history', [
                             'expediente' => $expediente,

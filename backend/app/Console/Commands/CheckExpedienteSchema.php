@@ -36,6 +36,7 @@ class CheckExpedienteSchema extends Command
             'diagnostico',
             'observaciones_relevantes',
             'aparatos_sistemas',
+            'resumen_clinico',
         ];
 
         $missingColumns = collect($optionalColumns)

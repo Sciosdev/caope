@@ -39,6 +39,12 @@ trait ExpedienteFormRules
             ]);
         }
 
+        if ($this->exists('resumen_clinico')) {
+            $this->merge([
+                'resumen_clinico' => $this->sanitizeClinicalSummary($this->input('resumen_clinico')),
+            ]);
+        }
+
         if ($this->exists('apertura')) {
             $this->merge([
                 'apertura' => $this->normalizeDateField($this->input('apertura')),
@@ -175,6 +181,7 @@ trait ExpedienteFormRules
             'antecedentes_familiares',
             'antecedentes_personales_patologicos',
             'aparatos_sistemas',
+            'resumen_clinico',
         ] as $field) {
             if (! $this->has($field)) {
                 continue;
@@ -288,9 +295,11 @@ trait ExpedienteFormRules
             'dsm_tr' => ['sometimes', 'nullable', 'string', 'max:255'],
             'observaciones_relevantes' => ['sometimes', 'nullable', 'string', 'max:1000'],
             'aparatos_sistemas' => ['sometimes', 'array'],
+            'resumen_clinico' => ['sometimes', 'array'],
             ...$this->familyHistoryMemberRules(),
             ...$this->personalPathologicalRules(),
             ...$this->systemsReviewRules(),
+            ...$this->clinicalSummaryRules(),
         ];
     }
 
@@ -390,6 +399,33 @@ trait ExpedienteFormRules
         return array_merge($defaults, $normalized);
     }
 
+    /**
+     * @param  mixed  $value
+     * @return array<string, array{titulo: ?string, fecha: ?string, profesional: ?string, observaciones: ?string}>
+     */
+    private function sanitizeClinicalSummary(mixed $value): array
+    {
+        $summary = is_array($value) ? $value : [];
+        $defaults = Expediente::defaultClinicalSummary();
+
+        return collect($defaults)
+            ->map(function (array $fields, string $section) use ($summary) {
+                $provided = is_array($summary[$section] ?? null) ? $summary[$section] : [];
+
+                $titulo = $this->sanitizeNullableString($provided['titulo'] ?? $fields['titulo']);
+                $profesional = $this->sanitizeNullableString($provided['profesional'] ?? $fields['profesional']);
+                $observaciones = $this->sanitizeNullableString($provided['observaciones'] ?? $fields['observaciones']);
+
+                return [
+                    'titulo' => $titulo ?: $fields['titulo'],
+                    'fecha' => $this->normalizeDateField($provided['fecha'] ?? null),
+                    'profesional' => $profesional,
+                    'observaciones' => $observaciones,
+                ];
+            })
+            ->all();
+    }
+
     private function normalizeBooleanField(mixed $value, bool $default = false): bool
     {
         if (is_bool($value)) {
@@ -461,6 +497,17 @@ trait ExpedienteFormRules
         return null;
     }
 
+    private function sanitizeNullableString(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+
+        return $trimmed === '' ? null : $trimmed;
+    }
+
     /**
      * @return array<string, array<int, string>>
      */
@@ -487,6 +534,24 @@ trait ExpedienteFormRules
             ->mapWithKeys(fn (string $section) => [
                 "aparatos_sistemas.$section" => ['sometimes', 'nullable', 'string', 'max:1000'],
             ])
+            ->all();
+    }
+
+    /**
+     * @return array<string, array<int, string>>
+     */
+    private function clinicalSummaryRules(): array
+    {
+        return collect(Expediente::CLINICAL_SUMMARY_ITEMS)
+            ->keys()
+            ->flatMap(function (string $section) {
+                return [
+                    "resumen_clinico.$section.titulo" => ['sometimes', 'nullable', 'string', 'max:150'],
+                    "resumen_clinico.$section.fecha" => ['sometimes', 'nullable', 'date', 'before_or_equal:today'],
+                    "resumen_clinico.$section.profesional" => ['sometimes', 'nullable', 'string', 'max:150'],
+                    "resumen_clinico.$section.observaciones" => ['sometimes', 'nullable', 'string', 'max:1000'],
+                ];
+            })
             ->all();
     }
 
@@ -528,6 +593,7 @@ trait ExpedienteFormRules
             'dsm_tr',
             'observaciones_relevantes',
             'aparatos_sistemas',
+            'resumen_clinico',
             'clinica',
             'recibo_expediente',
             'recibo_diagnostico',

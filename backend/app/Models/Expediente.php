@@ -101,6 +101,16 @@ class Expediente extends Model
         'prefiere_no_decir',
     ];
 
+    public const CLINICAL_SUMMARY_ITEMS = [
+        'valoracion_inicial' => 'Valoración inicial',
+        'diagnostico_presuntivo' => 'Diagnóstico presuntivo',
+        'diagnostico_definitivo' => 'Diagnóstico definitivo',
+        'tratamiento_intervencion' => 'Intervención / Tratamiento',
+        'referencias_canalizaciones' => 'Referencias y canalizaciones',
+        'evolucion_seguimiento' => 'Evolución y seguimiento',
+        'pronostico' => 'Pronóstico',
+    ];
+
     protected $fillable = [
         'no_control',
         'paciente',
@@ -146,6 +156,7 @@ class Expediente extends Model
         'antecedente_padecimiento_actual',
         'plan_accion',
         'aparatos_sistemas',
+        'resumen_clinico',
     ];
 
     protected $casts = [
@@ -155,6 +166,7 @@ class Expediente extends Model
         'antecedentes_familiares' => 'array',
         'antecedentes_personales_patologicos' => 'array',
         'aparatos_sistemas' => 'array',
+        'resumen_clinico' => 'array',
         'telefono_principal' => 'string',
         'contacto_emergencia_telefono' => 'string',
         'medico_referencia_telefono' => 'string',
@@ -203,6 +215,23 @@ class Expediente extends Model
         return collect(self::SYSTEMS_REVIEW_SECTIONS)
             ->keys()
             ->mapWithKeys(fn (string $section) => [$section => null])
+            ->all();
+    }
+
+    /**
+     * @return array<string, array<string, ?string>>
+     */
+    public static function defaultClinicalSummary(): array
+    {
+        return collect(self::CLINICAL_SUMMARY_ITEMS)
+            ->mapWithKeys(function (string $label, string $key) {
+                return [$key => [
+                    'titulo' => $label,
+                    'fecha' => null,
+                    'profesional' => null,
+                    'observaciones' => null,
+                ]];
+            })
             ->all();
     }
 
