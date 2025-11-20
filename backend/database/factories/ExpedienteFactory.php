@@ -108,9 +108,6 @@ class ExpedienteFactory extends Factory
         $diagnostico = $this->faker->boolean(55)
             ? $this->faker->paragraphs($this->faker->numberBetween(1, 2), true)
             : null;
-        $dsmTr = $this->faker->boolean(50)
-            ? sprintf('DSM-5 %s', $this->faker->bothify('F##.##'))
-            : null;
         $observacionesRelevantes = $this->faker->boolean(50)
             ? $this->faker->sentences($this->faker->numberBetween(1, 2), true)
             : null;
@@ -169,7 +166,6 @@ class ExpedienteFactory extends Factory
             'tutor_id' => $tutor,
             'coordinador_id' => $coordinador,
             'diagnostico' => $diagnostico,
-            'dsm_tr' => $dsmTr,
             'observaciones_relevantes' => $observacionesRelevantes,
             'antecedentes_familiares' => $familyHistory,
             'antecedentes_observaciones' => $this->faker->optional(0.4)->text(120),

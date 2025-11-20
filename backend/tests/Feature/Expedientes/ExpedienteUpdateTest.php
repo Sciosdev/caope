@@ -443,7 +443,6 @@ class ExpedienteUpdateTest extends TestCase
             'aparatos_sistemas' => json_encode($systemsReview, JSON_THROW_ON_ERROR),
             'plan_accion' => '  Plan actualizado con datos JSON.  ',
             'diagnostico' => 'Diagnóstico recibido en payload JSON.',
-            'dsm_tr' => 'F41.1 Trastorno de ansiedad generalizada',
             'observaciones_relevantes' => 'Observaciones relevantes capturadas en la app.',
         ];
 
@@ -471,7 +470,6 @@ class ExpedienteUpdateTest extends TestCase
         $this->assertSame('Descripción enviada como JSON.', $expediente->antecedente_padecimiento_actual);
         $this->assertSame('Plan actualizado con datos JSON.', $expediente->plan_accion);
         $this->assertSame('Diagnóstico recibido en payload JSON.', $expediente->diagnostico);
-        $this->assertSame('F41.1 Trastorno de ansiedad generalizada', $expediente->dsm_tr);
         $this->assertSame('Observaciones relevantes capturadas en la app.', $expediente->observaciones_relevantes);
     }
 }

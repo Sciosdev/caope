@@ -96,9 +96,6 @@ class ExpedienteSeeder extends Seeder
             $diagnostico = $faker->boolean(60)
                 ? $faker->paragraphs($faker->numberBetween(1, 2), true)
                 : null;
-            $dsmTr = $faker->boolean(55)
-                ? sprintf('DSM-5 %s', $faker->bothify('F##.##'))
-                : null;
             $observacionesRelevantes = $faker->boolean(55)
                 ? $faker->sentences($faker->numberBetween(1, 2), true)
                 : null;
@@ -180,7 +177,6 @@ class ExpedienteSeeder extends Seeder
                 'medico_referencia_correo' => $medicoReferenciaCorreo,
                 'medico_referencia_telefono' => $medicoReferenciaTelefono,
                 'diagnostico' => $diagnostico,
-                'dsm_tr' => $dsmTr,
                 'observaciones_relevantes' => $observacionesRelevantes,
                 'antecedentes_familiares' => $familyHistory,
                 'antecedentes_observaciones' => $familyNotes,

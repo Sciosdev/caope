@@ -296,11 +296,11 @@
 <div class="mt-5">
     <h6 class="mb-3">Diagnóstico Médico Odontológico</h6>
     <p class="text-muted small mb-3">
-        Registra los diagnósticos clínicos relevantes, la clasificación DSM y TR correspondiente y cualquier observación complementaria.
+        Registra los diagnósticos clínicos relevantes y cualquier observación complementaria.
     </p>
 
     <div class="row g-3">
-        <div class="col-12 col-lg-4">
+        <div class="col-12 col-lg-6">
             <label for="diagnostico" class="form-label">Diagnóstico Médico Odontológico</label>
             <textarea
                 name="diagnostico"
@@ -315,22 +315,7 @@
             @enderror
         </div>
 
-        <div class="col-12 col-lg-4">
-            <label for="dsm_tr" class="form-label">DSM y TR</label>
-            <textarea
-                name="dsm_tr"
-                id="dsm_tr"
-                class="form-control @error('dsm_tr') is-invalid @enderror"
-                rows="4"
-                maxlength="255"
-            >{{ old('dsm_tr', $expediente->dsm_tr ?? '') }}</textarea>
-            <div class="form-text">Máximo 255 caracteres.</div>
-            @error('dsm_tr')
-                <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
-        </div>
-
-        <div class="col-12 col-lg-4">
+        <div class="col-12 col-lg-6">
             <label for="observaciones_relevantes" class="form-label">Observaciones relevantes</label>
             <textarea
                 name="observaciones_relevantes"

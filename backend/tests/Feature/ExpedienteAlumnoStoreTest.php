@@ -39,7 +39,6 @@ class ExpedienteAlumnoStoreTest extends TestCase
             'turno' => $student->turno,
             'plan_accion' => 'Plan inicial',
             'diagnostico' => 'Diagnóstico demo',
-            'dsm_tr' => 'F32.0',
             'observaciones_relevantes' => 'Observaciones demo',
         ];
 
@@ -61,7 +60,6 @@ class ExpedienteAlumnoStoreTest extends TestCase
         $columnsToDrop = array_values(array_filter([
             Schema::hasColumn('expedientes', 'plan_accion') ? 'plan_accion' : null,
             Schema::hasColumn('expedientes', 'diagnostico') ? 'diagnostico' : null,
-            Schema::hasColumn('expedientes', 'dsm_tr') ? 'dsm_tr' : null,
             Schema::hasColumn('expedientes', 'observaciones_relevantes') ? 'observaciones_relevantes' : null,
         ]));
 
@@ -170,7 +168,6 @@ class ExpedienteAlumnoStoreTest extends TestCase
             'estado' => 'abierto',
             'plan_accion' => 'Plan previo',
             'diagnostico' => 'Diagnóstico previo',
-            'dsm_tr' => 'F32.0',
             'observaciones_relevantes' => 'Observaciones previas',
         ]);
 
