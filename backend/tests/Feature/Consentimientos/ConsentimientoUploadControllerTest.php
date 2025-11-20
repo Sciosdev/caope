@@ -149,4 +149,34 @@ class ConsentimientoUploadControllerTest extends TestCase
             ->assertSeeText($subidor->name)
             ->assertSeeText(now()->format('Y-m-d'));
     }
+
+    public function test_usuario_puede_subir_observaciones_del_expediente(): void
+    {
+        Storage::fake('private');
+
+        $usuario = User::factory()->create();
+        $usuario->givePermissionTo('expedientes.manage');
+
+        $expediente = Expediente::factory()->create([
+            'creado_por' => $usuario->id,
+        ]);
+
+        $archivo = UploadedFile::fake()->create('observaciones.pdf', 200, 'application/pdf');
+
+        $response = $this->actingAs($usuario)->post(
+            route('expedientes.consentimientos.observaciones', $expediente),
+            [
+                'observaciones' => $archivo,
+            ]
+        );
+
+        $response
+            ->assertRedirect(route('expedientes.show', ['expediente' => $expediente, 'tab' => 'consentimientos']))
+            ->assertSessionHas('status', 'Observaciones del expediente actualizadas correctamente.');
+
+        $expediente->refresh();
+
+        $this->assertNotNull($expediente->consentimientos_observaciones_path);
+        Storage::disk('private')->assertExists($expediente->consentimientos_observaciones_path);
+    }
 }
