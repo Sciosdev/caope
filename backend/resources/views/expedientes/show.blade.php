@@ -629,138 +629,331 @@
         <div class="tab-pane fade" id="consentimientos" role="tabpanel" aria-labelledby="consentimientos-tab">
             <div class="card shadow-sm">
                 <div class="card-body">
-                    <h6 class="mb-3">Consentimientos</h6>
-                    @if ($consentimientos->isEmpty())
-                        <p class="text-muted mb-0">No hay consentimientos registrados.</p>
-                    @else
-                        @php
-                            $usuarioActual = auth()->user();
-                            $puedeGestionarConsentimientos = $usuarioActual
-                                ? $consentimientos->contains(fn ($consentimiento) => $usuarioActual->can('upload', $consentimiento))
-                                : false;
-                        @endphp
-                        <div class="table-responsive">
-                            <table class="table table-sm align-middle">
-                                <thead>
+                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                        <div>
+                            <h6 class="mb-1">Consentimientos</h6>
+                            <p class="text-muted small mb-0">Captura y actualiza los consentimientos con su documento firmado.</p>
+                        </div>
+                        <span class="badge bg-light text-muted">{{ $consentimientos->count() }} registros</span>
+                    </div>
+
+                    @php
+                        $usuarioActual = auth()->user();
+                        $puedeGestionarConsentimientos = $usuarioActual
+                            ? $usuarioActual->can('update', $expediente)
+                                || $consentimientos->contains(fn ($consentimiento) => $usuarioActual->can('upload', $consentimiento))
+                            : false;
+                        $consentimientosAcceptedExtensions = collect(explode(',', (string) $consentimientosUploadMimes))
+                            ->map(fn ($ext) => '.' . ltrim(trim($ext), '.'))
+                            ->filter()
+                            ->implode(',');
+                        $consentimientosMaxMb = number_format($consentimientosUploadMax / 1024, 1);
+                    @endphp
+
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Tipo</th>
+                                    <th>Requerido</th>
+                                    <th>Aceptado</th>
+                                    <th>Documento con firma autógrafa</th>
+                                    <th>Fecha</th>
+                                    <th>Subido por</th>
+                                    <th class="text-end">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse ($consentimientos as $consentimiento)
+                                    @php
+                                        $errorBag = "consentimientoEdit-{$consentimiento->id}";
+                                        $rowHasErrors = $errors->getBag($errorBag)->isNotEmpty();
+                                        $tipoValor = $rowHasErrors ? old('tipo') : $consentimiento->tratamiento;
+                                        $requeridoValor = $rowHasErrors ? (bool) old('requerido') : (bool) $consentimiento->requerido;
+                                        $aceptadoValor = $rowHasErrors ? (bool) old('aceptado') : (bool) $consentimiento->aceptado;
+                                        $fechaValor = $rowHasErrors ? old('fecha') : optional($consentimiento->fecha)->format('Y-m-d');
+                                        $formId = "consentimiento-form-{$consentimiento->id}";
+                                    @endphp
+
+                                    <form
+                                        id="{{ $formId }}"
+                                        action="{{ route('expedientes.consentimientos.update', [$expediente, $consentimiento]) }}"
+                                        method="post"
+                                        enctype="multipart/form-data"
+                                        class="d-none"
+                                    >
+                                        @csrf
+                                        @method('put')
+                                    </form>
+
                                     <tr>
-                                        <th>Tipo</th>
-                                        <th>Requerido</th>
-                                        <th>Aceptado</th>
-                                        <th>Archivo</th>
-                                        <th>Fecha</th>
-                                        <th>Subido por</th>
-                                        @if ($puedeGestionarConsentimientos)
-                                            <th class="text-end">Acciones</th>
-                                        @endif
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach ($consentimientos as $consentimiento)
-                                        <tr>
-                                            <td>{{ $consentimiento->tratamiento }}</td>
-                                            <td>
-                                                <span class="badge {{ $consentimiento->requerido ? 'bg-danger' : 'bg-secondary' }}">
-                                                    {{ $consentimiento->requerido ? 'Sí' : 'No' }}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <span class="badge {{ $consentimiento->aceptado ? 'bg-success' : 'bg-warning text-dark' }}">
-                                                    {{ $consentimiento->aceptado ? 'Aceptado' : 'Pendiente' }}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                @if ($consentimiento->archivo_path)
+                                        <td class="w-25">
+                                            <label for="tipo-{{ $consentimiento->id }}" class="form-label small mb-1">Tipo</label>
+                                            <input
+                                                type="text"
+                                                id="tipo-{{ $consentimiento->id }}"
+                                                name="tipo"
+                                                form="{{ $formId }}"
+                                                class="form-control form-control-sm @error('tipo', $errorBag) is-invalid @enderror"
+                                                value="{{ $tipoValor }}"
+                                                placeholder="Ej. Consentimiento informado"
+                                                required
+                                            >
+                                            <div class="form-text text-muted mb-0">{{ $tipoValor }}</div>
+                                            @error('tipo', $errorBag)
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </td>
+                                        <td>
+                                            <div class="form-check form-switch">
+                                                <input type="hidden" name="requerido" value="0" form="{{ $formId }}">
+                                                <input
+                                                    class="form-check-input"
+                                                    type="checkbox"
+                                                    role="switch"
+                                                    id="requerido-{{ $consentimiento->id }}"
+                                                    name="requerido"
+                                                    form="{{ $formId }}"
+                                                    value="1"
+                                                    @checked($requeridoValor)
+                                                >
+                                                <label class="form-check-label" for="requerido-{{ $consentimiento->id }}">Requerido</label>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="form-check form-switch">
+                                                <input type="hidden" name="aceptado" value="0" form="{{ $formId }}">
+                                                <input
+                                                    class="form-check-input"
+                                                    type="checkbox"
+                                                    role="switch"
+                                                    id="aceptado-{{ $consentimiento->id }}"
+                                                    name="aceptado"
+                                                    form="{{ $formId }}"
+                                                    value="1"
+                                                    @checked($aceptadoValor)
+                                                >
+                                                <label class="form-check-label" for="aceptado-{{ $consentimiento->id }}">Aceptado</label>
+                                            </div>
+                                        </td>
+                                        <td class="w-25">
+                                            @if ($consentimiento->archivo_path)
+                                                <div class="mb-2">
                                                     <a href="{{ route('consentimientos.archivo', $consentimiento) }}" target="_blank" rel="noopener">
                                                         Ver archivo
                                                     </a>
                                                     <div class="small text-muted">{{ basename($consentimiento->archivo_path) }}</div>
-                                                @else
-                                                    <span class="badge bg-secondary">Sin archivo</span>
-                                                @endif
-                                            </td>
-                                            <td>{{ optional($consentimiento->fecha)->format('Y-m-d') ?? '—' }}</td>
-                                            <td>{{ $consentimiento->subidoPor?->name ?? '—' }}</td>
-                                            @if ($puedeGestionarConsentimientos)
-                                                <td class="text-end">
-                                                    @can('upload', $consentimiento)
-                                                        @include('expedientes.partials.consentimiento-upload-form', [
-                                                            'consentimiento' => $consentimiento,
-                                                            'uploadMimes' => $consentimientosUploadMimes,
-                                                            'uploadMax' => $consentimientosUploadMax,
-                                                        ])
-                                                    @else
-                                                        <span class="text-muted small">Sin permisos</span>
-                                                    @endcan
-                                                </td>
+                                                </div>
+                                            @else
+                                                <span class="badge bg-secondary mb-2">Sin archivo</span>
                                             @endif
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                        @php
-                            $observacionesAcceptedExtensions = collect(explode(',', (string) $consentimientosUploadMimes))
-                                ->map(fn ($ext) => '.' . ltrim(trim($ext), '.'))
-                                ->filter()
-                                ->implode(',');
-                        @endphp
 
-                        <hr class="my-4">
+                                            <input
+                                                type="file"
+                                                name="archivo"
+                                                form="{{ $formId }}"
+                                                accept="{{ $consentimientosAcceptedExtensions }}"
+                                                class="form-control form-control-sm @error('archivo', $errorBag) is-invalid @enderror"
+                                            >
+                                            @error('archivo', $errorBag)
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </td>
+                                        <td>
+                                            <label for="fecha-{{ $consentimiento->id }}" class="form-label small mb-1">Fecha</label>
+                                            <input
+                                                type="date"
+                                                id="fecha-{{ $consentimiento->id }}"
+                                                name="fecha"
+                                                form="{{ $formId }}"
+                                                value="{{ $fechaValor }}"
+                                                class="form-control form-control-sm @error('fecha', $errorBag) is-invalid @enderror"
+                                            >
+                                            @if ($fechaValor)
+                                                <div class="form-text text-muted mb-0">{{ $fechaValor }}</div>
+                                            @endif
+                                            @error('fecha', $errorBag)
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </td>
+                                        <td>
+                                            <div class="small">{{ $consentimiento->subidoPor?->name ?? '—' }}</div>
+                                        </td>
+                                        <td class="text-end">
+                                            @can('upload', $consentimiento)
+                                                <button type="submit" class="btn btn-outline-primary btn-sm" form="{{ $formId }}">Guardar</button>
+                                            @else
+                                                <span class="text-muted small">Sin permisos</span>
+                                            @endcan
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="7" class="text-muted text-center py-4">Sin consentimientos registrados.</td>
+                                    </tr>
+                                @endforelse
 
-                        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-                            <h6 class="mb-0">Observaciones del expediente</h6>
-                            @if ($expediente->consentimientos_observaciones_path)
-                                <div class="d-flex align-items-center gap-2">
-                                    <a
-                                        href="{{ route('expedientes.consentimientos.observaciones.show', $expediente) }}"
-                                        target="_blank"
-                                        rel="noopener"
-                                        class="btn btn-outline-secondary btn-sm"
+                                @can('update', $expediente)
+                                    <form
+                                        id="consentimiento-create-form"
+                                        action="{{ route('expedientes.consentimientos.store', $expediente) }}"
+                                        method="post"
+                                        enctype="multipart/form-data"
+                                        class="d-none"
                                     >
-                                        Ver archivo
-                                    </a>
-                                    <span class="small text-muted">
-                                        {{ basename($expediente->consentimientos_observaciones_path) }}
-                                    </span>
-                                </div>
-                            @else
-                                <span class="text-muted small">Sin archivo cargado</span>
-                            @endif
-                        </div>
+                                        @csrf
+                                    </form>
+                                    <tr class="table-light">
+                                        <td class="w-25">
+                                            <label for="tipo-nuevo" class="form-label small mb-1">Tipo</label>
+                                            <input
+                                                type="text"
+                                                id="tipo-nuevo"
+                                                name="tipo"
+                                                form="consentimiento-create-form"
+                                                class="form-control form-control-sm @error('tipo') is-invalid @enderror"
+                                                value="{{ old('tipo') }}"
+                                                placeholder="Ej. Consentimiento informado"
+                                                required
+                                            >
+                                            @error('tipo')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </td>
+                                        <td>
+                                            <div class="form-check form-switch">
+                                                <input type="hidden" name="requerido" value="0" form="consentimiento-create-form">
+                                                <input
+                                                    class="form-check-input"
+                                                    type="checkbox"
+                                                    role="switch"
+                                                    id="requerido-nuevo"
+                                                    name="requerido"
+                                                    form="consentimiento-create-form"
+                                                    value="1"
+                                                    @checked((bool) old('requerido'))
+                                                >
+                                                <label class="form-check-label" for="requerido-nuevo">Requerido</label>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="form-check form-switch">
+                                                <input type="hidden" name="aceptado" value="0" form="consentimiento-create-form">
+                                                <input
+                                                    class="form-check-input"
+                                                    type="checkbox"
+                                                    role="switch"
+                                                    id="aceptado-nuevo"
+                                                    name="aceptado"
+                                                    form="consentimiento-create-form"
+                                                    value="1"
+                                                    @checked((bool) old('aceptado'))
+                                                >
+                                                <label class="form-check-label" for="aceptado-nuevo">Aceptado</label>
+                                            </div>
+                                        </td>
+                                        <td class="w-25">
+                                            <input
+                                                type="file"
+                                                name="archivo"
+                                                form="consentimiento-create-form"
+                                                accept="{{ $consentimientosAcceptedExtensions }}"
+                                                class="form-control form-control-sm @error('archivo') is-invalid @enderror"
+                                            >
+                                            @error('archivo')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </td>
+                                        <td>
+                                            <label for="fecha-nuevo" class="form-label small mb-1">Fecha</label>
+                                            <input
+                                                type="date"
+                                                id="fecha-nuevo"
+                                                name="fecha"
+                                                form="consentimiento-create-form"
+                                                value="{{ old('fecha') }}"
+                                                class="form-control form-control-sm @error('fecha') is-invalid @enderror"
+                                            >
+                                            @error('fecha')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </td>
+                                        <td>
+                                            <div class="small text-muted">—</div>
+                                        </td>
+                                        <td class="text-end">
+                                            <button type="submit" class="btn btn-primary btn-sm" form="consentimiento-create-form">Agregar</button>
+                                        </td>
+                                    </tr>
+                                @endcan
+                            </tbody>
+                        </table>
+                    </div>
 
-                        @can('update', $expediente)
-                            <form
-                                action="{{ route('expedientes.consentimientos.observaciones', $expediente) }}"
-                                method="post"
-                                enctype="multipart/form-data"
-                                class="d-flex flex-column gap-2"
-                            >
-                                @csrf
-                                <div class="row g-2 align-items-end">
-                                    <div class="col-md-8">
-                                        <label for="consentimientos-observaciones" class="form-label">Observaciones del expediente</label>
-                                        <input
-                                            type="file"
-                                            id="consentimientos-observaciones"
-                                            name="observaciones"
-                                            accept="{{ $observacionesAcceptedExtensions }}"
-                                            class="form-control @error('observaciones') is-invalid @enderror"
-                                            required
-                                        >
-                                        @error('observaciones')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                        <div class="form-text">
-                                            Carga el documento de observaciones con firma autógrafa. Formatos permitidos: {{ str_replace(',', ', ', $consentimientosUploadMimes) }}.
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4 text-md-end">
-                                        <button type="submit" class="btn btn-primary">Actualizar archivo</button>
+                    <p class="text-muted small mt-2 mb-4">
+                        Formatos permitidos: {{ str_replace(',', ', ', $consentimientosUploadMimes) }}. Tamaño máximo: {{ $consentimientosMaxMb }} MB.
+                    </p>
+
+                    @php
+                        $observacionesAcceptedExtensions = collect(explode(',', (string) $consentimientosUploadMimes))
+                            ->map(fn ($ext) => '.' . ltrim(trim($ext), '.'))
+                            ->filter()
+                            ->implode(',');
+                    @endphp
+
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                        <h6 class="mb-0">Documento de observaciones</h6>
+                        @if ($expediente->consentimientos_observaciones_path)
+                            <div class="d-flex align-items-center gap-2">
+                                <a
+                                    href="{{ route('expedientes.consentimientos.observaciones.show', $expediente) }}"
+                                    target="_blank"
+                                    rel="noopener"
+                                    class="btn btn-outline-secondary btn-sm"
+                                >
+                                    Ver archivo
+                                </a>
+                                <span class="small text-muted">
+                                    {{ basename($expediente->consentimientos_observaciones_path) }}
+                                </span>
+                            </div>
+                        @else
+                            <span class="text-muted small">Sin archivo cargado</span>
+                        @endif
+                    </div>
+
+                    @can('update', $expediente)
+                        <form
+                            action="{{ route('expedientes.consentimientos.observaciones', $expediente) }}"
+                            method="post"
+                            enctype="multipart/form-data"
+                            class="d-flex flex-column gap-2"
+                        >
+                            @csrf
+                            <div class="row g-2 align-items-end">
+                                <div class="col-md-8">
+                                    <label for="consentimientos-observaciones" class="form-label">Documento con firma autógrafa</label>
+                                    <input
+                                        type="file"
+                                        id="consentimientos-observaciones"
+                                        name="observaciones"
+                                        accept="{{ $observacionesAcceptedExtensions }}"
+                                        class="form-control @error('observaciones') is-invalid @enderror"
+                                        required
+                                    >
+                                    @error('observaciones')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                    <div class="form-text">
+                                        Carga el documento de observaciones con firma autógrafa. Formatos permitidos: {{ str_replace(',', ', ', $consentimientosUploadMimes) }}.
                                     </div>
                                 </div>
-                            </form>
-                        @endcan
-                    @endif
+                                <div class="col-md-4 text-md-end">
+                                    <button type="submit" class="btn btn-primary">Actualizar archivo</button>
+                                </div>
+                            </div>
+                        </form>
+                    @endcan
                 </div>
             </div>
         </div>

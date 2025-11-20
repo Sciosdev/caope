@@ -181,15 +181,13 @@ class ExpedienteFactory extends Factory
             'plan_accion' => $planAccion,
             'aparatos_sistemas' => $systemsReview,
             'resumen_clinico' => collect(\App\Models\Expediente::defaultClinicalSummary())
-                ->map(function (array $fields) {
-                    $fecha = $this->faker->optional(0.6)->dateTimeBetween('-2 years', 'now');
-
-                    return [
-                        'titulo' => $fields['titulo'],
-                        'fecha' => $fecha?->format('Y-m-d'),
-                        'profesional' => $this->faker->optional(0.5)->name(),
-                        'observaciones' => $this->faker->optional(0.6)->paragraph(),
-                    ];
+                ->map(function ($valor, string $campo) {
+                    return match ($campo) {
+                        'fecha' => $this->faker->optional(0.6)->date('Y-m-d'),
+                        'resultado' => $this->faker->optional(0.5)->randomElement(array_keys(\App\Models\Expediente::CLINICAL_OUTCOME_OPTIONS)),
+                        'resultado_detalle' => $this->faker->optional(0.5)->sentence(),
+                        default => $this->faker->optional(0.6)->paragraph(),
+                    };
                 })
                 ->all(),
         ];

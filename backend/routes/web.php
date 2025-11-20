@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\CatalogoTurnoController;
 use App\Http\Controllers\Admin\ParametrosController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AnexoController;
+use App\Http\Controllers\ConsentimientoController;
 use App\Http\Controllers\ConsentimientoPdfController;
 use App\Http\Controllers\ConsentimientoRequeridoController;
 use App\Http\Controllers\ConsentimientoUploadController;
@@ -65,6 +66,10 @@ Route::middleware('auth')->group(function () {
 
     Route::get('expedientes/{expediente}/consentimientos/pdf', ConsentimientoPdfController::class)
         ->name('expedientes.consentimientos.pdf');
+    Route::post('expedientes/{expediente}/consentimientos', [ConsentimientoController::class, 'store'])
+        ->name('expedientes.consentimientos.store');
+    Route::put('expedientes/{expediente}/consentimientos/{consentimiento}', [ConsentimientoController::class, 'update'])
+        ->name('expedientes.consentimientos.update');
 
     Route::post('expedientes/{expediente}/timeline/export', [TimelineEventoExportController::class, 'export'])
         ->name('expedientes.timeline.export');
