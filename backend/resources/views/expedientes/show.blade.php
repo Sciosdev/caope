@@ -375,32 +375,6 @@
                                 </div>
                             @endif
                         @endif
-                        @php
-                            $currentConditionSections = [
-                                'musculo_esqueletico' => 'Músculo esquelético',
-                                'genito_urinario' => 'Genito urinario',
-                                'linfohematatico' => 'Linfohemático',
-                                'endocrino' => 'Endócrino',
-                                'nervioso' => 'Nervioso',
-                                'tegumentario' => 'Tegumentario',
-                            ];
-                        @endphp
-                        <div class="row g-3">
-                            @foreach ($currentConditionSections as $field => $label)
-                                @php $fieldValue = $expediente->{$field}; @endphp
-                                <div class="col-12 col-lg-4">
-                                    <div class="border rounded h-100 p-3">
-                                        <span class="text-muted small d-block mb-2">{{ $label }}</span>
-                                        @if (filled($fieldValue))
-                                            <p class="mb-0">{!! nl2br(e($fieldValue)) !!}</p>
-                                        @else
-                                            <p class="mb-0 text-muted fst-italic">Sin información registrada.</p>
-                                        @endif
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-
                         <hr class="my-4">
 
                         <h6 class="mb-3">Plan de Acción</h6>
