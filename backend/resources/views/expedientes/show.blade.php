@@ -643,7 +643,7 @@
                             <table class="table table-sm align-middle">
                                 <thead>
                                     <tr>
-                                        <th>Tratamiento</th>
+                                        <th>Tipo</th>
                                         <th>Requerido</th>
                                         <th>Aceptado</th>
                                         <th>Archivo</th>
@@ -698,6 +698,68 @@
                                 </tbody>
                             </table>
                         </div>
+                        @php
+                            $observacionesAcceptedExtensions = collect(explode(',', (string) $consentimientosUploadMimes))
+                                ->map(fn ($ext) => '.' . ltrim(trim($ext), '.'))
+                                ->filter()
+                                ->implode(',');
+                        @endphp
+
+                        <hr class="my-4">
+
+                        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                            <h6 class="mb-0">Observaciones del expediente</h6>
+                            @if ($expediente->consentimientos_observaciones_path)
+                                <div class="d-flex align-items-center gap-2">
+                                    <a
+                                        href="{{ route('expedientes.consentimientos.observaciones.show', $expediente) }}"
+                                        target="_blank"
+                                        rel="noopener"
+                                        class="btn btn-outline-secondary btn-sm"
+                                    >
+                                        Ver archivo
+                                    </a>
+                                    <span class="small text-muted">
+                                        {{ basename($expediente->consentimientos_observaciones_path) }}
+                                    </span>
+                                </div>
+                            @else
+                                <span class="text-muted small">Sin archivo cargado</span>
+                            @endif
+                        </div>
+
+                        @can('update', $expediente)
+                            <form
+                                action="{{ route('expedientes.consentimientos.observaciones', $expediente) }}"
+                                method="post"
+                                enctype="multipart/form-data"
+                                class="d-flex flex-column gap-2"
+                            >
+                                @csrf
+                                <div class="row g-2 align-items-end">
+                                    <div class="col-md-8">
+                                        <label for="consentimientos-observaciones" class="form-label">Observaciones del expediente</label>
+                                        <input
+                                            type="file"
+                                            id="consentimientos-observaciones"
+                                            name="observaciones"
+                                            accept="{{ $observacionesAcceptedExtensions }}"
+                                            class="form-control @error('observaciones') is-invalid @enderror"
+                                            required
+                                        >
+                                        @error('observaciones')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                        <div class="form-text">
+                                            Carga el documento de observaciones con firma autógrafa. Formatos permitidos: {{ str_replace(',', ', ', $consentimientosUploadMimes) }}.
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 text-md-end">
+                                        <button type="submit" class="btn btn-primary">Actualizar archivo</button>
+                                    </div>
+                                </div>
+                            </form>
+                        @endcan
                     @endif
                 </div>
             </div>

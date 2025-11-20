@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Expediente;
 use App\Models\Consentimiento;
 use App\Models\Parametro;
 use Illuminate\Http\RedirectResponse;
@@ -66,5 +67,50 @@ class ConsentimientoUploadController extends Controller
         return redirect()
             ->route('expedientes.show', $consentimiento->expediente)
             ->with('status', 'Consentimiento actualizado correctamente.');
+    }
+
+    public function showObservaciones(Expediente $expediente)
+    {
+        $this->authorize('view', $expediente);
+
+        $disk = config('filesystems.private_default', 'private');
+        $path = $expediente->consentimientos_observaciones_path;
+
+        if (! $path || ! Storage::disk($disk)->exists($path)) {
+            abort(404);
+        }
+
+        return Storage::disk($disk)->response($path);
+    }
+
+    public function storeObservaciones(Request $request, Expediente $expediente): RedirectResponse
+    {
+        $this->authorize('update', $expediente);
+
+        $mimes = (string) Parametro::obtener('uploads.consentimientos.mimes', 'pdf,jpg,jpeg');
+        $max = (int) Parametro::obtener('uploads.consentimientos.max', 5120);
+
+        $validated = $request->validate([
+            'observaciones' => ['required', 'file', 'mimes:'.$mimes, 'max:'.$max],
+        ]);
+
+        $disk = config('filesystems.private_default', 'private');
+        $file = $validated['observaciones'];
+        $directory = sprintf('expedientes/%s/consentimientos/observaciones', $expediente->id ?? 'generales');
+        $filename = sprintf('observaciones-%s.%s', now()->format('YmdHis'), $file->getClientOriginalExtension());
+
+        if ($expediente->consentimientos_observaciones_path && Storage::disk($disk)->exists($expediente->consentimientos_observaciones_path)) {
+            Storage::disk($disk)->delete($expediente->consentimientos_observaciones_path);
+        }
+
+        $storedPath = $file->storeAs($directory, $filename, $disk);
+
+        $expediente->forceFill([
+            'consentimientos_observaciones_path' => $storedPath,
+        ])->save();
+
+        return redirect()
+            ->route('expedientes.show', ['expediente' => $expediente, 'tab' => 'consentimientos'])
+            ->with('status', 'Observaciones del expediente actualizadas correctamente.');
     }
 }

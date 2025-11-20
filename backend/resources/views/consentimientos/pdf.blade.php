@@ -64,7 +64,7 @@
                 <thead>
                     <tr>
                         <th style="width: 6%;">#</th>
-                        <th style="width: 38%;">Tratamiento</th>
+                        <th style="width: 38%;">Tipo</th>
                         <th style="width: 18%;">Requerido</th>
                         <th style="width: 18%;">Estado</th>
                         <th style="width: 20%;">Fecha</th>
