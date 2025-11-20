@@ -79,7 +79,6 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
             $creado->plan_accion
         );
         $this->assertSame('Diagnóstico integral ajustado a la valoración inicial.', $creado->diagnostico);
-        $this->assertSame('F41.1 Trastorno de ansiedad generalizada', $creado->dsm_tr);
         $this->assertSame('Observaciones clínicas adicionales proporcionadas por el alumno.', $creado->observaciones_relevantes);
 
         $expediente = Expediente::factory()->create([
@@ -101,7 +100,6 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
         $updatePayload['paciente'] = 'Alumno Actualizado';
         $updatePayload['plan_accion'] = 'Plan de acción actualizado con metas claras.';
         $updatePayload['diagnostico'] = 'Diagnóstico actualizado con seguimiento interdisciplinario.';
-        $updatePayload['dsm_tr'] = 'F32.1 Episodio depresivo moderado';
         $updatePayload['observaciones_relevantes'] = 'Observaciones relevantes revisadas durante tutoría.';
 
         $updateResponse = $this->actingAs($alumno)->put(route('expedientes.update', $expediente), $updatePayload);
@@ -131,7 +129,6 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
             $expediente->plan_accion
         );
         $this->assertSame($updatePayload['diagnostico'], $expediente->diagnostico);
-        $this->assertSame($updatePayload['dsm_tr'], $expediente->dsm_tr);
         $this->assertSame($updatePayload['observaciones_relevantes'], $expediente->observaciones_relevantes);
     }
 
@@ -257,7 +254,6 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
             ],
             'plan_accion' => 'Plan de acción colaborativo con el tutor.',
             'diagnostico' => '  Diagnóstico integral ajustado a la valoración inicial.  ',
-            'dsm_tr' => ' F41.1 Trastorno de ansiedad generalizada ',
             'observaciones_relevantes' => '  Observaciones clínicas adicionales proporcionadas por el alumno.  ',
         ];
     }

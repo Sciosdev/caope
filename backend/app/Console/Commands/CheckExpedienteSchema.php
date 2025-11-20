@@ -34,7 +34,6 @@ class CheckExpedienteSchema extends Command
             'antecedente_padecimiento_actual',
             'plan_accion',
             'diagnostico',
-            'dsm_tr',
             'observaciones_relevantes',
             'aparatos_sistemas',
         ];

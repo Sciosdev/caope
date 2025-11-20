@@ -114,7 +114,6 @@ trait ExpedienteFormRules
             'antecedente_padecimiento_actual',
             'plan_accion',
             'diagnostico',
-            'dsm_tr',
             'observaciones_relevantes',
         ] as $field) {
             if ($this->has($field)) {
@@ -286,7 +285,6 @@ trait ExpedienteFormRules
             'antecedente_padecimiento_actual' => ['sometimes', 'nullable', 'string', 'max:1000'],
             'plan_accion' => ['sometimes', 'nullable', 'string', 'max:1000'],
             'diagnostico' => ['sometimes', 'nullable', 'string', 'max:1000'],
-            'dsm_tr' => ['sometimes', 'nullable', 'string', 'max:255'],
             'observaciones_relevantes' => ['sometimes', 'nullable', 'string', 'max:1000'],
             'aparatos_sistemas' => ['sometimes', 'array'],
             ...$this->familyHistoryMemberRules(),
@@ -526,7 +524,6 @@ trait ExpedienteFormRules
             'antecedente_padecimiento_actual',
             'plan_accion',
             'diagnostico',
-            'dsm_tr',
             'observaciones_relevantes',
             'aparatos_sistemas',
             'clinica',

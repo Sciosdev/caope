@@ -74,7 +74,6 @@ class ExpedienteController extends Controller
         'tutor_id',
         'coordinador_id',
         'diagnostico',
-        'dsm_tr',
         'observaciones_relevantes',
         'antecedentes_familiares',
         'antecedentes_observaciones',
@@ -189,9 +188,6 @@ class ExpedienteController extends Controller
         $diagnosticoProvided = array_key_exists('diagnostico', $data)
             && $data['diagnostico'] !== null
             && $data['diagnostico'] !== '';
-        $dsmTrProvided = array_key_exists('dsm_tr', $data)
-            && $data['dsm_tr'] !== null
-            && $data['dsm_tr'] !== '';
         $observacionesRelevantesProvided = array_key_exists('observaciones_relevantes', $data)
             && $data['observaciones_relevantes'] !== null
             && $data['observaciones_relevantes'] !== '';
@@ -265,7 +261,6 @@ class ExpedienteController extends Controller
                 || $systemsProvided
                 || $planAccionProvided
                 || $diagnosticoProvided
-                || $dsmTrProvided
                 || $observacionesRelevantesProvided
             )
         ) {
@@ -279,7 +274,6 @@ class ExpedienteController extends Controller
                     'plan_accion' => $expediente->plan_accion,
                     'aparatos_sistemas' => $expediente->aparatos_sistemas,
                     'diagnostico' => $expediente->diagnostico,
-                    'dsm_tr' => $expediente->dsm_tr,
                     'observaciones_relevantes' => $expediente->observaciones_relevantes,
                 ],
             ]);
@@ -441,7 +435,6 @@ class ExpedienteController extends Controller
         $currentConditionBefore = $expediente->antecedente_padecimiento_actual;
         $planActionBefore = $expediente->plan_accion;
         $diagnosticoBefore = $expediente->diagnostico;
-        $dsmTrBefore = $expediente->dsm_tr;
         $observacionesRelevantesBefore = $expediente->observaciones_relevantes;
         $antecedentesAntes = [
             'familiares' => $familyHistoryBefore,
@@ -452,7 +445,6 @@ class ExpedienteController extends Controller
             'plan_accion' => $planActionBefore,
             'aparatos_sistemas' => $systemsReviewBefore,
             'diagnostico' => $diagnosticoBefore,
-            'dsm_tr' => $dsmTrBefore,
             'observaciones_relevantes' => $observacionesRelevantesBefore,
         ];
 
@@ -488,7 +480,6 @@ class ExpedienteController extends Controller
             || $expediente->wasChanged('antecedente_padecimiento_actual');
         $planActionChanged = $expediente->wasChanged('plan_accion');
         $diagnosticoChanged = $expediente->wasChanged('diagnostico')
-            || $expediente->wasChanged('dsm_tr')
             || $expediente->wasChanged('observaciones_relevantes');
 
         $expediente->refresh();
@@ -538,7 +529,6 @@ class ExpedienteController extends Controller
                     'plan_accion' => $expediente->plan_accion,
                     'aparatos_sistemas' => $expediente->aparatos_sistemas ?? Expediente::defaultSystemsReview(),
                     'diagnostico' => $expediente->diagnostico,
-                    'dsm_tr' => $expediente->dsm_tr,
                     'observaciones_relevantes' => $expediente->observaciones_relevantes,
                 ],
             ]);
@@ -578,7 +568,6 @@ class ExpedienteController extends Controller
             'antecedente_padecimiento_actual' => static fn () => null,
             'plan_accion' => static fn () => null,
             'diagnostico' => static fn () => null,
-            'dsm_tr' => static fn () => null,
             'observaciones_relevantes' => static fn () => null,
             'aparatos_sistemas' => static fn () => Expediente::defaultSystemsReview(),
         ];
