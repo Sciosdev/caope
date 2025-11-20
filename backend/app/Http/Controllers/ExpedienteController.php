@@ -360,15 +360,14 @@ class ExpedienteController extends Controller
         $personalPathologicalHistory = $expediente->antecedentes_personales_patologicos
             ?? Expediente::defaultPersonalPathologicalHistory();
         $systemsReview = $expediente->aparatos_sistemas ?? Expediente::defaultSystemsReview();
-        $clinicalSummary = collect(Expediente::defaultClinicalSummary())
-            ->mapWithKeys(function (array $defaults, string $section) use ($expediente) {
-                $stored = is_array($expediente->resumen_clinico[$section] ?? null)
-                    ? $expediente->resumen_clinico[$section]
-                    : [];
-
-                return [$section => array_merge($defaults, $stored)];
-            })
-            ->all();
+        $clinicalSummaryDefaults = Expediente::defaultClinicalSummary();
+        $storedClinicalSummary = is_array($expediente->resumen_clinico ?? null)
+            ? $expediente->resumen_clinico
+            : [];
+        $clinicalSummary = array_merge(
+            $clinicalSummaryDefaults,
+            array_intersect_key($storedClinicalSummary, $clinicalSummaryDefaults),
+        );
 
         return view('expedientes.show', [
             'expediente' => $expediente,
@@ -399,8 +398,8 @@ class ExpedienteController extends Controller
             'personalPathologicalObservations' => $expediente->antecedentes_personales_observaciones ?? '',
             'systemsReviewSections' => Expediente::SYSTEMS_REVIEW_SECTIONS,
             'systemsReviewValues' => $systemsReview,
-            'clinicalSummaryItems' => Expediente::CLINICAL_SUMMARY_ITEMS,
             'clinicalSummary' => $clinicalSummary,
+            'clinicalOutcomeOptions' => Expediente::CLINICAL_OUTCOME_OPTIONS,
         ]);
     }
 
@@ -727,7 +726,7 @@ class ExpedienteController extends Controller
             'hereditaryHistoryConditions' => Expediente::HEREDITARY_HISTORY_CONDITIONS,
             'personalPathologicalConditions' => Expediente::PERSONAL_PATHOLOGICAL_CONDITIONS,
             'systemsReviewSections' => Expediente::SYSTEMS_REVIEW_SECTIONS,
-            'clinicalSummaryItems' => Expediente::CLINICAL_SUMMARY_ITEMS,
+            'clinicalOutcomeOptions' => Expediente::CLINICAL_OUTCOME_OPTIONS,
         ];
     }
 
