@@ -300,8 +300,8 @@
     </p>
 
     <div class="row g-3">
-        <div class="col-12 col-lg-6">
-            <label for="diagnostico" class="form-label">Diagnóstico Médico Odontológico</label>
+        <div class="col-12 col-lg-4">
+            <label for="diagnostico" class="form-label">Diagnostico</label>
             <textarea
                 name="diagnostico"
                 id="diagnostico"
@@ -315,7 +315,22 @@
             @enderror
         </div>
 
-        <div class="col-12 col-lg-6">
+        <div class="col-12 col-lg-4">
+            <label for="dsm_tr" class="form-label">DSM y TR</label>
+            <textarea
+                name="dsm_tr"
+                id="dsm_tr"
+                class="form-control @error('dsm_tr') is-invalid @enderror"
+                rows="4"
+                maxlength="255"
+            >{{ old('dsm_tr', $expediente->dsm_tr ?? '') }}</textarea>
+            <div class="form-text">Máximo 255 caracteres.</div>
+            @error('dsm_tr')
+                <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
+
+        <div class="col-12 col-lg-4">
             <label for="observaciones_relevantes" class="form-label">Observaciones relevantes</label>
             <textarea
                 name="observaciones_relevantes"

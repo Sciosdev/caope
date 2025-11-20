@@ -166,6 +166,12 @@ class ExpedienteFactory extends Factory
             'tutor_id' => $tutor,
             'coordinador_id' => $coordinador,
             'diagnostico' => $diagnostico,
+            'dsm_tr' => $this->faker->optional(0.6)->randomElement([
+                'DSM-IV, trastorno de ansiedad generalizada',
+                'DSM-5, episodio depresivo moderado',
+                'DSM-IV-TR, trastorno adaptativo',
+                null,
+            ]),
             'observaciones_relevantes' => $observacionesRelevantes,
             'antecedentes_familiares' => $familyHistory,
             'antecedentes_observaciones' => $this->faker->optional(0.4)->text(120),

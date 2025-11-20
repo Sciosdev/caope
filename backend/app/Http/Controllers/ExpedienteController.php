@@ -74,6 +74,7 @@ class ExpedienteController extends Controller
         'tutor_id',
         'coordinador_id',
         'diagnostico',
+        'dsm_tr',
         'observaciones_relevantes',
         'antecedentes_familiares',
         'antecedentes_observaciones',
@@ -568,6 +569,7 @@ class ExpedienteController extends Controller
             'antecedente_padecimiento_actual' => static fn () => null,
             'plan_accion' => static fn () => null,
             'diagnostico' => static fn () => null,
+            'dsm_tr' => static fn () => null,
             'observaciones_relevantes' => static fn () => null,
             'aparatos_sistemas' => static fn () => Expediente::defaultSystemsReview(),
         ];
