@@ -277,7 +277,7 @@
                     <div class="card-body">
                         <h6 class="mb-3">Antecedentes Familiares Hereditarios</h6>
                         @php
-                            $hereditaryHistory = $familyHistory
+                            $hereditaryHistory = $expediente->antecedentes_familiares
                                 ?? \App\Models\Expediente::defaultFamilyHistory();
                         @endphp
 
@@ -328,8 +328,8 @@
 
                         <div class="mt-3">
                             <span class="text-muted small d-block">Observaciones</span>
-                            @if (filled($familyHistoryObservations))
-                                <p class="mb-0">{!! nl2br(e($familyHistoryObservations)) !!}</p>
+                            @if (filled($expediente->antecedentes_observaciones))
+                                <p class="mb-0">{!! nl2br(e($expediente->antecedentes_observaciones)) !!}</p>
                             @else
                                 <p class="mb-0 text-muted fst-italic">Sin observaciones registradas.</p>
                             @endif
@@ -340,8 +340,6 @@
                         @include('expedientes.partials.personal-pathological-history', [
                             'expediente' => $expediente,
                             'personalPathologicalConditions' => $personalPathologicalConditions,
-                            'personalPathologicalHistory' => $personalPathologicalHistory,
-                            'personalPathologicalObservations' => $personalPathologicalObservations,
                         ])
 
                         <hr class="my-4">
@@ -354,7 +352,7 @@
                                 }
 
                                 $systemsReviewSections = (array) $systemsReviewSections;
-                                $systemsReviewValues = $systemsReviewValues ?? [];
+                                $systemsReviewValues = $expediente->aparatos_sistemas ?? [];
                             @endphp
 
                             @if (! empty($systemsReviewSections))

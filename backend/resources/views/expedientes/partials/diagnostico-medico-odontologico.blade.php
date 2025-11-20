@@ -12,6 +12,16 @@
             >{{ $expediente->diagnostico ?? '' }}</textarea>
         </div>
         <div class="col-12 col-lg-6">
+            <label for="dsm_tr" class="form-label">DSM y TR</label>
+            <textarea
+                id="dsm_tr"
+                class="form-control"
+                rows="3"
+                readonly
+                placeholder="Sin información registrada."
+            >{{ $expediente->dsm_tr ?? '' }}</textarea>
+        </div>
+        <div class="col-12">
             <label for="observaciones_relevantes" class="form-label">Observaciones relevantes</label>
             <textarea
                 id="observaciones_relevantes"
