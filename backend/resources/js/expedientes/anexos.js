@@ -388,33 +388,75 @@ document.addEventListener('DOMContentLoaded', () => {
         galleryGrid.prepend(card);
     };
 
+    const updateRowIndexes = () => {
+        if (!tableBody) {
+            return;
+        }
+
+        Array.from(tableBody.querySelectorAll('tr')).forEach((row, index) => {
+            row.dataset.rowIndex = String(index);
+        });
+    };
+
+    const focusFirstField = (row) => {
+        const focusable = row?.querySelector('a, button, input, select, textarea');
+
+        if (focusable) {
+            requestAnimationFrame(() => focusable.focus());
+        }
+    };
+
     const addRowToTable = (anexo) => {
         if (!tableBody || !anexo || !anexo.id) {
             return;
         }
 
+        const normalizedAnexo = {
+            titulo: '',
+            tipo: '',
+            tamano: anexo.tamano ?? 0,
+            tamano_legible: anexo.tamano_legible ?? '',
+            subido_por: '',
+            fecha: '',
+            download_url: anexo.download_url,
+            delete_url: anexo.delete_url,
+            ...anexo,
+        };
+
+        const existingRow = Array.from(tableBody.querySelectorAll('tr')).find(
+            (item) => item.dataset.anexoId === String(anexo.id),
+        );
+
+        if (existingRow) {
+            existingRow.remove();
+        }
+
         const row = document.createElement('tr');
         row.dataset.anexoId = String(anexo.id);
 
-        row.appendChild(createTitleCell(anexo));
-        row.appendChild(createCell(anexo.tipo || placeholderText));
+        row.appendChild(createTitleCell(normalizedAnexo));
+        row.appendChild(createCell(normalizedAnexo.tipo || placeholderText));
         row.appendChild(
             createCell(
                 t('metadata.size_value', ':size KB', {
-                    size: anexo.tamano_legible ?? formatBytesToKilobytes(anexo.tamano ?? 0),
+                    size:
+                        normalizedAnexo.tamano_legible ??
+                        formatBytesToKilobytes(normalizedAnexo.tamano ?? 0),
                 }),
             ),
         );
-        row.appendChild(createCell(anexo.subido_por || placeholderText));
-        row.appendChild(createCell(anexo.fecha || placeholderText));
+        row.appendChild(createCell(normalizedAnexo.subido_por || placeholderText));
+        row.appendChild(createCell(normalizedAnexo.fecha || placeholderText));
 
         if (hasActions) {
-            row.appendChild(createActionCell(anexo));
+            row.appendChild(createActionCell(normalizedAnexo));
         }
 
-        tableBody.prepend(row);
-        addCardToGallery(anexo);
+        tableBody.appendChild(row);
+        addCardToGallery(normalizedAnexo);
         toggleEmptyState();
+        updateRowIndexes();
+        focusFirstField(row);
     };
 
     const removeRow = (anexoId) => {
@@ -441,6 +483,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         toggleEmptyState();
+        updateRowIndexes();
     };
 
     const pond = create(uploader, {
