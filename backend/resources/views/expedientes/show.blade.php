@@ -673,6 +673,7 @@
                                         $aceptadoValor = $rowHasErrors ? (bool) old('aceptado') : (bool) $consentimiento->aceptado;
                                         $fechaValor = $rowHasErrors ? old('fecha') : optional($consentimiento->fecha)->format('Y-m-d');
                                         $formId = "consentimiento-form-{$consentimiento->id}";
+                                        $deleteFormId = "consentimiento-delete-{$consentimiento->id}";
                                     @endphp
 
                                     <form
@@ -684,6 +685,16 @@
                                     >
                                         @csrf
                                         @method('put')
+                                    </form>
+
+                                    <form
+                                        id="{{ $deleteFormId }}"
+                                        action="{{ route('expedientes.consentimientos.destroy', [$expediente, $consentimiento]) }}"
+                                        method="post"
+                                        class="d-none"
+                                    >
+                                        @csrf
+                                        @method('delete')
                                     </form>
 
                                     <tr>
@@ -780,11 +791,24 @@
                                             <div class="small">{{ $consentimiento->subidoPor?->name ?? '—' }}</div>
                                         </td>
                                         <td class="text-end">
-                                            @can('upload', $consentimiento)
-                                                <button type="submit" class="btn btn-outline-primary btn-sm" form="{{ $formId }}">Guardar</button>
-                                            @else
-                                                <span class="text-muted small">Sin permisos</span>
-                                            @endcan
+                                            <div class="d-inline-flex gap-2 align-items-center justify-content-end">
+                                                @can('upload', $consentimiento)
+                                                    <button type="submit" class="btn btn-outline-primary btn-sm" form="{{ $formId }}">Guardar</button>
+                                                @else
+                                                    <span class="text-muted small">Sin permisos</span>
+                                                @endcan
+
+                                                @can('delete', $consentimiento)
+                                                    <button
+                                                        type="submit"
+                                                        class="btn btn-outline-danger btn-sm"
+                                                        form="{{ $deleteFormId }}"
+                                                        onclick="return confirm('¿Deseas eliminar este consentimiento?');"
+                                                    >
+                                                        Eliminar
+                                                    </button>
+                                                @endcan
+                                            </div>
                                         </td>
                                     </tr>
                                 @empty

@@ -49,6 +49,11 @@ class ConsentimientoPolicy
         return $this->update($user, $consentimiento);
     }
 
+    public function delete(User $user, Consentimiento $consentimiento): bool
+    {
+        return $this->update($user, $consentimiento);
+    }
+
     private function isAdmin(User $user): bool
     {
         return $user->hasRole('admin');

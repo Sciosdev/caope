@@ -125,4 +125,40 @@ class ConsentimientoControllerTest extends TestCase
         Storage::disk('private')->assertExists($consentimiento->archivo_path);
         Storage::disk('private')->assertMissing($rutaAnterior);
     }
+
+    public function test_usuario_puede_eliminar_consentimiento(): void
+    {
+        Storage::fake('private');
+
+        $usuario = User::factory()->create();
+        $usuario->givePermissionTo('expedientes.manage');
+
+        $expediente = Expediente::factory()->create([
+            'creado_por' => $usuario->id,
+        ]);
+
+        $archivo = UploadedFile::fake()->create('consentimiento.pdf', 150, 'application/pdf');
+
+        $ruta = $archivo->storeAs(
+            sprintf('expedientes/%s/consentimientos', $expediente->id),
+            'consentimiento.pdf',
+            'private'
+        );
+
+        $consentimiento = Consentimiento::factory()->for($expediente)->create([
+            'archivo_path' => $ruta,
+            'subido_por' => $usuario->id,
+        ]);
+
+        $response = $this->actingAs($usuario)->delete(
+            route('expedientes.consentimientos.destroy', [$expediente, $consentimiento])
+        );
+
+        $response
+            ->assertRedirect(route('expedientes.show', ['expediente' => $expediente, 'tab' => 'consentimientos']))
+            ->assertSessionHas('status', 'Consentimiento eliminado correctamente.');
+
+        $this->assertDatabaseMissing('consentimientos', ['id' => $consentimiento->id]);
+        Storage::disk('private')->assertMissing($ruta);
+    }
 }

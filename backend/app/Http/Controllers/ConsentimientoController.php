@@ -66,6 +66,27 @@ class ConsentimientoController extends Controller
             ->with('status', 'Consentimiento actualizado correctamente.');
     }
 
+    public function destroy(Expediente $expediente, Consentimiento $consentimiento): RedirectResponse
+    {
+        if ($consentimiento->expediente_id !== $expediente->id) {
+            abort(404);
+        }
+
+        $this->authorize('delete', $consentimiento);
+
+        $disk = config('filesystems.private_default', 'private');
+
+        if ($consentimiento->archivo_path && Storage::disk($disk)->exists($consentimiento->archivo_path)) {
+            Storage::disk($disk)->delete($consentimiento->archivo_path);
+        }
+
+        $consentimiento->delete();
+
+        return redirect()
+            ->route('expedientes.show', ['expediente' => $expediente, 'tab' => 'consentimientos'])
+            ->with('status', 'Consentimiento eliminado correctamente.');
+    }
+
     /**
      * @param  array<string, mixed>  $validated
      */
