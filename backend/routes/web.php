@@ -70,6 +70,8 @@ Route::middleware('auth')->group(function () {
         ->name('expedientes.consentimientos.store');
     Route::put('expedientes/{expediente}/consentimientos/{consentimiento}', [ConsentimientoController::class, 'update'])
         ->name('expedientes.consentimientos.update');
+    Route::delete('expedientes/{expediente}/consentimientos/{consentimiento}', [ConsentimientoController::class, 'destroy'])
+        ->name('expedientes.consentimientos.destroy');
 
     Route::post('expedientes/{expediente}/timeline/export', [TimelineEventoExportController::class, 'export'])
         ->name('expedientes.timeline.export');
