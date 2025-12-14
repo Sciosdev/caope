@@ -651,16 +651,16 @@
                     @endphp
 
                     <div class="table-responsive">
-                        <table class="table table-sm align-middle">
+                        <table class="table table-sm align-middle mb-0">
                             <thead>
                                 <tr>
-                                    <th>Tipo</th>
-                                    <th>Requerido</th>
-                                    <th>Aceptado</th>
-                                    <th>Documento con firma autógrafa</th>
-                                    <th>Fecha</th>
-                                    <th>Subido por</th>
-                                    <th class="text-end">Acciones</th>
+                                    <th class="ps-3" style="width: 26%;">Órgano / tipo</th>
+                                    <th class="text-center" style="width: 10rem;">Requerido</th>
+                                    <th class="text-center" style="width: 10rem;">Aceptado</th>
+                                    <th style="width: 24%;">Documento firmado</th>
+                                    <th style="width: 10rem;">Fecha</th>
+                                    <th style="width: 16%;">Responsable</th>
+                                    <th class="text-end" style="width: 12%;">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -698,8 +698,8 @@
                                     </form>
 
                                     <tr>
-                                        <td class="w-25">
-                                            <label for="tipo-{{ $consentimiento->id }}" class="form-label small mb-1">Tipo</label>
+                                        <td class="align-top ps-3">
+                                            <label for="tipo-{{ $consentimiento->id }}" class="form-label small mb-1">Órgano / tipo</label>
                                             <input
                                                 type="text"
                                                 id="tipo-{{ $consentimiento->id }}"
@@ -707,7 +707,7 @@
                                                 form="{{ $formId }}"
                                                 class="form-control form-control-sm @error('tipo', $errorBag) is-invalid @enderror"
                                                 value="{{ $tipoValor }}"
-                                                placeholder="Ej. Consentimiento informado"
+                                                placeholder="Ej. Órgano o procedimiento"
                                                 required
                                             >
                                             <div class="form-text text-muted mb-0">{{ $tipoValor }}</div>
@@ -715,8 +715,8 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </td>
-                                        <td>
-                                            <div class="form-check form-switch">
+                                        <td class="text-center align-top">
+                                            <div class="form-check form-switch d-inline-flex justify-content-center py-1">
                                                 <input type="hidden" name="requerido" value="0" form="{{ $formId }}">
                                                 <input
                                                     class="form-check-input"
@@ -731,8 +731,8 @@
                                                 <label class="form-check-label" for="requerido-{{ $consentimiento->id }}">Requerido</label>
                                             </div>
                                         </td>
-                                        <td>
-                                            <div class="form-check form-switch">
+                                        <td class="text-center align-top">
+                                            <div class="form-check form-switch d-inline-flex justify-content-center py-1">
                                                 <input type="hidden" name="aceptado" value="0" form="{{ $formId }}">
                                                 <input
                                                     class="form-check-input"
@@ -747,7 +747,7 @@
                                                 <label class="form-check-label" for="aceptado-{{ $consentimiento->id }}">Aceptado</label>
                                             </div>
                                         </td>
-                                        <td class="w-25">
+                                        <td class="align-top">
                                             @if ($consentimiento->archivo_path)
                                                 <div class="mb-2">
                                                     <a href="{{ route('consentimientos.archivo', $consentimiento) }}" target="_blank" rel="noopener">
@@ -770,7 +770,7 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </td>
-                                        <td>
+                                        <td class="align-top">
                                             <label for="fecha-{{ $consentimiento->id }}" class="form-label small mb-1">Fecha</label>
                                             <input
                                                 type="date"
@@ -787,10 +787,10 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </td>
-                                        <td>
+                                        <td class="align-top">
                                             <div class="small">{{ $consentimiento->subidoPor?->name ?? '—' }}</div>
                                         </td>
-                                        <td class="text-end">
+                                        <td class="text-end align-top">
                                             <div class="d-inline-flex gap-2 align-items-center justify-content-end">
                                                 @can('upload', $consentimiento)
                                                     <button type="submit" class="btn btn-outline-primary btn-sm" form="{{ $formId }}">Guardar</button>
@@ -828,8 +828,8 @@
                                         @csrf
                                     </form>
                                     <tr class="table-light">
-                                        <td class="w-25">
-                                            <label for="tipo-nuevo" class="form-label small mb-1">Tipo</label>
+                                        <td class="align-top ps-3">
+                                            <label for="tipo-nuevo" class="form-label small mb-1">Órgano / tipo</label>
                                             <input
                                                 type="text"
                                                 id="tipo-nuevo"
@@ -837,15 +837,15 @@
                                                 form="consentimiento-create-form"
                                                 class="form-control form-control-sm @error('tipo') is-invalid @enderror"
                                                 value="{{ old('tipo') }}"
-                                                placeholder="Ej. Consentimiento informado"
+                                                placeholder="Ej. Órgano o procedimiento"
                                                 required
                                             >
                                             @error('tipo')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </td>
-                                        <td>
-                                            <div class="form-check form-switch">
+                                        <td class="text-center align-top">
+                                            <div class="form-check form-switch d-inline-flex justify-content-center py-1">
                                                 <input type="hidden" name="requerido" value="0" form="consentimiento-create-form">
                                                 <input
                                                     class="form-check-input"
@@ -860,8 +860,8 @@
                                                 <label class="form-check-label" for="requerido-nuevo">Requerido</label>
                                             </div>
                                         </td>
-                                        <td>
-                                            <div class="form-check form-switch">
+                                        <td class="text-center align-top">
+                                            <div class="form-check form-switch d-inline-flex justify-content-center py-1">
                                                 <input type="hidden" name="aceptado" value="0" form="consentimiento-create-form">
                                                 <input
                                                     class="form-check-input"
@@ -876,7 +876,7 @@
                                                 <label class="form-check-label" for="aceptado-nuevo">Aceptado</label>
                                             </div>
                                         </td>
-                                        <td class="w-25">
+                                        <td class="align-top">
                                             <input
                                                 type="file"
                                                 name="archivo"
@@ -888,7 +888,7 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </td>
-                                        <td>
+                                        <td class="align-top">
                                             <label for="fecha-nuevo" class="form-label small mb-1">Fecha</label>
                                             <input
                                                 type="date"
@@ -902,10 +902,10 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </td>
-                                        <td>
+                                        <td class="align-top">
                                             <div class="small text-muted">—</div>
                                         </td>
-                                        <td class="text-end">
+                                        <td class="text-end align-top">
                                             <button type="submit" class="btn btn-primary btn-sm" form="consentimiento-create-form">Agregar</button>
                                         </td>
                                     </tr>
