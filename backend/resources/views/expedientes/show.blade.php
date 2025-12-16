@@ -662,10 +662,10 @@
                                     <thead class="table-secondary text-center small">
                                         <tr>
                                             <th>Órgano</th>
-                                            <th>Tipo</th>
+                                            <th>Tratamiento y código</th>
                                             <th>Pronóstico</th>
-                                            <th>Procedimiento</th>
                                             <th>Costo</th>
+                                            <th class="w-25">&nbsp;</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -703,17 +703,16 @@
                                             </form>
 
                                             <tr class="{{ $rowHasErrors ? 'table-warning' : '' }}">
-                                                <td class="text-center text-muted small">
+                                                <td>
                                                     <input
                                                         type="text"
-                                                        class="form-control form-control-sm text-center"
+                                                        class="form-control form-control-sm"
                                                         value="—"
                                                         aria-label="Órgano"
                                                         disabled
                                                     >
                                                 </td>
                                                 <td>
-                                                    <label for="tipo-{{ $consentimiento->id }}" class="form-label small mb-1">Tipo</label>
                                                     <input
                                                         type="text"
                                                         id="tipo-{{ $consentimiento->id }}"
@@ -721,107 +720,53 @@
                                                         form="{{ $formId }}"
                                                         class="form-control form-control-sm @error('tipo', $errorBag) is-invalid @enderror"
                                                         value="{{ $tipoValor }}"
-                                                        placeholder="Ej. Órgano o procedimiento"
+                                                        placeholder="Tratamiento y código"
                                                         required
                                                     >
-                                                    <div class="mt-2 d-flex flex-wrap gap-2">
-                                                        <span class="badge bg-light text-secondary border">Código {{ $consentimiento->id }}</span>
-                                                        <span class="badge {{ $requeridoValor ? 'bg-primary-subtle text-primary' : 'bg-secondary-subtle text-muted' }}">
-                                                            {{ $requeridoValor ? 'Requerido' : 'Opcional' }}
-                                                        </span>
-                                                    </div>
                                                     @error('tipo', $errorBag)
                                                         <div class="invalid-feedback">{{ $message }}</div>
                                                     @enderror
                                                 </td>
-                                                <td>
-                                                    <div class="d-flex flex-column gap-2">
-                                                        <div class="form-check form-switch">
-                                                            <input type="hidden" name="aceptado" value="0" form="{{ $formId }}">
-                                                            <input
-                                                                class="form-check-input"
-                                                                type="checkbox"
-                                                                role="switch"
-                                                                id="aceptado-{{ $consentimiento->id }}"
-                                                                name="aceptado"
-                                                                form="{{ $formId }}"
-                                                                value="1"
-                                                                @checked($aceptadoValor)
-                                                            >
-                                                            <label class="form-check-label" for="aceptado-{{ $consentimiento->id }}">Consentimiento aceptado</label>
-                                                        </div>
-                                                        <small class="text-muted">Responsable: {{ $consentimiento->subidoPor?->name ?? '—' }}</small>
-                                                    </div>
+                                                <td class="text-center text-muted small">
+                                                    <input
+                                                        type="text"
+                                                        class="form-control form-control-sm"
+                                                        value="—"
+                                                        aria-label="Pronóstico"
+                                                        disabled
+                                                    >
+                                                </td>
+                                                <td class="text-center text-muted small">
+                                                    <input
+                                                        type="text"
+                                                        class="form-control form-control-sm"
+                                                        value="—"
+                                                        aria-label="Costo"
+                                                        disabled
+                                                    >
                                                 </td>
                                                 <td>
-                                                    <div class="d-flex flex-column gap-2">
-                                                        <label for="fecha-{{ $consentimiento->id }}" class="form-label small mb-1">Fecha</label>
-                                                        <input
-                                                            type="date"
-                                                            id="fecha-{{ $consentimiento->id }}"
-                                                            name="fecha"
-                                                            form="{{ $formId }}"
-                                                            value="{{ $fechaValor }}"
-                                                            class="form-control form-control-sm @error('fecha', $errorBag) is-invalid @enderror"
-                                                        >
-                                                        <div class="form-check">
-                                                            <input type="hidden" name="requerido" value="0" form="{{ $formId }}">
-                                                            <input
-                                                                class="form-check-input"
-                                                                type="checkbox"
-                                                                id="requerido-{{ $consentimiento->id }}"
-                                                                name="requerido"
-                                                                form="{{ $formId }}"
-                                                                value="1"
-                                                                @checked($requeridoValor)
-                                                            >
-                                                            <label class="form-check-label" for="requerido-{{ $consentimiento->id }}">Requiere firma</label>
-                                                        </div>
-                                                        @error('fecha', $errorBag)
-                                                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                                                        @enderror
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div class="d-flex flex-column gap-2">
-                                                        <div class="d-flex flex-column">
-                                                            @if ($consentimiento->archivo_path)
-                                                                <a href="{{ route('consentimientos.archivo', $consentimiento) }}" target="_blank" rel="noopener" class="fw-semibold">Ver archivo</a>
-                                                                <span class="small text-muted">{{ basename($consentimiento->archivo_path) }}</span>
-                                                            @else
-                                                                <span class="badge bg-secondary">Sin archivo</span>
-                                                            @endif
-                                                        </div>
-                                                        <input
-                                                            type="file"
-                                                            name="archivo"
-                                                            form="{{ $formId }}"
-                                                            accept="{{ $consentimientosAcceptedExtensions }}"
-                                                            class="form-control form-control-sm @error('archivo', $errorBag) is-invalid @enderror"
-                                                        >
-                                                        @error('archivo', $errorBag)
-                                                            <div class="invalid-feedback">{{ $message }}</div>
-                                                        @enderror
-                                                        <div class="d-flex flex-wrap gap-2">
-                                                            @can('upload', $consentimiento)
-                                                                <button type="submit" class="btn btn-primary btn-sm" form="{{ $formId }}">Guardar</button>
-                                                            @else
-                                                                <span class="text-muted small align-self-center">Sin permisos</span>
-                                                            @endcan
+                                                    <div class="d-flex flex-wrap gap-2 justify-content-end">
+                                                        @can('upload', $consentimiento)
+                                                            <button type="submit" class="btn btn-primary btn-sm" form="{{ $formId }}">Guardar</button>
+                                                        @else
+                                                            <span class="text-muted small align-self-center">Sin permisos</span>
+                                                        @endcan
 
-                                                            @can('delete', $consentimiento)
-                                                                <button
-                                                                    type="submit"
-                                                                    class="btn btn-outline-danger btn-sm"
-                                                                    form="{{ $deleteFormId }}"
-                                                                    onclick="return confirm('¿Deseas eliminar este consentimiento?');"
-                                                                >
-                                                                    Eliminar
-                                                                </button>
-                                                            @endcan
-                                                        </div>
-                                                        <small class="text-muted">Tamaño máximo {{ $consentimientosMaxMb }} MB</small>
+                                                        @can('delete', $consentimiento)
+                                                            <button
+                                                                type="submit"
+                                                                class="btn btn-outline-danger btn-sm"
+                                                                form="{{ $deleteFormId }}"
+                                                                onclick="return confirm('¿Deseas eliminar este consentimiento?');"
+                                                            >
+                                                                Eliminar
+                                                            </button>
+                                                        @endcan
                                                     </div>
+                                                    <input type="hidden" name="aceptado" value="{{ $aceptadoValor ? 1 : 0 }}" form="{{ $formId }}">
+                                                    <input type="hidden" name="requerido" value="{{ $requeridoValor ? 1 : 0 }}" form="{{ $formId }}">
+                                                    <input type="hidden" name="fecha" value="{{ $fechaValor }}" form="{{ $formId }}">
                                                 </td>
                                             </tr>
                                         @empty
@@ -862,11 +807,15 @@
                                                 </td>
                                             </tr>
                                             <tr id="consentimiento-create-row" class="table-light collapse {{ $crearConsentimientoExpandido ? 'show' : '' }}">
-                                                <td class="text-center align-middle">
-                                                    <span class="text-muted small">Agregar fila</span>
+                                                <td>
+                                                    <input
+                                                        type="text"
+                                                        class="form-control form-control-sm"
+                                                        placeholder="Órgano"
+                                                        aria-label="Órgano"
+                                                    >
                                                 </td>
                                                 <td>
-                                                    <label for="tipo-nuevo" class="form-label small mb-1">Tipo</label>
                                                     <input
                                                         type="text"
                                                         id="tipo-nuevo"
@@ -874,7 +823,7 @@
                                                         form="consentimiento-create-form"
                                                         class="form-control form-control-sm @error('tipo') is-invalid @enderror"
                                                         value="{{ old('tipo') }}"
-                                                        placeholder="Ej. Órgano o procedimiento"
+                                                        placeholder="Tratamiento y código"
                                                         required
                                                     >
                                                     @error('tipo')
@@ -882,60 +831,25 @@
                                                     @enderror
                                                 </td>
                                                 <td>
-                                                    <div class="form-check form-switch">
-                                                        <input type="hidden" name="aceptado" value="0" form="consentimiento-create-form">
-                                                        <input
-                                                            class="form-check-input"
-                                                            type="checkbox"
-                                                            role="switch"
-                                                            id="aceptado-nuevo"
-                                                            name="aceptado"
-                                                            form="consentimiento-create-form"
-                                                            value="1"
-                                                            @checked((bool) old('aceptado'))
-                                                        >
-                                                        <label class="form-check-label" for="aceptado-nuevo">Consentimiento aceptado</label>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <label for="fecha-nuevo" class="form-label small mb-1">Fecha</label>
                                                     <input
-                                                        type="date"
-                                                        id="fecha-nuevo"
-                                                        name="fecha"
-                                                        form="consentimiento-create-form"
-                                                        value="{{ old('fecha') }}"
-                                                        class="form-control form-control-sm @error('fecha') is-invalid @enderror"
+                                                        type="text"
+                                                        class="form-control form-control-sm"
+                                                        placeholder="Pronóstico"
+                                                        aria-label="Pronóstico"
                                                     >
-                                                    <div class="form-check mt-2">
-                                                        <input type="hidden" name="requerido" value="0" form="consentimiento-create-form">
-                                                        <input
-                                                            class="form-check-input"
-                                                            type="checkbox"
-                                                            id="requerido-nuevo"
-                                                            name="requerido"
-                                                            form="consentimiento-create-form"
-                                                            value="1"
-                                                            @checked((bool) old('requerido'))
-                                                        >
-                                                        <label class="form-check-label" for="requerido-nuevo">Requiere firma</label>
-                                                    </div>
-                                                    @error('fecha')
-                                                        <div class="invalid-feedback">{{ $message }}</div>
-                                                    @enderror
                                                 </td>
                                                 <td>
-                                                    <div class="d-flex flex-column gap-2">
-                                                        <input
-                                                            type="file"
-                                                            name="archivo"
-                                                            form="consentimiento-create-form"
-                                                            accept="{{ $consentimientosAcceptedExtensions }}"
-                                                            class="form-control form-control-sm @error('archivo') is-invalid @enderror"
-                                                        >
-                                                        @error('archivo')
-                                                            <div class="invalid-feedback">{{ $message }}</div>
-                                                        @enderror
+                                                    <input
+                                                        type="text"
+                                                        class="form-control form-control-sm"
+                                                        placeholder="Costo"
+                                                        aria-label="Costo"
+                                                    >
+                                                </td>
+                                                <td class="text-end">
+                                                    <div class="d-flex flex-wrap gap-2 justify-content-end">
+                                                        <input type="hidden" name="aceptado" value="0" form="consentimiento-create-form">
+                                                        <input type="hidden" name="requerido" value="0" form="consentimiento-create-form">
                                                         <button type="submit" class="btn btn-primary btn-sm" form="consentimiento-create-form">Agregar fila</button>
                                                     </div>
                                                 </td>
