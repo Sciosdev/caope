@@ -668,7 +668,7 @@
                                 <table class="table table-bordered consentimientos-grid align-middle mb-0">
                                     <thead class="table-secondary text-center small">
                                         <tr>
-                                            <th>Tratamiento y código</th>
+                                            <th>Tipo</th>
                                             <th class="w-25">&nbsp;</th>
                                         </tr>
                                     </thead>
