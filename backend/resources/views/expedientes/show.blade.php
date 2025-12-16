@@ -644,6 +644,13 @@
                             ->map(fn ($ext) => '.' . ltrim(trim($ext), '.'))
                             ->filter()
                             ->implode(',');
+                        $consentimientoTipoOpciones = [
+                            'Evaluación Psicológica',
+                            'Tratamiento Psiquiátrico',
+                            'Interconsulta Medica',
+                            'Interconsulta Psiquiátrica',
+                            'Reportes Solicitados',
+                        ];
                     @endphp
 
                     <div class="consentimientos-revamp border rounded-3 overflow-hidden shadow-sm">
@@ -701,16 +708,21 @@
 
                                             <tr class="{{ $rowHasErrors ? 'table-warning' : '' }}">
                                                 <td>
-                                                    <input
-                                                        type="text"
+                                                    <select
                                                         id="tipo-{{ $consentimiento->id }}"
                                                         name="tipo"
                                                         form="{{ $formId }}"
-                                                        class="form-control form-control-sm @error('tipo', $errorBag) is-invalid @enderror"
-                                                        value="{{ $tipoValor }}"
-                                                        placeholder="Tratamiento y código"
+                                                        class="form-select form-select-sm @error('tipo', $errorBag) is-invalid @enderror"
                                                         required
                                                     >
+                                                        <option value="" disabled {{ $tipoValor ? '' : 'selected' }}>Selecciona una opción</option>
+                                                        @foreach ($consentimientoTipoOpciones as $opcion)
+                                                            <option value="{{ $opcion }}" {{ $tipoValor === $opcion ? 'selected' : '' }}>{{ $opcion }}</option>
+                                                        @endforeach
+                                                        @if ($tipoValor && ! in_array($tipoValor, $consentimientoTipoOpciones))
+                                                            <option value="{{ $tipoValor }}" selected>{{ $tipoValor }}</option>
+                                                        @endif
+                                                    </select>
                                                     @error('tipo', $errorBag)
                                                         <div class="invalid-feedback">{{ $message }}</div>
                                                     @enderror
@@ -778,16 +790,21 @@
                                             </tr>
                                             <tr id="consentimiento-create-row" class="table-light collapse {{ $crearConsentimientoExpandido ? 'show' : '' }}">
                                                 <td>
-                                                    <input
-                                                        type="text"
+                                                    <select
                                                         id="tipo-nuevo"
                                                         name="tipo"
                                                         form="consentimiento-create-form"
-                                                        class="form-control form-control-sm @error('tipo') is-invalid @enderror"
-                                                        value="{{ old('tipo') }}"
-                                                        placeholder="Tratamiento y código"
+                                                        class="form-select form-select-sm @error('tipo') is-invalid @enderror"
                                                         required
                                                     >
+                                                        <option value="" disabled {{ old('tipo') ? '' : 'selected' }}>Selecciona una opción</option>
+                                                        @foreach ($consentimientoTipoOpciones as $opcion)
+                                                            <option value="{{ $opcion }}" {{ old('tipo') === $opcion ? 'selected' : '' }}>{{ $opcion }}</option>
+                                                        @endforeach
+                                                        @if (old('tipo') && ! in_array(old('tipo'), $consentimientoTipoOpciones))
+                                                            <option value="{{ old('tipo') }}" selected>{{ old('tipo') }}</option>
+                                                        @endif
+                                                    </select>
                                                     @error('tipo')
                                                         <div class="invalid-feedback">{{ $message }}</div>
                                                     @enderror
