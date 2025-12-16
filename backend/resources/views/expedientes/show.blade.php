@@ -831,6 +831,13 @@
                                         @endforelse
 
                                         @can('update', $expediente)
+                                            @php
+                                                $crearConsentimientoExpandido = $errors->has('tipo')
+                                                    || $errors->has('archivo')
+                                                    || $errors->has('fecha')
+                                                    || $errors->has('aceptado')
+                                                    || $errors->has('requerido');
+                                            @endphp
                                             <form
                                                 id="consentimiento-create-form"
                                                 action="{{ route('expedientes.consentimientos.store', $expediente) }}"
@@ -840,7 +847,21 @@
                                             >
                                                 @csrf
                                             </form>
-                                            <tr class="table-light">
+                                            <tr>
+                                                <td colspan="5" class="text-end">
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-primary btn-sm"
+                                                        data-bs-toggle="collapse"
+                                                        data-bs-target="#consentimiento-create-row"
+                                                        aria-expanded="{{ $crearConsentimientoExpandido ? 'true' : 'false' }}"
+                                                        aria-controls="consentimiento-create-row"
+                                                    >
+                                                        Agregar fila
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr id="consentimiento-create-row" class="table-light collapse {{ $crearConsentimientoExpandido ? 'show' : '' }}">
                                                 <td class="text-center align-middle">
                                                     <span class="text-muted small">Agregar fila</span>
                                                 </td>
