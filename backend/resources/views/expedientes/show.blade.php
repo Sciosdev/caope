@@ -661,10 +661,7 @@
                                 <table class="table table-bordered consentimientos-grid align-middle mb-0">
                                     <thead class="table-secondary text-center small">
                                         <tr>
-                                            <th>Órgano</th>
                                             <th>Tratamiento y código</th>
-                                            <th>Pronóstico</th>
-                                            <th>Costo</th>
                                             <th class="w-25">&nbsp;</th>
                                         </tr>
                                     </thead>
@@ -706,15 +703,6 @@
                                                 <td>
                                                     <input
                                                         type="text"
-                                                        class="form-control form-control-sm"
-                                                        value="—"
-                                                        aria-label="Órgano"
-                                                        disabled
-                                                    >
-                                                </td>
-                                                <td>
-                                                    <input
-                                                        type="text"
                                                         id="tipo-{{ $consentimiento->id }}"
                                                         name="tipo"
                                                         form="{{ $formId }}"
@@ -726,24 +714,6 @@
                                                     @error('tipo', $errorBag)
                                                         <div class="invalid-feedback">{{ $message }}</div>
                                                     @enderror
-                                                </td>
-                                                <td class="text-center text-muted small">
-                                                    <input
-                                                        type="text"
-                                                        class="form-control form-control-sm"
-                                                        value="—"
-                                                        aria-label="Pronóstico"
-                                                        disabled
-                                                    >
-                                                </td>
-                                                <td class="text-center text-muted small">
-                                                    <input
-                                                        type="text"
-                                                        class="form-control form-control-sm"
-                                                        value="—"
-                                                        aria-label="Costo"
-                                                        disabled
-                                                    >
                                                 </td>
                                                 <td>
                                                     <div class="d-flex flex-wrap gap-2 justify-content-end">
@@ -771,7 +741,7 @@
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="5" class="text-muted text-center py-4">Sin consentimientos registrados.</td>
+                                                <td colspan="2" class="text-muted text-center py-4">Sin consentimientos registrados.</td>
                                             </tr>
                                         @endforelse
 
@@ -793,7 +763,7 @@
                                                 @csrf
                                             </form>
                                             <tr>
-                                                <td colspan="5" class="text-end">
+                                                <td colspan="2" class="text-end">
                                                     <button
                                                         type="button"
                                                         class="btn btn-primary btn-sm"
@@ -810,14 +780,6 @@
                                                 <td>
                                                     <input
                                                         type="text"
-                                                        class="form-control form-control-sm"
-                                                        placeholder="Órgano"
-                                                        aria-label="Órgano"
-                                                    >
-                                                </td>
-                                                <td>
-                                                    <input
-                                                        type="text"
                                                         id="tipo-nuevo"
                                                         name="tipo"
                                                         form="consentimiento-create-form"
@@ -829,22 +791,6 @@
                                                     @error('tipo')
                                                         <div class="invalid-feedback">{{ $message }}</div>
                                                     @enderror
-                                                </td>
-                                                <td>
-                                                    <input
-                                                        type="text"
-                                                        class="form-control form-control-sm"
-                                                        placeholder="Pronóstico"
-                                                        aria-label="Pronóstico"
-                                                    >
-                                                </td>
-                                                <td>
-                                                    <input
-                                                        type="text"
-                                                        class="form-control form-control-sm"
-                                                        placeholder="Costo"
-                                                        aria-label="Costo"
-                                                    >
                                                 </td>
                                                 <td class="text-end">
                                                     <div class="d-flex flex-wrap gap-2 justify-content-end">
