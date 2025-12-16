@@ -662,7 +662,7 @@
                                     <thead class="table-secondary text-center small">
                                         <tr>
                                             <th>Órgano</th>
-                                            <th>Tratamiento y Código</th>
+                                            <th>Tipo</th>
                                             <th>Pronóstico</th>
                                             <th>Procedimiento</th>
                                             <th>Costo</th>
@@ -713,7 +713,7 @@
                                                     >
                                                 </td>
                                                 <td>
-                                                    <label for="tipo-{{ $consentimiento->id }}" class="form-label small mb-1">Tratamiento y código</label>
+                                                    <label for="tipo-{{ $consentimiento->id }}" class="form-label small mb-1">Tipo</label>
                                                     <input
                                                         type="text"
                                                         id="tipo-{{ $consentimiento->id }}"
@@ -845,7 +845,7 @@
                                                     <span class="text-muted small">Agregar fila</span>
                                                 </td>
                                                 <td>
-                                                    <label for="tipo-nuevo" class="form-label small mb-1">Tratamiento y código</label>
+                                                    <label for="tipo-nuevo" class="form-label small mb-1">Tipo</label>
                                                     <input
                                                         type="text"
                                                         id="tipo-nuevo"
