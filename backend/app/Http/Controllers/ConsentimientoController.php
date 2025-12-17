@@ -26,11 +26,13 @@ class ConsentimientoController extends Controller
             'aceptado' => ['required', 'boolean'],
             'fecha' => ['nullable', 'date'],
             'archivo' => ['nullable', 'file', 'mimes:'.$mimes, 'max:'.$max],
+            'contacto_emergencia_nombre' => ['nullable', 'string', 'max:150'],
         ]);
 
         $consentimiento = new Consentimiento();
         $consentimiento->expediente()->associate($expediente);
 
+        $this->updateExpedienteTestigo($expediente, $validated);
         $this->fillConsentimiento($consentimiento, $validated, $request);
 
         return redirect()
@@ -57,8 +59,10 @@ class ConsentimientoController extends Controller
             'aceptado' => ['required', 'boolean'],
             'fecha' => ['nullable', 'date'],
             'archivo' => ['nullable', 'file', 'mimes:'.$mimes, 'max:'.$max],
+            'contacto_emergencia_nombre' => ['nullable', 'string', 'max:150'],
         ]);
 
+        $this->updateExpedienteTestigo($expediente, $validated);
         $this->fillConsentimiento($consentimiento, $validated, $request);
 
         return redirect()
@@ -121,6 +125,17 @@ class ConsentimientoController extends Controller
             'requerido' => (bool) $validated['requerido'],
             'aceptado' => (bool) $validated['aceptado'],
             'fecha' => $fecha,
+        ])->save();
+    }
+
+    private function updateExpedienteTestigo(Expediente $expediente, array $validated): void
+    {
+        if (! array_key_exists('contacto_emergencia_nombre', $validated)) {
+            return;
+        }
+
+        $expediente->forceFill([
+            'contacto_emergencia_nombre' => $validated['contacto_emergencia_nombre'] ?: null,
         ])->save();
     }
 }

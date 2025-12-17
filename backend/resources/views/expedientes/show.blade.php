@@ -864,7 +864,15 @@
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label mb-1">Testigo</label>
-                                        <input type="text" class="form-control form-control-sm" value="{{ $expediente->contacto_emergencia_nombre ?? 'No registrado' }}" disabled>
+                                        <input
+                                            type="text"
+                                            name="contacto_emergencia_nombre"
+                                            class="form-control form-control-sm"
+                                            form="consentimiento-create-form"
+                                            value="{{ old('contacto_emergencia_nombre', $expediente->contacto_emergencia_nombre) }}"
+                                            placeholder="Nombre del testigo"
+                                            @cannot('update', $expediente) disabled @endcannot
+                                        >
                                     </div>
                                 </div>
                                 <div class="d-flex flex-wrap gap-2">
