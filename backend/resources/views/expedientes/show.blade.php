@@ -834,7 +834,7 @@
                                 <div class="row g-2 align-items-center mb-2">
                                     <div class="col-md-6">
                                         <label class="form-label mb-1">Alumno</label>
-                                        <input type="text" class="form-control form-control-sm" value="{{ $expediente->tutor?->name ?? 'No asignado' }}" disabled>
+                                        <input type="text" class="form-control form-control-sm" value="{{ $expediente->alumno?->name ?? 'No asignado' }}" disabled>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label mb-1">Profesor</label>

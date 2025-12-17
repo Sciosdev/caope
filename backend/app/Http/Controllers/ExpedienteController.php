@@ -340,6 +340,7 @@ class ExpedienteController extends Controller
 
         $expediente->load([
             'creadoPor',
+            'alumno',
             'tutor',
             'coordinador',
             'sesiones' => fn ($q) => $q->with(['realizadaPor', 'validadaPor'])->orderByDesc('fecha'),
