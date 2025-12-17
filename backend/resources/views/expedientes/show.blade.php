@@ -838,7 +838,23 @@
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label mb-1">Profesor</label>
-                                        <input type="text" class="form-control form-control-sm" value="{{ $expediente->coordinador?->name ?? 'No asignado' }}" disabled>
+                                        <select
+                                            name="tutor_id"
+                                            id="consentimientos-profesor"
+                                            class="form-select form-select-sm"
+                                            form="consentimiento-create-form"
+                                            @cannot('update', $expediente) disabled @endcannot
+                                        >
+                                            <option value="">Sin asignar</option>
+                                            @foreach ($profesores as $profesor)
+                                                <option
+                                                    value="{{ $profesor->id }}"
+                                                    @selected((int) old('tutor_id', $expediente->tutor_id ?? 0) === $profesor->id)
+                                                >
+                                                    {{ $profesor->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
                                     </div>
                                 </div>
                                 <div class="row g-2 align-items-center mb-3">

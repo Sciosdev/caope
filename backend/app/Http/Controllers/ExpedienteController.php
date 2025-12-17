@@ -356,6 +356,7 @@ class ExpedienteController extends Controller
         $anexosMax = AnexoUploadOptions::maxKilobytes();
         $consentimientoMimes = (string) Parametro::obtener('uploads.consentimientos.mimes', 'pdf,jpg,jpeg');
         $consentimientoMax = (int) Parametro::obtener('uploads.consentimientos.max', 5120);
+        $profesores = User::role('docente')->orderBy('name')->get();
 
         $familyHistory = $expediente->antecedentes_familiares ?? Expediente::defaultFamilyHistory();
         $personalPathologicalHistory = $expediente->antecedentes_personales_patologicos
@@ -390,6 +391,7 @@ class ExpedienteController extends Controller
             'anexosUploadMax' => $anexosMax,
             'consentimientosUploadMimes' => $consentimientoMimes,
             'consentimientosUploadMax' => $consentimientoMax,
+            'profesores' => $profesores,
             'familyHistoryMembers' => Expediente::FAMILY_HISTORY_MEMBERS,
             'familyHistory' => $familyHistory,
             'familyHistoryObservations' => $expediente->antecedentes_observaciones ?? '',
