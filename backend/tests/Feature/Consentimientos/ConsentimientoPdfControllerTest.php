@@ -5,12 +5,9 @@ namespace Tests\Feature\Consentimientos;
 use App\Models\Consentimiento;
 use App\Models\Expediente;
 use App\Models\User;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\Database\Eloquent\Factories\Sequence;
-use Mockery;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -50,33 +47,16 @@ class ConsentimientoPdfControllerTest extends TestCase
                 'fecha' => now()->startOfDay(),
             ]);
 
-        Pdf::shouldReceive('loadView')
-            ->once()
-            ->with('consentimientos.pdf', Mockery::on(function (array $data) use ($expediente, $consentimiento) {
-                $this->assertArrayHasKey('expediente', $data);
-                $this->assertArrayHasKey('consentimientos', $data);
-                $this->assertArrayHasKey('fechaEmision', $data);
-                $this->assertSame($expediente->id, $data['expediente']->id);
-                $this->assertTrue($data['consentimientos']->contains($consentimiento));
-
-                return true;
-            }))
-            ->andReturnSelf();
-
-        Pdf::shouldReceive('setPaper')
-            ->once()
-            ->with('letter')
-            ->andReturnSelf();
-
-        Pdf::shouldReceive('stream')
-            ->once()
-            ->with(sprintf('expediente-%s-consentimientos.pdf', $expediente->no_control))
-            ->andReturn(new Response('PDF CONTENT', 200, ['Content-Type' => 'application/pdf']));
-
         $response = $this->actingAs($usuario)->get(route('expedientes.consentimientos.pdf', $expediente));
 
         $response->assertOk();
-        $response->assertHeader('content-type', 'application/pdf');
+        $response->assertViewIs('consentimientos.pdf');
+        $response->assertViewHas('expediente', function ($value) use ($expediente) {
+            return $value->id === $expediente->id;
+        });
+        $response->assertViewHas('consentimientos', function ($value) use ($consentimiento) {
+            return $value->contains($consentimiento);
+        });
     }
 
     public function test_usuario_sin_permiso_no_puede_descargar_pdf(): void
@@ -113,6 +93,7 @@ class ConsentimientoPdfControllerTest extends TestCase
             'expediente' => $expediente->fresh(['tutor', 'coordinador']),
             'consentimientos' => $consentimientos,
             'fechaEmision' => Carbon::parse('2024-03-15 10:00'),
+            'logoPath' => public_path('assets/images/others/logo-placeholder.png'),
             'textoIntroduccion' => '',
             'textoCierre' => '',
         ])->render();
