@@ -113,6 +113,7 @@ class ConsentimientoPdfControllerTest extends TestCase
             'expediente' => $expediente->fresh(['tutor', 'coordinador']),
             'consentimientos' => $consentimientos,
             'fechaEmision' => Carbon::parse('2024-03-15 10:00'),
+            'logoPath' => public_path('assets/images/others/logo-placeholder.png'),
             'textoIntroduccion' => '',
             'textoCierre' => '',
         ])->render();
