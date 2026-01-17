@@ -4,182 +4,194 @@
     <meta charset="utf-8">
     <title>Consentimientos del expediente {{ $expediente->no_control }}</title>
     <style>
-        @page { size: letter; margin: 28px 32px; }
+        @page { size: letter; margin: 24px 32px; }
 
         * { box-sizing: border-box; }
 
         body {
             font-family: 'DejaVu Sans', sans-serif;
             font-size: 11px;
-            color: #0f172a;
+            color: #111827;
             margin: 0;
-            background: #f8fafc;
-        }
-
-        .sheet {
             background: #ffffff;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            padding: 20px 22px 24px;
         }
 
-        h1 {
-            margin: 0 0 4px;
-            font-size: 18px;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-        }
+        .sheet { padding: 8px 6px 0; }
 
         p { margin: 0; }
-        .muted { color: #64748b; }
-        .small { font-size: 10px; }
+
+        .header {
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            gap: 14px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .header-left {
+            border-right: 1px solid #111827;
+            padding-right: 10px;
+            text-align: center;
+        }
+
+        .header-left .logo {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+        }
+
+        .header-left .campus {
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .header-right {
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .title-box {
+            border: 1px solid #111827;
+            text-align: center;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 4px 6px;
+            margin: 8px 0 12px;
+        }
 
         .fields {
             display: grid;
             grid-template-columns: 2fr 1fr 1fr;
             gap: 12px;
-            margin: 16px 0 12px;
+            margin-bottom: 10px;
         }
 
         .field {
-            border-bottom: 1px solid #94a3b8;
-            padding-bottom: 4px;
+            border-bottom: 1px solid #111827;
+            padding-bottom: 3px;
         }
 
-        .label { display: block; font-size: 10px; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
-        .value { font-size: 12px; font-weight: 600; color: #0f172a; }
-
-        .panel {
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            padding: 14px 16px 10px;
-            margin-bottom: 14px;
-        }
-
-        .panel-title {
-            margin: 0 0 8px;
-            font-size: 12px;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            color: #0f172a;
+        .field span {
+            display: inline-block;
+            min-width: 75px;
         }
 
         table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; vertical-align: top; }
-        th { background: #f1f5f9; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; }
-        td { font-size: 11px; }
-        .center { text-align: center; }
+        th, td { border: 1px solid #111827; padding: 6px 8px; text-align: left; }
+        th { background: #f2f2f2; text-transform: uppercase; font-size: 11px; letter-spacing: 0.04em; }
+        .row-alt { background: #dbe5f3; }
+
+        .declaration {
+            margin: 10px 0 12px;
+            font-size: 10px;
+            line-height: 1.35;
+        }
+
+        .declaration p { margin-bottom: 6px; }
 
         .signatures {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 18px;
-            margin-top: 18px;
+            gap: 16px 26px;
+            margin-top: 12px;
         }
 
-        .signature-box {
-            height: 110px;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            padding: 10px 12px;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-        }
-
-        .signature-label {
-            text-transform: uppercase;
+        .signature-line {
+            border-top: 1px solid #111827;
+            padding-top: 4px;
+            text-align: center;
             font-size: 10px;
-            letter-spacing: 0.04em;
-            color: #475569;
-            margin-bottom: 4px;
         }
 
         .signature-name {
+            font-size: 11px;
+            margin-top: 4px;
             font-weight: 600;
-            font-size: 12px;
-            border-top: 1px solid #94a3b8;
-            padding-top: 6px;
         }
-
-        .footer { margin-top: 12px; color: #475569; font-size: 10px; text-align: right; }
     </style>
 </head>
 <body>
     <div class="sheet">
-        <header>
-            <h1>Formato de consentimiento informado</h1>
-            <p class="muted small">Generado el {{ $fechaEmision->format('d/m/Y \a \l\a\s H:i') }}</p>
+        @php
+            $consentimientosListado = $consentimientos->values();
+            $filasMinimas = 18;
+            $totalFilas = max($filasMinimas, $consentimientosListado->count());
+        @endphp
+
+        <header class="header">
+            <div class="header-left">
+                <div class="logo">SDRI</div>
+                <div class="campus">Iztacala</div>
+            </div>
+            <div class="header-right">
+                <div>Universidad Nacional Autónoma de México</div>
+                <div>Facultad de Estudios Superiores Iztacala</div>
+                <div>Jefatura de la Carrera de Cirujano Dentista</div>
+            </div>
         </header>
+
+        <div class="title-box">Consentimiento Informado y Plan de Tratamiento</div>
 
         <section class="fields">
             <div class="field">
-                <span class="label">Nombre del paciente</span>
-                <span class="value">{{ $expediente->paciente }}</span>
+                <span>Paciente:</span> {{ $expediente->paciente ?? '—' }}
             </div>
             <div class="field">
-                <span class="label">Expediente</span>
-                <span class="value">{{ $expediente->no_control }}</span>
+                <span>No. Expediente:</span> {{ $expediente->no_control }}
             </div>
             <div class="field">
-                <span class="label">Fecha</span>
-                <span class="value">{{ optional($fechaEmision)->format('d/m/Y') }}</span>
+                <span>Fecha:</span> {{ optional($fechaEmision)->format('d/m/Y') }}
             </div>
         </section>
 
-        <section class="panel">
-            <h2 class="panel-title">Tratamientos autorizados</h2>
-            @if ($consentimientos->isEmpty())
-                <p class="small muted">Sin registros de tratamientos para este expediente.</p>
-            @else
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 8%;" class="center">#</th>
-                            <th style="width: 44%;">Tratamiento</th>
-                            <th style="width: 16%;" class="center">Requerido</th>
-                            <th style="width: 16%;" class="center">Aceptado</th>
-                            <th style="width: 16%;" class="center">Fecha</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($consentimientos as $consentimiento)
-                            <tr>
-                                <td class="center">{{ $loop->iteration }}</td>
-                                <td>{{ $consentimiento->tratamiento }}</td>
-                                <td class="center">{{ $consentimiento->requerido ? 'Sí' : 'No' }}</td>
-                                <td class="center">{{ $consentimiento->aceptado ? 'Sí' : 'No' }}</td>
-                                <td class="center">{{ optional($consentimiento->fecha)->format('d/m/Y') ?: '—' }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            @endif
+        <table>
+            <thead>
+                <tr>
+                    <th>Tipo</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for ($i = 0; $i < $totalFilas; $i++)
+                    @php
+                        $consentimiento = $consentimientosListado[$i] ?? null;
+                    @endphp
+                    <tr class="{{ $i % 2 === 1 ? 'row-alt' : '' }}">
+                        <td>{{ $consentimiento?->tratamiento ?? '' }}</td>
+                    </tr>
+                @endfor
+            </tbody>
+        </table>
+
+        <section class="declaration">
+            <p><strong>Declaro que:</strong></p>
+            <p>Se me ha explicado, de manera clara y completa, la alteración o enfermedad bucal que padezco, así como los tratamientos que pudieran realizarse para su atención, seleccionando por sus posibles ventajas los indicados en el plan de tratamiento.</p>
+            <p>También se me ha informado acerca de las posibles complicaciones que pudieran surgir a lo largo del tratamiento así como las molestias o riesgos posibles y los beneficios que se pueden esperar.</p>
+            <p>Se me enteró que estos tratamientos serán realizados por estudiantes en formación, bajo la supervisión de sus profesores así como el costo que representa este tratamiento.</p>
+            <p>Por otro lado, se me ha prevenido de las consecuencias de no seguir el tratamiento aconsejado y se me ha informado que tengo la libertad de retirar mi consentimiento en cualquier momento que lo juzgue conveniente.</p>
+            <p>Por mi parte, manifiesto que proporcionaré con toda veracidad la información necesaria para mi tratamiento.</p>
+            <p>Estando conforme con la información que se me ha dado, doy mi consentimiento para que se realicen los tratamientos indicados, firmando para ello de manera libre y voluntaria.</p>
         </section>
 
         <section class="signatures">
-            <div class="signature-box">
-                <span class="signature-label">Firma del paciente</span>
-                <span class="signature-name">{{ $expediente->paciente }}</span>
+            <div class="signature-line">
+                Nombre, grupo y firma del alumno responsable
+                <div class="signature-name">{{ $expediente->alumno?->name ?? '' }}</div>
             </div>
-            <div class="signature-box">
-                <span class="signature-label">Firma del tutor / responsable</span>
-                <span class="signature-name">{{ optional($expediente->tutor)->name ?? 'Nombre y firma' }}</span>
+            <div class="signature-line">
+                Nombre y firma del profesor responsable
+                <div class="signature-name">{{ optional($expediente->tutor)->name ?? '' }}</div>
             </div>
-        </section>
-
-        <section class="signatures" style="margin-top: 10px;">
-            <div class="signature-box">
-                <span class="signature-label">Coordinador</span>
-                <span class="signature-name">{{ optional($expediente->coordinador)->name ?? 'Nombre y firma' }}</span>
+            <div class="signature-line">
+                Nombre y firma del paciente o su representante
+                <div class="signature-name">{{ $expediente->paciente ?? '' }}</div>
             </div>
-            <div class="signature-box">
-                <span class="signature-label">Observaciones</span>
-                <span class="signature-name" style="border-top: none; padding-top: 0; font-weight: 400; font-size: 11px;">&nbsp;</span>
+            <div class="signature-line">
+                Nombre y firma de un testigo por el paciente
+                <div class="signature-name">{{ $expediente->contacto_emergencia_nombre ?? '' }}</div>
             </div>
         </section>
-
-        <p class="footer">Expediente {{ $expediente->no_control }}</p>
     </div>
 </body>
 </html>

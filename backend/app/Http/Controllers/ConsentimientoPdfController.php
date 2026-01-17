@@ -16,7 +16,7 @@ class ConsentimientoPdfController extends Controller
     {
         $this->authorize('view', $expediente);
 
-        $expediente->loadMissing(['tutor', 'coordinador']);
+        $expediente->loadMissing(['alumno', 'tutor', 'coordinador']);
         $consentimientos = $expediente
             ->consentimientos()
             ->orderByDesc('requerido')
