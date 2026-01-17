@@ -876,20 +876,14 @@
                                     </div>
                                 </div>
                                 <div class="d-flex flex-wrap gap-2">
-                                    @if ($expediente->consentimientos_observaciones_path)
-                                        <a
-                                            href="{{ route('expedientes.consentimientos.pdf', $expediente) }}"
-                                            class="btn btn-outline-secondary btn-sm"
-                                            target="_blank"
-                                            rel="noopener"
-                                        >
-                                            Imprimir
-                                        </a>
-                                    @else
-                                        <button type="button" class="btn btn-outline-secondary btn-sm" disabled>
-                                            Imprimir
-                                        </button>
-                                    @endif
+                                    <a
+                                        href="{{ route('expedientes.consentimientos.pdf', $expediente) }}"
+                                        class="btn btn-outline-secondary btn-sm"
+                                        target="_blank"
+                                        rel="noopener"
+                                    >
+                                        Imprimir
+                                    </a>
                                     @can('update', $expediente)
                                         <button type="submit" class="btn btn-primary btn-sm" form="consentimiento-create-form">Guardar</button>
                                     @endcan
