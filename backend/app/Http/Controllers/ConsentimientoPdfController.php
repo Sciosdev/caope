@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Expediente;
 use App\Models\Parametro;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Carbon;
 
 class ConsentimientoPdfController extends Controller
@@ -25,16 +24,14 @@ class ConsentimientoPdfController extends Controller
 
         $logoPath = $this->resolveLogoPath();
 
-        $pdf = Pdf::loadView('consentimientos.pdf', [
+        return response()->view('consentimientos.pdf', [
             'expediente' => $expediente,
             'consentimientos' => $consentimientos,
             'fechaEmision' => Carbon::now(),
             'logoPath' => $logoPath,
             'textoIntroduccion' => (string) Parametro::obtener('consentimientos.texto_introduccion', ''),
             'textoCierre' => (string) Parametro::obtener('consentimientos.texto_cierre', ''),
-        ])->setPaper('letter');
-
-        return $pdf->stream(sprintf('expediente-%s-consentimientos.pdf', $expediente->no_control));
+        ]);
     }
 
     private function resolveLogoPath(): string
