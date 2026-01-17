@@ -89,21 +89,31 @@
         }
 
         .meta {
-            display: grid;
-            grid-template-columns: 1fr 160px 140px;
-            gap: 12px;
+            display: flex;
+            align-items: flex-end;
+            gap: 16px;
             margin-bottom: 12px;
+            white-space: nowrap;
         }
 
-        .field {
+        .meta-item {
+            display: flex;
+            align-items: flex-end;
+            gap: 6px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .meta-item .label {
+            font-weight: 600;
+        }
+
+        .meta-item .line {
+            flex: 1;
+            min-width: 90px;
             border-bottom: 1px solid var(--border);
             padding-bottom: 2px;
-        }
-
-        .field span {
-            display: inline-block;
-            min-width: 72px;
-            font-weight: 600;
+            line-height: 1.2;
         }
 
         table {
@@ -213,9 +223,18 @@
         <div class="title">Consentimiento informado y plan de tratamiento</div>
 
         <div class="meta">
-            <div class="field"><span>Paciente:</span> {{ $expediente->paciente ?? '—' }}</div>
-            <div class="field"><span>No. Expediente:</span> {{ $expediente->no_control }}</div>
-            <div class="field"><span>Fecha:</span> {{ $fechaEmision->format('d/m/Y') }}</div>
+            <div class="meta-item">
+                <span class="label">Paciente:</span>
+                <span class="line">{{ $expediente->paciente ?? '—' }}</span>
+            </div>
+            <div class="meta-item">
+                <span class="label">No. Expediente:</span>
+                <span class="line">{{ $expediente->no_control }}</span>
+            </div>
+            <div class="meta-item">
+                <span class="label">Fecha:</span>
+                <span class="line">{{ $fechaEmision->format('d/m/Y') }}</span>
+            </div>
         </div>
 
         <table>
