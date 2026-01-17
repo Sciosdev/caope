@@ -159,7 +159,7 @@
         <header class="header">
             <div class="header-left">
                 <div class="crest">
-                    <img src="{{ public_path('assets/images/others/logo-placeholder.png') }}" alt="Escudo UNAM">
+                    <img src="{{ $logoPath }}" alt="Escudo UNAM">
                 </div>
                 <div class="logo">SDRI</div>
                 <div class="divider"></div>

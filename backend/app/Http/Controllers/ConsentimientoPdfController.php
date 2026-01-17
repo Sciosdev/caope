@@ -23,14 +23,33 @@ class ConsentimientoPdfController extends Controller
             ->orderBy('tratamiento')
             ->get();
 
+        $logoPath = $this->resolveLogoPath();
+
         $pdf = Pdf::loadView('consentimientos.pdf', [
             'expediente' => $expediente,
             'consentimientos' => $consentimientos,
             'fechaEmision' => Carbon::now(),
+            'logoPath' => $logoPath,
             'textoIntroduccion' => (string) Parametro::obtener('consentimientos.texto_introduccion', ''),
             'textoCierre' => (string) Parametro::obtener('consentimientos.texto_cierre', ''),
         ])->setPaper('letter');
 
         return $pdf->stream(sprintf('expediente-%s-consentimientos.pdf', $expediente->no_control));
+    }
+
+    private function resolveLogoPath(): string
+    {
+        $logoConfigurado = (string) Parametro::obtener(
+            'consentimientos.logo_path',
+            'assets/images/others/logo-placeholder.png',
+        );
+        $logoConfigurado = ltrim($logoConfigurado, '/');
+        $logoPath = public_path($logoConfigurado);
+
+        if (! is_file($logoPath)) {
+            return public_path('assets/images/others/logo-placeholder.png');
+        }
+
+        return $logoPath;
     }
 }
