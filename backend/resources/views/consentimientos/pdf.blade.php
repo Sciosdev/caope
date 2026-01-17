@@ -152,8 +152,8 @@
         .signatures {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 24px 48px;
-            margin-top: 28px;
+            gap: 32px 64px;
+            margin-top: 32px;
         }
 
         .signature {
@@ -161,8 +161,8 @@
         }
 
         .signature .line {
-            border-bottom: 1px solid var(--border);
-            margin: 32px 0 6px;
+            border-bottom: 2px solid var(--border);
+            margin: 40px 0 8px;
         }
 
         .signature small {
