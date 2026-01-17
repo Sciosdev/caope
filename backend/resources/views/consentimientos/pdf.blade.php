@@ -221,23 +221,31 @@
         <table>
             <thead>
                 <tr>
-                    <th style="width: 60%">Tipo</th>
-                    <th style="width: 20%">Aceptado</th>
-                    <th style="width: 20%">Fecha</th>
+                    <th style="width: 100%">Tipo</th>
                 </tr>
             </thead>
             <tbody>
+                @php
+                    $totalRows = 12;
+                    $filledRows = $consentimientos->count();
+                @endphp
                 @forelse ($consentimientos as $consentimiento)
                     <tr>
                         <td>{{ $consentimiento->tratamiento }}</td>
-                        <td>{{ $consentimiento->aceptado ? 'Sí' : 'No' }}</td>
-                        <td>{{ optional($consentimiento->fecha)->format('d/m/Y') }}</td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="3">Sin consentimientos registrados.</td>
+                        <td>Sin consentimientos registrados.</td>
                     </tr>
                 @endforelse
+                @php
+                    $rowsToFill = max($totalRows - max($filledRows, 1), 0);
+                @endphp
+                @for ($i = 0; $i < $rowsToFill; $i++)
+                    <tr>
+                        <td>&nbsp;</td>
+                    </tr>
+                @endfor
             </tbody>
         </table>
 
