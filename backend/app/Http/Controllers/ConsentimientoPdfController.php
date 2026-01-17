@@ -3,24 +3,34 @@
 namespace App\Http\Controllers;
 
 use App\Models\Expediente;
-use Illuminate\Support\Facades\Storage;
+use App\Models\Parametro;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Carbon;
 
 class ConsentimientoPdfController extends Controller
 {
     /**
-     * Devuelve el documento de consentimiento cargado para un expediente.
+     * Devuelve el documento de consentimiento generado para un expediente.
      */
     public function __invoke(Expediente $expediente)
     {
         $this->authorize('view', $expediente);
 
-        $disk = config('filesystems.private_default', 'private');
-        $path = $expediente->consentimientos_observaciones_path;
+        $expediente->loadMissing(['tutor', 'coordinador']);
+        $consentimientos = $expediente
+            ->consentimientos()
+            ->orderByDesc('requerido')
+            ->orderBy('tratamiento')
+            ->get();
 
-        if (! $path || ! Storage::disk($disk)->exists($path)) {
-            abort(404);
-        }
+        $pdf = Pdf::loadView('consentimientos.pdf', [
+            'expediente' => $expediente,
+            'consentimientos' => $consentimientos,
+            'fechaEmision' => Carbon::now(),
+            'textoIntroduccion' => (string) Parametro::obtener('consentimientos.texto_introduccion', ''),
+            'textoCierre' => (string) Parametro::obtener('consentimientos.texto_cierre', ''),
+        ])->setPaper('letter');
 
-        return Storage::disk($disk)->response($path);
+        return $pdf->stream(sprintf('expediente-%s-consentimientos.pdf', $expediente->no_control));
     }
 }
