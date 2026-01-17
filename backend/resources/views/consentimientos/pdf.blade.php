@@ -32,21 +32,43 @@
         }
 
         .header {
-            display: grid;
-            grid-template-columns: 90px 1fr;
-            gap: 16px;
+            display: flex;
             align-items: center;
+            justify-content: space-between;
+            gap: 24px;
             margin-bottom: 16px;
         }
 
         .header img {
-            width: 90px;
+            width: 72px;
             height: auto;
         }
 
         .header .institution {
+            flex: 1;
             text-align: center;
             font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .header .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 200px;
+        }
+
+        .header .header-left-text {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            font-size: 12px;
+        }
+
+        .header .header-left-text .sdri {
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-decoration: underline;
         }
 
         .header .institution strong {
@@ -174,12 +196,17 @@
         </div>
 
         <header class="header">
-            <img src="{{ $logoPath }}" alt="Logo institucional">
+            <div class="header-left">
+                <img src="{{ $logoPath ?: asset('assets/images/logo-mini-dark.png') }}" alt="Escudo institucional">
+                <div class="header-left-text">
+                    <span class="sdri">SDRI</span>
+                    <span>Iztacala</span>
+                </div>
+            </div>
             <div class="institution">
                 <strong>Universidad Nacional Autónoma de México</strong>
-                Facultad de Estudios Superiores Iztacala
-                <br>
-                Jefatura de la Carrera de Cirujano Dentista
+                <div>Facultad de Estudios Superiores Iztacala</div>
+                <div>Jefatura de la Carrera de Cirujano Dentista</div>
             </div>
         </header>
 
