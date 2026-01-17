@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <title>Consentimientos del expediente {{ $expediente->no_control }}</title>
     <style>
-        @page { size: letter; margin: 22px 30px; }
+        @page { size: letter; margin: 20px 28px; }
 
         * { box-sizing: border-box; }
 
@@ -16,46 +16,52 @@
             background: #ffffff;
         }
 
-        .sheet { padding: 4px 6px 0; }
+        .sheet { padding: 2px 4px 0; }
 
         p { margin: 0; }
 
         .header {
             display: grid;
-            grid-template-columns: 130px 1fr;
-            gap: 14px;
+            grid-template-columns: 140px 1fr;
+            gap: 16px;
             align-items: center;
             margin-bottom: 6px;
         }
 
         .header-left {
             text-align: center;
-            padding-right: 10px;
+            padding-right: 12px;
             border-right: 1px solid #111827;
         }
 
         .crest {
-            height: 60px;
+            height: 62px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
         .crest img {
-            max-height: 60px;
-            max-width: 85px;
+            max-height: 62px;
+            max-width: 90px;
             object-fit: contain;
         }
 
         .header-left .logo {
-            font-size: 28px;
+            font-size: 30px;
             font-weight: 700;
-            letter-spacing: 0.08em;
+            letter-spacing: 0.12em;
             margin-top: 2px;
         }
 
+        .header-left .divider {
+            height: 1px;
+            background: #111827;
+            margin: 4px 8px 2px;
+        }
+
         .header-left .campus {
-            font-size: 16px;
+            font-size: 15px;
             margin-top: 2px;
         }
 
@@ -67,21 +73,20 @@
         }
 
         .title-box {
-            border-top: 1px solid #111827;
-            border-bottom: 1px solid #111827;
+            border: 2px solid #111827;
             text-align: center;
             font-weight: 700;
             text-transform: uppercase;
-            padding: 4px 6px;
-            margin: 6px 0 14px;
+            padding: 3px 6px;
+            margin: 6px 0 12px;
             letter-spacing: 0.03em;
         }
 
         .fields {
             display: grid;
             grid-template-columns: 2fr 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 10px;
+            gap: 10px;
+            margin-bottom: 8px;
             font-size: 11px;
         }
 
@@ -101,17 +106,17 @@
         table { width: 100%; border-collapse: collapse; }
         th, td { border: 1px solid #111827; padding: 6px 8px; text-align: left; }
         th {
-            background: #f2f2f2;
+            background: #f1f1f1;
             text-transform: uppercase;
             font-size: 11px;
             letter-spacing: 0.04em;
             text-align: center;
         }
         td { height: 22px; }
-        .row-alt { background: #d9e5f4; }
+        .row-alt { background: #d7e4f3; }
 
         .declaration {
-            margin: 10px 0 14px;
+            margin: 10px 0 12px;
             font-size: 10px;
             line-height: 1.4;
         }
@@ -121,15 +126,19 @@
         .signatures {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 22px 40px;
-            margin-top: 20px;
+            gap: 26px 40px;
+            margin-top: 18px;
+        }
+
+        .signature-block {
+            text-align: center;
+            font-size: 10px;
         }
 
         .signature-line {
             border-top: 1px solid #111827;
-            padding-top: 4px;
-            text-align: center;
-            font-size: 10px;
+            height: 18px;
+            margin-bottom: 4px;
         }
 
         .signature-name {
@@ -153,6 +162,7 @@
                     <img src="{{ public_path('assets/images/others/logo-placeholder.png') }}" alt="Escudo UNAM">
                 </div>
                 <div class="logo">SDRI</div>
+                <div class="divider"></div>
                 <div class="campus">Iztacala</div>
             </div>
             <div class="header-right">
@@ -208,19 +218,23 @@
         </section>
 
         <section class="signatures">
-            <div class="signature-line">
+            <div class="signature-block">
+                <div class="signature-line"></div>
                 Nombre, grupo y firma del alumno responsable
                 <div class="signature-name">{{ $expediente->alumno?->name ?? '' }}</div>
             </div>
-            <div class="signature-line">
+            <div class="signature-block">
+                <div class="signature-line"></div>
                 Nombre y firma del profesor responsable
                 <div class="signature-name">{{ optional($expediente->tutor)->name ?? '' }}</div>
             </div>
-            <div class="signature-line">
+            <div class="signature-block">
+                <div class="signature-line"></div>
                 Nombre y firma del paciente o su representante
                 <div class="signature-name">{{ $expediente->paciente ?? '' }}</div>
             </div>
-            <div class="signature-line">
+            <div class="signature-block">
+                <div class="signature-line"></div>
                 Nombre y firma de un testigo por el paciente
                 <div class="signature-name">{{ $expediente->contacto_emergencia_nombre ?? '' }}</div>
             </div>
