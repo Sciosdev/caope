@@ -3,44 +3,24 @@
 namespace App\Http\Controllers;
 
 use App\Models\Expediente;
-use App\Models\Parametro;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Http\Response;
-use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 class ConsentimientoPdfController extends Controller
 {
     /**
-     * Genera un archivo PDF con los consentimientos registrados para un expediente.
+     * Devuelve el documento de consentimiento cargado para un expediente.
      */
-    public function __invoke(Expediente $expediente): Response
+    public function __invoke(Expediente $expediente)
     {
         $this->authorize('view', $expediente);
 
-        $expediente->load([
-            'consentimientos' => fn ($query) => $query
-                ->orderByDesc('requerido')
-                ->orderBy('tratamiento'),
-            'tutor',
-            'coordinador',
-        ]);
+        $disk = config('filesystems.private_default', 'private');
+        $path = $expediente->consentimientos_observaciones_path;
 
-        $data = [
-            'expediente' => $expediente,
-            'consentimientos' => $expediente->consentimientos,
-            'fechaEmision' => Carbon::now(),
-            'textoIntroduccion' => (string) Parametro::obtener('consentimientos.texto_introduccion', ''),
-            'textoCierre' => (string) Parametro::obtener('consentimientos.texto_cierre', ''),
-        ];
+        if (! $path || ! Storage::disk($disk)->exists($path)) {
+            abort(404);
+        }
 
-        $pdf = Pdf::loadView('consentimientos.pdf', $data)
-            ->setPaper('letter');
-
-        $filename = sprintf(
-            'expediente-%s-consentimientos.pdf',
-            $expediente->no_control ?: $expediente->getKey()
-        );
-
-        return $pdf->stream($filename);
+        return Storage::disk($disk)->response($path);
     }
 }
