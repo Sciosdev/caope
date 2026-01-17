@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <title>Consentimientos del expediente {{ $expediente->no_control }}</title>
     <style>
-        @page { size: letter; margin: 24px 32px; }
+        @page { size: letter; margin: 22px 30px; }
 
         * { box-sizing: border-box; }
 
@@ -16,49 +16,65 @@
             background: #ffffff;
         }
 
-        .sheet { padding: 8px 6px 0; }
+        .sheet { padding: 4px 6px 0; }
 
         p { margin: 0; }
 
         .header {
             display: grid;
-            grid-template-columns: 120px 1fr;
+            grid-template-columns: 130px 1fr;
             gap: 14px;
             align-items: center;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         .header-left {
-            border-right: 1px solid #111827;
-            padding-right: 10px;
             text-align: center;
+            padding-right: 10px;
+            border-right: 1px solid #111827;
+        }
+
+        .crest {
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .crest img {
+            max-height: 60px;
+            max-width: 85px;
+            object-fit: contain;
         }
 
         .header-left .logo {
-            font-size: 12px;
+            font-size: 28px;
             font-weight: 700;
             letter-spacing: 0.08em;
+            margin-top: 2px;
         }
 
         .header-left .campus {
-            font-size: 14px;
-            margin-top: 4px;
+            font-size: 16px;
+            margin-top: 2px;
         }
 
         .header-right {
             text-transform: uppercase;
             letter-spacing: 0.04em;
-            font-size: 12px;
-            line-height: 1.4;
+            font-size: 11px;
+            line-height: 1.6;
         }
 
         .title-box {
-            border: 1px solid #111827;
+            border-top: 1px solid #111827;
+            border-bottom: 1px solid #111827;
             text-align: center;
             font-weight: 700;
             text-transform: uppercase;
             padding: 4px 6px;
-            margin: 8px 0 12px;
+            margin: 6px 0 14px;
+            letter-spacing: 0.03em;
         }
 
         .fields {
@@ -66,27 +82,38 @@
             grid-template-columns: 2fr 1fr 1fr;
             gap: 12px;
             margin-bottom: 10px;
+            font-size: 11px;
         }
 
         .field {
-            border-bottom: 1px solid #111827;
-            padding-bottom: 3px;
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 6px;
+            align-items: end;
         }
 
-        .field span {
-            display: inline-block;
-            min-width: 75px;
+        .field-line {
+            border-bottom: 1px solid #111827;
+            height: 14px;
+            line-height: 14px;
         }
 
         table { width: 100%; border-collapse: collapse; }
         th, td { border: 1px solid #111827; padding: 6px 8px; text-align: left; }
-        th { background: #f2f2f2; text-transform: uppercase; font-size: 11px; letter-spacing: 0.04em; }
-        .row-alt { background: #dbe5f3; }
+        th {
+            background: #f2f2f2;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.04em;
+            text-align: center;
+        }
+        td { height: 22px; }
+        .row-alt { background: #d9e5f4; }
 
         .declaration {
-            margin: 10px 0 12px;
+            margin: 10px 0 14px;
             font-size: 10px;
-            line-height: 1.35;
+            line-height: 1.4;
         }
 
         .declaration p { margin-bottom: 6px; }
@@ -94,8 +121,8 @@
         .signatures {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 16px 26px;
-            margin-top: 12px;
+            gap: 22px 40px;
+            margin-top: 20px;
         }
 
         .signature-line {
@@ -107,7 +134,7 @@
 
         .signature-name {
             font-size: 11px;
-            margin-top: 4px;
+            margin-top: 6px;
             font-weight: 600;
         }
     </style>
@@ -122,6 +149,9 @@
 
         <header class="header">
             <div class="header-left">
+                <div class="crest">
+                    <img src="{{ public_path('assets/images/others/logo-placeholder.png') }}" alt="Escudo UNAM">
+                </div>
                 <div class="logo">SDRI</div>
                 <div class="campus">Iztacala</div>
             </div>
@@ -136,13 +166,16 @@
 
         <section class="fields">
             <div class="field">
-                <span>Paciente:</span> {{ $expediente->paciente ?? '—' }}
+                <span>Paciente:</span>
+                <div class="field-line">{{ $expediente->paciente ?? '' }}</div>
             </div>
             <div class="field">
-                <span>No. Expediente:</span> {{ $expediente->no_control }}
+                <span>No. Expediente:</span>
+                <div class="field-line">{{ $expediente->no_control }}</div>
             </div>
             <div class="field">
-                <span>Fecha:</span> {{ optional($fechaEmision)->format('d/m/Y') }}
+                <span>Fecha:</span>
+                <div class="field-line">{{ optional($fechaEmision)->format('d/m/Y') }}</div>
             </div>
         </section>
 
