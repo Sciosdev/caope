@@ -64,8 +64,10 @@ Route::middleware('auth')->group(function () {
         Route::get('reportes/expedientes/export/{token}/status', [ReporteExpedienteController::class, 'status'])->name('reportes.expedientes.export.status');
     });
 
-    Route::get('expedientes/{expediente}/consentimientos/pdf', ConsentimientoPdfController::class)
+    Route::get('expedientes/{expediente}/consentimientos/pdf', [ConsentimientoPdfController::class, '__invoke'])
         ->name('expedientes.consentimientos.pdf');
+    Route::get('expedientes/{expediente}/consentimientos/pdf/descargar', [ConsentimientoPdfController::class, 'download'])
+        ->name('expedientes.consentimientos.pdf.download');
     Route::post('expedientes/{expediente}/consentimientos', [ConsentimientoController::class, 'store'])
         ->name('expedientes.consentimientos.store');
     Route::put('expedientes/{expediente}/consentimientos/{consentimiento}', [ConsentimientoController::class, 'update'])

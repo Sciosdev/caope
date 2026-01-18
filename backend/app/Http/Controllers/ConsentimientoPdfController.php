@@ -14,6 +14,24 @@ class ConsentimientoPdfController extends Controller
      */
     public function __invoke(Expediente $expediente)
     {
+        $payload = $this->buildPayload($expediente);
+        $payload['showActions'] = true;
+
+        return view('consentimientos.pdf', $payload);
+    }
+
+    public function download(Expediente $expediente)
+    {
+        $payload = $this->buildPayload($expediente);
+        $payload['showActions'] = false;
+
+        $nombreArchivo = sprintf('consentimientos-%s.pdf', $expediente->no_control ?? $expediente->id);
+
+        return Pdf::loadView('consentimientos.pdf', $payload)->download($nombreArchivo);
+    }
+
+    private function buildPayload(Expediente $expediente): array
+    {
         $this->authorize('view', $expediente);
 
         $expediente->loadMissing(['alumno', 'tutor', 'coordinador']);
@@ -25,7 +43,7 @@ class ConsentimientoPdfController extends Controller
 
         $logoPath = $this->resolveLogoPath();
 
-        $payload = [
+        return [
             'expediente' => $expediente,
             'consentimientos' => $consentimientos,
             'fechaEmision' => Carbon::now(),
@@ -33,10 +51,6 @@ class ConsentimientoPdfController extends Controller
             'textoIntroduccion' => (string) Parametro::obtener('consentimientos.texto_introduccion', ''),
             'textoCierre' => (string) Parametro::obtener('consentimientos.texto_cierre', ''),
         ];
-
-        $nombreArchivo = sprintf('consentimientos-%s.pdf', $expediente->no_control ?? $expediente->id);
-
-        return Pdf::loadView('consentimientos.pdf', $payload)->download($nombreArchivo);
     }
 
     private function resolveLogoPath(): string

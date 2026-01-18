@@ -877,15 +877,13 @@
                                 </div>
                                 <div class="d-flex flex-wrap gap-2">
                                     <a
-                                        href="{{ route('expedientes.consentimientos.pdf', $expediente) }}"
+                                        href="{{ route('expedientes.consentimientos.pdf', $expediente) }}?auto_print=1"
                                         class="btn btn-outline-secondary btn-sm"
-                                        target="_blank"
-                                        rel="noopener"
                                     >
                                         Imprimir
                                     </a>
                                     @can('update', $expediente)
-                                        <a href="{{ route('expedientes.consentimientos.pdf', $expediente) }}" class="btn btn-primary btn-sm">
+                                        <a href="{{ route('expedientes.consentimientos.pdf.download', $expediente) }}" class="btn btn-primary btn-sm">
                                             Descargar
                                         </a>
                                     @endcan

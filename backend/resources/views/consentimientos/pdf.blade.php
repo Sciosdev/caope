@@ -207,10 +207,15 @@
     </style>
 </head>
 <body>
+    @php
+        $showActions = $showActions ?? false;
+    @endphp
     <div class="page">
-        <div class="actions">
-            <button class="btn-print" type="button" onclick="window.print()">Imprimir</button>
-        </div>
+        @if ($showActions)
+            <div class="actions">
+                <button class="btn-print" type="button" onclick="window.print()">Imprimir</button>
+            </div>
+        @endif
 
         <header class="header">
             <div class="header-left">
@@ -320,5 +325,12 @@
             </div>
         </div>
     </div>
+    @if (request()->boolean('auto_print'))
+        <script>
+            window.addEventListener('load', () => {
+                window.print();
+            });
+        </script>
+    @endif
 </body>
 </html>
