@@ -40,7 +40,7 @@
         }
 
         .header img {
-            width: 72px;
+            width: 86px;
             height: auto;
         }
 
@@ -53,22 +53,28 @@
 
         .header .header-left {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 10px;
-            min-width: 200px;
+            gap: 6px;
+            min-width: 180px;
         }
 
         .header .header-left-text {
             display: flex;
             flex-direction: column;
-            align-items: flex-start;
-            font-size: 12px;
+            align-items: center;
+            font-size: 13px;
+            line-height: 1.1;
+            text-align: center;
         }
 
         .header .header-left-text .sdri {
-            font-weight: 700;
-            letter-spacing: 2px;
-            text-decoration: underline;
+            font-weight: 600;
+            font-size: 28px;
+            letter-spacing: 1px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 2px;
         }
 
         .header .institution strong {
@@ -133,6 +139,7 @@
             background: var(--light);
             text-transform: uppercase;
             font-size: 11px;
+            text-align: center;
         }
 
         tbody tr:nth-child(even) td {
@@ -194,7 +201,7 @@
             .page {
                 width: auto;
                 margin: 0;
-                padding: 0;
+                padding: 0 12px;
             }
         }
     </style>
@@ -245,7 +252,7 @@
             </thead>
             <tbody>
                 @php
-                    $totalRows = 12;
+                    $totalRows = 18;
                     $filledRows = $consentimientos->count();
                 @endphp
                 @forelse ($consentimientos as $consentimiento)
@@ -269,59 +276,47 @@
         </table>
 
         <p class="section-title">Declaro que:</p>
-        @if ($textoIntroduccion)
-            <p class="paragraph">{{ $textoIntroduccion }}</p>
-        @else
-            <p class="paragraph">
-                Se me ha explicado, de manera clara y completa, la alteración o enfermedad bucal que padezco, así como los
-                tratamientos que pudieran realizarse para su atención, seleccionando por sus posibles ventajas los indicados
-                en el plan de tratamiento.
-            </p>
-            <p class="paragraph">
-                También se me ha informado acerca de las posibles complicaciones que pudieran surgir a lo largo del tratamiento
-                así como las molestias o riesgos posibles y los beneficios que se pueden esperar.
-            </p>
-            <p class="paragraph">
-                Se me enteró que estos tratamientos serán realizados por estudiantes en formación, bajo la supervisión de sus
-                profesores así como el costo que representa este tratamiento.
-            </p>
-            <p class="paragraph">
-                Por otro lado, se me ha prevenido de las consecuencias de no seguir el tratamiento aconsejado y se me ha informado
-                que tengo la libertad de retirar mi consentimiento en cualquier momento que lo juzgue conveniente.
-            </p>
-            <p class="paragraph">
-                Por mi parte, manifiesto que proporcionaré con toda veracidad la información necesaria para mi tratamiento.
-            </p>
-            <p class="paragraph">
-                Estando conforme con la información que se me ha dado, doy mi consentimiento para que se realicen los tratamientos
-                indicados, firmando para ello de manera libre y voluntaria.
-            </p>
-        @endif
-
-        @if ($textoCierre)
-            <p class="paragraph">{{ $textoCierre }}</p>
-        @endif
+        <p class="paragraph">
+            Se me ha explicado, de manera clara y completa, la alteración o enfermedad bucal que padezco, así como los
+            tratamientos que pudieran realizarse para su atención, seleccionando por sus posibles ventajas los indicados
+            en el plan de tratamiento.
+        </p>
+        <p class="paragraph">
+            También se me ha informado acerca de las posibles complicaciones que pudieran surgir a lo largo del tratamiento
+            así como las molestias o riesgos posibles y los beneficios que se pueden esperar.
+        </p>
+        <p class="paragraph">
+            Se me enteró que estos tratamientos serán realizados por estudiantes en formación, bajo la supervisión de sus
+            profesores así como el costo que representa este tratamiento.
+        </p>
+        <p class="paragraph">
+            Por otro lado, se me ha prevenido de las consecuencias de no seguir el tratamiento aconsejado y se me ha informado
+            que tengo la libertad de retirar mi consentimiento en cualquier momento que lo juzgue conveniente.
+        </p>
+        <p class="paragraph">
+            Por mi parte, manifiesto que proporcionaré con toda veracidad la información necesaria para mi tratamiento.
+        </p>
+        <p class="paragraph">
+            Estando conforme con la información que se me ha dado, doy mi consentimiento para que se realicen los tratamientos
+            indicados, firmando para ello de manera libre y voluntaria.
+        </p>
 
         <div class="signatures">
             <div class="signature">
                 <div class="line"></div>
                 <small>Nombre, grupo y firma del alumno responsable</small>
-                <small>{{ $expediente->alumno?->name ?? '' }}</small>
             </div>
             <div class="signature">
                 <div class="line"></div>
                 <small>Nombre y firma del profesor responsable</small>
-                <small>{{ $expediente->tutor?->name ?? '' }}</small>
             </div>
             <div class="signature">
                 <div class="line"></div>
                 <small>Nombre y firma del paciente o su representante</small>
-                <small>{{ $expediente->paciente ?? '' }}</small>
             </div>
             <div class="signature">
                 <div class="line"></div>
                 <small>Nombre y firma de un testigo por el paciente</small>
-                <small>{{ $expediente->contacto_emergencia_nombre ?? '' }}</small>
             </div>
         </div>
     </div>
