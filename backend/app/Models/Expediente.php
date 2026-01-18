@@ -146,6 +146,7 @@ class Expediente extends Model
         'diagnostico',
         'dsm_tr',
         'observaciones_relevantes',
+        'consentimientos_observaciones',
         'consentimientos_observaciones_path',
         'antecedentes_familiares',
         'antecedentes_observaciones',
