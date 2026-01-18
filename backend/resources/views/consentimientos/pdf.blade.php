@@ -167,9 +167,14 @@
             text-align: center;
         }
 
+        .signature .info {
+            font-size: 11px;
+            min-height: 16px;
+        }
+
         .signature .line {
             border-bottom: 2px solid var(--border);
-            margin: 40px 0 8px;
+            margin: 12px 0 8px;
         }
 
         .signature small {
@@ -318,18 +323,22 @@
 
         <div class="signatures">
             <div class="signature">
+                <div class="info">{{ $expediente->alumno?->name ?? '—' }}</div>
                 <div class="line"></div>
                 <small>Nombre, grupo y firma del alumno responsable</small>
             </div>
             <div class="signature">
+                <div class="info">{{ $expediente->tutor?->name ?? '—' }}</div>
                 <div class="line"></div>
                 <small>Nombre y firma del profesor responsable</small>
             </div>
             <div class="signature">
+                <div class="info">{{ $expediente->paciente ?? '—' }}</div>
                 <div class="line"></div>
                 <small>Nombre y firma del paciente o su representante</small>
             </div>
             <div class="signature">
+                <div class="info">{{ $expediente->contacto_emergencia_nombre ?? '—' }}</div>
                 <div class="line"></div>
                 <small>Nombre y firma de un testigo por el paciente</small>
             </div>
