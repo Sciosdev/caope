@@ -193,6 +193,16 @@
             text-decoration: none;
         }
 
+        .force-print .actions {
+            display: none;
+        }
+
+        .force-print .page {
+            width: auto;
+            margin: 0;
+            padding: 0 12px;
+        }
+
         @media print {
             .actions {
                 display: none;
@@ -206,7 +216,7 @@
         }
     </style>
 </head>
-<body>
+<body class="{{ ($forcePrintStyles ?? false) ? 'force-print' : '' }}">
     @php
         $showActions = $showActions ?? false;
     @endphp
