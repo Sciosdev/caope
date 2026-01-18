@@ -152,8 +152,6 @@ class ConsentimientoUploadControllerTest extends TestCase
 
     public function test_usuario_puede_subir_observaciones_del_expediente(): void
     {
-        Storage::fake('private');
-
         $usuario = User::factory()->create();
         $usuario->givePermissionTo('expedientes.manage');
 
@@ -161,12 +159,12 @@ class ConsentimientoUploadControllerTest extends TestCase
             'creado_por' => $usuario->id,
         ]);
 
-        $archivo = UploadedFile::fake()->create('observaciones.pdf', 200, 'application/pdf');
+        $observaciones = 'Observaciones clínicas del expediente.';
 
         $response = $this->actingAs($usuario)->post(
             route('expedientes.consentimientos.observaciones', $expediente),
             [
-                'observaciones' => $archivo,
+                'observaciones' => $observaciones,
             ]
         );
 
@@ -176,7 +174,7 @@ class ConsentimientoUploadControllerTest extends TestCase
 
         $expediente->refresh();
 
-        $this->assertNotNull($expediente->consentimientos_observaciones_path);
-        Storage::disk('private')->assertExists($expediente->consentimientos_observaciones_path);
+        $this->assertSame($observaciones, $expediente->consentimientos_observaciones);
+        $this->assertNull($expediente->consentimientos_observaciones_path);
     }
 }

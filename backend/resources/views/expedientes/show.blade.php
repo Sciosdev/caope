@@ -895,45 +895,36 @@
                             <div class="border rounded-3 bg-light p-3 h-100">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <h6 class="mb-0">Observaciones del Expediente</h6>
-                                    @if ($expediente->consentimientos_observaciones_path)
-                                        <a
-                                            href="{{ route('expedientes.consentimientos.observaciones.show', $expediente) }}"
-                                            target="_blank"
-                                            rel="noopener"
-                                            class="btn btn-outline-secondary btn-sm"
-                                        >
-                                            Ver archivo
-                                        </a>
-                                    @endif
                                 </div>
-                                @if (! $expediente->consentimientos_observaciones_path)
-                                    <p class="text-muted small">Sin archivo cargado</p>
-                                @else
-                                    <p class="text-muted small mb-2">{{ basename($expediente->consentimientos_observaciones_path) }}</p>
-                                @endif
 
                                 @can('update', $expediente)
                                     <form
                                         action="{{ route('expedientes.consentimientos.observaciones', $expediente) }}"
                                         method="post"
-                                        enctype="multipart/form-data"
                                         class="d-flex flex-column gap-2"
                                     >
                                         @csrf
-                                        <label for="consentimientos-observaciones" class="form-label small mb-1">Documento con firma autógrafa</label>
-                                        <input
-                                            type="file"
+                                        <label for="consentimientos-observaciones" class="form-label small mb-1">Observaciones</label>
+                                        <textarea
                                             id="consentimientos-observaciones"
                                             name="observaciones"
-                                            accept="{{ $observacionesAcceptedExtensions }}"
                                             class="form-control form-control-sm @error('observaciones') is-invalid @enderror"
-                                            required
-                                        >
+                                            rows="5"
+                                            placeholder="Escribe aquí las observaciones del expediente."
+                                        >{{ old('observaciones', $expediente->consentimientos_observaciones) }}</textarea>
                                         @error('observaciones')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
-                                        <div class="form-text">Formatos permitidos: {{ str_replace(',', ', ', $consentimientosUploadMimes) }}.</div>
+                                        <button type="submit" class="btn btn-primary btn-sm align-self-start">
+                                            Guardar
+                                        </button>
                                     </form>
+                                @else
+                                    @if ($expediente->consentimientos_observaciones)
+                                        <p class="mb-0 small text-muted" style="white-space: pre-wrap;">{{ $expediente->consentimientos_observaciones }}</p>
+                                    @else
+                                        <p class="text-muted small mb-0">Sin observaciones registradas.</p>
+                                    @endif
                                 @endcan
                             </div>
                         </div>

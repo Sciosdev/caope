@@ -87,26 +87,19 @@ class ConsentimientoUploadController extends Controller
     {
         $this->authorize('update', $expediente);
 
-        $mimes = (string) Parametro::obtener('uploads.consentimientos.mimes', 'pdf,jpg,jpeg');
-        $max = (int) Parametro::obtener('uploads.consentimientos.max', 5120);
-
         $validated = $request->validate([
-            'observaciones' => ['required', 'file', 'mimes:'.$mimes, 'max:'.$max],
+            'observaciones' => ['nullable', 'string', 'max:5000'],
         ]);
 
         $disk = config('filesystems.private_default', 'private');
-        $file = $validated['observaciones'];
-        $directory = sprintf('expedientes/%s/consentimientos/observaciones', $expediente->id ?? 'generales');
-        $filename = sprintf('observaciones-%s.%s', now()->format('YmdHis'), $file->getClientOriginalExtension());
 
         if ($expediente->consentimientos_observaciones_path && Storage::disk($disk)->exists($expediente->consentimientos_observaciones_path)) {
             Storage::disk($disk)->delete($expediente->consentimientos_observaciones_path);
         }
 
-        $storedPath = $file->storeAs($directory, $filename, $disk);
-
         $expediente->forceFill([
-            'consentimientos_observaciones_path' => $storedPath,
+            'consentimientos_observaciones' => $validated['observaciones'],
+            'consentimientos_observaciones_path' => null,
         ])->save();
 
         return redirect()
