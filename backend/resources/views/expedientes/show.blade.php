@@ -887,10 +887,6 @@
                                             Descargar
                                         </a>
                                     @endcan
-                                    <div class="form-check ms-auto">
-                                        <input class="form-check-input" type="checkbox" value="" id="consentimientos-revisado" disabled>
-                                        <label class="form-check-label" for="consentimientos-revisado">Revisado</label>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -936,7 +932,6 @@
                                         @error('observaciones')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
-                                        <button type="submit" class="btn btn-primary btn-sm align-self-start">Guardar</button>
                                         <div class="form-text">Formatos permitidos: {{ str_replace(',', ', ', $consentimientosUploadMimes) }}.</div>
                                     </form>
                                 @endcan

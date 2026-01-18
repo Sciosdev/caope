@@ -16,6 +16,7 @@ class ConsentimientoPdfController extends Controller
     {
         $payload = $this->buildPayload($expediente);
         $payload['showActions'] = true;
+        $payload['forcePrintStyles'] = false;
 
         return view('consentimientos.pdf', $payload);
     }
@@ -24,6 +25,7 @@ class ConsentimientoPdfController extends Controller
     {
         $payload = $this->buildPayload($expediente);
         $payload['showActions'] = false;
+        $payload['forcePrintStyles'] = true;
 
         $nombreArchivo = sprintf('consentimientos-%s.pdf', $expediente->no_control ?? $expediente->id);
 
