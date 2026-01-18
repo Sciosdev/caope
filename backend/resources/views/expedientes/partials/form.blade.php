@@ -90,7 +90,7 @@
                     type="text"
                     name="clinica"
                     id="clinica"
-                    value="{{ old('clinica', $expediente->clinica ?? '') }}"
+                    value="{{ old('clinica', $expediente->clinica ?? 'Caope') }}"
                     class="form-control @error('clinica') is-invalid @enderror"
                     maxlength="120"
                 >
