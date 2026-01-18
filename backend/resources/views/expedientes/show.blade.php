@@ -885,7 +885,9 @@
                                         Imprimir
                                     </a>
                                     @can('update', $expediente)
-                                        <button type="submit" class="btn btn-primary btn-sm" form="consentimiento-create-form">Guardar</button>
+                                        <a href="{{ route('expedientes.consentimientos.pdf', $expediente) }}" class="btn btn-primary btn-sm">
+                                            Descargar
+                                        </a>
                                     @endcan
                                     <div class="form-check ms-auto">
                                         <input class="form-check-input" type="checkbox" value="" id="consentimientos-revisado" disabled>
