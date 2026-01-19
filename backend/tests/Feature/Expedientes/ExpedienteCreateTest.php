@@ -449,7 +449,7 @@ class ExpedienteCreateTest extends TestCase
         $expediente = Expediente::where('no_control', $payload['no_control'])->first();
         $this->assertNotNull($expediente);
 
-        $this->assertSame('Clínica Norte', $expediente->clinica);
+        $this->assertSame('Caope', $expediente->clinica);
         $this->assertSame('EXP-2025-55', $expediente->recibo_expediente);
         $this->assertSame('DX-2025-33', $expediente->recibo_diagnostico);
         $this->assertSame('femenino', $expediente->genero);

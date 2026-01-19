@@ -174,6 +174,7 @@ class ExpedienteController extends Controller
         ]);
 
         $data = $request->validatedExpedienteData();
+        $data['clinica'] = 'Caope';
         Log::debug('Validated expediente data for creation', [
             'user_id' => $request->user()?->id,
             'validated_keys' => array_keys($data),
@@ -797,4 +798,3 @@ class ExpedienteController extends Controller
     }
 
 }
-
