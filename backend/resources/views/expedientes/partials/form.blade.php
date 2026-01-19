@@ -25,6 +25,7 @@
 @endif
 
 @php($alertaActiva = filled(old('alerta_ingreso', $expediente->alerta_ingreso ?? null)))
+@php($isCreating = ! isset($expediente) || ! $expediente->exists)
 
 <div class="card border shadow-none mb-4">
     <div class="card-body">
@@ -93,6 +94,7 @@
                     value="{{ old('clinica', $expediente->clinica ?? 'Caope') }}"
                     class="form-control @error('clinica') is-invalid @enderror"
                     maxlength="120"
+                    @if ($isCreating) readonly @endif
                 >
                 @error('clinica')
                     <div class="invalid-feedback">{{ $message }}</div>
