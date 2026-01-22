@@ -205,10 +205,20 @@
         .force-print .page {
             width: auto;
             margin: 0;
-            padding: 0 12px;
+            min-height: auto;
+            padding: 0;
         }
 
         @media print {
+            @page {
+                size: letter;
+                margin: 8mm;
+            }
+
+            body {
+                font-size: 11px;
+            }
+
             .actions {
                 display: none;
             }
@@ -216,7 +226,13 @@
             .page {
                 width: auto;
                 margin: 0;
-                padding: 0 12px;
+                min-height: auto;
+                padding: 0;
+            }
+
+            .signatures {
+                margin-top: 16px;
+                gap: 24px 48px;
             }
         }
     </style>

@@ -879,6 +879,8 @@
                                     <a
                                         href="{{ route('expedientes.consentimientos.pdf', $expediente) }}?auto_print=1"
                                         class="btn btn-outline-secondary btn-sm"
+                                        target="_blank"
+                                        rel="noopener"
                                     >
                                         Imprimir
                                     </a>
