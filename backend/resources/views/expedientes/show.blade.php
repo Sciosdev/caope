@@ -665,11 +665,33 @@
                             </div>
 
                             <div class="table-responsive">
+                                @can('update', $expediente)
+                                    @php
+                                        $crearConsentimientoExpandido = $errors->has('tipo')
+                                            || $errors->has('archivo')
+                                            || $errors->has('fecha')
+                                            || $errors->has('aceptado')
+                                            || $errors->has('requerido');
+                                    @endphp
+                                @endcan
                                 <table class="table table-bordered consentimientos-grid align-middle mb-0">
                                     <thead class="table-secondary text-center small">
                                         <tr>
                                             <th>Tipo</th>
-                                            <th class="w-25">&nbsp;</th>
+                                            <th class="w-25">
+                                                @can('update', $expediente)
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-primary btn-sm"
+                                                        data-bs-toggle="collapse"
+                                                        data-bs-target="#consentimiento-create-row"
+                                                        aria-expanded="{{ $crearConsentimientoExpandido ? 'true' : 'false' }}"
+                                                        aria-controls="consentimiento-create-row"
+                                                    >
+                                                        Agregar fila
+                                                    </button>
+                                                @endcan
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -752,13 +774,6 @@
                                         @endforelse
 
                                         @can('update', $expediente)
-                                            @php
-                                                $crearConsentimientoExpandido = $errors->has('tipo')
-                                                    || $errors->has('archivo')
-                                                    || $errors->has('fecha')
-                                                    || $errors->has('aceptado')
-                                                    || $errors->has('requerido');
-                                            @endphp
                                             <form
                                                 id="consentimiento-create-form"
                                                 action="{{ route('expedientes.consentimientos.store', $expediente) }}"
@@ -768,20 +783,6 @@
                                             >
                                                 @csrf
                                             </form>
-                                            <tr>
-                                                <td colspan="2" class="text-end">
-                                                    <button
-                                                        type="button"
-                                                        class="btn btn-primary btn-sm"
-                                                        data-bs-toggle="collapse"
-                                                        data-bs-target="#consentimiento-create-row"
-                                                        aria-expanded="{{ $crearConsentimientoExpandido ? 'true' : 'false' }}"
-                                                        aria-controls="consentimiento-create-row"
-                                                    >
-                                                        Agregar fila
-                                                    </button>
-                                                </td>
-                                            </tr>
                                             <tr id="consentimiento-create-row" class="table-light collapse {{ $crearConsentimientoExpandido ? 'show' : '' }}">
                                                 <td>
                                                     <select
@@ -807,7 +808,7 @@
                                                     <div class="d-flex flex-wrap gap-2 justify-content-end">
                                                         <input type="hidden" name="aceptado" value="0" form="consentimiento-create-form">
                                                         <input type="hidden" name="requerido" value="0" form="consentimiento-create-form">
-                                                        <button type="submit" class="btn btn-primary btn-sm" form="consentimiento-create-form">Agregar fila</button>
+                                                        <button type="submit" class="btn btn-primary btn-sm" form="consentimiento-create-form">Guardar fila</button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -815,10 +816,6 @@
                                     </tbody>
                                 </table>
                             </div>
-
-                            <p class="text-muted small mt-3 mb-0">
-                                Formatos permitidos: {{ str_replace(',', ', ', $consentimientosUploadMimes) }}. Tamaño máximo: {{ $consentimientosMaxMb }} MB.
-                            </p>
                         </div>
                     </div>
 
