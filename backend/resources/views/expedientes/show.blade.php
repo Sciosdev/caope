@@ -729,12 +729,6 @@
                                                 </td>
                                                 <td>
                                                     <div class="d-flex flex-wrap gap-2 justify-content-end">
-                                                        @can('upload', $consentimiento)
-                                                            <button type="submit" class="btn btn-primary btn-sm" form="{{ $formId }}">Guardar</button>
-                                                        @else
-                                                            <span class="text-muted small align-self-center">Sin permisos</span>
-                                                        @endcan
-
                                                         @can('delete', $consentimiento)
                                                             <button
                                                                 type="submit"
