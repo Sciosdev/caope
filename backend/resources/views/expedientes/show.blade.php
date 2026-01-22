@@ -665,33 +665,11 @@
                             </div>
 
                             <div class="table-responsive">
-                                @can('update', $expediente)
-                                    @php
-                                        $crearConsentimientoExpandido = $errors->has('tipo')
-                                            || $errors->has('archivo')
-                                            || $errors->has('fecha')
-                                            || $errors->has('aceptado')
-                                            || $errors->has('requerido');
-                                    @endphp
-                                @endcan
                                 <table class="table table-bordered consentimientos-grid align-middle mb-0">
                                     <thead class="table-secondary text-center small">
                                         <tr>
                                             <th>Tipo</th>
-                                            <th class="w-25">
-                                                @can('update', $expediente)
-                                                    <button
-                                                        type="button"
-                                                        class="btn btn-primary btn-sm"
-                                                        data-bs-toggle="collapse"
-                                                        data-bs-target="#consentimiento-create-row"
-                                                        aria-expanded="{{ $crearConsentimientoExpandido ? 'true' : 'false' }}"
-                                                        aria-controls="consentimiento-create-row"
-                                                    >
-                                                        Agregar fila
-                                                    </button>
-                                                @endcan
-                                            </th>
+                                            <th class="w-25"></th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -783,7 +761,7 @@
                                             >
                                                 @csrf
                                             </form>
-                                            <tr id="consentimiento-create-row" class="table-light collapse {{ $crearConsentimientoExpandido ? 'show' : '' }}">
+                                            <tr id="consentimiento-create-row" class="table-light">
                                                 <td>
                                                     <select
                                                         id="tipo-nuevo"
