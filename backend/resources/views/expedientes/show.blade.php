@@ -797,84 +797,82 @@
                         </div>
                     </div>
 
-                    <div class="row g-3 mt-3 align-items-start">
-                        <div class="col-lg-8">
-                            <div class="border rounded-3 bg-light p-3 h-100">
-                                <div class="row g-2 align-items-center mb-2">
-                                    <div class="col-md-6">
-                                        <label class="form-label mb-1">Alumno</label>
-                                        <input type="text" class="form-control form-control-sm" value="{{ $expediente->alumno?->name ?? 'No asignado' }}" disabled>
+                    @can('update', $expediente)
+                        <form
+                            action="{{ route('expedientes.consentimientos.observaciones', $expediente) }}"
+                            method="post"
+                            class="row g-3 mt-3 align-items-start"
+                        >
+                            @csrf
+                            <div class="col-lg-8">
+                                <div class="border rounded-3 bg-light p-3 h-100">
+                                    <div class="row g-2 align-items-center mb-2">
+                                        <div class="col-md-6">
+                                            <label class="form-label mb-1">Alumno</label>
+                                            <input type="text" class="form-control form-control-sm" value="{{ $expediente->alumno?->name ?? 'No asignado' }}" disabled>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label mb-1">Profesor</label>
+                                            <select
+                                                name="tutor_id"
+                                                id="consentimientos-profesor"
+                                                class="form-select form-select-sm"
+                                            >
+                                                <option value="">Sin asignar</option>
+                                                @foreach ($profesores as $profesor)
+                                                    <option
+                                                        value="{{ $profesor->id }}"
+                                                        @selected((int) old('tutor_id', $expediente->tutor_id ?? 0) === $profesor->id)
+                                                    >
+                                                        {{ $profesor->name }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label mb-1">Profesor</label>
-                                        <select
-                                            name="tutor_id"
-                                            id="consentimientos-profesor"
-                                            class="form-select form-select-sm"
-                                            form="consentimiento-create-form"
-                                            @cannot('update', $expediente) disabled @endcannot
+                                    <div class="row g-2 align-items-center mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label mb-1">Paciente</label>
+                                            <input type="text" class="form-control form-control-sm" value="{{ $expediente->paciente ?? '—' }}" disabled>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label mb-1">Testigo</label>
+                                            <input
+                                                type="text"
+                                                name="contacto_emergencia_nombre"
+                                                class="form-control form-control-sm"
+                                                value="{{ old('contacto_emergencia_nombre', $expediente->contacto_emergencia_nombre) }}"
+                                                placeholder="Nombre del testigo"
+                                            >
+                                        </div>
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <a
+                                            href="{{ route('expedientes.consentimientos.pdf', $expediente) }}?auto_print=1"
+                                            class="btn btn-outline-secondary btn-sm"
+                                            target="_blank"
+                                            rel="noopener"
                                         >
-                                            <option value="">Sin asignar</option>
-                                            @foreach ($profesores as $profesor)
-                                                <option
-                                                    value="{{ $profesor->id }}"
-                                                    @selected((int) old('tutor_id', $expediente->tutor_id ?? 0) === $profesor->id)
-                                                >
-                                                    {{ $profesor->name }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="row g-2 align-items-center mb-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label mb-1">Paciente</label>
-                                        <input type="text" class="form-control form-control-sm" value="{{ $expediente->paciente ?? '—' }}" disabled>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label mb-1">Testigo</label>
-                                        <input
-                                            type="text"
-                                            name="contacto_emergencia_nombre"
-                                            class="form-control form-control-sm"
-                                            form="consentimiento-create-form"
-                                            value="{{ old('contacto_emergencia_nombre', $expediente->contacto_emergencia_nombre) }}"
-                                            placeholder="Nombre del testigo"
-                                            @cannot('update', $expediente) disabled @endcannot
-                                        >
-                                    </div>
-                                </div>
-                                <div class="d-flex flex-wrap gap-2">
-                                    <a
-                                        href="{{ route('expedientes.consentimientos.pdf', $expediente) }}?auto_print=1"
-                                        class="btn btn-outline-secondary btn-sm"
-                                        target="_blank"
-                                        rel="noopener"
-                                    >
-                                        Imprimir
-                                    </a>
-                                    @can('update', $expediente)
+                                            Imprimir
+                                        </a>
                                         <a href="{{ route('expedientes.consentimientos.pdf.download', $expediente) }}" class="btn btn-primary btn-sm">
                                             Descargar
                                         </a>
-                                    @endcan
+                                    </div>
+                                    <div class="d-flex justify-content-end mt-3">
+                                        <button type="submit" class="btn btn-primary btn-sm">
+                                            Guardar
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div class="col-lg-4">
-                            <div class="border rounded-3 bg-light p-3 h-100">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <h6 class="mb-0">Observaciones del Expediente</h6>
-                                </div>
-
-                                @can('update', $expediente)
-                                    <form
-                                        action="{{ route('expedientes.consentimientos.observaciones', $expediente) }}"
-                                        method="post"
-                                        class="d-flex flex-column gap-2"
-                                    >
-                                        @csrf
+                            <div class="col-lg-4">
+                                <div class="border rounded-3 bg-light p-3 h-100">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h6 class="mb-0">Observaciones del Expediente</h6>
+                                    </div>
+                                    <div class="d-flex flex-column gap-2">
                                         <label for="consentimientos-observaciones" class="form-label small mb-1">Observaciones</label>
                                         <textarea
                                             id="consentimientos-observaciones"
@@ -886,20 +884,61 @@
                                         @error('observaciones')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
-                                        <button type="submit" class="btn btn-primary btn-sm align-self-start">
-                                            Guardar
-                                        </button>
-                                    </form>
-                                @else
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    @else
+                        <div class="row g-3 mt-3 align-items-start">
+                            <div class="col-lg-8">
+                                <div class="border rounded-3 bg-light p-3 h-100">
+                                    <div class="row g-2 align-items-center mb-2">
+                                        <div class="col-md-6">
+                                            <label class="form-label mb-1">Alumno</label>
+                                            <input type="text" class="form-control form-control-sm" value="{{ $expediente->alumno?->name ?? 'No asignado' }}" disabled>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label mb-1">Profesor</label>
+                                            <input type="text" class="form-control form-control-sm" value="{{ $expediente->tutor?->name ?? 'Sin asignar' }}" disabled>
+                                        </div>
+                                    </div>
+                                    <div class="row g-2 align-items-center mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label mb-1">Paciente</label>
+                                            <input type="text" class="form-control form-control-sm" value="{{ $expediente->paciente ?? '—' }}" disabled>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label mb-1">Testigo</label>
+                                            <input type="text" class="form-control form-control-sm" value="{{ $expediente->contacto_emergencia_nombre ?? '—' }}" disabled>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <a
+                                            href="{{ route('expedientes.consentimientos.pdf', $expediente) }}?auto_print=1"
+                                            class="btn btn-outline-secondary btn-sm"
+                                            target="_blank"
+                                            rel="noopener"
+                                        >
+                                            Imprimir
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-lg-4">
+                                <div class="border rounded-3 bg-light p-3 h-100">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h6 class="mb-0">Observaciones del Expediente</h6>
+                                    </div>
                                     @if ($expediente->consentimientos_observaciones)
                                         <p class="mb-0 small text-muted" style="white-space: pre-wrap;">{{ $expediente->consentimientos_observaciones }}</p>
                                     @else
                                         <p class="text-muted small mb-0">Sin observaciones registradas.</p>
                                     @endif
-                                @endcan
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    @endcan
                 </div>
             </div>
         </div>

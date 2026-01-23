@@ -89,6 +89,8 @@ class ConsentimientoUploadController extends Controller
 
         $validated = $request->validate([
             'observaciones' => ['nullable', 'string', 'max:5000'],
+            'tutor_id' => ['nullable', 'integer', 'min:1', 'exists:users,id'],
+            'contacto_emergencia_nombre' => ['nullable', 'string', 'max:150'],
         ]);
 
         $disk = config('filesystems.private_default', 'private');
@@ -100,6 +102,8 @@ class ConsentimientoUploadController extends Controller
         $expediente->forceFill([
             'consentimientos_observaciones' => $validated['observaciones'],
             'consentimientos_observaciones_path' => null,
+            'tutor_id' => $validated['tutor_id'] ?? null,
+            'contacto_emergencia_nombre' => $validated['contacto_emergencia_nombre'] ?: null,
         ])->save();
 
         return redirect()

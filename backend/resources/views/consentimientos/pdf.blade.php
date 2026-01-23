@@ -288,7 +288,7 @@
             </thead>
             <tbody>
                 @php
-                    $totalRows = 18;
+                    $totalRows = 12;
                     $filledRows = $consentimientos->count();
                 @endphp
                 @forelse ($consentimientos as $consentimiento)
