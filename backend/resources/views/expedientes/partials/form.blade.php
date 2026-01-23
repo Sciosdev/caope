@@ -628,9 +628,7 @@
     </div>
 </div>
 
-@if (auth()->user()?->hasRole('alumno'))
-    @include('expedientes.partials.alumno.family-history')
-@endif
+@include('expedientes.partials.alumno.family-history')
 
 <input type="hidden" name="client_context[browser]" id="expediente_client_context_browser">
 <input type="hidden" name="client_context[timezone]" id="expediente_client_context_timezone">
