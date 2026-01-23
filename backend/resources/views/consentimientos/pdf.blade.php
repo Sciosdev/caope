@@ -170,11 +170,12 @@
         .signature .info {
             font-size: 11px;
             min-height: 16px;
+            margin-bottom: 2px;
         }
 
         .signature .line {
             border-bottom: 2px solid var(--border);
-            margin: 12px 0 8px;
+            margin: 4px 0 8px;
         }
 
         .signature small {
