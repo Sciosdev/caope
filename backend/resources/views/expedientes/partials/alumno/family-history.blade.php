@@ -260,6 +260,21 @@
     </p>
 
     <div class="row g-3">
+        <div class="col-12">
+            <label for="antecedente_padecimiento_actual" class="form-label">Antecedentes y padecimiento actual</label>
+            <textarea
+                name="antecedente_padecimiento_actual"
+                id="antecedente_padecimiento_actual"
+                class="form-control @error('antecedente_padecimiento_actual') is-invalid @enderror"
+                rows="4"
+                maxlength="1000"
+                placeholder="Describe el antecedente inmediato y el padecimiento actual"
+            >{{ old('antecedente_padecimiento_actual', $expediente->antecedente_padecimiento_actual ?? '') }}</textarea>
+            <div class="form-text">Máximo 1000 caracteres.</div>
+            @error('antecedente_padecimiento_actual')
+                <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
         @foreach ($systemsReviewSections as $section => $label)
             @php
                 $fieldName = "aparatos_sistemas[$section]";
