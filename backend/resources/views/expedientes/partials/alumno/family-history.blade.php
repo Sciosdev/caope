@@ -324,6 +324,39 @@
                     @enderror
                 </div>
 
+                <div class="col-md-6 col-lg-4">
+                    <label for="resumen_clinico_resultado" class="form-label">Estado</label>
+                    <select
+                        name="resumen_clinico[resultado]"
+                        id="resumen_clinico_resultado"
+                        class="form-select @error('resumen_clinico.resultado') is-invalid @enderror"
+                        x-model="selectedOutcome"
+                    >
+                        <option value="">Seleccione</option>
+                        @foreach ($clinicalOutcomeOptions as $value => $label)
+                            <option value="{{ $value }}" @selected(old('resumen_clinico.resultado', $clinicalSummary['resultado']) === $value)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    @error('resumen_clinico.resultado')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="col-12" x-show="selectedOutcome" x-cloak>
+                    <label for="resumen_clinico_resultado_detalle" class="form-label">Detalles del estatus seleccionado</label>
+                    <textarea
+                        name="resumen_clinico[resultado_detalle]"
+                        id="resumen_clinico_resultado_detalle"
+                        class="form-control @error('resumen_clinico.resultado_detalle') is-invalid @enderror"
+                        rows="3"
+                        maxlength="1000"
+                    >{{ old('resumen_clinico.resultado_detalle', $clinicalSummary['resultado_detalle']) }}</textarea>
+                    <div class="form-text">Máximo 1000 caracteres.</div>
+                    @error('resumen_clinico.resultado_detalle')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
                 <div class="col-12">
                     <label for="resumen_clinico_resumen" class="form-label">Resumen de evaluación y resultado</label>
                     <textarea
@@ -396,39 +429,6 @@
                     >{{ old('resumen_clinico.autorizacion_responsable', $clinicalSummary['autorizacion_responsable']) }}</textarea>
                     <div class="form-text">Máximo 1000 caracteres.</div>
                     @error('resumen_clinico.autorizacion_responsable')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
-
-                <div class="col-md-6 col-lg-4">
-                    <label for="resumen_clinico_resultado" class="form-label">Mejoría / Abandono / Referencia / Término del Proceso</label>
-                    <select
-                        name="resumen_clinico[resultado]"
-                        id="resumen_clinico_resultado"
-                        class="form-select @error('resumen_clinico.resultado') is-invalid @enderror"
-                        x-model="selectedOutcome"
-                    >
-                        <option value="">Seleccione</option>
-                        @foreach ($clinicalOutcomeOptions as $value => $label)
-                            <option value="{{ $value }}" @selected(old('resumen_clinico.resultado', $clinicalSummary['resultado']) === $value)>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                    @error('resumen_clinico.resultado')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
-
-                <div class="col-12" x-show="selectedOutcome" x-cloak>
-                    <label for="resumen_clinico_resultado_detalle" class="form-label">Detalles del estatus seleccionado</label>
-                    <textarea
-                        name="resumen_clinico[resultado_detalle]"
-                        id="resumen_clinico_resultado_detalle"
-                        class="form-control @error('resumen_clinico.resultado_detalle') is-invalid @enderror"
-                        rows="3"
-                        maxlength="1000"
-                    >{{ old('resumen_clinico.resultado_detalle', $clinicalSummary['resultado_detalle']) }}</textarea>
-                    <div class="form-text">Máximo 1000 caracteres.</div>
-                    @error('resumen_clinico.resultado_detalle')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
