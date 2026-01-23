@@ -562,8 +562,14 @@ class ExpedienteController extends Controller
             ]);
         }
 
+        $redirectParams = ['expediente' => $expediente];
+
+        if ($request->filled('tab')) {
+            $redirectParams['tab'] = $request->input('tab');
+        }
+
         return redirect()
-            ->route('expedientes.show', $expediente)
+            ->route('expedientes.show', $redirectParams)
             ->with('status', __('expedientes.messages.update_success'));
     }
 

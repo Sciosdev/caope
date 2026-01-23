@@ -466,69 +466,218 @@
 
                     <div class="mt-4">
                         <h6 class="mb-3">Resumen clínico</h6>
-                        <div class="card shadow-sm">
-                            <div class="card-body">
-                                <div class="row g-3">
-                                    <div class="col-12">
-                                        <span class="text-muted small d-block">Nota de Alta o Cese del Servicio</span>
-                                        @if (filled($clinicalSummaryData['nota_alta']))
-                                            <p class="mb-0">{!! nl2br(e($clinicalSummaryData['nota_alta'])) !!}</p>
-                                        @else
-                                            <p class="mb-0 text-muted fst-italic">Sin información capturada.</p>
-                                        @endif
-                                    </div>
-
-                                    <div class="col-12">
-                                        <span class="text-muted small d-block">Resumen de evaluación y resultado</span>
-                                        @if (filled($clinicalSummaryData['resumen_evaluacion']))
-                                            <p class="mb-0">{!! nl2br(e($clinicalSummaryData['resumen_evaluacion'])) !!}</p>
-                                        @else
-                                            <p class="mb-0 text-muted fst-italic">Sin información capturada.</p>
-                                        @endif
-                                    </div>
-
-                                    <div class="col-12">
-                                        <span class="text-muted small d-block">Recomendaciones</span>
-                                        @if (filled($clinicalSummaryData['recomendaciones']))
-                                            <p class="mb-0">{!! nl2br(e($clinicalSummaryData['recomendaciones'])) !!}</p>
-                                        @else
-                                            <p class="mb-0 text-muted fst-italic">Sin información capturada.</p>
-                                        @endif
-                                    </div>
-
-                                    <div class="col-md-4">
-                                        <span class="text-muted small d-block">Fecha</span>
-                                        <span class="fw-semibold">{{ optional(\Illuminate\Support\Carbon::make($clinicalSummaryData['fecha']))->format('Y-m-d') ?? '—' }}</span>
-                                    </div>
-
-                                    <div class="col-md-4">
-                                        <span class="text-muted small d-block">Facilitador</span>
-                                        <span class="fw-semibold">{{ $clinicalSummaryData['facilitador'] ?: '—' }}</span>
-                                    </div>
-
-                                    <div class="col-md-4">
-                                        <span class="text-muted small d-block">Autorización del Responsable Académico (Estratega)</span>
-                                        @if (filled($clinicalSummaryData['autorizacion_responsable']))
-                                            <p class="mb-0">{!! nl2br(e($clinicalSummaryData['autorizacion_responsable'])) !!}</p>
-                                        @else
-                                            <p class="mb-0 text-muted fst-italic">Sin información capturada.</p>
-                                        @endif
-                                    </div>
-
-                                    <div class="col-md-4">
-                                        <span class="text-muted small d-block">Mejoría / Abandono / Referencia / Término del Proceso</span>
-                                        <span class="fw-semibold">{{ $outcomeLabel ?? '—' }}</span>
-                                    </div>
-
-                                    @if (filled($clinicalSummaryData['resultado_detalle']))
+                        @can('update', $expediente)
+                            <p class="text-muted small mb-3">
+                                Documenta los hallazgos finales y las decisiones de cierre del proceso. Asegúrate de capturar las notas de alta,
+                                las recomendaciones y el estatus acordado con el paciente.
+                            </p>
+                            <form
+                                action="{{ route('expedientes.update', $expediente) }}"
+                                method="post"
+                                class="card shadow-sm"
+                                x-data="{ selectedOutcome: @js(old('resumen_clinico.resultado', $clinicalSummaryData['resultado'])) }"
+                            >
+                                @csrf
+                                @method('put')
+                                <input type="hidden" name="tab" value="resumen-clinico">
+                                <div class="card-body">
+                                    <div class="row g-3">
                                         <div class="col-12">
-                                            <span class="text-muted small d-block">Detalles del estatus seleccionado</span>
-                                            <p class="mb-0">{!! nl2br(e($clinicalSummaryData['resultado_detalle'])) !!}</p>
+                                            <label for="resumen_clinico_nota_alta" class="form-label">Nota de Alta o Cese del Servicio</label>
+                                            <textarea
+                                                name="resumen_clinico[nota_alta]"
+                                                id="resumen_clinico_nota_alta"
+                                                class="form-control @error('resumen_clinico.nota_alta') is-invalid @enderror"
+                                                rows="3"
+                                                maxlength="1000"
+                                            >{{ old('resumen_clinico.nota_alta', $clinicalSummaryData['nota_alta']) }}</textarea>
+                                            <div class="form-text">Máximo 1000 caracteres.</div>
+                                            @error('resumen_clinico.nota_alta')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
                                         </div>
-                                    @endif
+
+                                        <div class="col-md-6 col-lg-4">
+                                            <label for="resumen_clinico_resultado" class="form-label">Estado</label>
+                                            <select
+                                                name="resumen_clinico[resultado]"
+                                                id="resumen_clinico_resultado"
+                                                class="form-select @error('resumen_clinico.resultado') is-invalid @enderror"
+                                                x-model="selectedOutcome"
+                                            >
+                                                <option value="">Seleccione</option>
+                                                @foreach ($clinicalOutcomeOptions as $value => $label)
+                                                    <option value="{{ $value }}" @selected(old('resumen_clinico.resultado', $clinicalSummaryData['resultado']) === $value)>
+                                                        {{ $label }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                            @error('resumen_clinico.resultado')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+
+                                        <div class="col-12" x-show="selectedOutcome" x-cloak>
+                                            <label for="resumen_clinico_resultado_detalle" class="form-label">Detalles del estatus seleccionado</label>
+                                            <textarea
+                                                name="resumen_clinico[resultado_detalle]"
+                                                id="resumen_clinico_resultado_detalle"
+                                                class="form-control @error('resumen_clinico.resultado_detalle') is-invalid @enderror"
+                                                rows="3"
+                                                maxlength="1000"
+                                            >{{ old('resumen_clinico.resultado_detalle', $clinicalSummaryData['resultado_detalle']) }}</textarea>
+                                            <div class="form-text">Máximo 1000 caracteres.</div>
+                                            @error('resumen_clinico.resultado_detalle')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+
+                                        <div class="col-12">
+                                            <label for="resumen_clinico_resumen" class="form-label">Resumen de evaluación y resultado</label>
+                                            <textarea
+                                                name="resumen_clinico[resumen_evaluacion]"
+                                                id="resumen_clinico_resumen"
+                                                class="form-control @error('resumen_clinico.resumen_evaluacion') is-invalid @enderror"
+                                                rows="3"
+                                                maxlength="1000"
+                                            >{{ old('resumen_clinico.resumen_evaluacion', $clinicalSummaryData['resumen_evaluacion']) }}</textarea>
+                                            <div class="form-text">Máximo 1000 caracteres.</div>
+                                            @error('resumen_clinico.resumen_evaluacion')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+
+                                        <div class="col-12">
+                                            <label for="resumen_clinico_recomendaciones" class="form-label">Recomendaciones</label>
+                                            <textarea
+                                                name="resumen_clinico[recomendaciones]"
+                                                id="resumen_clinico_recomendaciones"
+                                                class="form-control @error('resumen_clinico.recomendaciones') is-invalid @enderror"
+                                                rows="3"
+                                                maxlength="1000"
+                                            >{{ old('resumen_clinico.recomendaciones', $clinicalSummaryData['recomendaciones']) }}</textarea>
+                                            <div class="form-text">Máximo 1000 caracteres.</div>
+                                            @error('resumen_clinico.recomendaciones')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+
+                                        <div class="col-md-4">
+                                            <label for="resumen_clinico_fecha" class="form-label">Fecha</label>
+                                            <input
+                                                type="date"
+                                                name="resumen_clinico[fecha]"
+                                                id="resumen_clinico_fecha"
+                                                value="{{ old('resumen_clinico.fecha', $clinicalSummaryData['fecha']) }}"
+                                                class="form-control js-flatpickr @error('resumen_clinico.fecha') is-invalid @enderror"
+                                                data-max-date="today"
+                                            >
+                                            @error('resumen_clinico.fecha')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+
+                                        <div class="col-md-4">
+                                            <label for="resumen_clinico_facilitador" class="form-label">Facilitador</label>
+                                            <input
+                                                type="text"
+                                                name="resumen_clinico[facilitador]"
+                                                id="resumen_clinico_facilitador"
+                                                value="{{ old('resumen_clinico.facilitador', $clinicalSummaryData['facilitador']) }}"
+                                                class="form-control @error('resumen_clinico.facilitador') is-invalid @enderror"
+                                                maxlength="150"
+                                                placeholder="Nombre del facilitador"
+                                            >
+                                            @error('resumen_clinico.facilitador')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+
+                                        <div class="col-md-4">
+                                            <label for="resumen_clinico_autorizacion" class="form-label">Autorización del Responsable Académico (Estratega)</label>
+                                            <textarea
+                                                name="resumen_clinico[autorizacion_responsable]"
+                                                id="resumen_clinico_autorizacion"
+                                                class="form-control @error('resumen_clinico.autorizacion_responsable') is-invalid @enderror"
+                                                rows="2"
+                                                maxlength="1000"
+                                            >{{ old('resumen_clinico.autorizacion_responsable', $clinicalSummaryData['autorizacion_responsable']) }}</textarea>
+                                            <div class="form-text">Máximo 1000 caracteres.</div>
+                                            @error('resumen_clinico.autorizacion_responsable')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-footer bg-white border-0 text-end">
+                                    <button type="submit" class="btn btn-primary">Guardar resumen clínico</button>
+                                </div>
+                            </form>
+                        @else
+                            <div class="card shadow-sm">
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-12">
+                                            <span class="text-muted small d-block">Nota de Alta o Cese del Servicio</span>
+                                            @if (filled($clinicalSummaryData['nota_alta']))
+                                                <p class="mb-0">{!! nl2br(e($clinicalSummaryData['nota_alta'])) !!}</p>
+                                            @else
+                                                <p class="mb-0 text-muted fst-italic">Sin información capturada.</p>
+                                            @endif
+                                        </div>
+
+                                        <div class="col-12">
+                                            <span class="text-muted small d-block">Resumen de evaluación y resultado</span>
+                                            @if (filled($clinicalSummaryData['resumen_evaluacion']))
+                                                <p class="mb-0">{!! nl2br(e($clinicalSummaryData['resumen_evaluacion'])) !!}</p>
+                                            @else
+                                                <p class="mb-0 text-muted fst-italic">Sin información capturada.</p>
+                                            @endif
+                                        </div>
+
+                                        <div class="col-12">
+                                            <span class="text-muted small d-block">Recomendaciones</span>
+                                            @if (filled($clinicalSummaryData['recomendaciones']))
+                                                <p class="mb-0">{!! nl2br(e($clinicalSummaryData['recomendaciones'])) !!}</p>
+                                            @else
+                                                <p class="mb-0 text-muted fst-italic">Sin información capturada.</p>
+                                            @endif
+                                        </div>
+
+                                        <div class="col-md-4">
+                                            <span class="text-muted small d-block">Fecha</span>
+                                            <span class="fw-semibold">{{ optional(\Illuminate\Support\Carbon::make($clinicalSummaryData['fecha']))->format('Y-m-d') ?? '—' }}</span>
+                                        </div>
+
+                                        <div class="col-md-4">
+                                            <span class="text-muted small d-block">Facilitador</span>
+                                            <span class="fw-semibold">{{ $clinicalSummaryData['facilitador'] ?: '—' }}</span>
+                                        </div>
+
+                                        <div class="col-md-4">
+                                            <span class="text-muted small d-block">Autorización del Responsable Académico (Estratega)</span>
+                                            @if (filled($clinicalSummaryData['autorizacion_responsable']))
+                                                <p class="mb-0">{!! nl2br(e($clinicalSummaryData['autorizacion_responsable'])) !!}</p>
+                                            @else
+                                                <p class="mb-0 text-muted fst-italic">Sin información capturada.</p>
+                                            @endif
+                                        </div>
+
+                                        <div class="col-md-4">
+                                            <span class="text-muted small d-block">Mejoría / Abandono / Referencia / Término del Proceso</span>
+                                            <span class="fw-semibold">{{ $outcomeLabel ?? '—' }}</span>
+                                        </div>
+
+                                        @if (filled($clinicalSummaryData['resultado_detalle']))
+                                            <div class="col-12">
+                                                <span class="text-muted small d-block">Detalles del estatus seleccionado</span>
+                                                <p class="mb-0">{!! nl2br(e($clinicalSummaryData['resultado_detalle'])) !!}</p>
+                                            </div>
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        @endcan
                     </div>
 
                     <div class="mt-4">
