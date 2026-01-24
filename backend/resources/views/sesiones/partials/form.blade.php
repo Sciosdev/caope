@@ -55,29 +55,43 @@
                 @enderror
             </div>
             <div class="col-md-4">
+                <label for="clinica" class="form-label">Clínica donde se realizó el tratamiento</label>
+                <select name="clinica" id="clinica"
+                    class="form-select @error('clinica') is-invalid @enderror">
+                    @php
+                        $clinicaSeleccionada = old('clinica', $sesion->clinica ?? 'Caope');
+                    @endphp
+                    <option value="Caope" @selected($clinicaSeleccionada === 'Caope')>Caope</option>
+                    <option value="Otra" @selected($clinicaSeleccionada === 'Otra')>Otra</option>
+                </select>
+                @error('clinica')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+            <div class="col-md-6">
                 <label for="nombre_facilitador" class="form-label">Nombre del facilitador</label>
                 <input type="text" name="nombre_facilitador" id="nombre_facilitador" maxlength="120"
-                    value="{{ old('nombre_facilitador', $sesion->nombre_facilitador) }}"
+                    value="{{ old('nombre_facilitador', $sesion->nombre_facilitador ?? $expediente->alumno?->name) }}"
                     class="form-control @error('nombre_facilitador') is-invalid @enderror" placeholder="Opcional">
                 @error('nombre_facilitador')
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
             </div>
             <div class="col-md-6">
+                <label for="autorizacion_estratega" class="form-label">Autorización del responsable académico (Estratega)</label>
+                <input type="text" name="autorizacion_estratega" id="autorizacion_estratega" maxlength="120"
+                    value="{{ old('autorizacion_estratega', $sesion->autorizacion_estratega) }}"
+                    class="form-control @error('autorizacion_estratega') is-invalid @enderror" placeholder="Opcional">
+                @error('autorizacion_estratega')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+            <div class="col-md-12">
                 <label for="motivo_referencia" class="form-label">Motivo de referencia</label>
                 <textarea name="motivo_referencia" id="motivo_referencia" maxlength="1000" rows="3"
                     class="form-control @error('motivo_referencia') is-invalid @enderror"
                     placeholder="Detalla el motivo de la referencia">{{ old('motivo_referencia', $sesion->motivo_referencia) }}</textarea>
                 @error('motivo_referencia')
-                    <div class="invalid-feedback">{{ $message }}</div>
-                @enderror
-            </div>
-            <div class="col-md-6">
-                <label for="autorizacion_estratega" class="form-label">Autorización del estratega</label>
-                <input type="text" name="autorizacion_estratega" id="autorizacion_estratega" maxlength="120"
-                    value="{{ old('autorizacion_estratega', $sesion->autorizacion_estratega) }}"
-                    class="form-control @error('autorizacion_estratega') is-invalid @enderror" placeholder="Opcional">
-                @error('autorizacion_estratega')
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
             </div>

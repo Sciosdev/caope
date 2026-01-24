@@ -29,6 +29,7 @@ class StoreSesionRequest extends FormRequest
             'motivo_referencia' => ['nullable', 'string', 'max:1000'],
             'nombre_facilitador' => ['nullable', 'string', 'max:120'],
             'autorizacion_estratega' => ['nullable', 'string', 'max:120'],
+            'clinica' => ['nullable', 'string', 'max:120'],
             'adjuntos' => ['nullable', 'array'],
             'adjuntos.*' => ['file', 'max:10240'],
         ];
@@ -53,6 +54,7 @@ class StoreSesionRequest extends FormRequest
             'motivo_referencia',
             'nombre_facilitador',
             'autorizacion_estratega',
+            'clinica',
         ]);
     }
 }

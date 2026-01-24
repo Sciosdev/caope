@@ -47,6 +47,8 @@ class SesionController extends Controller
     {
         $this->authorize('create', [Sesion::class, $expediente]);
 
+        $expediente->loadMissing('alumno');
+
         $sesion = new Sesion([
             'fecha' => Carbon::today(),
         ]);
