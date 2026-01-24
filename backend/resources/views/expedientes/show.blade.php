@@ -950,6 +950,7 @@
                         <form
                             action="{{ route('expedientes.consentimientos.observaciones', $expediente) }}"
                             method="post"
+                            enctype="multipart/form-data"
                             class="row g-3 mt-3 align-items-start"
                         >
                             @csrf
@@ -1033,6 +1034,50 @@
                                         @error('observaciones')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
+                                        <div class="pt-2 border-top">
+                                            <label for="consentimientos-observaciones-archivo" class="form-label small mb-1">
+                                                Firma autógrafa (documento)
+                                            </label>
+                                            <input
+                                                id="consentimientos-observaciones-archivo"
+                                                type="file"
+                                                name="observaciones_archivo"
+                                                class="form-control form-control-sm @error('observaciones_archivo') is-invalid @enderror"
+                                                accept="{{ $observacionesAcceptedExtensions }}"
+                                            >
+                                            @error('observaciones_archivo')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                            <div class="form-text small text-muted">
+                                                Formatos permitidos: {{ $observacionesAcceptedExtensions ?: 'Sin especificar' }}. Tamaño máximo: {{ $consentimientosMaxMb }} MB.
+                                            </div>
+                                            @if ($expediente->consentimientos_observaciones_path)
+                                                <div class="d-flex align-items-center gap-2 mt-2 flex-wrap">
+                                                    <a
+                                                        href="{{ route('expedientes.consentimientos.observaciones.show', $expediente) }}"
+                                                        class="btn btn-outline-secondary btn-sm"
+                                                        target="_blank"
+                                                        rel="noopener"
+                                                    >
+                                                        Ver archivo cargado
+                                                    </a>
+                                                    <div class="form-check form-switch">
+                                                        <input
+                                                            class="form-check-input"
+                                                            type="checkbox"
+                                                            role="switch"
+                                                            id="consentimientos-observaciones-eliminar"
+                                                            name="observaciones_archivo_eliminar"
+                                                            value="1"
+                                                            @checked(old('observaciones_archivo_eliminar'))
+                                                        >
+                                                        <label class="form-check-label small" for="consentimientos-observaciones-eliminar">
+                                                            Eliminar archivo actual
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            @endif
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1083,6 +1128,16 @@
                                         <p class="mb-0 small text-muted" style="white-space: pre-wrap;">{{ $expediente->consentimientos_observaciones }}</p>
                                     @else
                                         <p class="text-muted small mb-0">Sin observaciones registradas.</p>
+                                    @endif
+                                    @if ($expediente->consentimientos_observaciones_path)
+                                        <a
+                                            href="{{ route('expedientes.consentimientos.observaciones.show', $expediente) }}"
+                                            class="btn btn-outline-secondary btn-sm mt-2"
+                                            target="_blank"
+                                            rel="noopener"
+                                        >
+                                            Ver firma autógrafa
+                                        </a>
                                     @endif
                                 </div>
                             </div>
