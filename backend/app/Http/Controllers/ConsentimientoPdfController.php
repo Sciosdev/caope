@@ -44,12 +44,14 @@ class ConsentimientoPdfController extends Controller
             ->get();
 
         $logoPath = $this->resolveLogoPath();
+        $logoDataUri = $this->resolveLogoDataUri($logoPath);
 
         return [
             'expediente' => $expediente,
             'consentimientos' => $consentimientos,
             'fechaEmision' => Carbon::now(),
             'logoPath' => $logoPath,
+            'logoDataUri' => $logoDataUri,
             'textoIntroduccion' => (string) Parametro::obtener('consentimientos.texto_introduccion', ''),
             'textoCierre' => (string) Parametro::obtener('consentimientos.texto_cierre', ''),
         ];
@@ -69,5 +71,22 @@ class ConsentimientoPdfController extends Controller
         }
 
         return $logoPath;
+    }
+
+    private function resolveLogoDataUri(string $logoPath): string
+    {
+        if (! is_file($logoPath)) {
+            return '';
+        }
+
+        $contents = file_get_contents($logoPath);
+
+        if ($contents === false) {
+            return '';
+        }
+
+        $mime = mime_content_type($logoPath) ?: 'image/png';
+
+        return sprintf('data:%s;base64,%s', $mime, base64_encode($contents));
     }
 }

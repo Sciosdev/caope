@@ -47,8 +47,10 @@
         }
 
         .header img {
-            width: 110px;
+            display: block;
+            width: 96px;
             height: auto;
+            margin: 0 auto;
         }
 
         .header .institution {
@@ -62,6 +64,7 @@
         .header .header-left {
             width: 140px;
             text-align: center;
+            padding-right: 8px;
         }
 
         .header .institution strong {
@@ -247,7 +250,9 @@
             <table class="header-table">
                 <tr>
                     <td class="header-left">
-                        <img src="{{ $logoPath ?: asset('assets/images/logo-mini-dark.png') }}" alt="Escudo institucional">
+                        @if (! empty($logoDataUri))
+                            <img src="{{ $logoDataUri }}" alt="Escudo institucional">
+                        @endif
                     </td>
                     <td class="institution">
                         <strong>Universidad Nacional Autónoma de México</strong>
