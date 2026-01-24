@@ -62,7 +62,7 @@ class ConsentimientoPdfController extends Controller
     {
         $logoConfigurado = (string) Parametro::obtener(
             'consentimientos.logo_path',
-            'assets/images/consentimientos/escudo-unam.png',
+            'https://caope.ayudafesi.com/backend/public/assets/images/consentimientos/escudo-unam.png',
         );
         $logoConfigurado = trim($logoConfigurado);
 
@@ -78,17 +78,16 @@ class ConsentimientoPdfController extends Controller
 
         $logoConfigurado = ltrim($logoConfigurado, '/');
         $logoPath = public_path($logoConfigurado);
-
-        if (! is_file($logoPath)) {
-            $logoPath = public_path('assets/images/consentimientos/escudo-unam.png');
-        }
-
         $logoDataUri = $this->resolveLogoDataUri($logoPath);
 
         if ($logoDataUri === '') {
-            $logoDataUri = $this->resolveLogoDataUri(
-                public_path('assets/images/consentimientos/escudo-unam.png'),
-            );
+            $assetSrc = asset($logoConfigurado);
+
+            return [
+                'logoPath' => $logoPath,
+                'logoDataUri' => '',
+                'logoSrc' => $assetSrc,
+            ];
         }
 
         return [
@@ -111,6 +110,10 @@ class ConsentimientoPdfController extends Controller
         }
 
         $mime = mime_content_type($logoPath) ?: 'image/png';
+
+        if (! str_starts_with($mime, 'image/')) {
+            return '';
+        }
 
         return sprintf('data:%s;base64,%s', $mime, base64_encode($contents));
     }
