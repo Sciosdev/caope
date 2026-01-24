@@ -46,11 +46,22 @@
             vertical-align: middle;
         }
 
+        .header .logo-box {
+            width: 96px;
+            height: 96px;
+            border: 2px dashed var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+        }
+
         .header img {
             display: block;
-            width: 96px;
+            max-width: 100%;
+            max-height: 100%;
             height: auto;
-            margin: 0 auto;
+            width: auto;
         }
 
         .header .institution {
@@ -251,9 +262,11 @@
             <table class="header-table">
                 <tr>
                     <td class="header-left">
-                        @if (! empty($logoSrc))
-                            <img src="{{ $logoSrc }}" alt="Escudo institucional">
-                        @endif
+                        <div class="logo-box">
+                            @if (! empty($logoSrc))
+                                <img src="{{ $logoSrc }}" alt="Escudo institucional">
+                            @endif
+                        </div>
                     </td>
                     <td class="institution">
                         <strong>Universidad Nacional Autónoma de México</strong>
