@@ -87,21 +87,40 @@ class ConsentimientoUploadController extends Controller
     {
         $this->authorize('update', $expediente);
 
+        $mimes = (string) Parametro::obtener('uploads.consentimientos.mimes', 'pdf,jpg,jpeg');
+        $max = (int) Parametro::obtener('uploads.consentimientos.max', 5120);
+
         $validated = $request->validate([
             'observaciones' => ['nullable', 'string', 'max:5000'],
             'tutor_id' => ['nullable', 'integer', 'min:1', 'exists:users,id'],
             'contacto_emergencia_nombre' => ['nullable', 'string', 'max:150'],
+            'observaciones_archivo' => ['nullable', 'file', 'mimes:'.$mimes, 'max:'.$max],
+            'observaciones_archivo_eliminar' => ['nullable', 'boolean'],
         ]);
 
         $disk = config('filesystems.private_default', 'private');
+        $path = $expediente->consentimientos_observaciones_path;
+        $file = $validated['observaciones_archivo'] ?? null;
+        $deleteFile = (bool) ($validated['observaciones_archivo_eliminar'] ?? false);
 
-        if ($expediente->consentimientos_observaciones_path && Storage::disk($disk)->exists($expediente->consentimientos_observaciones_path)) {
-            Storage::disk($disk)->delete($expediente->consentimientos_observaciones_path);
+        if ($deleteFile && $path && Storage::disk($disk)->exists($path)) {
+            Storage::disk($disk)->delete($path);
+            $path = null;
+        }
+
+        if ($file) {
+            if ($path && Storage::disk($disk)->exists($path)) {
+                Storage::disk($disk)->delete($path);
+            }
+
+            $directory = sprintf('expedientes/%s/consentimientos/observaciones', $expediente->id ?? 'generales');
+            $filename = sprintf('observaciones-%s.%s', now()->format('YmdHis'), $file->getClientOriginalExtension());
+            $path = $file->storeAs($directory, $filename, $disk);
         }
 
         $expediente->forceFill([
             'consentimientos_observaciones' => $validated['observaciones'],
-            'consentimientos_observaciones_path' => null,
+            'consentimientos_observaciones_path' => $path,
             'tutor_id' => $validated['tutor_id'] ?? null,
             'contacto_emergencia_nombre' => $validated['contacto_emergencia_nombre'] ?: null,
         ])->save();
