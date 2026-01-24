@@ -47,41 +47,27 @@
         }
 
         .header img {
-            width: 86px;
+            width: 110px;
             height: auto;
         }
 
         .header .institution {
             text-align: center;
-            font-size: 12px;
-            line-height: 1.5;
+            font-size: 13px;
+            line-height: 1.6;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
         }
 
         .header .header-left {
-            width: 180px;
+            width: 140px;
             text-align: center;
-        }
-
-        .header .header-left-text {
-            font-size: 13px;
-            line-height: 1.1;
-            text-align: center;
-        }
-
-        .header .header-left-text .sdri {
-            font-weight: 600;
-            font-size: 28px;
-            letter-spacing: 1px;
-            padding-bottom: 4px;
-            border-bottom: 1px solid var(--border);
-            margin-bottom: 2px;
         }
 
         .header .institution strong {
             display: block;
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-size: 14px;
+            font-weight: 500;
         }
 
         .title {
@@ -91,7 +77,8 @@
             text-align: center;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.6px;
+            letter-spacing: 1px;
+            font-size: 13px;
         }
 
         .meta {
@@ -261,17 +248,13 @@
                 <tr>
                     <td class="header-left">
                         <img src="{{ $logoPath ?: asset('assets/images/logo-mini-dark.png') }}" alt="Escudo institucional">
-                        <div class="header-left-text">
-                            <div class="sdri">SDRI</div>
-                            <div>Iztacala</div>
-                        </div>
                     </td>
                     <td class="institution">
                         <strong>Universidad Nacional Autónoma de México</strong>
                         <div>Facultad de Estudios Superiores Iztacala</div>
                         <div>Jefatura de la Carrera de Cirujano Dentista</div>
                     </td>
-                    <td style="width: 180px;"></td>
+                    <td style="width: 140px;"></td>
                 </tr>
             </table>
         </header>
