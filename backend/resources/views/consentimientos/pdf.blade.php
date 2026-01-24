@@ -238,6 +238,7 @@
 <body class="{{ ($forcePrintStyles ?? false) ? 'force-print' : '' }}">
     @php
         $showActions = $showActions ?? false;
+        $logoSrc = $logoDataUri ?: asset('assets/images/consentimientos/escudo-unam.png');
     @endphp
     <div class="page">
         @if ($showActions)
@@ -250,8 +251,8 @@
             <table class="header-table">
                 <tr>
                     <td class="header-left">
-                        @if (! empty($logoDataUri))
-                            <img src="{{ $logoDataUri }}" alt="Escudo institucional">
+                        @if (! empty($logoSrc))
+                            <img src="{{ $logoSrc }}" alt="Escudo institucional">
                         @endif
                     </td>
                     <td class="institution">

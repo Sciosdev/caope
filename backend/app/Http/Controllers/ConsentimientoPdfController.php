@@ -61,13 +61,13 @@ class ConsentimientoPdfController extends Controller
     {
         $logoConfigurado = (string) Parametro::obtener(
             'consentimientos.logo_path',
-            'assets/images/logo-mini-dark.png',
+            'assets/images/consentimientos/escudo-unam.png',
         );
         $logoConfigurado = ltrim($logoConfigurado, '/');
         $logoPath = public_path($logoConfigurado);
 
         if (! is_file($logoPath)) {
-            return public_path('assets/images/logo-mini-dark.png');
+            return public_path('assets/images/consentimientos/escudo-unam.png');
         }
 
         return $logoPath;
