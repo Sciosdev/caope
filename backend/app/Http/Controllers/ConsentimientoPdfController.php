@@ -46,6 +46,12 @@ class ConsentimientoPdfController extends Controller
         $logoPath = $this->resolveLogoPath();
         $logoDataUri = $this->resolveLogoDataUri($logoPath);
 
+        if ($logoDataUri === '') {
+            $logoDataUri = $this->resolveLogoDataUri(
+                public_path('assets/images/consentimientos/escudo-unam.png'),
+            );
+        }
+
         return [
             'expediente' => $expediente,
             'consentimientos' => $consentimientos,
