@@ -267,6 +267,8 @@
         if ($logoSrc === '') {
             $logoSrc = asset('assets/images/consentimientos/escudo-unam.png');
         }
+
+        $logoSrc = $logoSrc ?: asset('assets/images/consentimientos/escudo-unam.png');
     @endphp
     <div class="page">
         @if ($showActions)
