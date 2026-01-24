@@ -32,11 +32,18 @@
         }
 
         .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 24px;
             margin-bottom: 16px;
+        }
+
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .header-table td {
+            border: none;
+            padding: 0;
+            vertical-align: middle;
         }
 
         .header img {
@@ -45,24 +52,17 @@
         }
 
         .header .institution {
-            flex: 1;
             text-align: center;
             font-size: 12px;
             line-height: 1.5;
         }
 
         .header .header-left {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-            min-width: 180px;
+            width: 180px;
+            text-align: center;
         }
 
         .header .header-left-text {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
             font-size: 13px;
             line-height: 1.1;
             text-align: center;
@@ -95,28 +95,25 @@
         }
 
         .meta {
-            display: flex;
-            align-items: flex-end;
-            gap: 16px;
+            width: 100%;
+            border-collapse: collapse;
             margin-bottom: 12px;
+        }
+
+        .meta td {
+            border: none;
+            padding: 0 12px 0 0;
+            vertical-align: bottom;
             white-space: nowrap;
         }
 
-        .meta-item {
-            display: flex;
-            align-items: flex-end;
-            gap: 6px;
-            flex: 1;
-            min-width: 0;
-        }
-
-        .meta-item .label {
+        .meta .label {
             font-weight: 600;
         }
 
-        .meta-item .line {
-            flex: 1;
-            min-width: 90px;
+        .meta .line {
+            display: inline-block;
+            min-width: 120px;
             border-bottom: 1px solid var(--border);
             padding-bottom: 2px;
             line-height: 1.2;
@@ -157,10 +154,16 @@
         }
 
         .signatures {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 32px 64px;
+            width: 100%;
+            border-collapse: collapse;
             margin-top: 32px;
+        }
+
+        .signatures td {
+            border: none;
+            padding: 0 24px 24px 0;
+            vertical-align: top;
+            width: 50%;
         }
 
         .signature {
@@ -233,7 +236,11 @@
 
             .signatures {
                 margin-top: 16px;
-                gap: 24px 48px;
+            }
+
+            .signatures td {
+                padding-right: 16px;
+                padding-bottom: 16px;
             }
         }
     </style>
@@ -250,36 +257,43 @@
         @endif
 
         <header class="header">
-            <div class="header-left">
-                <img src="{{ $logoPath ?: asset('assets/images/logo-mini-dark.png') }}" alt="Escudo institucional">
-                <div class="header-left-text">
-                    <span class="sdri">SDRI</span>
-                    <span>Iztacala</span>
-                </div>
-            </div>
-            <div class="institution">
-                <strong>Universidad Nacional Autónoma de México</strong>
-                <div>Facultad de Estudios Superiores Iztacala</div>
-                <div>Jefatura de la Carrera de Cirujano Dentista</div>
-            </div>
+            <table class="header-table">
+                <tr>
+                    <td class="header-left">
+                        <img src="{{ $logoPath ?: asset('assets/images/logo-mini-dark.png') }}" alt="Escudo institucional">
+                        <div class="header-left-text">
+                            <div class="sdri">SDRI</div>
+                            <div>Iztacala</div>
+                        </div>
+                    </td>
+                    <td class="institution">
+                        <strong>Universidad Nacional Autónoma de México</strong>
+                        <div>Facultad de Estudios Superiores Iztacala</div>
+                        <div>Jefatura de la Carrera de Cirujano Dentista</div>
+                    </td>
+                    <td style="width: 180px;"></td>
+                </tr>
+            </table>
         </header>
 
         <div class="title">Consentimiento informado y plan de tratamiento</div>
 
-        <div class="meta">
-            <div class="meta-item">
-                <span class="label">Paciente:</span>
-                <span class="line">{{ $expediente->paciente ?? '—' }}</span>
-            </div>
-            <div class="meta-item">
-                <span class="label">No. Expediente:</span>
-                <span class="line">{{ $expediente->no_control }}</span>
-            </div>
-            <div class="meta-item">
-                <span class="label">Fecha:</span>
-                <span class="line">{{ $fechaEmision->format('d/m/Y') }}</span>
-            </div>
-        </div>
+        <table class="meta">
+            <tr>
+                <td>
+                    <span class="label">Paciente:</span>
+                    <span class="line">{{ $expediente->paciente ?? '—' }}</span>
+                </td>
+                <td>
+                    <span class="label">No. Expediente:</span>
+                    <span class="line">{{ $expediente->no_control }}</span>
+                </td>
+                <td>
+                    <span class="label">Fecha:</span>
+                    <span class="line">{{ $fechaEmision->format('d/m/Y') }}</span>
+                </td>
+            </tr>
+        </table>
 
         <table>
             <thead>
@@ -338,28 +352,40 @@
             indicados, firmando para ello de manera libre y voluntaria.
         </p>
 
-        <div class="signatures">
-            <div class="signature">
-                <div class="info">{{ $expediente->alumno?->name ?? '—' }}</div>
-                <div class="line"></div>
-                <small>Nombre, grupo y firma del alumno responsable</small>
-            </div>
-            <div class="signature">
-                <div class="info">{{ $expediente->tutor?->name ?? '—' }}</div>
-                <div class="line"></div>
-                <small>Nombre y firma del profesor responsable</small>
-            </div>
-            <div class="signature">
-                <div class="info">{{ $expediente->paciente ?? '—' }}</div>
-                <div class="line"></div>
-                <small>Nombre y firma del paciente o su representante</small>
-            </div>
-            <div class="signature">
-                <div class="info">{{ $expediente->contacto_emergencia_nombre ?? '—' }}</div>
-                <div class="line"></div>
-                <small>Nombre y firma de un testigo por el paciente</small>
-            </div>
-        </div>
+        <table class="signatures">
+            <tr>
+                <td>
+                    <div class="signature">
+                        <div class="info">{{ $expediente->alumno?->name ?? '—' }}</div>
+                        <div class="line"></div>
+                        <small>Nombre, grupo y firma del alumno responsable</small>
+                    </div>
+                </td>
+                <td>
+                    <div class="signature">
+                        <div class="info">{{ $expediente->tutor?->name ?? '—' }}</div>
+                        <div class="line"></div>
+                        <small>Nombre y firma del profesor responsable</small>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="signature">
+                        <div class="info">{{ $expediente->paciente ?? '—' }}</div>
+                        <div class="line"></div>
+                        <small>Nombre y firma del paciente o su representante</small>
+                    </div>
+                </td>
+                <td>
+                    <div class="signature">
+                        <div class="info">{{ $expediente->contacto_emergencia_nombre ?? '—' }}</div>
+                        <div class="line"></div>
+                        <small>Nombre y firma de un testigo por el paciente</small>
+                    </div>
+                </td>
+            </tr>
+        </table>
     </div>
     @if (request()->boolean('auto_print'))
         <script>
