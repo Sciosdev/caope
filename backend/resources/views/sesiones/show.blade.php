@@ -102,11 +102,14 @@
                                 <dt class="col-sm-5">Especialidad referida</dt>
                                 <dd class="col-sm-7">{{ $sesion->especialidad_referida ?? '—' }}</dd>
 
-                                <dt class="col-sm-5">Facilitador</dt>
+                                <dt class="col-sm-5">Nombre del facilitador</dt>
                                 <dd class="col-sm-7">{{ $sesion->nombre_facilitador ?? '—' }}</dd>
 
-                                <dt class="col-sm-5">Autorización estratega</dt>
+                                <dt class="col-sm-5">Autorización responsable académico (Estratega)</dt>
                                 <dd class="col-sm-7">{{ $sesion->autorizacion_estratega ?? '—' }}</dd>
+
+                                <dt class="col-sm-5">Clínica del tratamiento</dt>
+                                <dd class="col-sm-7">{{ $sesion->clinica ?? '—' }}</dd>
                             </dl>
                         </div>
                     </div>
@@ -258,4 +261,3 @@
         @endcan
     </div>
 @endsection
-

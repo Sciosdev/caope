@@ -28,6 +28,7 @@ class Sesion extends Model
         'motivo_referencia',
         'nombre_facilitador',
         'autorizacion_estratega',
+        'clinica',
         'realizada_por',
         'status_revision',
         'validada_por',

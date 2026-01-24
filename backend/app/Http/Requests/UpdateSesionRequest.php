@@ -42,6 +42,7 @@ class UpdateSesionRequest extends StoreSesionRequest
             'motivo_referencia',
             'nombre_facilitador',
             'autorizacion_estratega',
+            'clinica',
         ]);
     }
 }

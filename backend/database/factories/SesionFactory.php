@@ -55,6 +55,7 @@ class SesionFactory extends Factory
             'motivo_referencia' => $this->faker->boolean(50) ? $this->faker->paragraph() : null,
             'nombre_facilitador' => $this->faker->boolean(30) ? $this->faker->name() : null,
             'autorizacion_estratega' => $this->faker->boolean(30) ? $this->faker->name() : null,
+            'clinica' => $this->faker->boolean(80) ? 'Caope' : $this->faker->company(),
             'realizada_por' => $realizadaPor,
             'status_revision' => $status,
             'validada_por' => $validadaPor,
