@@ -1,5 +1,5 @@
 <div class="row g-3">
-    <div class="col-md-3">
+    <div class="col-md-6">
         <label for="fecha" class="form-label">Fecha</label>
         <input type="date" name="fecha" id="fecha" value="{{ old('fecha', optional($sesion->fecha)->format('Y-m-d')) }}"
             class="form-control @error('fecha') is-invalid @enderror">
@@ -7,29 +7,12 @@
             <div class="invalid-feedback">{{ $message }}</div>
         @enderror
     </div>
-    <div class="col-md-3">
-        <label for="tipo" class="form-label">Tipo de sesión</label>
-        <input type="text" name="tipo" id="tipo" maxlength="60" value="{{ old('tipo', $sesion->tipo) }}"
-            class="form-control @error('tipo') is-invalid @enderror" placeholder="Ej. Seguimiento">
-        @error('tipo')
-            <div class="invalid-feedback">{{ $message }}</div>
-        @enderror
-    </div>
-    <div class="col-md-3">
+    <div class="col-md-6">
         <label for="hora_atencion" class="form-label">Hora de atención</label>
         <input type="time" name="hora_atencion" id="hora_atencion" maxlength="5"
             value="{{ old('hora_atencion', $sesion->hora_atencion ? \Illuminate\Support\Carbon::parse($sesion->hora_atencion)->format('H:i') : '') }}"
             class="form-control @error('hora_atencion') is-invalid @enderror">
         @error('hora_atencion')
-            <div class="invalid-feedback">{{ $message }}</div>
-        @enderror
-    </div>
-    <div class="col-md-3">
-        <label for="referencia_externa" class="form-label">Referencia externa</label>
-        <input type="text" name="referencia_externa" id="referencia_externa" maxlength="120"
-            value="{{ old('referencia_externa', $sesion->referencia_externa) }}"
-            class="form-control @error('referencia_externa') is-invalid @enderror" placeholder="Opcional">
-        @error('referencia_externa')
             <div class="invalid-feedback">{{ $message }}</div>
         @enderror
     </div>
