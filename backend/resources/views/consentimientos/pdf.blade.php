@@ -249,7 +249,7 @@
 <body class="{{ ($forcePrintStyles ?? false) ? 'force-print' : '' }}">
     @php
         $showActions = $showActions ?? false;
-        $logoSrc = $logoDataUri ?? '';
+        $logoSrc = $logoSrc ?? ($logoDataUri ?? '');
 
         if ($logoSrc === '') {
             $fallbackPath = $logoPath ?? public_path('assets/images/consentimientos/escudo-unam.png');

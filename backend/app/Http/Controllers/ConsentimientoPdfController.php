@@ -6,6 +6,7 @@ use App\Models\Expediente;
 use App\Models\Parametro;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Http;
 
 class ConsentimientoPdfController extends Controller
 {
@@ -43,7 +44,45 @@ class ConsentimientoPdfController extends Controller
             ->orderBy('tratamiento')
             ->get();
 
-        $logoPath = $this->resolveLogoPath();
+        $logoSources = $this->resolveLogoSources();
+
+        return [
+            'expediente' => $expediente,
+            'consentimientos' => $consentimientos,
+            'fechaEmision' => Carbon::now(),
+            'logoPath' => $logoSources['logoPath'],
+            'logoDataUri' => $logoSources['logoDataUri'],
+            'logoSrc' => $logoSources['logoSrc'],
+            'textoIntroduccion' => (string) Parametro::obtener('consentimientos.texto_introduccion', ''),
+            'textoCierre' => (string) Parametro::obtener('consentimientos.texto_cierre', ''),
+        ];
+    }
+
+    private function resolveLogoSources(): array
+    {
+        $logoConfigurado = (string) Parametro::obtener(
+            'consentimientos.logo_path',
+            'assets/images/consentimientos/escudo-unam.png',
+        );
+        $logoConfigurado = trim($logoConfigurado);
+
+        if ($logoConfigurado !== '' && filter_var($logoConfigurado, FILTER_VALIDATE_URL)) {
+            $remoteDataUri = $this->resolveRemoteLogoDataUri($logoConfigurado);
+
+            return [
+                'logoPath' => '',
+                'logoDataUri' => $remoteDataUri,
+                'logoSrc' => $remoteDataUri !== '' ? $remoteDataUri : $logoConfigurado,
+            ];
+        }
+
+        $logoConfigurado = ltrim($logoConfigurado, '/');
+        $logoPath = public_path($logoConfigurado);
+
+        if (! is_file($logoPath)) {
+            $logoPath = public_path('assets/images/consentimientos/escudo-unam.png');
+        }
+
         $logoDataUri = $this->resolveLogoDataUri($logoPath);
 
         if ($logoDataUri === '') {
@@ -53,30 +92,10 @@ class ConsentimientoPdfController extends Controller
         }
 
         return [
-            'expediente' => $expediente,
-            'consentimientos' => $consentimientos,
-            'fechaEmision' => Carbon::now(),
             'logoPath' => $logoPath,
             'logoDataUri' => $logoDataUri,
-            'textoIntroduccion' => (string) Parametro::obtener('consentimientos.texto_introduccion', ''),
-            'textoCierre' => (string) Parametro::obtener('consentimientos.texto_cierre', ''),
+            'logoSrc' => $logoDataUri,
         ];
-    }
-
-    private function resolveLogoPath(): string
-    {
-        $logoConfigurado = (string) Parametro::obtener(
-            'consentimientos.logo_path',
-            'assets/images/consentimientos/escudo-unam.png',
-        );
-        $logoConfigurado = ltrim($logoConfigurado, '/');
-        $logoPath = public_path($logoConfigurado);
-
-        if (! is_file($logoPath)) {
-            return public_path('assets/images/consentimientos/escudo-unam.png');
-        }
-
-        return $logoPath;
     }
 
     private function resolveLogoDataUri(string $logoPath): string
@@ -94,5 +113,18 @@ class ConsentimientoPdfController extends Controller
         $mime = mime_content_type($logoPath) ?: 'image/png';
 
         return sprintf('data:%s;base64,%s', $mime, base64_encode($contents));
+    }
+
+    private function resolveRemoteLogoDataUri(string $url): string
+    {
+        $response = Http::timeout(5)->get($url);
+
+        if (! $response->successful()) {
+            return '';
+        }
+
+        $mime = $response->header('Content-Type') ?: 'image/png';
+
+        return sprintf('data:%s;base64,%s', $mime, base64_encode($response->body()));
     }
 }
