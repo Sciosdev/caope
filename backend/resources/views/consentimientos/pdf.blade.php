@@ -249,7 +249,24 @@
 <body class="{{ ($forcePrintStyles ?? false) ? 'force-print' : '' }}">
     @php
         $showActions = $showActions ?? false;
-        $logoSrc = $logoDataUri ?: asset('assets/images/consentimientos/escudo-unam.png');
+        $logoSrc = $logoDataUri ?? '';
+
+        if ($logoSrc === '') {
+            $fallbackPath = $logoPath ?? public_path('assets/images/consentimientos/escudo-unam.png');
+            $fallbackPath = is_file($fallbackPath) ? $fallbackPath : public_path('assets/images/consentimientos/escudo-unam.png');
+
+            if (is_file($fallbackPath)) {
+                $fallbackContents = file_get_contents($fallbackPath);
+                if ($fallbackContents !== false) {
+                    $fallbackMime = mime_content_type($fallbackPath) ?: 'image/png';
+                    $logoSrc = sprintf('data:%s;base64,%s', $fallbackMime, base64_encode($fallbackContents));
+                }
+            }
+        }
+
+        if ($logoSrc === '') {
+            $logoSrc = asset('assets/images/consentimientos/escudo-unam.png');
+        }
     @endphp
     <div class="page">
         @if ($showActions)
