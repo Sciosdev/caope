@@ -62,7 +62,7 @@ class ConsentimientoPdfController extends Controller
     {
         $logoConfigurado = (string) Parametro::obtener(
             'consentimientos.logo_path',
-            'assets/images/consentimientos/escudo-unam.png',
+            'https://caope.ayudafesi.com/backend/public/assets/images/consentimientos/escudo-unam.png',
         );
         $logoConfigurado = trim($logoConfigurado);
 
