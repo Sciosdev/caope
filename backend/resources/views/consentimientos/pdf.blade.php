@@ -49,7 +49,7 @@
         .header .logo-box {
             width: 96px;
             height: 96px;
-            border: 2px dashed var(--border);
+            border: none;
             display: flex;
             align-items: center;
             justify-content: center;
