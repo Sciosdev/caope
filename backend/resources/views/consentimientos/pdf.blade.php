@@ -254,7 +254,7 @@
 <body class="{{ ($forcePrintStyles ?? false) ? 'force-print' : '' }}">
     @php
         $showActions = $showActions ?? false;
-        $logoSrc = $logoSrc ?? ($logoDataUri ?? '');
+        $logoSrc = trim((string) ($logoSrc ?? ($logoDataUri ?? '')));
 
         if ($logoSrc === '') {
             $fallbackPath = $logoPath ?? public_path('assets/images/consentimientos/escudo-unam.png');
@@ -273,6 +273,7 @@
             $logoSrc = asset('assets/images/consentimientos/escudo-unam.png');
         }
 
+        $logoSrc = trim((string) $logoSrc);
         $logoSrc = $logoSrc ?: asset('assets/images/consentimientos/escudo-unam.png');
     @endphp
     <div class="page">
