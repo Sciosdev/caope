@@ -66,8 +66,10 @@ class ConsentimientoPdfController extends Controller
         );
         $logoConfigurado = trim($logoConfigurado);
 
-        if ($logoConfigurado !== '' && filter_var($logoConfigurado, FILTER_VALIDATE_URL)) {
-            $remoteDataUri = $this->resolveRemoteLogoDataUri($logoConfigurado);
+        $logoUrl = $this->normalizeLogoUrl($logoConfigurado);
+
+        if ($logoUrl !== null) {
+            $remoteDataUri = $this->resolveRemoteLogoDataUri($logoUrl);
 
             if ($remoteDataUri === '') {
                 return $this->resolveLocalDefaultLogo();
@@ -76,7 +78,7 @@ class ConsentimientoPdfController extends Controller
             return [
                 'logoPath' => '',
                 'logoDataUri' => $remoteDataUri,
-                'logoSrc' => $remoteDataUri !== '' ? $remoteDataUri : $logoConfigurado,
+                'logoSrc' => $remoteDataUri !== '' ? $remoteDataUri : $logoUrl,
             ];
         }
 
@@ -120,7 +122,11 @@ class ConsentimientoPdfController extends Controller
 
     private function resolveRemoteLogoDataUri(string $url): string
     {
-        $response = Http::timeout(5)->get($url);
+        try {
+            $response = Http::timeout(5)->get($url);
+        } catch (\Throwable $exception) {
+            return '';
+        }
 
         if (! $response->successful()) {
             return '';
@@ -129,6 +135,35 @@ class ConsentimientoPdfController extends Controller
         $mime = $response->header('Content-Type') ?: 'image/png';
 
         return sprintf('data:%s;base64,%s', $mime, base64_encode($response->body()));
+    }
+
+    private function normalizeLogoUrl(string $logoConfigurado): ?string
+    {
+        if ($logoConfigurado === '') {
+            return null;
+        }
+
+        if (filter_var($logoConfigurado, FILTER_VALIDATE_URL)) {
+            return $logoConfigurado;
+        }
+
+        if (str_contains($logoConfigurado, '://')) {
+            return null;
+        }
+
+        if (! preg_match('/^[\\w.-]+(?::\\d+)?\\//', $logoConfigurado)) {
+            return null;
+        }
+
+        $httpsUrl = 'https://' . $logoConfigurado;
+
+        if (filter_var($httpsUrl, FILTER_VALIDATE_URL)) {
+            return $httpsUrl;
+        }
+
+        $httpUrl = 'http://' . $logoConfigurado;
+
+        return filter_var($httpUrl, FILTER_VALIDATE_URL) ? $httpUrl : null;
     }
 
     private function resolveLocalLogoSources(string $logoConfigurado): array
