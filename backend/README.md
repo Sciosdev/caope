@@ -17,6 +17,17 @@ php artisan serve
 
 > El proyecto está pensado para SQLite en desarrollo. Si prefieres MySQL/PostgreSQL ajusta el `.env` y crea la base correspondiente.
 
+### Migraciones de ficha clínica y backfill
+
+- Ejecuta `php artisan migrate` antes de desplegar para asegurarte de que los campos de ficha clínica (migración `2025_10_19_090600_add_ficha_fields_to_expedientes_table.php`) y las secciones psicológicas/antecedentes estén presentes en la tabla `expedientes`.
+- Si ya existían expedientes, corre la migración de sincronización de defaults JSON para evitar errores de constraints y rellenar valores por omisión:
+
+  ```bash
+  php artisan migrate --path=database/migrations/2025_11_06_000000_sync_expediente_json_defaults.php
+  ```
+
+- En entornos con datos en producción, respalda la base antes de ejecutar las migraciones y valida que los nuevos campos queden en `NULL` o con los defaults generados para evitar fallos al capturar.
+
 ### Colas y caché
 
 - Inicia el worker de colas cuando requieras procesar trabajos en segundo plano:
