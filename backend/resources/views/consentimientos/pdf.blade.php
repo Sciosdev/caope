@@ -165,6 +165,11 @@
             padding: 0 24px 24px 0;
             vertical-align: top;
             width: 50%;
+            background: transparent;
+        }
+
+        .signatures tbody tr:nth-child(even) td {
+            background: transparent;
         }
 
         .signature {
