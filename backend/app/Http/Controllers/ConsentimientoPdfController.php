@@ -80,29 +80,7 @@ class ConsentimientoPdfController extends Controller
             ];
         }
 
-        $logoConfigurado = ltrim($logoConfigurado, '/');
-        $logoPath = public_path($logoConfigurado);
-        $logoDataUri = $this->resolveLogoDataUri($logoPath);
-
-        if (! is_file($logoPath)) {
-            return $this->resolveLocalDefaultLogo();
-        }
-
-        if ($logoDataUri === '') {
-            $assetSrc = asset($logoConfigurado);
-
-            return [
-                'logoPath' => $logoPath,
-                'logoDataUri' => '',
-                'logoSrc' => $assetSrc,
-            ];
-        }
-
-        return [
-            'logoPath' => $logoPath,
-            'logoDataUri' => $logoDataUri,
-            'logoSrc' => $logoDataUri,
-        ];
+        return $this->resolveLocalLogoSources($logoConfigurado);
     }
 
     private function resolveLocalDefaultLogo(): array
@@ -151,5 +129,51 @@ class ConsentimientoPdfController extends Controller
         $mime = $response->header('Content-Type') ?: 'image/png';
 
         return sprintf('data:%s;base64,%s', $mime, base64_encode($response->body()));
+    }
+
+    private function resolveLocalLogoSources(string $logoConfigurado): array
+    {
+        $logoConfigurado = ltrim($logoConfigurado, '/');
+
+        if ($logoConfigurado === '') {
+            return $this->resolveLocalDefaultLogo();
+        }
+
+        $candidates = [$logoConfigurado];
+
+        if (str_starts_with($logoConfigurado, 'storage/')) {
+            $candidates[] = ltrim(substr($logoConfigurado, strlen('storage/')), '/');
+        }
+
+        foreach ($candidates as $candidate) {
+            $publicPath = public_path($candidate);
+
+            if (is_file($publicPath)) {
+                $dataUri = $this->resolveLogoDataUri($publicPath);
+
+                return [
+                    'logoPath' => $publicPath,
+                    'logoDataUri' => $dataUri,
+                    'logoSrc' => $dataUri !== '' ? $dataUri : asset($candidate),
+                ];
+            }
+
+            $storagePath = storage_path('app/public/' . $candidate);
+
+            if (is_file($storagePath)) {
+                $dataUri = $this->resolveLogoDataUri($storagePath);
+                $assetPath = str_starts_with($candidate, 'storage/')
+                    ? $candidate
+                    : 'storage/' . $candidate;
+
+                return [
+                    'logoPath' => $storagePath,
+                    'logoDataUri' => $dataUri,
+                    'logoSrc' => $dataUri !== '' ? $dataUri : asset($assetPath),
+                ];
+            }
+        }
+
+        return $this->resolveLocalDefaultLogo();
     }
 }
