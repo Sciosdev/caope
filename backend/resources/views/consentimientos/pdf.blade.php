@@ -404,6 +404,7 @@
             <tr>
                 <td>
                     <div class="signature">
+                        <div class="document-preview"></div>
                         <div class="info">{{ $expediente->alumno?->name ?? '—' }}</div>
                         <div class="line"></div>
                         <small>Nombre, grupo y firma del alumno responsable</small>
@@ -411,17 +412,13 @@
                 </td>
                 <td>
                     <div class="signature">
-                        @if (! empty($firmaAutografaDataUri))
-                            <div class="document-preview">
+                        <div class="document-preview">
+                            @if (! empty($firmaAutografaDataUri))
                                 <img src="{{ $firmaAutografaDataUri }}" alt="Firma autógrafa">
-                            </div>
-                        @elseif (! empty($firmaAutografaNombre))
-                            <div class="document-preview">
+                            @elseif (! empty($firmaAutografaNombre))
                                 <div class="document-fallback">Documento: {{ $firmaAutografaNombre }}</div>
-                            </div>
-                        @else
-                            <div class="document-preview"></div>
-                        @endif
+                            @endif
+                        </div>
                         <div class="info">{{ $expediente->tutor?->name ?? '—' }}</div>
                         <div class="line"></div>
                         <small>Nombre y firma del profesor responsable</small>
@@ -431,6 +428,7 @@
             <tr>
                 <td>
                     <div class="signature">
+                        <div class="document-preview"></div>
                         <div class="info">{{ $expediente->paciente ?? '—' }}</div>
                         <div class="line"></div>
                         <small>Nombre y firma del paciente o su representante</small>
@@ -438,6 +436,7 @@
                 </td>
                 <td>
                     <div class="signature">
+                        <div class="document-preview"></div>
                         <div class="info">{{ $expediente->contacto_emergencia_nombre ?? '—' }}</div>
                         <div class="line"></div>
                         <small>Nombre y firma de un testigo por el paciente</small>
