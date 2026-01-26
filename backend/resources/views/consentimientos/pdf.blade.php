@@ -28,11 +28,13 @@
             width: 816px;
             min-height: 1056px;
             margin: 0 auto;
-            padding: 32px 36px 40px;
+            padding: 28px 36px 36px;
+            display: flex;
+            flex-direction: column;
         }
 
         .header {
-            margin-bottom: 16px;
+            margin-bottom: 12px;
         }
 
         .header-table {
@@ -85,7 +87,7 @@
         }
 
         .title {
-            margin: 12px 0 20px;
+            margin: 10px 0 14px;
             padding: 6px 12px;
             border: 2px solid var(--border);
             text-align: center;
@@ -98,7 +100,7 @@
         .meta {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
 
         .meta td {
@@ -123,7 +125,7 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
         }
 
         th,
@@ -146,24 +148,24 @@
 
         .section-title {
             font-weight: 700;
-            margin: 12px 0 6px;
+            margin: 10px 0 4px;
         }
 
         .paragraph {
-            margin: 0 0 8px;
+            margin: 0 0 6px;
             text-align: justify;
         }
 
         .signatures {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 24px;
+            margin-top: auto;
             table-layout: fixed;
         }
 
         .signatures td {
             border: none;
-            padding: 0 32px 28px;
+            padding: 0 32px 20px;
             vertical-align: top;
             width: 50%;
             background: transparent;
@@ -178,8 +180,8 @@
         }
 
         .signature .document-preview {
-            min-height: 90px;
-            margin-bottom: 8px;
+            min-height: 100px;
+            margin-bottom: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -205,7 +207,7 @@
 
         .signature .line {
             border-bottom: 2px solid var(--border);
-            margin: 10px 24px 12px;
+            margin: 8px 24px 10px;
         }
 
         .signature small {
@@ -351,7 +353,7 @@
             </thead>
             <tbody>
                 @php
-                    $totalRows = 9;
+                    $totalRows = 8;
                     $filledRows = $consentimientos->count();
                 @endphp
                 @forelse ($consentimientos as $consentimiento)
