@@ -146,7 +146,7 @@
 
         .section-title {
             font-weight: 700;
-            margin: 16px 0 6px;
+            margin: 12px 0 6px;
         }
 
         .paragraph {
@@ -157,12 +157,12 @@
         .signatures {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 32px;
+            margin-top: 16px;
         }
 
         .signatures td {
             border: none;
-            padding: 0 24px 24px 0;
+            padding: 0 24px 16px 0;
             vertical-align: top;
             width: 50%;
             background: transparent;
@@ -241,12 +241,12 @@
             }
 
             .signatures {
-                margin-top: 16px;
+                margin-top: 12px;
             }
 
             .signatures td {
                 padding-right: 16px;
-                padding-bottom: 16px;
+                padding-bottom: 12px;
             }
         }
     </style>
@@ -330,7 +330,7 @@
             </thead>
             <tbody>
                 @php
-                    $totalRows = 12;
+                    $totalRows = 9;
                     $filledRows = $consentimientos->count();
                 @endphp
                 @forelse ($consentimientos as $consentimiento)
