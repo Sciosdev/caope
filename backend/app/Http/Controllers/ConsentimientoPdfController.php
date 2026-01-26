@@ -7,6 +7,7 @@ use App\Models\Parametro;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 
 class ConsentimientoPdfController extends Controller
 {
@@ -45,6 +46,7 @@ class ConsentimientoPdfController extends Controller
             ->get();
 
         $logoSources = $this->resolveLogoSources();
+        $firmaAutografa = $this->resolveFirmaAutografaPayload($expediente);
 
         return [
             'expediente' => $expediente,
@@ -55,6 +57,41 @@ class ConsentimientoPdfController extends Controller
             'logoSrc' => $logoSources['logoSrc'],
             'textoIntroduccion' => (string) Parametro::obtener('consentimientos.texto_introduccion', ''),
             'textoCierre' => (string) Parametro::obtener('consentimientos.texto_cierre', ''),
+            'firmaAutografaDataUri' => $firmaAutografa['dataUri'],
+            'firmaAutografaNombre' => $firmaAutografa['nombre'],
+        ];
+    }
+
+    private function resolveFirmaAutografaPayload(Expediente $expediente): array
+    {
+        $path = $expediente->consentimientos_observaciones_path;
+
+        if (! $path) {
+            return ['dataUri' => '', 'nombre' => ''];
+        }
+
+        $disk = config('filesystems.private_default', 'private');
+        $storage = Storage::disk($disk);
+
+        if (! $storage->exists($path)) {
+            return ['dataUri' => '', 'nombre' => basename($path)];
+        }
+
+        $mime = (string) ($storage->mimeType($path) ?: '');
+
+        if (! str_starts_with($mime, 'image/')) {
+            return ['dataUri' => '', 'nombre' => basename($path)];
+        }
+
+        $contents = $storage->get($path);
+
+        if ($contents === false) {
+            return ['dataUri' => '', 'nombre' => basename($path)];
+        }
+
+        return [
+            'dataUri' => sprintf('data:%s;base64,%s', $mime, base64_encode($contents)),
+            'nombre' => basename($path),
         ];
     }
 
