@@ -353,7 +353,7 @@
             </thead>
             <tbody>
                 @php
-                    $totalRows = 6;
+                    $totalRows = 9;
                     $filledRows = $consentimientos->count();
                 @endphp
                 @forelse ($consentimientos as $consentimiento)
