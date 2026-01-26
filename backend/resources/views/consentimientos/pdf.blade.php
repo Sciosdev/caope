@@ -403,6 +403,13 @@
             <tr>
                 <td>
                     <div class="signature">
+                        <div class="info">{{ $expediente->alumno?->name ?? '—' }}</div>
+                        <div class="line"></div>
+                        <small>Nombre, grupo y firma del alumno responsable</small>
+                    </div>
+                </td>
+                <td>
+                    <div class="signature">
                         @if (! empty($firmaAutografaDataUri))
                             <div class="document-preview">
                                 <img src="{{ $firmaAutografaDataUri }}" alt="Firma autógrafa">
@@ -414,13 +421,6 @@
                         @else
                             <div class="document-preview"></div>
                         @endif
-                        <div class="info">{{ $expediente->alumno?->name ?? '—' }}</div>
-                        <div class="line"></div>
-                        <small>Nombre, grupo y firma del alumno responsable</small>
-                    </div>
-                </td>
-                <td>
-                    <div class="signature">
                         <div class="info">{{ $expediente->tutor?->name ?? '—' }}</div>
                         <div class="line"></div>
                         <small>Nombre y firma del profesor responsable</small>
