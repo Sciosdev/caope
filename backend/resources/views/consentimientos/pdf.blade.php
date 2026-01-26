@@ -157,12 +157,13 @@
         .signatures {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 16px;
+            margin-top: 24px;
+            table-layout: fixed;
         }
 
         .signatures td {
             border: none;
-            padding: 0 24px 16px 0;
+            padding: 0 32px 28px;
             vertical-align: top;
             width: 50%;
             background: transparent;
@@ -177,8 +178,8 @@
         }
 
         .signature .document-preview {
-            min-height: 70px;
-            margin-bottom: 6px;
+            min-height: 90px;
+            margin-bottom: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -198,13 +199,13 @@
 
         .signature .info {
             font-size: 11px;
-            min-height: 16px;
-            margin-bottom: 2px;
+            min-height: 18px;
+            margin-bottom: 4px;
         }
 
         .signature .line {
             border-bottom: 2px solid var(--border);
-            margin: 4px 0 8px;
+            margin: 10px 24px 12px;
         }
 
         .signature small {
