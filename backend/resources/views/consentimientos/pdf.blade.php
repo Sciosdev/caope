@@ -176,6 +176,26 @@
             text-align: center;
         }
 
+        .signature .document-preview {
+            min-height: 70px;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .signature .document-preview img {
+            max-width: 100%;
+            max-height: 70px;
+            height: auto;
+        }
+
+        .signature .document-fallback {
+            font-size: 10px;
+            color: #4b5563;
+            word-break: break-word;
+        }
+
         .signature .info {
             font-size: 11px;
             min-height: 16px;
@@ -383,6 +403,17 @@
             <tr>
                 <td>
                     <div class="signature">
+                        @if (! empty($firmaAutografaDataUri))
+                            <div class="document-preview">
+                                <img src="{{ $firmaAutografaDataUri }}" alt="Firma autógrafa">
+                            </div>
+                        @elseif (! empty($firmaAutografaNombre))
+                            <div class="document-preview">
+                                <div class="document-fallback">Documento: {{ $firmaAutografaNombre }}</div>
+                            </div>
+                        @else
+                            <div class="document-preview"></div>
+                        @endif
                         <div class="info">{{ $expediente->alumno?->name ?? '—' }}</div>
                         <div class="line"></div>
                         <small>Nombre, grupo y firma del alumno responsable</small>
