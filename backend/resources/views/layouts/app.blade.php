@@ -35,7 +35,7 @@
         <nav class="navbar navbar-expand-lg navbar-light bg-body border-bottom">
             <div class="container">
                 <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url('/') }}">
-                    <img src="{{ asset('assets/images/logo-mini-dark.png') }}" height="26" alt="{{ config('app.name', 'CAOPE') }} logo">
+                    <img src="{{ asset('assets/images/SDRI_oro.png') }}" height="26" alt="{{ config('app.name', 'CAOPE') }} logo">
                     <span class="fw-semibold">{{ config('app.name', 'CAOPE') }}</span>
                 </a>
 
