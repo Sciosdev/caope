@@ -32,7 +32,7 @@
     <nav class="navbar">
       <div class="container d-flex justify-content-between align-items-center">
         <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url('/') }}">
-          <img src="{{ asset('assets/images/logo-mini-dark.png') }}" height="26" alt="logo">
+          <img src="{{ asset('assets/images/SDRI_oro.png') }}" height="26" alt="logo">
           <span>CAOPE</span>
         </a>
         <div class="d-flex align-items-center gap-3">

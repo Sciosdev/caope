@@ -21,7 +21,7 @@
     <!-- Topbar mínima -->
     <nav class="navbar">
       <div class="container d-flex justify-content-between">
-        <a class="navbar-brand" href="#"><img src="public-assets/images/logo-mini-dark.png" height="28"> CAOPE</a>
+        <a class="navbar-brand" href="#"><img src="public-assets/images/SDRI_oro.png" height="28"> CAOPE</a>
         <span>Preview</span>
       </div>
     </nav>
