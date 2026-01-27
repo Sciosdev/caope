@@ -22,7 +22,7 @@
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
             <div>
                 <a href="/">
-                    <x-application-logo class="w-32 h-32 sm:w-36 sm:h-36 fill-current text-gray-500 object-contain" />
+                    <x-application-logo class="w-16 h-16 sm:w-[4.5rem] sm:h-[4.5rem] fill-current text-gray-500 object-contain" />
                 </a>
             </div>
 
