@@ -34,6 +34,25 @@ class ExpedienteCreateTest extends TestCase
         CatalogoTurno::flushCache();
     }
 
+
+    public function test_formulario_muestra_consultante_y_no_control_autogenerado(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $year = Carbon::today()->year;
+
+        Expediente::factory()->create([
+            'no_control' => sprintf('CA-%d-0007', $year),
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('expedientes.create'));
+
+        $response->assertOk();
+        $response->assertSee('Consultante');
+        $response->assertSee(sprintf('value="CA-%d-0008"', $year), false);
+    }
+
     public function test_admin_crea_expediente_registra_timeline_y_redirige(): void
     {
         $admin = User::factory()->create();

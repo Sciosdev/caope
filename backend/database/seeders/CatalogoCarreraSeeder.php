@@ -14,6 +14,10 @@ class CatalogoCarreraSeeder extends Seeder
             'Licenciatura en Psicología',
             'Cirujano Dentista',
             'Nutrición y Bienestar Integral',
+            'Licenciatura en Medico Cirujano',
+            'Licenciatura en Biologia',
+            'Licenciatura en Ecologia',
+            'Otro plantel de la UNAM',
         ];
 
         foreach ($carreras as $nombre) {
