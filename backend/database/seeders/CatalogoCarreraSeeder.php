@@ -17,7 +17,7 @@ class CatalogoCarreraSeeder extends Seeder
             'Licenciatura en Medico Cirujano',
             'Licenciatura en Biologia',
             'Licenciatura en Ecologia',
-            'Otro plantel de la UNAM',
+            'Otro plantel de la UNAM.',
         ];
 
         foreach ($carreras as $nombre) {
