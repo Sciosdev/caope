@@ -46,6 +46,7 @@
                     value="{{ old('no_control', $expediente->no_control ?? '') }}"
                     class="form-control @error('no_control') is-invalid @enderror"
                     maxlength="30"
+                    readonly
                     required
                 >
                 @error('no_control')
@@ -54,7 +55,7 @@
             </div>
 
             <div class="col-md-4">
-                <label for="paciente" class="form-label">Paciente</label>
+                <label for="paciente" class="form-label">Consultante</label>
                 <input
                     type="text"
                     name="paciente"

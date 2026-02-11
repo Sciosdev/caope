@@ -158,9 +158,41 @@ class ExpedienteController extends Controller
 
         return view('expedientes.create', array_merge($options, [
             'expediente' => new Expediente([
+                'no_control' => $this->nextNoControl(),
                 'apertura' => Carbon::today(),
             ]),
         ]));
+    }
+
+    private function nextNoControl(): string
+    {
+        $example = (string) config('expedientes.no_control.example', 'CA-2025-0001');
+        $prefix = Str::of($example)
+            ->trim()
+            ->before('-')
+            ->upper()
+            ->value();
+
+        if (! preg_match('/^[A-Z]{2}$/', $prefix)) {
+            $prefix = 'CA';
+        }
+
+        $year = Carbon::today()->year;
+        $pattern = sprintf('/^%s-%d-(\d{4})$/', preg_quote($prefix, '/'), $year);
+
+        $maxSequence = Expediente::query()
+            ->where('no_control', 'like', sprintf('%s-%d-%%', $prefix, $year))
+            ->pluck('no_control')
+            ->map(function (?string $noControl) use ($pattern) {
+                if (! is_string($noControl) || ! preg_match($pattern, $noControl, $matches)) {
+                    return 0;
+                }
+
+                return (int) ($matches[1] ?? 0);
+            })
+            ->max() ?? 0;
+
+        return sprintf('%s-%d-%04d', $prefix, $year, $maxSequence + 1);
     }
 
     public function store(StoreExpedienteRequest $request): JsonResponse|RedirectResponse
