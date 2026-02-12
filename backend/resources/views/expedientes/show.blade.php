@@ -49,7 +49,7 @@
                 <span class="fw-semibold">{{ $expediente->turno }}</span>
             </div>
             <div class="col-md-4">
-                <span class="text-muted small d-block">Tutor asignado</span>
+                <span class="text-muted small d-block">Docente Asignado</span>
                 <span class="fw-semibold">{{ $expediente->tutor?->name ?? 'Sin asignar' }}</span>
             </div>
             <div class="col-md-4">
@@ -115,7 +115,7 @@
                         <dt class="col-sm-3">Número de control</dt>
                         <dd class="col-sm-9">{{ $expediente->no_control }}</dd>
 
-                        <dt class="col-sm-3">Paciente</dt>
+                        <dt class="col-sm-3">Consultante</dt>
                         <dd class="col-sm-9">{{ $expediente->paciente }}</dd>
 
                         <dt class="col-sm-3">Tutor</dt>
@@ -419,7 +419,7 @@
                             <span class="fw-semibold">{{ $expediente->no_control }}</span>
                         </div>
                         <div class="col-md-4">
-                            <span class="text-muted small d-block">Paciente</span>
+                            <span class="text-muted small d-block">Consultante</span>
                             <span class="fw-semibold">{{ $expediente->paciente }}</span>
                         </div>
                         <div class="col-md-4">
@@ -982,7 +982,7 @@
                                     </div>
                                     <div class="row g-2 align-items-center mb-3">
                                         <div class="col-md-6">
-                                            <label class="form-label mb-1">Paciente</label>
+                                            <label class="form-label mb-1">Consultante</label>
                                             <input type="text" class="form-control form-control-sm" value="{{ $expediente->paciente ?? '—' }}" disabled>
                                         </div>
                                         <div class="col-md-6">
@@ -1098,7 +1098,7 @@
                                     </div>
                                     <div class="row g-2 align-items-center mb-3">
                                         <div class="col-md-6">
-                                            <label class="form-label mb-1">Paciente</label>
+                                            <label class="form-label mb-1">Consultante</label>
                                             <input type="text" class="form-control form-control-sm" value="{{ $expediente->paciente ?? '—' }}" disabled>
                                         </div>
                                         <div class="col-md-6">

@@ -64,7 +64,7 @@
             <thead>
                 <tr>
                     <th>No. de Control</th>
-                    <th>Paciente</th>
+                    <th>Consultante</th>
                     <th>Alumno</th>
                     <th>Estado</th>
                     <th>Apertura</th>

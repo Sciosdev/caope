@@ -103,7 +103,7 @@
             </div>
 
             <div class="col-md-4">
-                <label for="fecha_inicio_real" class="form-label">Fecha de inicio real</label>
+                <label for="fecha_inicio_real" class="form-label">Fecha de Primera Consulta</label>
                 <input
                     type="date"
                     name="fecha_inicio_real"

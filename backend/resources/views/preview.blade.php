@@ -31,7 +31,7 @@
       <div class="page-content container">
         <h4 class="mb-3">Tabla de prueba</h4>
         <table id="tabla" class="table table-striped w-100">
-          <thead><tr><th>No</th><th>Paciente</th><th>Estado</th><th>Apertura</th></tr></thead>
+          <thead><tr><th>No</th><th>Consultante</th><th>Estado</th><th>Apertura</th></tr></thead>
           <tbody>
             <tr><td>CA-2025-0001</td><td>Demo Uno</td><td><span class="badge bg-secondary">Abierto</span></td><td>2025-10-18</td></tr>
             <tr><td>CA-2025-0002</td><td>Demo Dos</td><td><span class="badge bg-warning">En revisión</span></td><td>2025-10-18</td></tr>

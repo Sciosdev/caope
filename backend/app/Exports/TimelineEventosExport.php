@@ -24,7 +24,7 @@ class TimelineEventosExport extends DefaultValueBinder implements FromQuery, Wit
         return [
             __('Fecha y hora'),
             __('No. de control'),
-            __('Paciente'),
+            __('Consultante'),
             __('Evento'),
             __('Actor'),
             __('Detalles'),

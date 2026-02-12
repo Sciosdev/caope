@@ -80,7 +80,7 @@
             <thead>
                 <tr>
                     <th>{{ __('No. de control') }}</th>
-                    <th>{{ __('Paciente') }}</th>
+                    <th>{{ __('Consultante') }}</th>
                     <th>{{ __('Estado') }}</th>
                     <th>{{ __('Apertura') }}</th>
                     <th>{{ __('Tutor') }}</th>
