@@ -150,12 +150,6 @@
                                     <dt class="col-sm-5">Clínica</dt>
                                     <dd class="col-sm-7">{{ $expediente->clinica ?: '—' }}</dd>
 
-                                    <dt class="col-sm-5">Recibo expediente</dt>
-                                    <dd class="col-sm-7">{{ $expediente->recibo_expediente ?: '—' }}</dd>
-
-                                    <dt class="col-sm-5">Recibo diagnóstico</dt>
-                                    <dd class="col-sm-7">{{ $expediente->recibo_diagnostico ?: '—' }}</dd>
-
                                     <dt class="col-sm-5">Inicio real</dt>
                                     <dd class="col-sm-7">{{ optional($expediente->fecha_inicio_real)->format('Y-m-d') ?? '—' }}</dd>
                                 </dl>

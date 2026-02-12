@@ -80,7 +80,6 @@ class Expediente extends Model
         'genito_urinario' => 'Familiograma',
         'linfohematatico' => 'Linfohemático',
         'endocrino' => 'Endócrino',
-        'nervioso' => 'Nervioso',
         'tegumentario' => 'Tegumentario',
     ];
 

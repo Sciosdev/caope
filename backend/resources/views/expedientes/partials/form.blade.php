@@ -118,36 +118,6 @@
             </div>
 
             <div class="col-md-4">
-                <label for="recibo_expediente" class="form-label">Recibo de expediente</label>
-                <input
-                    type="text"
-                    name="recibo_expediente"
-                    id="recibo_expediente"
-                    value="{{ old('recibo_expediente', $expediente->recibo_expediente ?? '') }}"
-                    class="form-control @error('recibo_expediente') is-invalid @enderror"
-                    maxlength="120"
-                >
-                @error('recibo_expediente')
-                    <div class="invalid-feedback">{{ $message }}</div>
-                @enderror
-            </div>
-
-            <div class="col-md-4">
-                <label for="recibo_diagnostico" class="form-label">Recibo de diagnóstico</label>
-                <input
-                    type="text"
-                    name="recibo_diagnostico"
-                    id="recibo_diagnostico"
-                    value="{{ old('recibo_diagnostico', $expediente->recibo_diagnostico ?? '') }}"
-                    class="form-control @error('recibo_diagnostico') is-invalid @enderror"
-                    maxlength="120"
-                >
-                @error('recibo_diagnostico')
-                    <div class="invalid-feedback">{{ $message }}</div>
-                @enderror
-            </div>
-
-            <div class="col-md-4">
                 <label for="carrera" class="form-label">Carrera</label>
                 <select
                     name="carrera"
