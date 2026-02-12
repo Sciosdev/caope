@@ -1,10 +1,10 @@
 @php($mostrarDSM = $mostrarDSM ?? true)
 
 <div class="mt-4">
-    <h6 class="mb-3">Diagnóstico Médico Odontológico</h6>
+    <h6 class="mb-3">Motivo de Consulta y Posibles Diagnosticos</h6>
     <div class="row g-3">
         <div class="col-12 col-lg-6">
-            <label for="diagnostico" class="form-label">Diagnóstico Médico Odontológico</label>
+            <label for="diagnostico" class="form-label">Motivo de Consulta y Posibles Diagnosticos</label>
             <textarea
                 id="diagnostico"
                 class="form-control"
@@ -15,7 +15,7 @@
         </div>
         @if ($mostrarDSM)
             <div class="col-12 col-lg-6">
-                <label for="dsm_tr" class="form-label">DSM y TR</label>
+                <label for="dsm_tr" class="form-label">Posibles Diagnosticos</label>
                 <textarea
                     id="dsm_tr"
                     class="form-control"

@@ -28,10 +28,10 @@ class ExpedientesExport extends DefaultValueBinder implements FromQuery, WithHea
     {
         return [
             'No. de control',
-            'Paciente',
+            'Consultante',
             'Estado',
             'Fecha de apertura',
-            'Tutor asignado',
+            'Docente Asignado',
             'Coordinador',
             'Capturado por',
         ];

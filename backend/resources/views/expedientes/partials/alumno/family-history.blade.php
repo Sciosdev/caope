@@ -310,14 +310,14 @@
 </div>
 
 <div class="mt-5">
-    <h6 class="mb-3">Diagnóstico Médico Odontológico</h6>
+    <h6 class="mb-3">Motivo de Consulta y Posibles Diagnosticos</h6>
     <p class="text-muted small mb-3">
         Registra los diagnósticos clínicos relevantes y cualquier observación complementaria.
     </p>
 
     <div class="row g-3">
         <div class="col-12 col-lg-4">
-            <label for="diagnostico" class="form-label">Diagnostico</label>
+            <label for="diagnostico" class="form-label">Motivo de Consulta</label>
             <textarea
                 name="diagnostico"
                 id="diagnostico"
@@ -332,7 +332,7 @@
         </div>
 
         <div class="col-12 col-lg-4">
-            <label for="dsm_tr" class="form-label">DSM y TR</label>
+            <label for="dsm_tr" class="form-label">Posibles Diagnosticos</label>
             <textarea
                 name="dsm_tr"
                 id="dsm_tr"
