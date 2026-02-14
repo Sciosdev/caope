@@ -270,6 +270,133 @@ class ExpedienteCreateTest extends TestCase
         $this->assertNull($expediente->plan_accion);
     }
 
+    public function test_admin_captura_ficha_clinica_completa(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $carrera = CatalogoCarrera::create([
+            'nombre' => 'Licenciatura en Enfermería',
+            'activo' => true,
+        ]);
+
+        $turno = CatalogoTurno::create([
+            'nombre' => 'Matutino',
+            'activo' => true,
+        ]);
+
+        CatalogoCarrera::flushCache();
+        CatalogoTurno::flushCache();
+
+        $payload = [
+            'no_control' => 'CA-2025-0600',
+            'paciente' => 'Paciente Completo',
+            'apertura' => Carbon::now()->toDateString(),
+            'carrera' => $carrera->nombre,
+            'turno' => $turno->nombre,
+            'clinica' => '  Clínica Norte  ',
+            'recibo_expediente' => 'EXP-123',
+            'recibo_diagnostico' => 'DX-999',
+            'genero' => 'femenino',
+            'estado_civil' => 'soltero',
+            'ocupacion' => 'Estudiante',
+            'escolaridad' => 'Licenciatura',
+            'fecha_nacimiento' => '1999-04-10',
+            'lugar_nacimiento' => 'CDMX',
+            'domicilio_calle' => 'Calle Uno #22',
+            'colonia' => 'Centro',
+            'delegacion_municipio' => 'Cuauhtémoc',
+            'entidad' => 'Ciudad de México',
+            'telefono_principal' => '+52 55 1234 5678',
+            'fecha_inicio_real' => Carbon::now()->toDateString(),
+            'motivo_consulta' => 'Presenta síntomas de ansiedad.',
+            'alerta_ingreso' => 'Alergia a la penicilina.',
+            'contacto_emergencia_nombre' => 'Juan Pérez',
+            'contacto_emergencia_parentesco' => 'Hermano',
+            'contacto_emergencia_correo' => 'contacto@example.com',
+            'contacto_emergencia_telefono' => '+52 55 9876 5432',
+            'contacto_emergencia_horario' => '  9 a 18 horas  ',
+            'medico_referencia_nombre' => 'Dra. Méndez',
+            'medico_referencia_correo' => 'medica@example.com',
+            'medico_referencia_telefono' => '+52 55 9999 1111',
+        ];
+
+        $response = $this->actingAs($admin)->post(route('expedientes.store'), $payload);
+
+        $response->assertSessionHasNoErrors();
+
+        $expediente = Expediente::where('no_control', $payload['no_control'])->first();
+        $this->assertNotNull($expediente);
+
+        $this->assertSame('Clínica Norte', $expediente->clinica);
+        $this->assertSame($payload['recibo_expediente'], $expediente->recibo_expediente);
+        $this->assertSame($payload['recibo_diagnostico'], $expediente->recibo_diagnostico);
+        $this->assertSame($payload['genero'], $expediente->genero);
+        $this->assertSame($payload['estado_civil'], $expediente->estado_civil);
+        $this->assertSame($payload['ocupacion'], $expediente->ocupacion);
+        $this->assertSame($payload['escolaridad'], $expediente->escolaridad);
+        $this->assertSame($payload['fecha_nacimiento'], $expediente->fecha_nacimiento?->toDateString());
+        $this->assertSame($payload['lugar_nacimiento'], $expediente->lugar_nacimiento);
+        $this->assertSame($payload['domicilio_calle'], $expediente->domicilio_calle);
+        $this->assertSame($payload['colonia'], $expediente->colonia);
+        $this->assertSame($payload['delegacion_municipio'], $expediente->delegacion_municipio);
+        $this->assertSame($payload['entidad'], $expediente->entidad);
+        $this->assertSame($payload['telefono_principal'], $expediente->telefono_principal);
+        $this->assertSame($payload['fecha_inicio_real'], $expediente->fecha_inicio_real?->toDateString());
+        $this->assertSame($payload['motivo_consulta'], $expediente->motivo_consulta);
+        $this->assertSame($payload['alerta_ingreso'], $expediente->alerta_ingreso);
+        $this->assertSame($payload['contacto_emergencia_nombre'], $expediente->contacto_emergencia_nombre);
+        $this->assertSame($payload['contacto_emergencia_parentesco'], $expediente->contacto_emergencia_parentesco);
+        $this->assertSame($payload['contacto_emergencia_correo'], $expediente->contacto_emergencia_correo);
+        $this->assertSame($payload['contacto_emergencia_telefono'], $expediente->contacto_emergencia_telefono);
+        $this->assertSame('9 a 18 horas', $expediente->contacto_emergencia_horario);
+        $this->assertSame($payload['medico_referencia_nombre'], $expediente->medico_referencia_nombre);
+        $this->assertSame($payload['medico_referencia_correo'], $expediente->medico_referencia_correo);
+        $this->assertSame($payload['medico_referencia_telefono'], $expediente->medico_referencia_telefono);
+    }
+
+    public function test_validacion_alerta_campos_de_ficha_clinica(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $carrera = CatalogoCarrera::create([
+            'nombre' => 'Licenciatura en Psicología',
+            'activo' => true,
+        ]);
+
+        $turno = CatalogoTurno::create([
+            'nombre' => 'Vespertino',
+            'activo' => true,
+        ]);
+
+        CatalogoCarrera::flushCache();
+        CatalogoTurno::flushCache();
+
+        $payload = [
+            'no_control' => 'CA-2025-0601',
+            'paciente' => 'Paciente con errores',
+            'apertura' => Carbon::now()->toDateString(),
+            'carrera' => $carrera->nombre,
+            'turno' => $turno->nombre,
+            'genero' => 'invalid',
+            'telefono_principal' => '123',
+            'contacto_emergencia_correo' => 'no-es-correo',
+        ];
+
+        $response = $this->actingAs($admin)
+            ->from(route('expedientes.create'))
+            ->post(route('expedientes.store'), $payload);
+
+        $response->assertSessionHasErrors([
+            'genero',
+            'telefono_principal',
+            'contacto_emergencia_correo',
+        ]);
+
+        $this->assertDatabaseMissing('expedientes', ['no_control' => $payload['no_control']]);
+    }
+
     public function test_store_returns_json_payload_with_loaded_relations(): void
     {
         $admin = User::factory()->create();
@@ -330,6 +457,7 @@ class ExpedienteCreateTest extends TestCase
 
         Schema::shouldReceive('getColumnListing')->andReturn([]);
         Schema::shouldReceive('hasColumn')->andReturnFalse();
+        Schema::shouldReceive('getColumnListing')->andReturn([]);
         Log::spy();
 
         $payload = [
@@ -385,6 +513,7 @@ class ExpedienteCreateTest extends TestCase
 
         Schema::shouldReceive('getColumnListing')->andReturn([]);
         Schema::shouldReceive('hasColumn')->andReturnFalse();
+        Schema::shouldReceive('getColumnListing')->andReturn([]);
 
         $payload = [
             'no_control' => 'CA-2025-0600',
