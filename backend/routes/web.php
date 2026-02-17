@@ -11,6 +11,7 @@ use App\Http\Controllers\ConsentimientoController;
 use App\Http\Controllers\ConsentimientoPdfController;
 use App\Http\Controllers\ConsentimientoRequeridoController;
 use App\Http\Controllers\ConsentimientoUploadController;
+use App\Http\Controllers\ConsultorioReservaController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExpedienteController;
 use App\Http\Controllers\ProfileController;
@@ -55,6 +56,15 @@ Route::middleware('auth')->group(function () {
     Route::prefix('admin/parametros')->name('admin.parametros.')->middleware('role:admin')->group(function (): void {
         Route::get('/', [ParametrosController::class, 'index'])->name('index');
         Route::put('{parametro}', [ParametrosController::class, 'update'])->name('update');
+    });
+
+
+    Route::prefix('consultorios')->name('consultorios.')->middleware('role:admin|coordinador')->group(function (): void {
+        Route::get('/', [ConsultorioReservaController::class, 'index'])->name('index');
+        Route::post('/', [ConsultorioReservaController::class, 'store'])->name('store');
+        Route::get('{reserva}/editar', [ConsultorioReservaController::class, 'edit'])->name('edit');
+        Route::put('{reserva}', [ConsultorioReservaController::class, 'update'])->name('update');
+        Route::delete('{reserva}', [ConsultorioReservaController::class, 'destroy'])->name('destroy');
     });
 
     Route::middleware('role:admin|coordinador')->group(function (): void {

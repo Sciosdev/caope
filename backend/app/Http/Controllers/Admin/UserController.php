@@ -49,7 +49,9 @@ class UserController extends Controller
             'turno' => ['nullable', 'string', 'max:100'],
         ]);
 
-        $user = User::create(Arr::only($validated, ['name', 'email', 'password', 'carrera', 'turno']));
+        $payload = Arr::only($validated, ['name', 'email', 'password', 'carrera', 'turno']);
+
+        $user = User::create($payload);
         $user->syncRoles($validated['roles']);
 
         return Redirect::route('admin.users.index')->with('status', __('Usuario creado correctamente.'));
@@ -107,6 +109,7 @@ class UserController extends Controller
 
         return Redirect::route('admin.users.index')->with('status', __('Usuario actualizado correctamente.'));
     }
+
 
     public function destroy(User $user): RedirectResponse
     {

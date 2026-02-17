@@ -69,6 +69,7 @@
     @enderror
 </div>
 
+
 <div class="d-flex justify-content-end gap-2">
     <a href="{{ route('admin.users.index') }}" class="btn btn-outline-secondary">{{ __('Cancelar') }}</a>
     <button type="submit" class="btn btn-primary">
