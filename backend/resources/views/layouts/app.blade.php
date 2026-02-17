@@ -59,6 +59,11 @@
                                 </li>
                             @endcan
                             @role('admin|coordinador')
+                                <li class="nav-item">
+                                    <a class="nav-link {{ request()->routeIs('consultorios.*') ? 'active fw-semibold' : '' }}" href="{{ route('consultorios.index') }}">
+                                        {{ __('Consultorios') }}
+                                    </a>
+                                </li>
                                 @if ($reportesRouteName)
                                     <li class="nav-item">
                                         <a class="nav-link {{ request()->routeIs($reportesRouteName) ? 'active fw-semibold' : '' }}" href="{{ route($reportesRouteName) }}">
