@@ -11,6 +11,7 @@ use App\Http\Controllers\ConsentimientoController;
 use App\Http\Controllers\ConsentimientoPdfController;
 use App\Http\Controllers\ConsentimientoRequeridoController;
 use App\Http\Controllers\ConsentimientoUploadController;
+use App\Http\Controllers\ConsultorioReservaController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExpedienteController;
 use App\Http\Controllers\ProfileController;
@@ -28,7 +29,7 @@ Route::get('/', function () {
     return redirect()->route('login');
 })->name('home');
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'active_user'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/pendientes', [DashboardController::class, 'pending'])->name('dashboard.pending');
     Route::get('/dashboard/metricas', [DashboardController::class, 'metrics'])->name('dashboard.metrics');
@@ -42,6 +43,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [UserController::class, 'store'])->name('store');
         Route::get('{user}/editar', [UserController::class, 'edit'])->name('edit');
         Route::put('{user}', [UserController::class, 'update'])->name('update');
+        Route::patch('{user}/acceso', [UserController::class, 'toggleActive'])->name('toggle-active');
         Route::delete('{user}', [UserController::class, 'destroy'])->name('destroy');
     });
 
@@ -55,6 +57,15 @@ Route::middleware('auth')->group(function () {
     Route::prefix('admin/parametros')->name('admin.parametros.')->middleware('role:admin')->group(function (): void {
         Route::get('/', [ParametrosController::class, 'index'])->name('index');
         Route::put('{parametro}', [ParametrosController::class, 'update'])->name('update');
+    });
+
+
+    Route::prefix('consultorios')->name('consultorios.')->middleware('role:admin|coordinador')->group(function (): void {
+        Route::get('/', [ConsultorioReservaController::class, 'index'])->name('index');
+        Route::post('/', [ConsultorioReservaController::class, 'store'])->name('store');
+        Route::get('{reserva}/editar', [ConsultorioReservaController::class, 'edit'])->name('edit');
+        Route::put('{reserva}', [ConsultorioReservaController::class, 'update'])->name('update');
+        Route::delete('{reserva}', [ConsultorioReservaController::class, 'destroy'])->name('destroy');
     });
 
     Route::middleware('role:admin|coordinador')->group(function (): void {

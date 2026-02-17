@@ -47,9 +47,13 @@ class UserController extends Controller
             'roles.*' => ['string', 'exists:roles,name'],
             'carrera' => ['nullable', 'string', 'max:100'],
             'turno' => ['nullable', 'string', 'max:100'],
+            'is_active' => ['nullable', 'boolean'],
         ]);
 
-        $user = User::create(Arr::only($validated, ['name', 'email', 'password', 'carrera', 'turno']));
+        $payload = Arr::only($validated, ['name', 'email', 'password', 'carrera', 'turno']);
+        $payload['is_active'] = (bool) ($validated['is_active'] ?? true);
+
+        $user = User::create($payload);
         $user->syncRoles($validated['roles']);
 
         return Redirect::route('admin.users.index')->with('status', __('Usuario creado correctamente.'));
@@ -88,6 +92,7 @@ class UserController extends Controller
             'roles.*' => ['string', 'exists:roles,name'],
             'carrera' => ['nullable', 'string', 'max:100'],
             'turno' => ['nullable', 'string', 'max:100'],
+            'is_active' => ['nullable', 'boolean'],
         ]);
 
         if ($this->wouldRemoveLastAdmin($user, $validated['roles'])) {
@@ -97,6 +102,7 @@ class UserController extends Controller
         }
 
         $data = Arr::only($validated, ['name', 'email', 'carrera', 'turno']);
+        $data['is_active'] = (bool) ($validated['is_active'] ?? $user->is_active);
 
         if (! empty($validated['password'])) {
             $data['password'] = $validated['password'];
@@ -106,6 +112,23 @@ class UserController extends Controller
         $user->syncRoles($validated['roles']);
 
         return Redirect::route('admin.users.index')->with('status', __('Usuario actualizado correctamente.'));
+    }
+
+    public function toggleActive(Request $request, User $user): RedirectResponse
+    {
+        if ($response = $this->preventSelfModification($user)) {
+            return $response;
+        }
+
+        $request->validate([
+            'is_active' => ['required', 'boolean'],
+        ]);
+
+        $user->update([
+            'is_active' => (bool) $request->boolean('is_active'),
+        ]);
+
+        return Redirect::route('admin.users.index')->with('status', __('Acceso actualizado correctamente.'));
     }
 
     public function destroy(User $user): RedirectResponse

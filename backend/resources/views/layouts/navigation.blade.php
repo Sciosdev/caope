@@ -31,6 +31,9 @@
                         </x-nav-link>
                     @endcan
                     @role('admin|coordinador')
+                        <x-nav-link :href="route('consultorios.index')" :active="request()->routeIs('consultorios.*')">
+                            {{ __('Consultorios') }}
+                        </x-nav-link>
                         @if ($reportesRouteName)
                             <x-nav-link :href="route($reportesRouteName)" :active="request()->routeIs($reportesRouteName)">
                                 {{ __('Reportes') }}
@@ -105,6 +108,9 @@
                 </x-responsive-nav-link>
             @endcan
             @role('admin|coordinador')
+                <x-responsive-nav-link :href="route('consultorios.index')" :active="request()->routeIs('consultorios.*')">
+                    {{ __('Consultorios') }}
+                </x-responsive-nav-link>
                 @if ($reportesRouteName)
                     <x-responsive-nav-link :href="route($reportesRouteName)" :active="request()->routeIs($reportesRouteName)">
                         {{ __('Reportes') }}

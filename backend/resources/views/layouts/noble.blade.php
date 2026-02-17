@@ -50,6 +50,10 @@
               </a>
             @endcan
             @role('admin|coordinador')
+              <a href="{{ route('consultorios.index') }}"
+                 class="text-muted small {{ request()->routeIs('consultorios.*') ? 'fw-semibold text-body' : '' }}">
+                Consultorios
+              </a>
               @if ($reportesRouteName)
                 <a href="{{ route($reportesRouteName) }}"
                    class="text-muted small {{ request()->routeIs($reportesRouteName) ? 'fw-semibold text-body' : '' }}">
