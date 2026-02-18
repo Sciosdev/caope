@@ -89,6 +89,37 @@ class DashboardPendingsTest extends TestCase
         );
     }
 
+    public function test_observed_notification_falls_back_to_expediente_when_session_is_missing(): void
+    {
+        $student = User::factory()->create();
+        $student->assignRole('alumno');
+
+        $tutor = User::factory()->create();
+        $expediente = Expediente::factory()->create([
+            'estado' => 'revision',
+            'creado_por' => $student->id,
+            'tutor_id' => $tutor->id,
+        ]);
+
+        $student->notifications()->create([
+            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'type' => SesionObservedNotification::class,
+            'data' => [
+                'expediente_id' => $expediente->id,
+                'sesion_id' => 999999,
+                'fecha' => '2024-02-01',
+                'actor_name' => 'Docente',
+                'message' => 'La sesión #999999 fue observada y requiere tu atención.',
+            ],
+        ]);
+
+        $response = $this->actingAs($student)->getJson(route('dashboard.pending'));
+
+        $response->assertOk();
+        $response->assertJsonPath('cards.0.id', 'observados');
+        $response->assertJsonPath('cards.0.items.0.url', route('expedientes.show', $expediente));
+    }
+
     public function test_student_sees_observed_card_when_notified(): void
     {
         $student = User::factory()->create();
