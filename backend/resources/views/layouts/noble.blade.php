@@ -36,8 +36,6 @@
           <span>CAOPE</span>
         </a>
         <div class="d-flex align-items-center gap-3">
-          <a href="#" class="text-muted small">Ayuda</a>
-
           @auth
             <a href="{{ route('dashboard') }}"
                class="text-muted small {{ request()->routeIs('dashboard') ? 'fw-semibold text-body' : '' }}">

@@ -85,8 +85,6 @@
                     </ul>
 
                     <div class="d-flex align-items-center gap-3">
-                        <a href="#" class="text-muted small d-none d-lg-inline">{{ __('Ayuda') }}</a>
-
                         @auth
                             <div class="dropdown">
                                 <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
