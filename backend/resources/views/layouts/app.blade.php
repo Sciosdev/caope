@@ -17,6 +17,38 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 
+    <style>
+        @media (max-width: 991px) {
+            html,
+            body {
+                height: auto;
+                min-height: 100%;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            body.horizontal-menu {
+                position: static !important;
+                top: auto !important;
+                left: auto !important;
+                right: auto !important;
+                display: block;
+                min-height: auto;
+                height: auto;
+                overflow-y: auto;
+            }
+
+            body.horizontal-menu .main-wrapper,
+            body.horizontal-menu .page-wrapper,
+            body.horizontal-menu .page-wrapper .page-content {
+                display: block;
+                min-height: auto;
+                height: auto;
+                overflow: visible;
+            }
+        }
+    </style>
+
     {{-- Hook para estilos específicos de cada vista --}}
     @stack('styles')
 </head>
