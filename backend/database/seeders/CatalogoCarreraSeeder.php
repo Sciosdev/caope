@@ -13,7 +13,6 @@ class CatalogoCarreraSeeder extends Seeder
             'Licenciatura en Enfermería',
             'Licenciatura en Psicología',
             'Cirujano Dentista',
-            'Nutrición y Bienestar Integral',
             'Licenciatura en Medico Cirujano',
             'Licenciatura en Biologia',
             'Licenciatura en Ecologia',
