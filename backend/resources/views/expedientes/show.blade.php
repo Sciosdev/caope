@@ -256,7 +256,7 @@
                                             <small class="text-muted">{{ optional($evento->created_at)->diffForHumans() }}</small>
                                         </div>
                                         @if (! empty($evento->payload))
-                                            <pre class="bg-light border rounded small mt-2 mb-0 p-2">{{ json_encode($evento->payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
+                                            @include('expedientes.partials.timeline-payload', ['payload' => $evento->payload])
                                         @endif
                                     </li>
                                 @endforeach
@@ -1415,7 +1415,7 @@
                                                 <span class="fw-semibold">{{ $evento->actor?->name ?? 'Sistema' }}</span>
                                             </div>
                                             @if (! empty($evento->payload))
-                                                <pre class="bg-light border rounded small mt-2 mb-0 p-2">{{ json_encode($evento->payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
+                                                @include('expedientes.partials.timeline-payload', ['payload' => $evento->payload])
                                             @endif
                                         </div>
                                         <small class="text-muted text-nowrap">{{ optional($evento->created_at)->format('Y-m-d H:i') }}</small>
@@ -1451,6 +1451,20 @@
         .consentimientos-helper {
             border-left: 3px solid #6c757d;
             padding-left: 0.5rem;
+        }
+
+        .timeline-payload-section:last-child {
+            margin-bottom: 0 !important;
+        }
+
+        .timeline-payload-list {
+            padding-left: 1rem;
+            margin-bottom: 0;
+        }
+
+        .timeline-payload-dl dt,
+        .timeline-payload-dl dd {
+            font-size: 0.85rem;
         }
     </style>
 @endpush
