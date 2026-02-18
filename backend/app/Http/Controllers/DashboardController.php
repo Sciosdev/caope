@@ -162,9 +162,7 @@ class DashboardController extends Controller
                         Arr::get($data, 'actor_name'),
                         Arr::get($data, 'fecha') ? Carbon::parse($data['fecha']) : null
                     ),
-                    'url' => ($expedienteId && $sesionId)
-                        ? route('expedientes.sesiones.show', [$expedienteId, $sesionId])
-                        : null,
+                    'url' => $this->resolveObservedNotificationUrl($expedienteId, $sesionId),
                 ];
             })
             ->all();
@@ -246,6 +244,28 @@ class DashboardController extends Controller
         ])->first(fn ($routeName) => \Route::has($routeName));
 
         return $routeName ? route($routeName) : null;
+    }
+
+    private function resolveObservedNotificationUrl(mixed $expedienteId, mixed $sesionId): ?string
+    {
+        if (! $expedienteId) {
+            return null;
+        }
+
+        if ($sesionId) {
+            $sesionExists = Sesion::query()
+                ->whereKey($sesionId)
+                ->where('expediente_id', $expedienteId)
+                ->exists();
+
+            if ($sesionExists) {
+                return route('expedientes.sesiones.show', [$expedienteId, $sesionId]);
+            }
+        }
+
+        $expedienteExists = Expediente::query()->whereKey($expedienteId)->exists();
+
+        return $expedienteExists ? route('expedientes.show', $expedienteId) : null;
     }
 
     private function formatSecondaryLine(?string $reference, ?string $context, $date): string
