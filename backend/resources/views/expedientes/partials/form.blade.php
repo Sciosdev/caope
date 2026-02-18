@@ -198,6 +198,22 @@
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
             </div>
+
+            <div class="col-md-4">
+                <label for="resumen_clinico_facilitador" class="form-label">Facilitador (Alumno responsable)</label>
+                <input
+                    type="text"
+                    name="resumen_clinico[facilitador]"
+                    id="resumen_clinico_facilitador"
+                    value="{{ old('resumen_clinico.facilitador', data_get($expediente->resumen_clinico ?? [], 'facilitador', auth()->user()?->name)) }}"
+                    class="form-control @error('resumen_clinico.facilitador') is-invalid @enderror"
+                    maxlength="150"
+                    readonly
+                >
+                @error('resumen_clinico.facilitador')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
         </div>
     </div>
 </div>

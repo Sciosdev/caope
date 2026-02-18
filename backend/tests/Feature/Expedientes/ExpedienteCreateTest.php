@@ -50,6 +50,8 @@ class ExpedienteCreateTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Consultante');
+        $response->assertSee('Facilitador (Alumno responsable)');
+        $response->assertSee($admin->name);
         $response->assertSee(sprintf('value="CA-%d-0008"', $year), false);
     }
 
@@ -77,6 +79,9 @@ class ExpedienteCreateTest extends TestCase
             'apertura' => Carbon::now()->toDateString(),
             'carrera' => $carrera->nombre,
             'turno' => $turno->nombre,
+            'resumen_clinico' => [
+                'facilitador' => $admin->name,
+            ],
         ];
 
         $response = $this->actingAs($admin)->post(route('expedientes.store'), $payload);
@@ -93,6 +98,7 @@ class ExpedienteCreateTest extends TestCase
         $this->assertSame($payload['paciente'], $expediente->paciente);
         $this->assertSame($payload['carrera'], $expediente->carrera);
         $this->assertSame($payload['turno'], $expediente->turno);
+        $this->assertSame($admin->name, data_get($expediente->resumen_clinico, 'facilitador'));
 
         $this->assertDatabaseHas('timeline_eventos', [
             'expediente_id' => $expediente->id,

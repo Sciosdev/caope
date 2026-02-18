@@ -78,7 +78,7 @@ class Expediente extends Model
         'cardiovascular' => 'Evaluación Psicológica Observaciones Clínicas Relevantes',
         'musculo_esqueletico' => 'Neurologico',
         'genito_urinario' => 'Familiograma',
-        'linfohematatico' => 'Linfohemático',
+        'linfohematatico' => 'Otro Referente',
         'endocrino' => 'Endócrino',
         'tegumentario' => 'Tegumentario',
     ];
