@@ -48,7 +48,7 @@
     <div class="col-12">
         <label for="nota" class="form-label">Notas de la sesión</label>
         <input type="hidden" name="nota" id="nota" value="{{ old('nota', $sesion->nota ?? '') }}">
-        <trix-editor input="nota" class="form-control @error('nota') is-invalid @enderror"
+        <trix-editor id="nota-editor" input="nota" class="form-control @error('nota') is-invalid @enderror"
             placeholder="Describe las actividades, acuerdos y observaciones relevantes"></trix-editor>
         @error('nota')
             <div class="invalid-feedback">{{ $message }}</div>
@@ -171,3 +171,18 @@
         </div>
     @endif
 </div>
+
+@once
+    @push('scripts')
+        <script>
+            document.addEventListener('trix-initialize', function (event) {
+                if (event.target.id !== 'nota-editor') {
+                    return;
+                }
+
+                const fileTools = event.target.toolbarElement?.querySelector('[data-trix-button-group="file-tools"]');
+                fileTools?.remove();
+            });
+        </script>
+    @endpush
+@endonce
