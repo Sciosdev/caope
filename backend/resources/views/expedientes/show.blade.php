@@ -98,7 +98,7 @@
             <button class="nav-link" id="anexos-tab" data-bs-toggle="tab" data-bs-target="#anexos" type="button" role="tab">Anexos ({{ $anexos->count() }})</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="timeline-tab" data-bs-toggle="tab" data-bs-target="#timeline" type="button" role="tab">Timeline</button>
+            <button class="nav-link" id="timeline-tab" data-bs-toggle="tab" data-bs-target="#timeline" type="button" role="tab">Timeline ({{ $timelineEventos->count() }})</button>
         </li>
     </ul>
 
@@ -1388,7 +1388,10 @@
             <div class="card shadow-sm">
                 <div class="card-body">
                     <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
-                        <h6 class="mb-0">Actividad reciente</h6>
+                        <div>
+                            <h6 class="mb-0">Actividad reciente</h6>
+                            <p class="text-muted small mb-0">Movimientos y acciones registradas en el expediente.</p>
+                        </div>
                         <button
                             type="button"
                             class="btn btn-outline-primary btn-sm ms-md-auto"
@@ -1402,18 +1405,20 @@
                     @if ($timelineEventos->isEmpty())
                         <p class="text-muted mb-0">Aún no hay eventos registrados en el timeline.</p>
                     @else
-                        <ul class="list-group list-group-flush">
+                        <ul class="list-group list-group-flush border rounded-3 overflow-hidden">
                             @foreach ($timelineEventos as $evento)
-                                <li class="list-group-item">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div>
-                                            <span class="fw-semibold">{{ $evento->actor?->name ?? 'Sistema' }}</span>
-                                            <span class="text-muted">→ {{ $evento->evento }}</span>
+                                <li class="list-group-item py-3">
+                                    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
+                                                <span class="badge bg-light text-dark border">{{ $evento->evento }}</span>
+                                                <span class="fw-semibold">{{ $evento->actor?->name ?? 'Sistema' }}</span>
+                                            </div>
                                             @if (! empty($evento->payload))
                                                 <pre class="bg-light border rounded small mt-2 mb-0 p-2">{{ json_encode($evento->payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
                                             @endif
                                         </div>
-                                        <small class="text-muted">{{ optional($evento->created_at)->format('Y-m-d H:i') }}</small>
+                                        <small class="text-muted text-nowrap">{{ optional($evento->created_at)->format('Y-m-d H:i') }}</small>
                                     </div>
                                 </li>
                             @endforeach
