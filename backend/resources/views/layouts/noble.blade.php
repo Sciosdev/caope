@@ -10,6 +10,26 @@
   <link rel="stylesheet" href="{{ asset('assets/css/demo2/style.css') }}">
 
   <link rel="stylesheet" href="{{ asset('assets/build/css/app-editor.css') }}">
+  <style>
+    @media (max-width: 768px) {
+      body.horizontal-menu {
+        display: block;
+        min-height: auto;
+        height: auto;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      body.horizontal-menu .main-wrapper,
+      body.horizontal-menu .page-wrapper,
+      body.horizontal-menu .page-wrapper .page-content {
+        display: block;
+        min-height: auto;
+        height: auto;
+        overflow: visible;
+      }
+    }
+  </style>
   <script src="{{ asset('assets/build/js/app.js') }}" defer></script>
 
   {{-- Hook para CSS por página --}}
