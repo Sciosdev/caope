@@ -8,6 +8,26 @@
         @enderror
     </div>
     <div class="col-md-6">
+        <label for="tipo" class="form-label">Tipo de sesión</label>
+        @php
+            $tiposSesion = [
+                'Primera entrevista',
+                'Seguimiento',
+                'Cierre de caso',
+                'Canalización',
+            ];
+            $tipoSeleccionado = old('tipo', $sesion->tipo ?: 'Seguimiento');
+        @endphp
+        <select name="tipo" id="tipo" class="form-select @error('tipo') is-invalid @enderror" required>
+            @foreach ($tiposSesion as $tipoSesion)
+                <option value="{{ $tipoSesion }}" @selected($tipoSeleccionado === $tipoSesion)>{{ $tipoSesion }}</option>
+            @endforeach
+        </select>
+        @error('tipo')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+    <div class="col-md-6">
         <label for="hora_atencion" class="form-label">Hora de atención</label>
         <input type="time" name="hora_atencion" id="hora_atencion" maxlength="5"
             value="{{ old('hora_atencion', $sesion->hora_atencion ? \Illuminate\Support\Carbon::parse($sesion->hora_atencion)->format('H:i') : '') }}"
@@ -42,6 +62,15 @@
                     value="{{ old('interconsulta', $sesion->interconsulta) }}"
                     class="form-control @error('interconsulta') is-invalid @enderror" placeholder="Opcional">
                 @error('interconsulta')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+            <div class="col-md-4">
+                <label for="referencia_externa" class="form-label">Referencia externa</label>
+                <input type="text" name="referencia_externa" id="referencia_externa" maxlength="120"
+                    value="{{ old('referencia_externa', $sesion->referencia_externa) }}"
+                    class="form-control @error('referencia_externa') is-invalid @enderror" placeholder="Opcional">
+                @error('referencia_externa')
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
             </div>
