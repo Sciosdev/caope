@@ -29,7 +29,7 @@ Route::get('/', function () {
     return redirect()->route('login');
 })->name('home');
 
-Route::middleware(['auth', 'active_user'])->group(function () {
+Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/pendientes', [DashboardController::class, 'pending'])->name('dashboard.pending');
     Route::get('/dashboard/metricas', [DashboardController::class, 'metrics'])->name('dashboard.metrics');
