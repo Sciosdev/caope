@@ -11,8 +11,20 @@
 
   <link rel="stylesheet" href="{{ asset('assets/build/css/app-editor.css') }}">
   <style>
-    @media (max-width: 768px) {
+    @media (max-width: 991px) {
+      html,
+      body {
+        height: auto;
+        min-height: 100%;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
       body.horizontal-menu {
+        position: static !important;
+        top: auto !important;
+        left: auto !important;
+        right: auto !important;
         display: block;
         min-height: auto;
         height: auto;
