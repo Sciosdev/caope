@@ -68,4 +68,46 @@ class ConsultorioReservaTest extends TestCase
         $response->assertSessionHasNoErrors();
         $this->assertDatabaseCount('consultorio_reservas', 2);
     }
+    public function test_consulta_disponibilidad_por_fecha_y_consultorio(): void
+    {
+        $role = Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $admin = User::factory()->create();
+        $admin->assignRole($role);
+
+        $fecha = now()->addDay()->toDateString();
+
+        ConsultorioReserva::query()->create([
+            'fecha' => $fecha,
+            'hora_inicio' => '10:00',
+            'hora_fin' => '11:00',
+            'consultorio_numero' => 5,
+            'cubiculo_numero' => 3,
+            'estrategia' => 'Terapia individual',
+            'creado_por' => $admin->id,
+        ]);
+
+        ConsultorioReserva::query()->create([
+            'fecha' => $fecha,
+            'hora_inicio' => '11:00',
+            'hora_fin' => '12:00',
+            'consultorio_numero' => 6,
+            'cubiculo_numero' => 3,
+            'estrategia' => 'No debe aparecer',
+            'creado_por' => $admin->id,
+        ]);
+
+        $response = $this->actingAs($admin)->getJson(route('consultorios.availability', [
+            'fecha' => $fecha,
+            'consultorio_numero' => 5,
+        ]));
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('consultorio_numero', 5)
+            ->assertJsonPath('fecha', $fecha)
+            ->assertJsonCount(1, 'reservas')
+            ->assertJsonPath('reservas.0.cubiculo_numero', 3)
+            ->assertJsonPath('reservas.0.estrategia', 'Terapia individual');
+    }
+
 }
