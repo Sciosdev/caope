@@ -62,6 +62,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::prefix('consultorios')->name('consultorios.')->middleware('role:admin|coordinador')->group(function (): void {
         Route::get('/', [ConsultorioReservaController::class, 'index'])->name('index');
+        Route::get('/availability', [ConsultorioReservaController::class, 'availability'])->name('availability');
         Route::post('/', [ConsultorioReservaController::class, 'store'])->name('store');
         Route::get('{reserva}/editar', [ConsultorioReservaController::class, 'edit'])->name('edit');
         Route::put('{reserva}', [ConsultorioReservaController::class, 'update'])->name('update');

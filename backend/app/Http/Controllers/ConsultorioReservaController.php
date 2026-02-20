@@ -8,6 +8,7 @@ use App\Models\ConsultorioReserva;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 
 class ConsultorioReservaController extends Controller
@@ -48,6 +49,27 @@ class ConsultorioReservaController extends Controller
             'consultorioSeleccionado' => $consultorioSeleccionado,
             'usuarios' => $usuariosActivos,
             'docentes' => $docentes,
+        ]);
+    }
+
+    public function availability(Request $request): JsonResponse
+    {
+        abort_unless($request->user()?->hasAnyRole(['admin', 'coordinador']), 403);
+
+        $fecha = $request->string('fecha')->toString() ?: now()->toDateString();
+        $consultorioNumero = max(1, min(14, (int) $request->integer('consultorio_numero', 1)));
+
+        $reservas = ConsultorioReserva::query()
+            ->whereDate('fecha', $fecha)
+            ->where('consultorio_numero', $consultorioNumero)
+            ->orderBy('cubiculo_numero')
+            ->orderBy('hora_inicio')
+            ->get(['cubiculo_numero', 'hora_inicio', 'hora_fin', 'estrategia']);
+
+        return response()->json([
+            'fecha' => $fecha,
+            'consultorio_numero' => $consultorioNumero,
+            'reservas' => $reservas,
         ]);
     }
 
