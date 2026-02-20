@@ -96,7 +96,7 @@
                         <option value="{{ $i }}" @selected($consultorioSeleccionado === $i)>Consultorio {{ $i }}</option>
                     @endfor
                 </select>
-                <button class="btn btn-outline-secondary" id="ocupacion-ver-btn">Ver</button>
+                <button class="btn btn-outline-secondary" type="submit" id="ocupacion-ver-btn">Ver</button>
             </form>
         </div>
         <div class="card-body pb-0">
@@ -105,23 +105,25 @@
         <div class="card-body">
             <div class="row g-3">
                 @for ($i = 1; $i <= 14; $i++)
-                    <div class="col-md-6 col-xl-4">
-                        <div class="border rounded p-3 h-100">
+                    <div class="col-md-6 col-xl-4" data-cubiculo-card="{{ $i }}">
+                        <div class="border rounded p-3 h-100" data-cubiculo-container>
                             <h6>Cubículo {{ $i }}</h6>
                             @php $items = $ocupacionPorCubiculo->get($i, collect()); @endphp
-                            @if ($items->isEmpty())
-                                <p class="text-muted mb-0 small">Sin ocupación</p>
-                            @else
-                                <ul class="list-unstyled small mb-0">
-                                    @foreach ($items as $item)
-                                        <li class="mb-2">
-                                            <strong>{{ substr($item->hora_inicio, 0, 5) }} - {{ substr($item->hora_fin, 0, 5) }}</strong><br>
-                                            {{ $item->estrategia }}<br>
-                                            Usuario: {{ $item->usuarioAtendido?->name ?? '—' }}
-                                        </li>
-                                    @endforeach
-                                </ul>
-                            @endif
+                            <div data-cubiculo-content>
+                                @if ($items->isEmpty())
+                                    <p class="text-muted mb-0 small">Sin ocupación</p>
+                                @else
+                                    <ul class="list-unstyled small mb-0">
+                                        @foreach ($items as $item)
+                                            <li class="mb-2">
+                                                <strong>{{ substr($item->hora_inicio, 0, 5) }} - {{ substr($item->hora_fin, 0, 5) }}</strong><br>
+                                                {{ $item->estrategia }}<br>
+                                                Usuario: {{ $item->usuarioAtendido?->name ?? '—' }}
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                @endif
+                            </div>
                         </div>
                     </div>
                 @endfor
@@ -187,7 +189,7 @@
         const alerta = document.getElementById('disponibilidad-alerta');
         const filtroFecha = document.getElementById('ocupacion-fecha');
         const filtroConsultorio = document.getElementById('ocupacion-consultorio');
-        const filtroForm = document.getElementById('ocupacion-filtro-form');
+        const cubiculoCards = document.querySelectorAll('[data-cubiculo-card]');
 
         const hideAlert = () => {
             alerta.textContent = '';
@@ -199,14 +201,74 @@
             alerta.classList.remove('d-none');
         };
 
-        const refreshCalendar = () => {
-            if (!filtroForm) {
+        const renderCubiculoItems = (cubiculo, items) => {
+            const card = document.querySelector(`[data-cubiculo-card="${cubiculo}"]`);
+            if (!card) {
                 return;
             }
 
-            filtroFecha.value = formFecha.value;
-            filtroConsultorio.value = formConsultorio.value;
-            filtroForm.submit();
+            const container = card.querySelector('[data-cubiculo-container]');
+            const content = card.querySelector('[data-cubiculo-content]');
+            if (!container || !content) {
+                return;
+            }
+
+            if (!items.length) {
+                container.classList.remove('border-danger-subtle', 'bg-danger-subtle');
+                container.classList.add('border-success-subtle', 'bg-success-subtle');
+                content.innerHTML = '<p class="text-muted mb-0 small">Sin ocupación</p>';
+                return;
+            }
+
+            container.classList.remove('border-success-subtle', 'bg-success-subtle');
+            container.classList.add('border-danger-subtle', 'bg-danger-subtle');
+            const rows = items.map((item) => {
+                const inicio = (item.hora_inicio ?? '').slice(0, 5);
+                const fin = (item.hora_fin ?? '').slice(0, 5);
+                const estrategia = item.estrategia ?? '—';
+                return `<li class="mb-2"><strong>${inicio} - ${fin}</strong><br>${estrategia}</li>`;
+            }).join('');
+
+            content.innerHTML = `<ul class="list-unstyled small mb-0">${rows}</ul>`;
+        };
+
+        const refreshCalendar = async () => {
+            if (!filtroFecha?.value || !filtroConsultorio?.value) {
+                return;
+            }
+
+            try {
+                const params = new URLSearchParams({
+                    fecha: filtroFecha.value,
+                    consultorio_numero: filtroConsultorio.value,
+                });
+                const response = await fetch(`${availabilityEndpoint}?${params.toString()}`, {
+                    headers: {
+                        'Accept': 'application/json',
+                    },
+                });
+
+                if (!response.ok) {
+                    return;
+                }
+
+                const data = await response.json();
+                const grouped = (data.reservas ?? []).reduce((carry, item) => {
+                    const key = Number(item.cubiculo_numero);
+                    if (!carry[key]) {
+                        carry[key] = [];
+                    }
+                    carry[key].push(item);
+                    return carry;
+                }, {});
+
+                cubiculoCards.forEach((card) => {
+                    const cubiculo = Number(card.dataset.cubiculoCard);
+                    renderCubiculoItems(cubiculo, grouped[cubiculo] ?? []);
+                });
+            } catch (error) {
+                console.error(error);
+            }
         };
 
         const hasOverlap = (items, start, end, cubiculo) => {
@@ -253,19 +315,19 @@
             }
         };
 
-        formConsultorio.addEventListener('change', () => {
-            refreshCalendar();
-        });
+        formConsultorio.addEventListener('change', checkAvailability);
 
         formCubiculo.addEventListener('change', () => {
             checkAvailability();
-            refreshCalendar();
         });
-        formFecha.addEventListener('change', () => {
-            refreshCalendar();
-        });
+        formFecha.addEventListener('change', checkAvailability);
+        filtroFecha?.addEventListener('change', refreshCalendar);
+        filtroConsultorio?.addEventListener('change', refreshCalendar);
         formHoraInicio.addEventListener('change', checkAvailability);
         formHoraFin.addEventListener('change', checkAvailability);
+
+        refreshCalendar();
+        setInterval(refreshCalendar, 30000);
     });
 </script>
 @endpush
