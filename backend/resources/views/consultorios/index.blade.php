@@ -105,6 +105,12 @@
                         <option value="{{ $i }}" @selected($consultorioSeleccionado === $i)>Consultorio {{ $i }}</option>
                     @endfor
                 </select>
+                <select name="cubiculo_numero" class="form-select" id="ocupacion-cubiculo">
+                    <option value="">Todos los cubículos</option>
+                    @for ($i = 1; $i <= 14; $i++)
+                        <option value="{{ $i }}" @selected($cubiculoSeleccionado === $i)>Cubículo {{ $i }}</option>
+                    @endfor
+                </select>
                 <button class="btn btn-outline-secondary" id="ocupacion-ver-btn">Ver</button>
             </form>
         </div>
@@ -198,6 +204,7 @@
         const alerta = document.getElementById('disponibilidad-alerta');
         const filtroFecha = document.getElementById('ocupacion-fecha');
         const filtroConsultorio = document.getElementById('ocupacion-consultorio');
+        const filtroCubiculo = document.getElementById('ocupacion-cubiculo');
         const filtroForm = document.getElementById('ocupacion-filtro-form');
 
         const hideAlert = () => {
@@ -217,6 +224,7 @@
 
             filtroFecha.value = formFecha.value;
             filtroConsultorio.value = formConsultorio.value;
+            filtroCubiculo.value = formCubiculo.value;
             filtroForm.submit();
         };
 
@@ -268,7 +276,10 @@
             refreshCalendar();
         });
 
-        formCubiculo.addEventListener('change', checkAvailability);
+        formCubiculo.addEventListener('change', () => {
+            checkAvailability();
+            refreshCalendar();
+        });
         formFecha.addEventListener('change', () => {
             refreshCalendar();
         });
