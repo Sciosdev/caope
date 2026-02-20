@@ -17,29 +17,37 @@ class ConsultorioReservaController extends Controller
         abort_unless($request->user()?->hasAnyRole(['admin', 'coordinador']), 403);
 
         $fecha = $request->string('fecha')->toString() ?: now()->toDateString();
+        $consultorioSeleccionado = max(1, min(14, (int) $request->integer('consultorio_numero', 1)));
 
         $reservas = ConsultorioReserva::query()
             ->with(['usuarioAtendido', 'estratega', 'supervisor', 'creadoPor'])
             ->when($fecha, fn ($query) => $query->whereDate('fecha', $fecha))
             ->orderBy('fecha')
             ->orderBy('consultorio_numero')
+            ->orderBy('cubiculo_numero')
             ->orderBy('hora_inicio')
             ->paginate(25)
             ->withQueryString();
 
-        $ocupacionPorConsultorio = ConsultorioReserva::query()
+        $ocupacionPorCubiculo = ConsultorioReserva::query()
             ->with(['usuarioAtendido', 'estratega', 'supervisor'])
             ->whereDate('fecha', $fecha)
-            ->orderBy('consultorio_numero')
+            ->where('consultorio_numero', $consultorioSeleccionado)
+            ->orderBy('cubiculo_numero')
             ->orderBy('hora_inicio')
             ->get()
-            ->groupBy('consultorio_numero');
+            ->groupBy('cubiculo_numero');
+
+        $usuariosActivos = User::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        $docentes = User::role('docente')->where('is_active', true)->orderBy('name')->get(['id', 'name']);
 
         return view('consultorios.index', [
             'reservas' => $reservas,
-            'ocupacionPorConsultorio' => $ocupacionPorConsultorio,
+            'ocupacionPorCubiculo' => $ocupacionPorCubiculo,
             'fechaFiltro' => $fecha,
-            'usuarios' => User::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'consultorioSeleccionado' => $consultorioSeleccionado,
+            'usuarios' => $usuariosActivos,
+            'docentes' => $docentes,
         ]);
     }
 
@@ -50,6 +58,7 @@ class ConsultorioReservaController extends Controller
         return view('consultorios.edit', [
             'reserva' => $reserva->load(['usuarioAtendido', 'estratega', 'supervisor']),
             'usuarios' => User::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'docentes' => User::role('docente')->where('is_active', true)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 

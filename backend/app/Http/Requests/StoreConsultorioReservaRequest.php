@@ -19,6 +19,7 @@ class StoreConsultorioReservaRequest extends FormRequest
             'hora_inicio' => ['required', 'date_format:H:i'],
             'hora_fin' => ['required', 'date_format:H:i', 'after:hora_inicio'],
             'consultorio_numero' => ['required', 'integer', 'between:1,14'],
+            'cubiculo_numero' => ['required', 'integer', 'between:1,14'],
             'estrategia' => ['required', 'string', 'max:255'],
             'usuario_atendido_id' => ['nullable', 'integer', 'exists:users,id'],
             'estratega_id' => ['nullable', 'integer', 'exists:users,id'],
@@ -33,6 +34,7 @@ class StoreConsultorioReservaRequest extends FormRequest
             $horaInicio = $this->input('hora_inicio');
             $horaFin = $this->input('hora_fin');
             $consultorio = (int) $this->input('consultorio_numero');
+            $cubiculo = (int) $this->input('cubiculo_numero');
 
             if (! $fecha || ! $horaInicio || ! $horaFin) {
                 return;
@@ -49,6 +51,7 @@ class StoreConsultorioReservaRequest extends FormRequest
             $overlap = ConsultorioReserva::query()
                 ->whereDate('fecha', $fecha)
                 ->where('consultorio_numero', $consultorio)
+                ->where('cubiculo_numero', $cubiculo)
                 ->where('hora_inicio', '<', $horaFin)
                 ->where('hora_fin', '>', $horaInicio)
                 ->exists();
