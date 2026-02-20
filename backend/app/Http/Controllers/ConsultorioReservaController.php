@@ -17,7 +17,7 @@ class ConsultorioReservaController extends Controller
     {
         abort_unless($request->user()?->hasAnyRole(['admin', 'coordinador']), 403);
 
-        $fecha = $request->string('fecha')->toString() ?: now()->toDateString();
+        $fechaFiltro = $request->string('fecha')->toString() ?: now()->toDateString();
         $consultorioSeleccionado = max(1, min(14, (int) $request->integer('consultorio_numero', 1)));
         $cubiculoSeleccionado = $request->filled('cubiculo_numero')
             ? max(1, min(14, (int) $request->integer('cubiculo_numero')))
@@ -25,7 +25,6 @@ class ConsultorioReservaController extends Controller
 
         $reservas = ConsultorioReserva::query()
             ->with(['usuarioAtendido', 'estratega', 'supervisor', 'creadoPor'])
-            ->when($fecha, fn ($query) => $query->whereDate('fecha', $fecha))
             ->orderBy('fecha')
             ->orderBy('consultorio_numero')
             ->orderBy('cubiculo_numero')
@@ -35,7 +34,7 @@ class ConsultorioReservaController extends Controller
 
         $ocupacionPorCubiculo = ConsultorioReserva::query()
             ->with(['usuarioAtendido', 'estratega', 'supervisor'])
-            ->whereDate('fecha', $fecha)
+            ->whereDate('fecha', $fechaFiltro)
             ->where('consultorio_numero', $consultorioSeleccionado)
             ->when($cubiculoSeleccionado, fn ($query) => $query->where('cubiculo_numero', $cubiculoSeleccionado))
             ->orderBy('cubiculo_numero')
@@ -49,7 +48,7 @@ class ConsultorioReservaController extends Controller
         return view('consultorios.index', [
             'reservas' => $reservas,
             'ocupacionPorCubiculo' => $ocupacionPorCubiculo,
-            'fechaFiltro' => $fecha,
+            'fechaFiltro' => $fechaFiltro,
             'consultorioSeleccionado' => $consultorioSeleccionado,
             'cubiculoSeleccionado' => $cubiculoSeleccionado,
             'usuarios' => $usuariosActivos,
