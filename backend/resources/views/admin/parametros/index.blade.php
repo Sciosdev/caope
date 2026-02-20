@@ -1,6 +1,6 @@
 <x-app-layout>
     @section('breadcrumbs')
-        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">{{ __('Dashboard') }}</a></li>
+        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">{{ __('Inicio') }}</a></li>
         <li class="breadcrumb-item active" aria-current="page">{{ __('Parámetros') }}</li>
     @endsection
 
