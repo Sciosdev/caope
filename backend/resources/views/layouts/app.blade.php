@@ -80,7 +80,7 @@
                         @auth
                             <li class="nav-item">
                                 <a class="nav-link {{ request()->routeIs('dashboard') ? 'active fw-semibold' : '' }}" href="{{ route('dashboard') }}">
-                                    {{ __('Dashboard') }}
+                                    {{ __('Inicio') }}
                                 </a>
                             </li>
                             @can('expedientes.view')
