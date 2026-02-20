@@ -22,6 +22,28 @@
 
         return (string) $value;
     };
+
+    $decodeJsonScalar = static function (mixed $value): mixed {
+        if (! is_string($value)) {
+            return $value;
+        }
+
+        $trimmed = trim($value);
+
+        if ($trimmed === '' || ! in_array($trimmed[0], ['{', '['], true)) {
+            return $value;
+        }
+
+        $decoded = json_decode($trimmed, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE || ! is_array($decoded)) {
+            return $value;
+        }
+
+        return $decoded;
+    };
+
+    $value = $decodeJsonScalar($value);
 @endphp
 
 @if (is_array($value))
