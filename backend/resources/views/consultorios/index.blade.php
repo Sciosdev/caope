@@ -56,7 +56,7 @@
                         @endfor
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-4">
                     <label class="form-label">Estrategia</label>
                     <input type="text" name="estrategia" class="form-control" value="{{ old('estrategia') }}" required>
                 </div>
@@ -76,15 +76,6 @@
                         <option value="">--</option>
                         @foreach ($docentes as $usuario)
                             <option value="{{ $usuario->id }}" @selected((int) old('estratega_id') === $usuario->id)>{{ $usuario->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Supervisor</label>
-                    <select name="supervisor_id" class="form-select">
-                        <option value="">--</option>
-                        @foreach ($usuarios as $usuario)
-                            <option value="{{ $usuario->id }}" @selected((int) old('supervisor_id') === $usuario->id)>{{ $usuario->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -155,7 +146,6 @@
                         <th>Cubículo</th>
                         <th>Estrategia</th>
                         <th>Estratega</th>
-                        <th>Supervisor</th>
                         <th>Usuario</th>
                         <th>Acciones</th>
                     </tr>
@@ -168,7 +158,6 @@
                             <td>Consultorio {{ $reserva->consultorio_numero }} · Cubículo {{ $reserva->cubiculo_numero }}</td>
                             <td>{{ $reserva->estrategia }}</td>
                             <td>{{ $reserva->estratega?->name ?? '—' }}</td>
-                            <td>{{ $reserva->supervisor?->name ?? '—' }}</td>
                             <td>{{ $reserva->usuarioAtendido?->name ?? '—' }}</td>
                             <td>
                                 <div class="d-flex gap-2">
@@ -182,7 +171,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="8" class="text-center text-muted">Sin registros.</td></tr>
+                        <tr><td colspan="7" class="text-center text-muted">Sin registros.</td></tr>
                     @endforelse
                 </tbody>
             </table>
