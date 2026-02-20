@@ -15,6 +15,7 @@ class ConsultorioReserva extends Model
         'hora_inicio',
         'hora_fin',
         'consultorio_numero',
+        'cubiculo_numero',
         'estrategia',
         'usuario_atendido_id',
         'estratega_id',

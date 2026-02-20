@@ -33,11 +33,19 @@
                     <label class="form-label">Consultorio</label>
                     <select name="consultorio_numero" class="form-select" required>
                         @for ($i = 1; $i <= 14; $i++)
-                            <option value="{{ $i }}" @selected((int) old('consultorio_numero', 1) === $i)>Cubículo {{ $i }}</option>
+                            <option value="{{ $i }}" @selected((int) old('consultorio_numero', 1) === $i)>Consultorio {{ $i }}</option>
                         @endfor
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-2">
+                    <label class="form-label">Cubículo</label>
+                    <select name="cubiculo_numero" class="form-select" required>
+                        @for ($i = 1; $i <= 14; $i++)
+                            <option value="{{ $i }}" @selected((int) old('cubiculo_numero', 1) === $i)>Cubículo {{ $i }}</option>
+                        @endfor
+                    </select>
+                </div>
+                <div class="col-md-2">
                     <label class="form-label">Estrategia</label>
                     <input type="text" name="estrategia" class="form-control" value="{{ old('estrategia') }}" required>
                 </div>
@@ -55,7 +63,7 @@
                     <label class="form-label">Estratega</label>
                     <select name="estratega_id" class="form-select">
                         <option value="">--</option>
-                        @foreach ($usuarios as $usuario)
+                        @foreach ($docentes as $usuario)
                             <option value="{{ $usuario->id }}" @selected((int) old('estratega_id') === $usuario->id)>{{ $usuario->name }}</option>
                         @endforeach
                     </select>
@@ -81,6 +89,11 @@
             <span>Calendario de ocupación por cubículo</span>
             <form method="GET" class="d-flex gap-2">
                 <input type="date" name="fecha" class="form-control" value="{{ $fechaFiltro }}">
+                <select name="consultorio_numero" class="form-select">
+                    @for ($i = 1; $i <= 14; $i++)
+                        <option value="{{ $i }}" @selected($consultorioSeleccionado === $i)>Consultorio {{ $i }}</option>
+                    @endfor
+                </select>
                 <button class="btn btn-outline-secondary">Ver</button>
             </form>
         </div>
@@ -90,7 +103,7 @@
                     <div class="col-md-6 col-xl-4">
                         <div class="border rounded p-3 h-100">
                             <h6>Cubículo {{ $i }}</h6>
-                            @php $items = $ocupacionPorConsultorio->get($i, collect()); @endphp
+                            @php $items = $ocupacionPorCubiculo->get($i, collect()); @endphp
                             @if ($items->isEmpty())
                                 <p class="text-muted mb-0 small">Sin ocupación</p>
                             @else
@@ -132,7 +145,7 @@
                         <tr>
                             <td>{{ $reserva->fecha->format('Y-m-d') }}</td>
                             <td>{{ substr($reserva->hora_inicio, 0, 5) }} - {{ substr($reserva->hora_fin, 0, 5) }}</td>
-                            <td>{{ $reserva->consultorio_numero }}</td>
+                            <td>Consultorio {{ $reserva->consultorio_numero }} · Cubículo {{ $reserva->cubiculo_numero }}</td>
                             <td>{{ $reserva->estrategia }}</td>
                             <td>{{ $reserva->estratega?->name ?? '—' }}</td>
                             <td>{{ $reserva->supervisor?->name ?? '—' }}</td>
