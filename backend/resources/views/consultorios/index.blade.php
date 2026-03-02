@@ -23,6 +23,7 @@
         </div>
     @endif
 
+    @if(auth()->user()?->hasRole('admin'))
     <div class="card mb-4">
         <div class="card-header">Nueva asignación</div>
         <div class="card-body">
@@ -85,6 +86,7 @@
             </form>
         </div>
     </div>
+    @endif
 
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
@@ -143,7 +145,7 @@
                         <th>Estrategia</th>
                         <th>Estratega</th>
                         <th>Usuario</th>
-                        <th>Acciones</th>
+                        @if(auth()->user()?->hasRole('admin'))<th>Acciones</th>@endif
                     </tr>
                 </thead>
                 <tbody>
@@ -155,6 +157,7 @@
                             <td>{{ $reserva->estrategia }}</td>
                             <td>{{ $reserva->estratega?->name ?? '—' }}</td>
                             <td>{{ $reserva->usuarioAtendido?->name ?? '—' }}</td>
+                            @if(auth()->user()?->hasRole('admin'))
                             <td>
                                 <div class="d-flex gap-2">
                                 <a class="btn btn-sm btn-outline-primary" href="{{ route('consultorios.edit', $reserva) }}">Modificar</a>
@@ -165,9 +168,10 @@
                                 </form>
                                 </div>
                             </td>
+                            @endif
                         </tr>
                     @empty
-                        <tr><td colspan="7" class="text-center text-muted">Sin registros.</td></tr>
+                        <tr><td colspan="{{ auth()->user()?->hasRole('admin') ? 7 : 6 }}" class="text-center text-muted">Sin registros.</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -315,16 +319,17 @@
             }
         };
 
-        formConsultorio.addEventListener('change', checkAvailability);
-
-        formCubiculo.addEventListener('change', () => {
-            checkAvailability();
-        });
-        formFecha.addEventListener('change', checkAvailability);
+        if (formConsultorio && formCubiculo && formFecha && formHoraInicio && formHoraFin) {
+            formConsultorio.addEventListener('change', checkAvailability);
+            formCubiculo.addEventListener('change', () => {
+                checkAvailability();
+            });
+            formFecha.addEventListener('change', checkAvailability);
+            formHoraInicio.addEventListener('change', checkAvailability);
+            formHoraFin.addEventListener('change', checkAvailability);
+        }
         filtroFecha?.addEventListener('change', refreshCalendar);
         filtroConsultorio?.addEventListener('change', refreshCalendar);
-        formHoraInicio.addEventListener('change', checkAvailability);
-        formHoraFin.addEventListener('change', checkAvailability);
 
         refreshCalendar();
         setInterval(refreshCalendar, 30000);

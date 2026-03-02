@@ -30,7 +30,7 @@
                             {{ __('Expedientes') }}
                         </x-nav-link>
                     @endcan
-                    @role('admin|coordinador')
+                    @role('admin|coordinador|alumno')
                         <x-nav-link :href="route('consultorios.index')" :active="request()->routeIs('consultorios.*')">
                             {{ __('Consultorios') }}
                         </x-nav-link>
@@ -107,7 +107,7 @@
                     {{ __('Expedientes') }}
                 </x-responsive-nav-link>
             @endcan
-            @role('admin|coordinador')
+            @role('admin|coordinador|alumno')
                 <x-responsive-nav-link :href="route('consultorios.index')" :active="request()->routeIs('consultorios.*')">
                     {{ __('Consultorios') }}
                 </x-responsive-nav-link>

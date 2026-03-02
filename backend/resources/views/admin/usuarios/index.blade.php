@@ -25,6 +25,7 @@
                             <th scope="col">{{ __('Nombre') }}</th>
                             <th scope="col">{{ __('Correo electrónico') }}</th>
                             <th scope="col">{{ __('Roles') }}</th>
+                            <th scope="col">{{ __('Aprobación') }}</th>
                             <th scope="col">{{ __('Acceso') }}</th>
                             <th scope="col" class="text-end">{{ __('Acciones') }}</th>
                         </tr>
@@ -41,6 +42,17 @@
                                         @foreach ($user->roles as $role)
                                             <span class="badge text-bg-light text-capitalize">{{ $role->name }}</span>
                                         @endforeach
+                                    @endif
+                                </td>
+                                <td>
+                                    @if ($user->approved_at)
+                                        <span class="badge text-bg-success">Aprobado</span>
+                                    @else
+                                        <form action="{{ route('admin.users.approve', $user) }}" method="POST">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="btn btn-sm btn-warning">Aprobar</button>
+                                        </form>
                                     @endif
                                 </td>
                                 <td>
@@ -70,7 +82,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center text-muted py-4">{{ __('No hay usuarios registrados todavía.') }}</td>
+                                <td colspan="6" class="text-center text-muted py-4">{{ __('No hay usuarios registrados todavía.') }}</td>
                             </tr>
                         @endforelse
                     </tbody>
