@@ -13,13 +13,13 @@ class EnsureUserIsActive
     {
         $user = $request->user();
 
-        if ($user && (! $user->is_active || ! $user->approved_at)) {
+        if ($user && ! $user->is_active) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
             return redirect()->route('login')->withErrors([
-                'email' => 'Tu cuenta está pendiente de aprobación o deshabilitada. Solicita activación al administrador.',
+                'email' => 'Tu cuenta está deshabilitada. Solicita activación al administrador.',
             ]);
         }
 

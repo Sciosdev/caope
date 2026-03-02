@@ -67,14 +67,14 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->password),
             'carrera' => $request->input('carrera'),
             'turno' => $request->input('turno'),
-            'is_active' => false,
-            'approved_at' => null,
+            'is_active' => true,
+            'approved_at' => now(),
         ]);
 
         $user->syncRoles(['alumno']);
 
         event(new Registered($user));
 
-        return redirect()->route('login')->with('status', 'Registro enviado. Tu cuenta requiere aprobación de un administrador.');
+        return redirect()->route('login')->with('status', 'Registro enviado correctamente. Ya puedes iniciar sesión.');
     }
 }
