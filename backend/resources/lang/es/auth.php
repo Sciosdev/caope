@@ -13,6 +13,7 @@ return [
         'log_in' => 'Iniciar sesión',
         'log_out' => 'Cerrar sesión',
         'register' => 'Registrarse',
+        'need_account' => '¿No tienes cuenta? Regístrate',
         'already_registered' => '¿Ya estás registrado?',
         'name' => 'Nombre',
         'career' => 'Carrera',
