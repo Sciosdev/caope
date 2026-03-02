@@ -5,7 +5,7 @@
 
 <div class="mb-3">
     <label for="name" class="form-label">{{ __('Nombre') }}</label>
-    <input type="text" id="name" name="name" value="{{ old('name', $editing ? $user->name : '') }}" class="form-control" required>
+    <input type="text" id="name" name="name" value="{{ old('name', $editing ? $user->name : '') }}" class="form-control" autocomplete="off" required>
     @error('name')
         <div class="text-danger small mt-1">{{ $message }}</div>
     @enderror
@@ -13,7 +13,7 @@
 
 <div class="mb-3">
     <label for="email" class="form-label">{{ __('Correo electrónico') }}</label>
-    <input type="email" id="email" name="email" value="{{ old('email', $editing ? $user->email : '') }}" class="form-control" required>
+    <input type="email" id="email" name="email" value="{{ old('email', $editing ? $user->email : '') }}" class="form-control" autocomplete="off" required>
     @error('email')
         <div class="text-danger small mt-1">{{ $message }}</div>
     @enderror
@@ -55,7 +55,12 @@
 
 <div class="mb-3">
     <label for="carrera" class="form-label">{{ __('Carrera (opcional)') }}</label>
-    <input type="text" id="carrera" name="carrera" value="{{ old('carrera', $editing ? $user->carrera : '') }}" class="form-control">
+    <select id="carrera" name="carrera" class="form-select">
+        <option value="">{{ __('Selecciona una carrera') }}</option>
+        @foreach ($carreras as $carrera)
+            <option value="{{ $carrera }}" @selected(old('carrera', $editing ? $user->carrera : '') === $carrera)>{{ $carrera }}</option>
+        @endforeach
+    </select>
     @error('carrera')
         <div class="text-danger small mt-1">{{ $message }}</div>
     @enderror
@@ -63,7 +68,12 @@
 
 <div class="mb-4">
     <label for="turno" class="form-label">{{ __('Turno (opcional)') }}</label>
-    <input type="text" id="turno" name="turno" value="{{ old('turno', $editing ? $user->turno : '') }}" class="form-control">
+    <select id="turno" name="turno" class="form-select">
+        <option value="">{{ __('Selecciona un turno') }}</option>
+        @foreach ($turnos as $turno)
+            <option value="{{ $turno }}" @selected(old('turno', $editing ? $user->turno : '') === $turno)>{{ $turno }}</option>
+        @endforeach
+    </select>
     @error('turno')
         <div class="text-danger small mt-1">{{ $message }}</div>
     @enderror

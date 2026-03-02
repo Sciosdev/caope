@@ -24,7 +24,7 @@
                     <form action="{{ route('admin.users.update', $user) }}" method="POST">
                         @csrf
                         @method('PUT')
-                        @include('admin.usuarios.partials.form', ['roles' => $roles, 'user' => $user])
+                        @include('admin.usuarios.partials.form', ['roles' => $roles, 'user' => $user, 'carreras' => $carreras, 'turnos' => $turnos])
                     </form>
                 </div>
             </div>

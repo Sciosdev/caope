@@ -15,6 +15,10 @@
         <div class="alert alert-success">{{ session('status') }}</div>
     @endif
 
+    @if ($errors->has('catalogo'))
+        <div class="alert alert-danger">{{ $errors->first('catalogo') }}</div>
+    @endif
+
     <div class="card">
         <div class="card-body">
             <div class="table-responsive">
@@ -44,14 +48,36 @@
                                         <a href="{{ route($routePrefix . '.edit', $item) }}" class="btn btn-outline-primary btn-sm">
                                             {{ __('Editar') }}
                                         </a>
-                                        <form action="{{ route($routePrefix . '.destroy', $item) }}" method="POST"
-                                            onsubmit="return confirm('{{ __('¿Deseas desactivar este elemento?') }}');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-outline-danger btn-sm" {{ $item->activo ? '' : 'disabled' }}>
-                                                {{ __('Desactivar') }}
-                                            </button>
-                                        </form>
+                                        @if (Route::has($routePrefix . '.toggle-active'))
+                                            <form action="{{ route($routePrefix . '.toggle-active', $item) }}" method="POST"
+                                                onsubmit="return confirm('{{ $item->activo ? __('¿Deseas desactivar este elemento?') : __('¿Deseas habilitar este elemento?') }}');">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="btn btn-outline-warning btn-sm">
+                                                    {{ $item->activo ? __('Desactivar') : __('Habilitar') }}
+                                                </button>
+                                            </form>
+                                        @else
+                                            <form action="{{ route($routePrefix . '.destroy', $item) }}" method="POST"
+                                                onsubmit="return confirm('{{ __('¿Deseas desactivar este elemento?') }}');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-outline-danger btn-sm" {{ $item->activo ? '' : 'disabled' }}>
+                                                    {{ __('Desactivar') }}
+                                                </button>
+                                            </form>
+                                        @endif
+
+                                        @if (Route::has($routePrefix . '.force-destroy'))
+                                            <form action="{{ route($routePrefix . '.force-destroy', $item) }}" method="POST"
+                                                onsubmit="return confirm('{{ __('¿Deseas eliminar este elemento? Esta acción no se puede deshacer.') }}');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                                    {{ __('Eliminar') }}
+                                                </button>
+                                            </form>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>

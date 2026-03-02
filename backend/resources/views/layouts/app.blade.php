@@ -123,7 +123,6 @@
                                         <li><a class="dropdown-item" href="{{ route('admin.users.index') }}">{{ __('Usuarios') }}</a></li>
                                         <li><a class="dropdown-item" href="{{ route('admin.catalogos.carreras.index') }}">{{ __('Carreras') }}</a></li>
                                         <li><a class="dropdown-item" href="{{ route('admin.catalogos.estrategias.index') }}">{{ __('Estrategias') }}</a></li>
-                                        <li><a class="dropdown-item" href="{{ route('admin.parametros.index') }}">{{ __('Parámetros') }}</a></li>
                                     </ul>
                                 </li>
                             @endrole

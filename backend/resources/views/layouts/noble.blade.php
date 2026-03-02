@@ -113,7 +113,6 @@
                   <li><a class="dropdown-item" href="{{ route('admin.users.index') }}">Usuarios</a></li>
                   <li><a class="dropdown-item" href="{{ route('admin.catalogos.carreras.index') }}">Carreras</a></li>
                   <li><a class="dropdown-item" href="{{ route('admin.catalogos.estrategias.index') }}">Estrategias</a></li>
-                  <li><a class="dropdown-item" href="{{ route('admin.parametros.index') }}">Parámetros</a></li>
                 </ul>
               </div>
             @endrole
