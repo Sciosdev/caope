@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
@@ -113,6 +114,42 @@ abstract class CatalogoController extends Controller
 
         return Redirect::route($this->routePrefix . '.index')->with('status', __(
             ':resource desactivado correctamente.',
+            ['resource' => $this->resourceName]
+        ));
+    }
+
+    public function toggleActive(int|string $id): RedirectResponse
+    {
+        $item = $this->findModel($id);
+
+        $item->forceFill(['activo' => ! (bool) $item->activo])->save();
+
+        $this->flushCatalogoCache();
+
+        return Redirect::route($this->routePrefix . '.index')->with('status', __(
+            (bool) $item->activo
+                ? ':resource habilitado correctamente.'
+                : ':resource desactivado correctamente.',
+            ['resource' => $this->resourceName]
+        ));
+    }
+
+    public function forceDestroy(int|string $id): RedirectResponse
+    {
+        $item = $this->findModel($id);
+
+        try {
+            $item->delete();
+        } catch (QueryException) {
+            return Redirect::route($this->routePrefix . '.index')->withErrors([
+                'catalogo' => __('No es posible eliminar este elemento porque está en uso.'),
+            ]);
+        }
+
+        $this->flushCatalogoCache();
+
+        return Redirect::route($this->routePrefix . '.index')->with('status', __(
+            ':resource eliminado correctamente.',
             ['resource' => $this->resourceName]
         ));
     }

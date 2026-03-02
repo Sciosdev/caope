@@ -23,7 +23,7 @@
 
                     <form action="{{ route('admin.users.store') }}" method="POST">
                         @csrf
-                        @include('admin.usuarios.partials.form', ['roles' => $roles])
+                        @include('admin.usuarios.partials.form', ['roles' => $roles, 'carreras' => $carreras, 'turnos' => $turnos])
                     </form>
                 </div>
             </div>

@@ -51,7 +51,11 @@ Route::middleware(['auth', 'active_user'])->group(function () {
 
     Route::prefix('admin/catalogos')->name('admin.catalogos.')->middleware('role:admin')->group(function (): void {
         Route::resource('carreras', CatalogoCarreraController::class)->except('show');
+        Route::patch('carreras/{carrera}/estado', [CatalogoCarreraController::class, 'toggleActive'])->name('carreras.toggle-active');
+        Route::delete('carreras/{carrera}/eliminar', [CatalogoCarreraController::class, 'forceDestroy'])->name('carreras.force-destroy');
         Route::resource('estrategias', CatalogoEstrategiaController::class)->except('show');
+        Route::patch('estrategias/{estrategia}/estado', [CatalogoEstrategiaController::class, 'toggleActive'])->name('estrategias.toggle-active');
+        Route::delete('estrategias/{estrategia}/eliminar', [CatalogoEstrategiaController::class, 'forceDestroy'])->name('estrategias.force-destroy');
         Route::resource('tratamientos', CatalogoTratamientoController::class)->except('show');
         Route::resource('padecimientos', CatalogoPadecimientoController::class)->except('show');
         Route::resource('turnos', CatalogoTurnoController::class)->except('show');

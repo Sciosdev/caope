@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\CatalogoCarrera;
+use App\Models\CatalogoTurno;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -35,6 +37,7 @@ class UserController extends Controller
     {
         return view('admin.usuarios.create', [
             'roles' => $this->availableRoles(),
+            ...$this->catalogOptions(),
         ]);
     }
 
@@ -71,6 +74,7 @@ class UserController extends Controller
         return view('admin.usuarios.edit', [
             'user' => $user->load('roles'),
             'roles' => $this->availableRoles(),
+            ...$this->catalogOptions(),
         ]);
     }
 
@@ -205,5 +209,21 @@ class UserController extends Controller
         }
 
         return User::role('admin')->count() <= 1;
+    }
+
+    private function catalogOptions(): array
+    {
+        return [
+            'carreras' => CatalogoCarrera::query()
+                ->where('activo', true)
+                ->orderBy('nombre')
+                ->pluck('nombre')
+                ->all(),
+            'turnos' => CatalogoTurno::query()
+                ->where('activo', true)
+                ->orderBy('nombre')
+                ->pluck('nombre')
+                ->all(),
+        ];
     }
 }
