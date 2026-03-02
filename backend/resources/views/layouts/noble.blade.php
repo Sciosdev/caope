@@ -79,7 +79,7 @@
                 Expedientes
               </a>
             @endcan
-            @role('admin|coordinador')
+            @role('admin|coordinador|alumno')
               <a href="{{ route('consultorios.index') }}"
                  class="text-muted small {{ request()->routeIs('consultorios.*') ? 'fw-semibold text-body' : '' }}">
                 Consultorios

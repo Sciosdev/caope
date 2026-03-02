@@ -26,6 +26,7 @@ class User extends Authenticatable
         'carrera',
         'turno',
         'is_active',
+        'approved_at',
     ];
 
     /**
@@ -49,6 +50,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'approved_at' => 'datetime',
         ];
     }
 

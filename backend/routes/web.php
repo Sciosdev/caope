@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\CatalogoCarreraController;
+use App\Http\Controllers\Admin\CatalogoEstrategiaController;
 use App\Http\Controllers\Admin\CatalogoPadecimientoController;
 use App\Http\Controllers\Admin\CatalogoTratamientoController;
 use App\Http\Controllers\Admin\CatalogoTurnoController;
@@ -29,7 +30,7 @@ Route::get('/', function () {
     return redirect()->route('login');
 })->name('home');
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'active_user'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/pendientes', [DashboardController::class, 'pending'])->name('dashboard.pending');
     Route::get('/dashboard/metricas', [DashboardController::class, 'metrics'])->name('dashboard.metrics');
@@ -44,11 +45,13 @@ Route::middleware(['auth'])->group(function () {
         Route::get('{user}/editar', [UserController::class, 'edit'])->name('edit');
         Route::put('{user}', [UserController::class, 'update'])->name('update');
         Route::patch('{user}/acceso', [UserController::class, 'toggleActive'])->name('toggle-active');
+        Route::patch('{user}/aprobar', [UserController::class, 'approve'])->name('approve');
         Route::delete('{user}', [UserController::class, 'destroy'])->name('destroy');
     });
 
     Route::prefix('admin/catalogos')->name('admin.catalogos.')->middleware('role:admin')->group(function (): void {
         Route::resource('carreras', CatalogoCarreraController::class)->except('show');
+        Route::resource('estrategias', CatalogoEstrategiaController::class)->except('show');
         Route::resource('tratamientos', CatalogoTratamientoController::class)->except('show');
         Route::resource('padecimientos', CatalogoPadecimientoController::class)->except('show');
         Route::resource('turnos', CatalogoTurnoController::class)->except('show');
@@ -59,14 +62,15 @@ Route::middleware(['auth'])->group(function () {
         Route::put('{parametro}', [ParametrosController::class, 'update'])->name('update');
     });
 
-
-    Route::prefix('consultorios')->name('consultorios.')->middleware('role:admin|coordinador')->group(function (): void {
+    Route::prefix('consultorios')->name('consultorios.')->middleware('role:admin|coordinador|alumno')->group(function (): void {
         Route::get('/', [ConsultorioReservaController::class, 'index'])->name('index');
         Route::get('/availability', [ConsultorioReservaController::class, 'availability'])->name('availability');
-        Route::post('/', [ConsultorioReservaController::class, 'store'])->name('store');
-        Route::get('{reserva}/editar', [ConsultorioReservaController::class, 'edit'])->name('edit');
-        Route::put('{reserva}', [ConsultorioReservaController::class, 'update'])->name('update');
-        Route::delete('{reserva}', [ConsultorioReservaController::class, 'destroy'])->name('destroy');
+        Route::middleware('role:admin')->group(function (): void {
+            Route::post('/', [ConsultorioReservaController::class, 'store'])->name('store');
+            Route::get('{reserva}/editar', [ConsultorioReservaController::class, 'edit'])->name('edit');
+            Route::put('{reserva}', [ConsultorioReservaController::class, 'update'])->name('update');
+            Route::delete('{reserva}', [ConsultorioReservaController::class, 'destroy'])->name('destroy');
+        });
     });
 
     Route::middleware('role:admin|coordinador')->group(function (): void {

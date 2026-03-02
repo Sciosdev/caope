@@ -15,7 +15,7 @@ class ConsultorioReservaController extends Controller
 {
     public function index(Request $request): View
     {
-        abort_unless($request->user()?->hasAnyRole(['admin', 'coordinador']), 403);
+        abort_unless($request->user()?->hasAnyRole(['admin', 'coordinador', 'alumno']), 403);
 
         $fechaFiltro = $request->string('fecha')->toString() ?: now()->toDateString();
         $consultorioSeleccionado = max(1, min(14, (int) $request->integer('consultorio_numero', 1)));
@@ -58,7 +58,7 @@ class ConsultorioReservaController extends Controller
 
     public function availability(Request $request): JsonResponse
     {
-        abort_unless($request->user()?->hasAnyRole(['admin', 'coordinador']), 403);
+        abort_unless($request->user()?->hasAnyRole(['admin', 'coordinador', 'alumno']), 403);
 
         $fecha = $request->string('fecha')->toString() ?: now()->toDateString();
         $consultorioNumero = max(1, min(14, (int) $request->integer('consultorio_numero', 1)));
@@ -79,7 +79,7 @@ class ConsultorioReservaController extends Controller
 
     public function edit(Request $request, ConsultorioReserva $reserva): View
     {
-        abort_unless($request->user()?->hasAnyRole(['admin', 'coordinador']), 403);
+        abort_unless($request->user()?->hasRole('admin'), 403);
 
         return view('consultorios.edit', [
             'reserva' => $reserva->load(['usuarioAtendido', 'estratega', 'supervisor']),
@@ -106,7 +106,7 @@ class ConsultorioReservaController extends Controller
 
     public function destroy(Request $request, ConsultorioReserva $reserva): RedirectResponse
     {
-        abort_unless($request->user()?->hasAnyRole(['admin', 'coordinador']), 403);
+        abort_unless($request->user()?->hasRole('admin'), 403);
 
         $reserva->delete();
 

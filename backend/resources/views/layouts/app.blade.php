@@ -90,7 +90,7 @@
                                     </a>
                                 </li>
                             @endcan
-                            @role('admin|coordinador')
+                            @role('admin|coordinador|alumno')
                                 <li class="nav-item">
                                     <a class="nav-link {{ request()->routeIs('consultorios.*') ? 'active fw-semibold' : '' }}" href="{{ route('consultorios.index') }}">
                                         {{ __('Consultorios') }}
@@ -113,6 +113,19 @@
                                     </li>
                                 @endif
                             @endcan
+
+                            @role('admin')
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle {{ request()->routeIs('admin.users.*') || request()->routeIs('admin.catalogos.*') ? 'active fw-semibold' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        {{ __('Administración') }}
+                                    </a>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="{{ route('admin.users.index') }}">{{ __('Usuarios') }}</a></li>
+                                        <li><a class="dropdown-item" href="{{ route('admin.catalogos.carreras.index') }}">{{ __('Carreras') }}</a></li>
+                                        <li><a class="dropdown-item" href="{{ route('admin.catalogos.estrategias.index') }}">{{ __('Estrategias') }}</a></li>
+                                    </ul>
+                                </li>
+                            @endrole
                         @endauth
                     </ul>
 

@@ -71,6 +71,14 @@
 
 
 <div class="form-check form-switch mb-4">
+    <input class="form-check-input" type="checkbox" role="switch" id="approved" name="approved" value="1" @checked(old('approved', $editing ? (bool) $user->approved_at : false))>
+    <label class="form-check-label" for="approved">{{ __('Usuario aprobado') }}</label>
+    @error('approved')
+        <div class="text-danger small mt-1">{{ $message }}</div>
+    @enderror
+</div>
+
+<div class="form-check form-switch mb-4">
     <input class="form-check-input" type="checkbox" role="switch" id="is_active" name="is_active" value="1" @checked(old('is_active', $editing ? $user->is_active : true))>
     <label class="form-check-label" for="is_active">{{ __('Acceso habilitado') }}</label>
     @error('is_active')
