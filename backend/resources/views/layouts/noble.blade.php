@@ -99,6 +99,24 @@
                 </a>
               @endif
             @endcan
+            @role('admin')
+              <div class="dropdown">
+                <button
+                  class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                  type="button"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                >
+                  Administración
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  <li><a class="dropdown-item" href="{{ route('admin.users.index') }}">Usuarios</a></li>
+                  <li><a class="dropdown-item" href="{{ route('admin.catalogos.carreras.index') }}">Carreras</a></li>
+                  <li><a class="dropdown-item" href="{{ route('admin.catalogos.estrategias.index') }}">Estrategias</a></li>
+                  <li><a class="dropdown-item" href="{{ route('admin.parametros.index') }}">Parámetros</a></li>
+                </ul>
+              </div>
+            @endrole
 
             <div class="dropdown">
               <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
