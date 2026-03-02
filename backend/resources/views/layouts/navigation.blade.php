@@ -47,6 +47,11 @@
                             </x-nav-link>
                         @endif
                     @endcan
+                    @role('admin')
+                        <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
+                            {{ __('Administración') }}
+                        </x-nav-link>
+                    @endrole
                 </div>
             </div>
 
@@ -124,6 +129,11 @@
                     </x-responsive-nav-link>
                 @endif
             @endcan
+            @role('admin')
+                <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
+                    {{ __('Administración') }}
+                </x-responsive-nav-link>
+            @endrole
         </div>
 
         <!-- Responsive Settings Options -->
