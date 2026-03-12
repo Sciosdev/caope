@@ -20,6 +20,8 @@ class DatabaseSeeder extends Seeder
             ParametroSeeder::class,
             CatalogoCarreraSeeder::class,
             CatalogoTurnoSeeder::class,
+            CatalogoConsultorioSeeder::class,
+            CatalogoEstrategiaSeeder::class,
             CatalogoPadecimientoSeeder::class,
             CatalogoTratamientoSeeder::class,
             RoleSeeder::class,

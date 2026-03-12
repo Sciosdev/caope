@@ -6,6 +6,7 @@ use App\Http\Requests\ObserveSesionRequest;
 use App\Http\Requests\StoreSesionRequest;
 use App\Http\Requests\UpdateSesionRequest;
 use App\Http\Requests\ValidateSesionRequest;
+use App\Models\CatalogoEstrategia;
 use App\Models\Expediente;
 use App\Models\Sesion;
 use App\Models\User;
@@ -57,6 +58,7 @@ class SesionController extends Controller
         return view('sesiones.create', [
             'expediente' => $expediente,
             'sesion' => $sesion,
+            'estrategiasActivas' => CatalogoEstrategia::activos(),
         ]);
     }
 
@@ -122,6 +124,7 @@ class SesionController extends Controller
         return view('sesiones.edit', [
             'expediente' => $expediente,
             'sesion' => $sesion,
+            'estrategiasActivas' => CatalogoEstrategia::activos(),
         ]);
     }
 

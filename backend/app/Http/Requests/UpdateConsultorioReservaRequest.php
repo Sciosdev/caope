@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\ConsultorioReserva;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateConsultorioReservaRequest extends FormRequest
 {
@@ -18,9 +19,9 @@ class UpdateConsultorioReservaRequest extends FormRequest
             'fecha' => ['required', 'date'],
             'hora_inicio' => ['required', 'date_format:H:i'],
             'hora_fin' => ['required', 'date_format:H:i', 'after:hora_inicio'],
-            'consultorio_numero' => ['required', 'integer', 'between:1,14'],
+            'consultorio_numero' => ['required', 'integer', Rule::exists('catalogo_consultorios', 'numero')->where('activo', true)],
             'cubiculo_numero' => ['required', 'integer', 'between:1,14'],
-            'estrategia' => ['required', 'string', 'max:255'],
+            'estrategia' => ['required', 'string', 'max:255', Rule::exists('catalogo_estrategias', 'nombre')->where('activo', true)],
             'usuario_atendido_id' => ['nullable', 'integer', 'exists:users,id'],
             'estratega_id' => ['nullable', 'integer', 'exists:users,id'],
             'supervisor_id' => ['nullable', 'integer', 'exists:users,id'],

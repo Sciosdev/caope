@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreConsultorioReservaRequest;
 use App\Http\Requests\UpdateConsultorioReservaRequest;
+use App\Models\CatalogoConsultorio;
+use App\Models\CatalogoEstrategia;
 use App\Models\ConsultorioReserva;
 use App\Models\User;
 use Illuminate\Support\Arr;
@@ -20,7 +22,8 @@ class ConsultorioReservaController extends Controller
         abort_unless($request->user()?->hasAnyRole(['admin', 'coordinador', 'alumno']), 403);
 
         $fechaFiltro = $request->string('fecha')->toString() ?: now()->toDateString();
-        $consultorioSeleccionado = max(1, min(14, (int) $request->integer('consultorio_numero', 1)));
+        $consultoriosActivos = CatalogoConsultorio::activos();
+        $consultorioSeleccionado = (int) $request->integer('consultorio_numero', (int) ($consultoriosActivos->first()->numero ?? 1));
         $cubiculoSeleccionado = $request->filled('cubiculo_numero')
             ? max(1, min(14, (int) $request->integer('cubiculo_numero')))
             : null;
@@ -55,6 +58,8 @@ class ConsultorioReservaController extends Controller
             'cubiculoSeleccionado' => $cubiculoSeleccionado,
             'usuarios' => $usuariosActivos,
             'docentes' => $docentes,
+            'consultoriosActivos' => $consultoriosActivos,
+            'estrategiasActivas' => CatalogoEstrategia::activos(),
         ]);
     }
 
@@ -65,7 +70,7 @@ class ConsultorioReservaController extends Controller
         $fecha = $request->string('fecha')->toString() ?: now()->toDateString();
         $fechaInicio = $request->string('fecha_inicio')->toString();
         $fechaFin = $request->string('fecha_fin')->toString();
-        $consultorioNumero = max(1, min(14, (int) $request->integer('consultorio_numero', 1)));
+        $consultorioNumero = (int) $request->integer('consultorio_numero', 1);
 
         $reservas = ConsultorioReserva::query()
             ->with('usuarioAtendido:id,name')
@@ -110,6 +115,8 @@ class ConsultorioReservaController extends Controller
             'reserva' => $reserva->load(['usuarioAtendido', 'estratega', 'supervisor']),
             'usuarios' => User::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'docentes' => User::role('docente')->where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'consultoriosActivos' => CatalogoConsultorio::activos(),
+            'estrategiasActivas' => CatalogoEstrategia::activos(),
         ]);
     }
 

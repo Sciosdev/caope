@@ -80,9 +80,9 @@
                 <div class="col-md-2">
                     <label class="form-label">Consultorio</label>
                     <select name="consultorio_numero" class="form-select" id="asignacion-consultorio" required>
-                        @for ($i = 1; $i <= 14; $i++)
-                            <option value="{{ $i }}" @selected((int) old('consultorio_numero', 1) === $i)>Consultorio {{ $i }}</option>
-                        @endfor
+                        @foreach ($consultoriosActivos as $consultorio)
+                            <option value="{{ $consultorio->numero }}" @selected((int) old('consultorio_numero', (int) ($consultoriosActivos->first()->numero ?? 1)) === (int) $consultorio->numero)>{{ $consultorio->nombre }}</option>
+                        @endforeach
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -95,7 +95,12 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Estrategia</label>
-                    <input type="text" name="estrategia" class="form-control" value="{{ old('estrategia') }}" required>
+                    <select name="estrategia" class="form-select" required>
+                        <option value="">Selecciona una estrategia</option>
+                        @foreach ($estrategiasActivas as $estrategia)
+                            <option value="{{ $estrategia->nombre }}" @selected(old('estrategia') === $estrategia->nombre)>{{ $estrategia->nombre }}</option>
+                        @endforeach
+                    </select>
                 </div>
 
                 <div class="col-md-4">
@@ -131,9 +136,9 @@
                 <input type="month" class="form-control" id="ocupacion-mes" value="{{ \Illuminate\Support\Carbon::parse($fechaFiltro)->format('Y-m') }}">
                 <input type="hidden" name="fecha" id="ocupacion-fecha" value="{{ $fechaFiltro }}">
                 <select name="consultorio_numero" class="form-select" id="ocupacion-consultorio">
-                    @for ($i = 1; $i <= 14; $i++)
-                        <option value="{{ $i }}" @selected($consultorioSeleccionado === $i)>Consultorio {{ $i }}</option>
-                    @endfor
+                    @foreach ($consultoriosActivos as $consultorio)
+                        <option value="{{ $consultorio->numero }}" @selected($consultorioSeleccionado === (int) $consultorio->numero)>{{ $consultorio->nombre }}</option>
+                    @endforeach
                 </select>
                 <button class="btn btn-outline-secondary" type="submit" id="ocupacion-ver-btn">Ver día</button>
             </form>

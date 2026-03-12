@@ -122,6 +122,7 @@
                                     <ul class="dropdown-menu">
                                         <li><a class="dropdown-item" href="{{ route('admin.users.index') }}">{{ __('Usuarios') }}</a></li>
                                         <li><a class="dropdown-item" href="{{ route('admin.catalogos.carreras.index') }}">{{ __('Carreras') }}</a></li>
+                                        <li><a class="dropdown-item" href="{{ route('admin.catalogos.consultorios.index') }}">{{ __('Consultorios') }}</a></li>
                                         <li><a class="dropdown-item" href="{{ route('admin.catalogos.estrategias.index') }}">{{ __('Estrategias') }}</a></li>
                                     </ul>
                                 </li>
