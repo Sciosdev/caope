@@ -68,6 +68,7 @@ class ConsultorioReservaController extends Controller
         $consultorioNumero = max(1, min(14, (int) $request->integer('consultorio_numero', 1)));
 
         $reservas = ConsultorioReserva::query()
+            ->with('usuarioAtendido:id,name')
             ->when(
                 $fechaInicio && $fechaFin,
                 fn ($query) => $query->whereBetween('fecha', [
@@ -80,7 +81,17 @@ class ConsultorioReservaController extends Controller
             ->orderBy('cubiculo_numero')
             ->orderBy('fecha')
             ->orderBy('hora_inicio')
-            ->get(['fecha', 'cubiculo_numero', 'hora_inicio', 'hora_fin', 'estrategia', 'usuario_atendido_id']);
+            ->get(['fecha', 'consultorio_numero', 'cubiculo_numero', 'hora_inicio', 'hora_fin', 'estrategia', 'usuario_atendido_id'])
+            ->map(fn (ConsultorioReserva $reserva) => [
+                'fecha' => $reserva->fecha,
+                'consultorio_numero' => $reserva->consultorio_numero,
+                'cubiculo_numero' => $reserva->cubiculo_numero,
+                'hora_inicio' => $reserva->hora_inicio,
+                'hora_fin' => $reserva->hora_fin,
+                'estrategia' => $reserva->estrategia,
+                'usuario_atendido_id' => $reserva->usuario_atendido_id,
+                'usuario_atendido_nombre' => $reserva->usuarioAtendido?->name,
+            ]);
 
         return response()->json([
             'fecha' => $fecha,
