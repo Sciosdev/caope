@@ -6,9 +6,11 @@ use App\Http\Requests\StoreConsultorioReservaRequest;
 use App\Http\Requests\UpdateConsultorioReservaRequest;
 use App\Models\ConsultorioReserva;
 use App\Models\User;
+use Illuminate\Support\Arr;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
 class ConsultorioReservaController extends Controller
@@ -61,17 +63,29 @@ class ConsultorioReservaController extends Controller
         abort_unless($request->user()?->hasAnyRole(['admin', 'coordinador', 'alumno']), 403);
 
         $fecha = $request->string('fecha')->toString() ?: now()->toDateString();
+        $fechaInicio = $request->string('fecha_inicio')->toString();
+        $fechaFin = $request->string('fecha_fin')->toString();
         $consultorioNumero = max(1, min(14, (int) $request->integer('consultorio_numero', 1)));
 
         $reservas = ConsultorioReserva::query()
-            ->whereDate('fecha', $fecha)
+            ->when(
+                $fechaInicio && $fechaFin,
+                fn ($query) => $query->whereBetween('fecha', [
+                    Carbon::parse($fechaInicio)->toDateString(),
+                    Carbon::parse($fechaFin)->toDateString(),
+                ]),
+                fn ($query) => $query->whereDate('fecha', $fecha)
+            )
             ->where('consultorio_numero', $consultorioNumero)
             ->orderBy('cubiculo_numero')
+            ->orderBy('fecha')
             ->orderBy('hora_inicio')
-            ->get(['cubiculo_numero', 'hora_inicio', 'hora_fin', 'estrategia']);
+            ->get(['fecha', 'cubiculo_numero', 'hora_inicio', 'hora_fin', 'estrategia', 'usuario_atendido_id']);
 
         return response()->json([
             'fecha' => $fecha,
+            'fecha_inicio' => $fechaInicio,
+            'fecha_fin' => $fechaFin,
             'consultorio_numero' => $consultorioNumero,
             'reservas' => $reservas,
         ]);
@@ -90,9 +104,24 @@ class ConsultorioReservaController extends Controller
 
     public function store(StoreConsultorioReservaRequest $request): RedirectResponse
     {
-        ConsultorioReserva::query()->create($request->validated() + [
-            'creado_por' => $request->user()->id,
+        $validated = $request->validated();
+        $baseData = Arr::only($validated, [
+            'hora_inicio',
+            'hora_fin',
+            'consultorio_numero',
+            'cubiculo_numero',
+            'estrategia',
+            'usuario_atendido_id',
+            'estratega_id',
+            'supervisor_id',
         ]);
+
+        foreach ($request->reservationDates() as $fecha) {
+            ConsultorioReserva::query()->create($baseData + [
+                'fecha' => $fecha,
+                'creado_por' => $request->user()->id,
+            ]);
+        }
 
         return redirect()->route('consultorios.index')->with('status', 'Reserva registrada correctamente.');
     }
