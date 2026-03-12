@@ -144,30 +144,27 @@
         <div class="card-body">
             <div id="ocupacion-calendario" class="mb-4"></div>
             <h6 class="mb-3">Detalle del día seleccionado: <span id="ocupacion-dia-seleccionado">{{ $fechaFiltro }}</span></h6>
-            <div class="row g-3">
-                @for ($i = 1; $i <= 14; $i++)
-                    <div class="col-md-6 col-xl-4" data-cubiculo-card="{{ $i }}">
-                        <div class="border rounded p-3 h-100" data-cubiculo-container>
-                            <h6>Cubículo {{ $i }}</h6>
-                            @php $items = $ocupacionPorCubiculo->get($i, collect()); @endphp
-                            <div data-cubiculo-content>
-                                @if ($items->isEmpty())
-                                    <p class="text-muted mb-0 small">Sin ocupación</p>
-                                @else
-                                    <ul class="list-unstyled small mb-0">
-                                        @foreach ($items as $item)
-                                            <li class="mb-2">
-                                                <strong>{{ substr($item->hora_inicio, 0, 5) }} - {{ substr($item->hora_fin, 0, 5) }}</strong><br>
-                                                {{ $item->estrategia }}<br>
-                                                Usuario: {{ $item->usuarioAtendido?->name ?? '—' }}
-                                            </li>
-                                        @endforeach
-                                    </ul>
-                                @endif
-                            </div>
+            @php
+                $detalleDiaSeleccionado = $ocupacionPorCubiculo
+                    ->flatten(1)
+                    ->sortBy(['hora_inicio', 'cubiculo_numero'])
+                    ->values();
+            @endphp
+            <div id="ocupacion-dia-detalle" class="row g-3">
+                @forelse ($detalleDiaSeleccionado as $item)
+                    <div class="col-md-6">
+                        <div class="border rounded p-3 h-100">
+                            <p class="mb-1"><strong>{{ substr($item->hora_inicio, 0, 5) }} - {{ substr($item->hora_fin, 0, 5) }}</strong></p>
+                            <p class="mb-1">Consultorio {{ $item->consultorio_numero }} · Cubículo {{ $item->cubiculo_numero }}</p>
+                            <p class="mb-1">{{ $item->estrategia }}</p>
+                            <p class="mb-0 text-muted small">Usuario: {{ $item->usuarioAtendido?->name ?? '—' }}</p>
                         </div>
                     </div>
-                @endfor
+                @empty
+                    <div class="col-12">
+                        <div class="alert alert-light border mb-0">No hay registros para este día.</div>
+                    </div>
+                @endforelse
             </div>
         </div>
     </div>
@@ -245,9 +242,9 @@
         const filtroFecha = document.getElementById('ocupacion-fecha');
         const filtroMes = document.getElementById('ocupacion-mes');
         const filtroConsultorio = document.getElementById('ocupacion-consultorio');
-        const cubiculoCards = document.querySelectorAll('[data-cubiculo-card]');
         const calendarioContainer = document.getElementById('ocupacion-calendario');
         const diaSeleccionadoLabel = document.getElementById('ocupacion-dia-seleccionado');
+        const detalleDiaContainer = document.getElementById('ocupacion-dia-detalle');
         const bitacoraFechaBase = document.getElementById('bitacora-fecha-base');
         const bitacoraVista = document.getElementById('bitacora-vista');
         const bitacoraContainer = document.getElementById('bitacora-vista-dinamica');
@@ -265,35 +262,46 @@
             alerta.classList.remove('d-none');
         };
 
-        const renderCubiculoItems = (cubiculo, items) => {
-            const card = document.querySelector(`[data-cubiculo-card="${cubiculo}"]`);
-            if (!card) {
-                return;
-            }
-
-            const container = card.querySelector('[data-cubiculo-container]');
-            const content = card.querySelector('[data-cubiculo-content]');
-            if (!container || !content) {
+        const renderDayDetail = (items) => {
+            if (!detalleDiaContainer) {
                 return;
             }
 
             if (!items.length) {
-                container.classList.remove('border-danger-subtle', 'bg-danger-subtle');
-                container.classList.add('border-success-subtle', 'bg-success-subtle');
-                content.innerHTML = '<p class="text-muted mb-0 small">Sin ocupación</p>';
+                detalleDiaContainer.innerHTML = '<div class="col-12"><div class="alert alert-light border mb-0">No hay registros para este día.</div></div>';
                 return;
             }
 
-            container.classList.remove('border-success-subtle', 'bg-success-subtle');
-            container.classList.add('border-danger-subtle', 'bg-danger-subtle');
-            const rows = items.map((item) => {
+            const sortedItems = [...items].sort((a, b) => {
+                const horaInicio = (a.hora_inicio ?? '').localeCompare(b.hora_inicio ?? '');
+                if (horaInicio !== 0) {
+                    return horaInicio;
+                }
+
+                return Number(a.cubiculo_numero) - Number(b.cubiculo_numero);
+            });
+
+            const rows = sortedItems.map((item) => {
                 const inicio = (item.hora_inicio ?? '').slice(0, 5);
                 const fin = (item.hora_fin ?? '').slice(0, 5);
                 const estrategia = item.estrategia ?? '—';
-                return `<li class="mb-2"><strong>${inicio} - ${fin}</strong><br>${estrategia}</li>`;
+                const consultorio = item.consultorio_numero ?? filtroConsultorio?.value ?? '—';
+                const cubiculo = item.cubiculo_numero ?? '—';
+                const usuario = item.usuario_atendido_nombre ?? '—';
+
+                return `
+                    <div class="col-md-6">
+                        <div class="border rounded p-3 h-100">
+                            <p class="mb-1"><strong>${inicio} - ${fin}</strong></p>
+                            <p class="mb-1">Consultorio ${consultorio} · Cubículo ${cubiculo}</p>
+                            <p class="mb-1">${estrategia}</p>
+                            <p class="mb-0 text-muted small">Usuario: ${usuario}</p>
+                        </div>
+                    </div>
+                `;
             }).join('');
 
-            content.innerHTML = `<ul class="list-unstyled small mb-0">${rows}</ul>`;
+            detalleDiaContainer.innerHTML = rows;
         };
 
         const dateISO = (date) => {
@@ -464,19 +472,7 @@
                 diaSeleccionadoLabel.textContent = selectedDate;
 
                 renderMonthCalendar(filtroMes.value, groupedByDate);
-                const dayItems = (groupedByDate[selectedDate] ?? []).reduce((carry, item) => {
-                    const key = Number(item.cubiculo_numero);
-                    if (!carry[key]) {
-                        carry[key] = [];
-                    }
-                    carry[key].push(item);
-                    return carry;
-                }, {});
-
-                cubiculoCards.forEach((card) => {
-                    const cubiculo = Number(card.dataset.cubiculoCard);
-                    renderCubiculoItems(cubiculo, dayItems[cubiculo] ?? []);
-                });
+                renderDayDetail(groupedByDate[selectedDate] ?? []);
 
                 renderBitacoraGrid(data.reservas ?? []);
             } catch (error) {
