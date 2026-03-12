@@ -11,6 +11,17 @@
     @enderror
 </div>
 
+
+@if ($routePrefix === 'admin.catalogos.consultorios')
+    <div class="mb-3">
+        <label for="numero" class="form-label">{{ __('Número') }}</label>
+        <input type="number" id="numero" name="numero" value="{{ old('numero', $editing && $item ? $item->numero : '') }}" min="1" max="99" class="form-control" required>
+        @error('numero')
+            <div class="text-danger small mt-1">{{ $message }}</div>
+        @enderror
+    </div>
+@endif
+
 <div class="form-check form-switch mb-4">
     <input type="hidden" name="activo" value="0">
     <input class="form-check-input" type="checkbox" role="switch" id="activo" name="activo" value="1" @checked((int) $activo === 1)>

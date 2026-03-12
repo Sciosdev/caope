@@ -6,6 +6,7 @@ use App\Models\ConsultorioReserva;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreConsultorioReservaRequest extends FormRequest
 {
@@ -25,9 +26,9 @@ class StoreConsultorioReservaRequest extends FormRequest
             'dias_semana.*' => ['integer', 'between:1,6'],
             'hora_inicio' => ['required', 'date_format:H:i'],
             'hora_fin' => ['required', 'date_format:H:i', 'after:hora_inicio'],
-            'consultorio_numero' => ['required', 'integer', 'between:1,14'],
+            'consultorio_numero' => ['required', 'integer', Rule::exists('catalogo_consultorios', 'numero')->where('activo', true)],
             'cubiculo_numero' => ['required', 'integer', 'between:1,14'],
-            'estrategia' => ['required', 'string', 'max:255'],
+            'estrategia' => ['required', 'string', 'max:255', Rule::exists('catalogo_estrategias', 'nombre')->where('activo', true)],
             'usuario_atendido_id' => ['nullable', 'integer', 'exists:users,id'],
             'estratega_id' => ['nullable', 'integer', 'exists:users,id'],
             'supervisor_id' => ['nullable', 'integer', 'exists:users,id'],

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\CatalogoCarreraController;
 use App\Http\Controllers\Admin\CatalogoEstrategiaController;
+use App\Http\Controllers\Admin\CatalogoConsultorioController;
 use App\Http\Controllers\Admin\CatalogoPadecimientoController;
 use App\Http\Controllers\Admin\CatalogoTratamientoController;
 use App\Http\Controllers\Admin\CatalogoTurnoController;
@@ -53,6 +54,9 @@ Route::middleware(['auth', 'active_user'])->group(function () {
         Route::resource('carreras', CatalogoCarreraController::class)->except('show');
         Route::patch('carreras/{carrera}/estado', [CatalogoCarreraController::class, 'toggleActive'])->name('carreras.toggle-active');
         Route::delete('carreras/{carrera}/eliminar', [CatalogoCarreraController::class, 'forceDestroy'])->name('carreras.force-destroy');
+        Route::resource('consultorios', CatalogoConsultorioController::class)->except('show');
+        Route::patch('consultorios/{consultorio}/estado', [CatalogoConsultorioController::class, 'toggleActive'])->name('consultorios.toggle-active');
+        Route::delete('consultorios/{consultorio}/eliminar', [CatalogoConsultorioController::class, 'forceDestroy'])->name('consultorios.force-destroy');
         Route::resource('estrategias', CatalogoEstrategiaController::class)->except('show');
         Route::patch('estrategias/{estrategia}/estado', [CatalogoEstrategiaController::class, 'toggleActive'])->name('estrategias.toggle-active');
         Route::delete('estrategias/{estrategia}/eliminar', [CatalogoEstrategiaController::class, 'forceDestroy'])->name('estrategias.force-destroy');

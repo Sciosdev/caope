@@ -38,9 +38,12 @@
     </div>
     <div class="col-12">
         <label for="estrategia" class="form-label">Estrategia</label>
-        <textarea name="estrategia" id="estrategia" maxlength="1000"
-            class="form-control @error('estrategia') is-invalid @enderror" rows="3"
-            placeholder="Describe la estrategia acordada">{{ old('estrategia', $sesion->estrategia) }}</textarea>
+        <select name="estrategia" id="estrategia" class="form-select @error('estrategia') is-invalid @enderror">
+            <option value="">Selecciona una estrategia</option>
+            @foreach ($estrategiasActivas as $estrategia)
+                <option value="{{ $estrategia->nombre }}" @selected(old('estrategia', $sesion->estrategia) === $estrategia->nombre)>{{ $estrategia->nombre }}</option>
+            @endforeach
+        </select>
         @error('estrategia')
             <div class="invalid-feedback">{{ $message }}</div>
         @enderror

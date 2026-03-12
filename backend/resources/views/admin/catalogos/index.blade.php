@@ -26,6 +26,9 @@
                     <thead>
                         <tr>
                             <th scope="col">{{ __('Nombre') }}</th>
+                            @if ($routePrefix === 'admin.catalogos.consultorios')
+                                <th scope="col">{{ __('Número') }}</th>
+                            @endif
                             <th scope="col">{{ __('Estado') }}</th>
                             <th scope="col">{{ __('Actualizado') }}</th>
                             <th scope="col" class="text-end">{{ __('Acciones') }}</th>
@@ -35,6 +38,9 @@
                         @forelse ($items as $item)
                             <tr>
                                 <td>{{ $item->nombre }}</td>
+                                @if ($routePrefix === 'admin.catalogos.consultorios')
+                                    <td>{{ $item->numero }}</td>
+                                @endif
                                 <td>
                                     @if ($item->activo)
                                         <span class="badge text-bg-success">{{ __('Activo') }}</span>
@@ -83,7 +89,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="text-center text-muted py-4">
+                                <td colspan="{{ $routePrefix === 'admin.catalogos.consultorios' ? 5 : 4 }}" class="text-center text-muted py-4">
                                     {{ __('No hay :resource registrados todavía.', ['resource' => strtolower($resourceNamePlural)]) }}
                                 </td>
                             </tr>

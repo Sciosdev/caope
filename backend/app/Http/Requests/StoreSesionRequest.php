@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Arr;
+use Illuminate\Validation\Rule;
 
 class StoreSesionRequest extends FormRequest
 {
@@ -22,7 +23,7 @@ class StoreSesionRequest extends FormRequest
             'tipo' => ['required', 'string', 'max:60'],
             'hora_atencion' => ['nullable', 'date_format:H:i'],
             'referencia_externa' => ['nullable', 'string', 'max:120'],
-            'estrategia' => ['nullable', 'string', 'max:1000'],
+            'estrategia' => ['nullable', 'string', 'max:255', Rule::exists('catalogo_estrategias', 'nombre')->where('activo', true)],
             'nota' => ['required', 'string'],
             'interconsulta' => ['nullable', 'string', 'max:120'],
             'especialidad_referida' => ['nullable', 'string', 'max:120'],
