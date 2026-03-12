@@ -3,6 +3,8 @@
 namespace App\Http\Requests;
 
 use App\Models\ConsultorioReserva;
+use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreConsultorioReservaRequest extends FormRequest
@@ -15,7 +17,12 @@ class StoreConsultorioReservaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'fecha' => ['required', 'date', 'after_or_equal:today'],
+            'modo_repeticion' => ['nullable', 'in:unica,semanal'],
+            'fecha' => ['required_if:modo_repeticion,unica', 'nullable', 'date', 'after_or_equal:today'],
+            'fecha_inicio_repeticion' => ['required_if:modo_repeticion,semanal', 'nullable', 'date', 'after_or_equal:today'],
+            'fecha_fin_repeticion' => ['required_if:modo_repeticion,semanal', 'nullable', 'date', 'after_or_equal:fecha_inicio_repeticion'],
+            'dias_semana' => ['required_if:modo_repeticion,semanal', 'array', 'min:1'],
+            'dias_semana.*' => ['integer', 'between:1,6'],
             'hora_inicio' => ['required', 'date_format:H:i'],
             'hora_fin' => ['required', 'date_format:H:i', 'after:hora_inicio'],
             'consultorio_numero' => ['required', 'integer', 'between:1,14'],
@@ -30,17 +37,21 @@ class StoreConsultorioReservaRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator): void {
-            $fecha = $this->input('fecha');
+            $fechas = $this->reservationDates();
             $horaInicio = $this->input('hora_inicio');
             $horaFin = $this->input('hora_fin');
             $consultorio = (int) $this->input('consultorio_numero');
             $cubiculo = (int) $this->input('cubiculo_numero');
 
-            if (! $fecha || ! $horaInicio || ! $horaFin) {
+            if ($fechas->isEmpty() || ! $horaInicio || ! $horaFin) {
                 return;
             }
 
-            if ((int) date('w', strtotime((string) $fecha)) === 0) {
+            if ($fechas->count() > 180) {
+                $validator->errors()->add('fecha_fin_repeticion', 'Solo se pueden registrar hasta 180 fechas por operación.');
+            }
+
+            if ($fechas->contains(fn (string $fecha) => (int) date('w', strtotime($fecha)) === 0)) {
                 $validator->errors()->add('fecha', 'Solo se permiten reservas de lunes a sábado.');
             }
 
@@ -49,7 +60,7 @@ class StoreConsultorioReservaRequest extends FormRequest
             }
 
             $overlap = ConsultorioReserva::query()
-                ->whereDate('fecha', $fecha)
+                ->whereIn('fecha', $fechas->all())
                 ->where('consultorio_numero', $consultorio)
                 ->where('cubiculo_numero', $cubiculo)
                 ->where('hora_inicio', '<', $horaFin)
@@ -60,5 +71,38 @@ class StoreConsultorioReservaRequest extends FormRequest
                 $validator->errors()->add('hora_inicio', 'Ese consultorio ya está reservado en el bloque seleccionado.');
             }
         });
+    }
+
+    public function reservationDates(): Collection
+    {
+        $mode = $this->input('modo_repeticion', 'unica');
+
+        if ($mode !== 'semanal') {
+            $fecha = $this->input('fecha');
+
+            return collect($fecha ? [$fecha] : []);
+        }
+
+        $inicio = $this->input('fecha_inicio_repeticion');
+        $fin = $this->input('fecha_fin_repeticion');
+        $dias = collect($this->input('dias_semana', []))->map(fn ($dia) => (int) $dia)->unique();
+
+        if (! $inicio || ! $fin || $dias->isEmpty()) {
+            return collect();
+        }
+
+        $cursor = Carbon::parse($inicio)->startOfDay();
+        $end = Carbon::parse($fin)->startOfDay();
+        $fechas = collect();
+
+        while ($cursor->lte($end)) {
+            if ($dias->contains($cursor->dayOfWeekIso)) {
+                $fechas->push($cursor->toDateString());
+            }
+
+            $cursor->addDay();
+        }
+
+        return $fechas;
     }
 }
