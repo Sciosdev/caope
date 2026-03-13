@@ -76,10 +76,12 @@ class ConsultorioReservaController extends Controller
         $fecha = $request->string('fecha')->toString() ?: now()->toDateString();
         $fechaInicio = $request->string('fecha_inicio')->toString();
         $fechaFin = $request->string('fecha_fin')->toString();
-        $consultorioNumero = (int) $request->integer('consultorio_numero', 1);
+        $consultorioNumero = $request->filled('consultorio_numero')
+            ? (int) $request->integer('consultorio_numero')
+            : null;
 
         $reservas = ConsultorioReserva::query()
-            ->with('usuarioAtendido:id,name')
+            ->with(['usuarioAtendido:id,name', 'estratega:id,name'])
             ->when(
                 $fechaInicio && $fechaFin,
                 fn ($query) => $query->whereBetween('fecha', [
@@ -88,11 +90,11 @@ class ConsultorioReservaController extends Controller
                 ]),
                 fn ($query) => $query->whereDate('fecha', $fecha)
             )
-            ->where('consultorio_numero', $consultorioNumero)
+            ->when($consultorioNumero, fn ($query) => $query->where('consultorio_numero', $consultorioNumero))
             ->orderBy('cubiculo_numero')
             ->orderBy('fecha')
             ->orderBy('hora_inicio')
-            ->get(['fecha', 'consultorio_numero', 'cubiculo_numero', 'hora_inicio', 'hora_fin', 'estrategia', 'usuario_atendido_id'])
+            ->get(['fecha', 'consultorio_numero', 'cubiculo_numero', 'hora_inicio', 'hora_fin', 'estrategia', 'usuario_atendido_id', 'estratega_id'])
             ->map(fn (ConsultorioReserva $reserva) => [
                 'fecha' => $reserva->fecha,
                 'consultorio_numero' => $reserva->consultorio_numero,
@@ -100,6 +102,8 @@ class ConsultorioReservaController extends Controller
                 'hora_inicio' => $reserva->hora_inicio,
                 'hora_fin' => $reserva->hora_fin,
                 'estrategia' => $reserva->estrategia,
+                'estratega_id' => $reserva->estratega_id,
+                'estratega_nombre' => $reserva->estratega?->name,
                 'usuario_atendido_id' => $reserva->usuario_atendido_id,
                 'usuario_atendido_nombre' => $reserva->usuarioAtendido?->name,
             ]);
