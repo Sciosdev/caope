@@ -631,7 +631,7 @@
         };
 
         const refreshBitacora = async () => {
-            if (!bitacoraFechaBase?.value || !filtroConsultorio?.value) {
+            if (!bitacoraFechaBase?.value) {
                 return;
             }
 
@@ -658,7 +658,6 @@
                 const params = new URLSearchParams({
                     fecha_inicio: startISO,
                     fecha_fin: endISO,
-                    consultorio_numero: filtroConsultorio.value,
                 });
                 const data = await fetchAvailability(params);
                 if (!data) {
@@ -753,7 +752,6 @@
         filtroFecha?.addEventListener('change', refreshCalendar);
         filtroConsultorio?.addEventListener('change', () => {
             refreshCalendar();
-            refreshBitacora();
         });
         bitacoraAplicarFiltro?.addEventListener('click', refreshBitacora);
         bitacoraFechaBase?.addEventListener('change', () => {
