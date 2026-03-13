@@ -569,9 +569,19 @@
         };
 
         const hasOverlap = (items, start, end, cubiculo) => {
-            return items.find((item) => Number(item.cubiculo_numero) === Number(cubiculo)
-                && item.hora_inicio < end
-                && item.hora_fin > start);
+            const startMinutes = timeToMinutes(start);
+            const endMinutes = timeToMinutes(end);
+
+            return items.find((item) => {
+                if (Number(item.cubiculo_numero) !== Number(cubiculo)) {
+                    return false;
+                }
+
+                const itemStartMinutes = timeToMinutes(item.hora_inicio);
+                const itemEndMinutes = timeToMinutes(item.hora_fin);
+
+                return itemStartMinutes < endMinutes && itemEndMinutes > startMinutes;
+            });
         };
 
         const checkAvailability = async () => {
