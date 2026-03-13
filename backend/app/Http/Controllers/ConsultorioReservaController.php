@@ -23,10 +23,10 @@ class ConsultorioReservaController extends Controller
         abort_unless($request->user()?->hasAnyRole(['admin', 'coordinador', 'alumno']), 403);
 
         $fechaFiltro = $request->string('fecha')->toString() ?: now()->toDateString();
-        $bitacoraInicioSolicitada = $request->string('bitacora_inicio')->toString() ?: $fechaFiltro;
-        $bitacoraFinSolicitada = $request->string('bitacora_fin')->toString() ?: $bitacoraInicioSolicitada;
-        $bitacoraInicio = Carbon::parse(min($bitacoraInicioSolicitada, $bitacoraFinSolicitada))->toDateString();
-        $bitacoraFin = Carbon::parse(max($bitacoraInicioSolicitada, $bitacoraFinSolicitada))->toDateString();
+        $bitacoraModo = $request->string('bitacora_modo')->toString() === 'mes' ? 'mes' : 'semana';
+        $bitacoraFechaBase = Carbon::parse($request->string('bitacora_inicio')->toString() ?: $fechaFiltro);
+        $bitacoraInicio = ($bitacoraModo === 'mes' ? $bitacoraFechaBase->copy()->startOfMonth() : $bitacoraFechaBase->copy()->startOfWeek(Carbon::MONDAY))->toDateString();
+        $bitacoraFin = ($bitacoraModo === 'mes' ? $bitacoraFechaBase->copy()->endOfMonth() : $bitacoraFechaBase->copy()->endOfWeek(Carbon::SUNDAY))->toDateString();
         $consultoriosActivos = CatalogoConsultorio::activos();
         $cubiculosActivos = CatalogoCubiculo::activos();
         $cubiculosDisponibles = $cubiculosActivos->pluck('numero')->map(fn ($numero) => (int) $numero)->values();
@@ -66,6 +66,7 @@ class ConsultorioReservaController extends Controller
             'fechaFiltro' => $fechaFiltro,
             'bitacoraInicio' => $bitacoraInicio,
             'bitacoraFin' => $bitacoraFin,
+            'bitacoraModo' => $bitacoraModo,
             'consultorioSeleccionado' => $consultorioSeleccionado,
             'cubiculoSeleccionado' => $cubiculoSeleccionado,
             'usuarios' => $usuariosActivos,
