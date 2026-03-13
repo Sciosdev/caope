@@ -179,10 +179,6 @@
             <span>Bitácora de asignaciones (alta, baja y modificación)</span>
             <div class="d-flex gap-2 align-items-center">
                 <input type="date" class="form-control" id="bitacora-fecha-base" value="{{ $fechaFiltro }}">
-                <select class="form-select" id="bitacora-vista">
-                    <option value="semana">Vista semanal</option>
-                    <option value="mes">Vista mensual</option>
-                </select>
                 <button type="button" class="btn btn-outline-secondary" id="bitacora-aplicar-filtro">Mostrar</button>
             </div>
         </div>
@@ -251,7 +247,6 @@
         const diaSeleccionadoLabel = document.getElementById('ocupacion-dia-seleccionado');
         const detalleDiaContainer = document.getElementById('ocupacion-dia-detalle');
         const bitacoraFechaBase = document.getElementById('bitacora-fecha-base');
-        const bitacoraVista = document.getElementById('bitacora-vista');
         const bitacoraAplicarFiltro = document.getElementById('bitacora-aplicar-filtro');
         const bitacoraContainer = document.getElementById('bitacora-vista-dinamica');
         const repeticionConfig = document.getElementById('repeticion-config');
@@ -470,25 +465,7 @@
                 return;
             }
 
-            const mode = bitacoraVista?.value ?? 'semana';
-            const base = new Date(`${bitacoraFechaBase.value}T00:00:00`);
-            const rangeDates = [];
-
-            if (mode === 'semana') {
-                const day = base.getDay() || 7;
-                const monday = new Date(base);
-                monday.setDate(base.getDate() - day + 1);
-                for (let i = 0; i < 7; i += 1) {
-                    const current = new Date(monday);
-                    current.setDate(monday.getDate() + i);
-                    rangeDates.push(current);
-                }
-            } else {
-                const { start, end } = monthBounds(bitacoraFechaBase.value.slice(0, 7));
-                for (let i = 1; i <= end.getDate(); i += 1) {
-                    rangeDates.push(new Date(start.getFullYear(), start.getMonth(), i));
-                }
-            }
+            const rangeDates = [new Date(`${bitacoraFechaBase.value}T00:00:00`)];
 
             const dateHeaders = rangeDates.map((date) => dateISO(date));
             const agruparPorFecha = (sourceItems) => sourceItems.reduce((carry, item) => {
@@ -579,7 +556,7 @@
                 `;
             }).join('');
 
-            const labelPeriodo = mode === 'semana' ? 'la semana seleccionada' : 'el mes seleccionado';
+            const labelPeriodo = 'la fecha seleccionada';
 
             bitacoraContainer.innerHTML = `
                 <div class="alert alert-light border d-flex justify-content-between align-items-center" role="status">
@@ -636,24 +613,8 @@
             }
 
             try {
-                const mode = bitacoraVista?.value ?? 'semana';
-                let startISO = bitacoraFechaBase.value;
-                let endISO = bitacoraFechaBase.value;
-
-                if (mode === 'semana') {
-                    const base = new Date(`${bitacoraFechaBase.value}T00:00:00`);
-                    const day = base.getDay() || 7;
-                    const monday = new Date(base);
-                    monday.setDate(base.getDate() - day + 1);
-                    const sunday = new Date(monday);
-                    sunday.setDate(monday.getDate() + 6);
-                    startISO = dateISO(monday);
-                    endISO = dateISO(sunday);
-                } else {
-                    const bounds = monthBounds(bitacoraFechaBase.value.slice(0, 7));
-                    startISO = bounds.startISO;
-                    endISO = bounds.endISO;
-                }
+                const startISO = bitacoraFechaBase.value;
+                const endISO = bitacoraFechaBase.value;
 
                 const params = new URLSearchParams({
                     fecha_inicio: startISO,
@@ -757,10 +718,6 @@
         bitacoraFechaBase?.addEventListener('change', () => {
             bitacoraContainer.innerHTML = '';
         });
-        bitacoraVista?.addEventListener('change', () => {
-            bitacoraContainer.innerHTML = '';
-        });
-
         refreshCalendar();
         refreshBitacora();
         setInterval(refreshCalendar, 30000);
