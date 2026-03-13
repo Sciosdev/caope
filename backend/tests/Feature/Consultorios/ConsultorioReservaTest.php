@@ -307,4 +307,79 @@ class ConsultorioReservaTest extends TestCase
         $this->assertGreaterThan(1, ConsultorioReserva::query()->count());
     }
 
+
+    public function test_elimina_registros_seleccionados_en_bitacora(): void
+    {
+        $role = Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $admin = User::factory()->create();
+        $admin->assignRole($role);
+
+        $primera = ConsultorioReserva::query()->create([
+            'fecha' => now()->addDay()->toDateString(),
+            'hora_inicio' => '09:00',
+            'hora_fin' => '10:00',
+            'consultorio_numero' => 3,
+            'cubiculo_numero' => 1,
+            'estrategia' => 'Intervención breve',
+            'creado_por' => $admin->id,
+        ]);
+
+        $segunda = ConsultorioReserva::query()->create([
+            'fecha' => now()->addDays(2)->toDateString(),
+            'hora_inicio' => '10:00',
+            'hora_fin' => '11:00',
+            'consultorio_numero' => 3,
+            'cubiculo_numero' => 2,
+            'estrategia' => 'Otra estrategia',
+            'creado_por' => $admin->id,
+        ]);
+
+        $tercera = ConsultorioReserva::query()->create([
+            'fecha' => now()->addDays(3)->toDateString(),
+            'hora_inicio' => '11:00',
+            'hora_fin' => '12:00',
+            'consultorio_numero' => 5,
+            'cubiculo_numero' => 1,
+            'estrategia' => 'Terapia individual',
+            'creado_por' => $admin->id,
+        ]);
+
+        $response = $this->actingAs($admin)->delete(route('consultorios.bulk-destroy'), [
+            'reservas' => [$primera->id, $tercera->id],
+        ]);
+
+        $response->assertRedirect(route('consultorios.index'));
+        $response->assertSessionHas('status', 'Reservas eliminadas correctamente.');
+
+        $this->assertDatabaseMissing('consultorio_reservas', ['id' => $primera->id]);
+        $this->assertDatabaseHas('consultorio_reservas', ['id' => $segunda->id]);
+        $this->assertDatabaseMissing('consultorio_reservas', ['id' => $tercera->id]);
+    }
+
+    public function test_bulk_destroy_requiere_seleccion_de_reservas(): void
+    {
+        $role = Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $admin = User::factory()->create();
+        $admin->assignRole($role);
+
+        ConsultorioReserva::query()->create([
+            'fecha' => now()->addDay()->toDateString(),
+            'hora_inicio' => '09:00',
+            'hora_fin' => '10:00',
+            'consultorio_numero' => 3,
+            'cubiculo_numero' => 1,
+            'estrategia' => 'Intervención breve',
+            'creado_por' => $admin->id,
+        ]);
+
+        $response = $this->actingAs($admin)->delete(route('consultorios.bulk-destroy'), [
+            'reservas' => [],
+        ]);
+
+        $response->assertRedirect(route('consultorios.index'));
+        $response->assertSessionHas('status', 'Selecciona al menos un registro para dar de baja.');
+        $this->assertDatabaseCount('consultorio_reservas', 1);
+    }
+
+
 }
