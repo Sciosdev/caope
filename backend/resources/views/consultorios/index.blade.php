@@ -267,7 +267,11 @@
 
 @push('scripts')
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
+    const initConsultoriosPage = () => {
+        if (window.__consultoriosPageInitialized) {
+            return;
+        }
+        window.__consultoriosPageInitialized = true;
         const availabilityEndpoint = @json(route('consultorios.availability'));
         const formFecha = document.getElementById('asignacion-fecha');
         const formConsultorio = document.getElementById('asignacion-consultorio');
@@ -852,6 +856,12 @@
             }
         });
 
+        document.addEventListener('click', (event) => {
+            if (event.target.matches('.bitacora-select-item')) {
+                updateBitacoraBulkState();
+            }
+        });
+
         if (bitacoraBulkDeleteForm) {
             bitacoraBulkDeleteForm.addEventListener('submit', (event) => {
                 const selected = Array.from(getBitacoraItemCheckboxes()).filter((input) => input.checked).length;
@@ -870,6 +880,12 @@
         refreshBitacora();
         setInterval(refreshCalendar, 30000);
         setInterval(refreshBitacora, 30000);
-    });
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initConsultoriosPage, { once: true });
+    } else {
+        initConsultoriosPage();
+    }
 </script>
 @endpush
