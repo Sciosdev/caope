@@ -133,8 +133,7 @@
         <div class="card-header d-flex justify-content-between align-items-center">
             <span>Calendario de ocupación por cubículo</span>
             <form method="GET" class="d-flex gap-2" id="ocupacion-filtro-form">
-                <input type="month" class="form-control" id="ocupacion-mes" value="{{ \Illuminate\Support\Carbon::parse($fechaFiltro)->format('Y-m') }}">
-                <input type="hidden" name="fecha" id="ocupacion-fecha" value="{{ $fechaFiltro }}">
+                <input type="date" class="form-control" name="fecha" id="ocupacion-fecha" value="{{ $fechaFiltro }}">
                 <select name="consultorio_numero" class="form-select" id="ocupacion-consultorio">
                     @foreach ($consultoriosActivos as $consultorio)
                         <option value="{{ $consultorio->numero }}" @selected($consultorioSeleccionado === (int) $consultorio->numero)>{{ $consultorio->nombre }}</option>
@@ -245,7 +244,6 @@
         const formHoraFin = document.getElementById('asignacion-hora-fin');
         const alerta = document.getElementById('disponibilidad-alerta');
         const filtroFecha = document.getElementById('ocupacion-fecha');
-        const filtroMes = document.getElementById('ocupacion-mes');
         const filtroConsultorio = document.getElementById('ocupacion-consultorio');
         const calendarioContainer = document.getElementById('ocupacion-calendario');
         const diaSeleccionadoLabel = document.getElementById('ocupacion-dia-seleccionado');
@@ -518,12 +516,13 @@
         };
 
         const refreshCalendar = async () => {
-            if (!filtroMes?.value || !filtroConsultorio?.value) {
+            if (!filtroFecha?.value || !filtroConsultorio?.value) {
                 return;
             }
 
             try {
-                const bounds = monthBounds(filtroMes.value);
+                const monthValue = filtroFecha.value.slice(0, 7);
+                const bounds = monthBounds(monthValue);
                 const params = new URLSearchParams({
                     fecha_inicio: bounds.startISO,
                     fecha_fin: bounds.endISO,
@@ -543,11 +542,13 @@
                     return carry;
                 }, {});
 
-                const selectedDate = filtroFecha.value && groupedByDate[filtroFecha.value] ? filtroFecha.value : bounds.startISO;
+                const selectedDate = filtroFecha.value?.startsWith(monthValue)
+                    ? filtroFecha.value
+                    : bounds.startISO;
                 filtroFecha.value = selectedDate;
                 diaSeleccionadoLabel.textContent = selectedDate;
 
-                renderMonthCalendar(filtroMes.value, groupedByDate);
+                renderMonthCalendar(monthValue, groupedByDate);
                 renderDayDetail(groupedByDate[selectedDate] ?? []);
 
                 renderBitacoraGrid(data.reservas ?? []);
@@ -625,7 +626,6 @@
             refreshCalendar();
         });
 
-        filtroMes?.addEventListener('change', refreshCalendar);
         filtroFecha?.addEventListener('change', refreshCalendar);
         filtroConsultorio?.addEventListener('change', refreshCalendar);
         bitacoraFechaBase?.addEventListener('change', refreshCalendar);
