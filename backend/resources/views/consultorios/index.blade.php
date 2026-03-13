@@ -478,7 +478,7 @@
                 const day = base.getDay() || 7;
                 const monday = new Date(base);
                 monday.setDate(base.getDate() - day + 1);
-                for (let i = 0; i < 6; i += 1) {
+                for (let i = 0; i < 7; i += 1) {
                     const current = new Date(monday);
                     current.setDate(monday.getDate() + i);
                     rangeDates.push(current);
@@ -492,7 +492,7 @@
 
             const dateHeaders = rangeDates.map((date) => dateISO(date));
             const grouped = items.reduce((carry, item) => {
-                const key = `${item.cubiculo_numero}_${item.fecha}`;
+                const key = item.fecha;
                 if (!carry[key]) {
                     carry[key] = [];
                 }
@@ -500,33 +500,69 @@
                 return carry;
             }, {});
 
-            const cubiculos = catalogoCubiculos.length ? catalogoCubiculos : Array.from({ length: 14 }, (_, index) => index + 1);
-            const rows = cubiculos.map((cubiculo) => {
-                const columns = dateHeaders.map((fecha) => {
-                    const matches = grouped[`${cubiculo}_${fecha}`] ?? [];
-                    if (!matches.length) {
-                        return '<td class="text-muted">—</td>';
+            const dayBlocks = dateHeaders.map((fecha) => {
+                const registros = (grouped[fecha] ?? []).sort((a, b) => {
+                    const horaInicio = (a.hora_inicio ?? '').localeCompare(b.hora_inicio ?? '');
+                    if (horaInicio !== 0) {
+                        return horaInicio;
                     }
 
-                    const summary = matches.map((item) => `${item.hora_inicio.slice(0, 5)}-${item.hora_fin.slice(0, 5)}`).join('<br>');
+                    return Number(a.cubiculo_numero) - Number(b.cubiculo_numero);
+                });
 
-                    return `<td class="small"><strong>${matches.length}</strong><br>${summary}</td>`;
+                if (!registros.length) {
+                    return `
+                        <div class="border rounded p-3 h-100 bg-light">
+                            <div class="fw-semibold mb-2">${fecha}</div>
+                            <p class="text-muted mb-0 small">Sin registros para este día.</p>
+                        </div>
+                    `;
+                }
+
+                const rows = registros.map((item) => {
+                    const horaInicio = (item.hora_inicio ?? '').slice(0, 5);
+                    const horaFin = (item.hora_fin ?? '').slice(0, 5);
+                    const cubiculo = item.cubiculo_numero ?? '—';
+                    const estrategia = item.estrategia ?? '—';
+                    const estratega = item.estratega_nombre ?? '—';
+                    const usuario = item.usuario_atendido_nombre ?? '—';
+
+                    return `
+                        <tr>
+                            <td class="small text-nowrap">${horaInicio} - ${horaFin}</td>
+                            <td class="small text-nowrap">Cubículo ${cubiculo}</td>
+                            <td class="small">${estrategia}</td>
+                            <td class="small">${estratega}</td>
+                            <td class="small">${usuario}</td>
+                        </tr>
+                    `;
                 }).join('');
 
-                return `<tr><th class="text-nowrap">Cubículo ${cubiculo}</th>${columns}</tr>`;
+                return `
+                    <div class="border rounded p-3 h-100">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="fw-semibold">${fecha}</div>
+                            <span class="badge text-bg-secondary">${registros.length} registro(s)</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Horario</th>
+                                        <th>Cubículo</th>
+                                        <th>Estrategia</th>
+                                        <th>Estratega</th>
+                                        <th>Usuario</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${rows}</tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
             }).join('');
 
-            bitacoraContainer.innerHTML = `
-                <table class="table table-sm table-bordered align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th>Cubículo</th>
-                            ${dateHeaders.map((fecha) => `<th class="small text-nowrap">${fecha}</th>`).join('')}
-                        </tr>
-                    </thead>
-                    <tbody>${rows}</tbody>
-                </table>
-            `;
+            bitacoraContainer.innerHTML = `<div class="row row-cols-1 g-3">${dayBlocks}</div>`;
         };
 
         const refreshCalendar = async () => {
@@ -584,10 +620,10 @@
                     const day = base.getDay() || 7;
                     const monday = new Date(base);
                     monday.setDate(base.getDate() - day + 1);
-                    const saturday = new Date(monday);
-                    saturday.setDate(monday.getDate() + 5);
+                    const sunday = new Date(monday);
+                    sunday.setDate(monday.getDate() + 6);
                     startISO = dateISO(monday);
-                    endISO = dateISO(saturday);
+                    endISO = dateISO(sunday);
                 } else {
                     const bounds = monthBounds(bitacoraFechaBase.value.slice(0, 7));
                     startISO = bounds.startISO;
