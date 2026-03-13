@@ -195,21 +195,9 @@
             <div id="bitacora-vista-dinamica" class="table-responsive"></div>
         </div>
         <div class="card-body table-responsive">
-            @if(auth()->user()?->hasRole('admin'))
-                <form method="POST" action="{{ route('consultorios.bulk-destroy', request()->query()) }}" id="bitacora-bulk-delete-form" class="mb-3 d-flex flex-wrap align-items-center gap-2">
-                    @csrf
-                    @method('DELETE')
-                    <span class="small text-muted" id="bitacora-bulk-delete-count">0 registro(s) seleccionado(s)</span>
-                </form>
-            @endif
             <table class="table table-sm align-middle">
                 <thead>
                     <tr>
-                        @if(auth()->user()?->hasRole('admin'))
-                            <th class="text-center" style="width: 3rem;">
-                                <input type="checkbox" class="form-check-input" id="bitacora-select-all" aria-label="Seleccionar todos los registros">
-                            </th>
-                        @endif
                         <th>Fecha</th>
                         <th>Horario</th>
                         <th>Cubículo</th>
@@ -222,18 +210,6 @@
                 <tbody>
                     @forelse ($reservas as $reserva)
                         <tr>
-                            @if(auth()->user()?->hasRole('admin'))
-                                <td class="text-center">
-                                    <input
-                                        type="checkbox"
-                                        class="form-check-input bitacora-select-item"
-                                        form="bitacora-bulk-delete-form"
-                                        name="reservas[]"
-                                        value="{{ $reserva->id }}"
-                                        aria-label="Seleccionar reserva {{ $reserva->id }}"
-                                    >
-                                </td>
-                            @endif
                             <td>{{ $reserva->fecha->format('Y-m-d') }}</td>
                             <td>{{ substr($reserva->hora_inicio, 0, 5) }} - {{ substr($reserva->hora_fin, 0, 5) }}</td>
                             <td>Consultorio {{ $reserva->consultorio_numero }} · Cubículo {{ $reserva->cubiculo_numero }}</td>
@@ -254,7 +230,7 @@
                             @endif
                         </tr>
                     @empty
-                        <tr><td colspan="{{ auth()->user()?->hasRole('admin') ? 8 : 6 }}" class="text-center text-muted">Sin registros.</td></tr>
+                        <tr><td colspan="{{ auth()->user()?->hasRole('admin') ? 7 : 6 }}" class="text-center text-muted">Sin registros.</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -284,12 +260,9 @@
         const diaSeleccionadoLabel = document.getElementById('ocupacion-dia-seleccionado');
         const detalleDiaContainer = document.getElementById('ocupacion-dia-detalle');
         const bitacoraFechaBase = document.getElementById('bitacora-fecha-base');
-                const bitacoraModo = document.getElementById('bitacora-modo');
+        const bitacoraModo = document.getElementById('bitacora-modo');
         const bitacoraAplicarFiltro = document.getElementById('bitacora-aplicar-filtro');
         const bitacoraContainer = document.getElementById('bitacora-vista-dinamica');
-        const bitacoraBulkDeleteForm = document.getElementById('bitacora-bulk-delete-form');
-        const bitacoraBulkDeleteCount = document.getElementById('bitacora-bulk-delete-count');
-        const bitacoraSelectAll = document.getElementById('bitacora-select-all');
         const repeticionConfig = document.getElementById('repeticion-config');
         const modoRepeticionInputs = document.querySelectorAll('input[name="modo_repeticion"]');
         const diaSemanaSelect = document.getElementById('repeticion-dia-semana');
@@ -623,38 +596,6 @@
             `;
         };
 
-
-        const getBitacoraItemCheckboxes = () => document.querySelectorAll('.bitacora-select-item');
-
-        const updateBitacoraBulkState = () => {
-            if (!bitacoraBulkDeleteForm) {
-                return;
-            }
-
-            const itemCheckboxes = getBitacoraItemCheckboxes();
-            const selected = Array.from(itemCheckboxes).filter((input) => input.checked).length;
-            if (bitacoraBulkDeleteCount) {
-                bitacoraBulkDeleteCount.textContent = `${selected} registro(s) seleccionado(s)`;
-            }
-
-            const total = itemCheckboxes.length;
-            if (bitacoraSelectAll) {
-                bitacoraSelectAll.checked = total > 0 && selected === total;
-                bitacoraSelectAll.indeterminate = selected > 0 && selected < total;
-            }
-        };
-
-        const toggleBitacoraSelections = (checked) => {
-            if (!bitacoraBulkDeleteForm) {
-                return;
-            }
-
-            getBitacoraItemCheckboxes().forEach((input) => {
-                input.checked = checked;
-            });
-            updateBitacoraBulkState();
-        };
-
         const refreshCalendar = async () => {
             if (!filtroFecha?.value || !filtroConsultorio?.value) {
                 return;
@@ -845,32 +786,6 @@
         bitacoraFechaBase?.addEventListener('change', refreshBitacora);
         bitacoraModo?.addEventListener('change', refreshBitacora);
 
-        document.addEventListener('change', (event) => {
-            if (event.target.matches('.bitacora-select-item')) {
-                updateBitacoraBulkState();
-            }
-        });
-
-        document.addEventListener('click', (event) => {
-            if (event.target.matches('.bitacora-select-item')) {
-                updateBitacoraBulkState();
-            }
-        });
-
-        if (bitacoraBulkDeleteForm) {
-            bitacoraBulkDeleteForm.addEventListener('submit', (event) => {
-                const selected = Array.from(getBitacoraItemCheckboxes()).filter((input) => input.checked).length;
-                if (!selected || !window.confirm(`¿Eliminar ${selected} registro(s) seleccionado(s)?`)) {
-                    event.preventDefault();
-                }
-            });
-        }
-
-        bitacoraSelectAll?.addEventListener('change', (event) => {
-            toggleBitacoraSelections(event.target.checked);
-        });
-
-        updateBitacoraBulkState();
         refreshCalendar();
         refreshBitacora();
         setInterval(refreshCalendar, 30000);
