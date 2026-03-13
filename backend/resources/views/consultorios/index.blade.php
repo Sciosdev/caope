@@ -564,6 +564,45 @@
 
                 renderMonthCalendar(monthValue, groupedByDate);
                 renderDayDetail(groupedByDate[selectedDate] ?? []);
+            } catch (error) {
+                console.error(error);
+            }
+        };
+
+        const refreshBitacora = async () => {
+            if (!bitacoraFechaBase?.value || !filtroConsultorio?.value) {
+                return;
+            }
+
+            try {
+                const mode = bitacoraVista?.value ?? 'semana';
+                let startISO = bitacoraFechaBase.value;
+                let endISO = bitacoraFechaBase.value;
+
+                if (mode === 'semana') {
+                    const base = new Date(`${bitacoraFechaBase.value}T00:00:00`);
+                    const day = base.getDay() || 7;
+                    const monday = new Date(base);
+                    monday.setDate(base.getDate() - day + 1);
+                    const saturday = new Date(monday);
+                    saturday.setDate(monday.getDate() + 5);
+                    startISO = dateISO(monday);
+                    endISO = dateISO(saturday);
+                } else {
+                    const bounds = monthBounds(bitacoraFechaBase.value.slice(0, 7));
+                    startISO = bounds.startISO;
+                    endISO = bounds.endISO;
+                }
+
+                const params = new URLSearchParams({
+                    fecha_inicio: startISO,
+                    fecha_fin: endISO,
+                    consultorio_numero: filtroConsultorio.value,
+                });
+                const data = await fetchAvailability(params);
+                if (!data) {
+                    return;
+                }
 
                 renderBitacoraGrid(data.reservas ?? []);
             } catch (error) {
@@ -651,8 +690,11 @@
         });
 
         filtroFecha?.addEventListener('change', refreshCalendar);
-        filtroConsultorio?.addEventListener('change', refreshCalendar);
-        bitacoraAplicarFiltro?.addEventListener('click', refreshCalendar);
+        filtroConsultorio?.addEventListener('change', () => {
+            refreshCalendar();
+            refreshBitacora();
+        });
+        bitacoraAplicarFiltro?.addEventListener('click', refreshBitacora);
         bitacoraFechaBase?.addEventListener('change', () => {
             bitacoraContainer.innerHTML = '';
         });
@@ -661,7 +703,9 @@
         });
 
         refreshCalendar();
+        refreshBitacora();
         setInterval(refreshCalendar, 30000);
+        setInterval(refreshBitacora, 30000);
     });
 </script>
 @endpush
