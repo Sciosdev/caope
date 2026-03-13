@@ -263,20 +263,6 @@
         const JORNADA_INICIO = 7 * 60;
         const JORNADA_FIN = 22 * 60;
 
-        @php
-            $reservasRegistradas = $reservas->getCollection()->map(fn ($reserva) => [
-                'fecha' => $reserva->fecha->format('Y-m-d'),
-                'consultorio_numero' => $reserva->consultorio_numero,
-                'cubiculo_numero' => $reserva->cubiculo_numero,
-                'hora_inicio' => $reserva->hora_inicio,
-                'hora_fin' => $reserva->hora_fin,
-                'estrategia' => $reserva->estrategia,
-                'estratega_nombre' => $reserva->estratega?->name,
-                'usuario_atendido_nombre' => $reserva->usuarioAtendido?->name,
-            ])->values();
-        @endphp
-        const reservasRegistradas = @json($reservasRegistradas);
-
         const timeToMinutes = (time) => {
             const [hours = '0', minutes = '0'] = (time ?? '').split(':');
             return (Number(hours) * 60) + Number(minutes);
@@ -514,7 +500,7 @@
                 return carry;
             }, {});
             const mostradosPorFecha = agruparPorFecha(items ?? []);
-            const registradosPorFecha = agruparPorFecha(reservasRegistradas ?? []);
+            const totalRegistros = (items ?? []).length;
 
             const ordenarRegistros = (sourceItems) => [...sourceItems].sort((a, b) => {
                 const horaInicio = (a.hora_inicio ?? '').localeCompare(b.hora_inicio ?? '');
@@ -584,18 +570,24 @@
 
             const dayBlocks = dateHeaders.map((fecha) => {
                 const mostrados = ordenarRegistros(mostradosPorFecha[fecha] ?? []);
-                const registrados = ordenarRegistros(registradosPorFecha[fecha] ?? []);
 
                 return `
                     <div class="border rounded p-3 h-100">
                         <div class="fw-semibold mb-3">${fecha}</div>
-                        ${renderSection('Mostrados por filtro', mostrados, 'text-bg-primary')}
-                        ${renderSection('Registrados (tabla inferior)', registrados, 'text-bg-secondary')}
+                        ${renderSection('Registros encontrados', mostrados, 'text-bg-primary')}
                     </div>
                 `;
             }).join('');
 
-            bitacoraContainer.innerHTML = `<div class="row row-cols-1 g-3">${dayBlocks}</div>`;
+            const labelPeriodo = mode === 'semana' ? 'la semana seleccionada' : 'el mes seleccionado';
+
+            bitacoraContainer.innerHTML = `
+                <div class="alert alert-light border d-flex justify-content-between align-items-center" role="status">
+                    <span>Total de registros encontrados en ${labelPeriodo}:</span>
+                    <strong>${totalRegistros}</strong>
+                </div>
+                <div class="row row-cols-1 g-3">${dayBlocks}</div>
+            `;
         };
 
         const refreshCalendar = async () => {
@@ -666,6 +658,7 @@
                 const params = new URLSearchParams({
                     fecha_inicio: startISO,
                     fecha_fin: endISO,
+                    consultorio_numero: filtroConsultorio.value,
                 });
                 const data = await fetchAvailability(params);
                 if (!data) {
