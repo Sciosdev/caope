@@ -23,6 +23,10 @@ class ConsultorioReservaController extends Controller
         abort_unless($request->user()?->hasAnyRole(['admin', 'coordinador', 'alumno']), 403);
 
         $fechaFiltro = $request->string('fecha')->toString() ?: now()->toDateString();
+        $bitacoraInicioSolicitada = $request->string('bitacora_inicio')->toString() ?: $fechaFiltro;
+        $bitacoraFinSolicitada = $request->string('bitacora_fin')->toString() ?: $bitacoraInicioSolicitada;
+        $bitacoraInicio = Carbon::parse(min($bitacoraInicioSolicitada, $bitacoraFinSolicitada))->toDateString();
+        $bitacoraFin = Carbon::parse(max($bitacoraInicioSolicitada, $bitacoraFinSolicitada))->toDateString();
         $consultoriosActivos = CatalogoConsultorio::activos();
         $cubiculosActivos = CatalogoCubiculo::activos();
         $cubiculosDisponibles = $cubiculosActivos->pluck('numero')->map(fn ($numero) => (int) $numero)->values();
@@ -35,6 +39,7 @@ class ConsultorioReservaController extends Controller
 
         $reservas = ConsultorioReserva::query()
             ->with(['usuarioAtendido', 'estratega', 'supervisor', 'creadoPor'])
+            ->whereBetween('fecha', [$bitacoraInicio, $bitacoraFin])
             ->orderBy('fecha')
             ->orderBy('consultorio_numero')
             ->orderBy('cubiculo_numero')
@@ -59,6 +64,8 @@ class ConsultorioReservaController extends Controller
             'reservas' => $reservas,
             'ocupacionPorCubiculo' => $ocupacionPorCubiculo,
             'fechaFiltro' => $fechaFiltro,
+            'bitacoraInicio' => $bitacoraInicio,
+            'bitacoraFin' => $bitacoraFin,
             'consultorioSeleccionado' => $consultorioSeleccionado,
             'cubiculoSeleccionado' => $cubiculoSeleccionado,
             'usuarios' => $usuariosActivos,

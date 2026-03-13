@@ -177,11 +177,16 @@
     <div class="card">
         <div class="card-header d-flex flex-wrap gap-2 justify-content-between align-items-center">
             <span>Bitácora de asignaciones (alta, baja y modificación)</span>
-            <div class="d-flex gap-2 align-items-center">
-                <input type="date" class="form-control" id="bitacora-fecha-base" value="{{ $fechaFiltro }}" aria-label="Fecha inicial de bitácora">
-                <input type="date" class="form-control" id="bitacora-fecha-fin" value="{{ $fechaFiltro }}" aria-label="Fecha final de bitácora">
-                <button type="button" class="btn btn-outline-secondary" id="bitacora-aplicar-filtro">Mostrar</button>
-            </div>
+            <form method="GET" class="d-flex gap-2 align-items-center">
+                <input type="hidden" name="fecha" value="{{ $fechaFiltro }}">
+                <input type="hidden" name="consultorio_numero" value="{{ $consultorioSeleccionado }}">
+                @if($cubiculoSeleccionado)
+                    <input type="hidden" name="cubiculo_numero" value="{{ $cubiculoSeleccionado }}">
+                @endif
+                <input type="date" class="form-control" id="bitacora-fecha-base" name="bitacora_inicio" value="{{ $bitacoraInicio }}" aria-label="Fecha inicial de bitácora">
+                <input type="date" class="form-control" id="bitacora-fecha-fin" name="bitacora_fin" value="{{ $bitacoraFin }}" aria-label="Fecha final de bitácora">
+                <button type="submit" class="btn btn-outline-secondary" id="bitacora-aplicar-filtro">Mostrar</button>
+            </form>
         </div>
         <div class="card-body border-bottom">
             <div id="bitacora-vista-dinamica" class="table-responsive"></div>

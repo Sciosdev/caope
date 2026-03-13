@@ -192,6 +192,45 @@ class ConsultorioReservaTest extends TestCase
     }
 
 
+
+    public function test_index_filtra_bitacora_por_rango_de_fechas(): void
+    {
+        $role = Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $admin = User::factory()->create();
+        $admin->assignRole($role);
+
+        ConsultorioReserva::query()->create([
+            'fecha' => '2026-03-13',
+            'hora_inicio' => '07:00',
+            'hora_fin' => '08:00',
+            'consultorio_numero' => 3,
+            'cubiculo_numero' => 1,
+            'estrategia' => 'Intervención breve',
+            'creado_por' => $admin->id,
+        ]);
+
+        ConsultorioReserva::query()->create([
+            'fecha' => '2026-03-20',
+            'hora_inicio' => '07:00',
+            'hora_fin' => '08:00',
+            'consultorio_numero' => 3,
+            'cubiculo_numero' => 1,
+            'estrategia' => 'Otra estrategia',
+            'creado_por' => $admin->id,
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('consultorios.index', [
+            'fecha' => '2026-03-13',
+            'bitacora_inicio' => '2026-03-13',
+            'bitacora_fin' => '2026-03-14',
+        ]));
+
+        $response
+            ->assertOk()
+            ->assertSee('2026-03-13')
+            ->assertDontSee('2026-03-20');
+    }
+
     public function test_permite_repeticion_semanal_con_selector_de_dia_habil(): void
     {
         $role = Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
