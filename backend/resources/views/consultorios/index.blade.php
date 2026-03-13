@@ -57,15 +57,16 @@
                             <input type="date" name="fecha_fin_repeticion" class="form-control" value="{{ old('fecha_fin_repeticion', now()->addMonth()->toDateString()) }}">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Días</label>
-                            <div class="d-flex flex-wrap gap-2 small pt-1">
-                                @foreach ([1 => 'Lun', 2 => 'Mar', 3 => 'Mié', 4 => 'Jue', 5 => 'Vie', 6 => 'Sáb'] as $dayNumber => $dayLabel)
-                                    <label class="form-check form-check-inline mb-0">
-                                        <input class="form-check-input" type="checkbox" name="dias_semana[]" value="{{ $dayNumber }}" @checked(in_array($dayNumber, old('dias_semana', [])))>
-                                        <span class="form-check-label">{{ $dayLabel }}</span>
-                                    </label>
+                            <label class="form-label">Día hábil</label>
+                            @php
+                                $diaSeleccionado = (int) collect(old('dias_semana', []))->first();
+                            @endphp
+                            <select class="form-select" name="dias_semana[]" id="repeticion-dia-semana">
+                                <option value="">Selecciona un día</option>
+                                @foreach ([1 => 'Lunes', 2 => 'Martes', 3 => 'Miércoles', 4 => 'Jueves', 5 => 'Viernes', 6 => 'Sábado'] as $dayNumber => $dayLabel)
+                                    <option value="{{ $dayNumber }}" @selected($diaSeleccionado === $dayNumber)>{{ $dayLabel }}</option>
                                 @endforeach
-                            </div>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -182,6 +183,7 @@
                     <option value="semana">Vista semanal</option>
                     <option value="mes">Vista mensual</option>
                 </select>
+                <button type="button" class="btn btn-outline-secondary" id="bitacora-aplicar-filtro">Mostrar</button>
             </div>
         </div>
         <div class="card-body border-bottom">
@@ -250,10 +252,11 @@
         const detalleDiaContainer = document.getElementById('ocupacion-dia-detalle');
         const bitacoraFechaBase = document.getElementById('bitacora-fecha-base');
         const bitacoraVista = document.getElementById('bitacora-vista');
+        const bitacoraAplicarFiltro = document.getElementById('bitacora-aplicar-filtro');
         const bitacoraContainer = document.getElementById('bitacora-vista-dinamica');
         const repeticionConfig = document.getElementById('repeticion-config');
         const modoRepeticionInputs = document.querySelectorAll('input[name="modo_repeticion"]');
-        const diasSemanaInputs = document.querySelectorAll('input[name="dias_semana[]"]');
+        const diaSemanaSelect = document.getElementById('repeticion-dia-semana');
         const catalogoCubiculos = @json($cubiculosActivos->pluck('numero')->map(fn ($numero) => (int) $numero)->values());
         const weekDayLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
         const TOTAL_CUBICULOS = catalogoCubiculos.length || 14;
@@ -390,12 +393,12 @@
                 formFecha.required = mode !== 'semanal';
             }
 
-            if (mode === 'semanal' && !Array.from(diasSemanaInputs).some((input) => input.checked) && formFecha?.value) {
+            if (mode === 'semanal' && !diaSemanaSelect?.value && formFecha?.value) {
                 const selectedDate = new Date(`${formFecha.value}T00:00:00`);
                 const isoDay = selectedDate.getDay() === 0 ? 7 : selectedDate.getDay();
-                diasSemanaInputs.forEach((input) => {
-                    input.checked = Number(input.value) === isoDay;
-                });
+                if (isoDay <= 6 && diaSemanaSelect) {
+                    diaSemanaSelect.value = String(isoDay);
+                }
             }
         };
 
@@ -649,8 +652,13 @@
 
         filtroFecha?.addEventListener('change', refreshCalendar);
         filtroConsultorio?.addEventListener('change', refreshCalendar);
-        bitacoraFechaBase?.addEventListener('change', refreshCalendar);
-        bitacoraVista?.addEventListener('change', refreshCalendar);
+        bitacoraAplicarFiltro?.addEventListener('click', refreshCalendar);
+        bitacoraFechaBase?.addEventListener('change', () => {
+            bitacoraContainer.innerHTML = '';
+        });
+        bitacoraVista?.addEventListener('change', () => {
+            bitacoraContainer.innerHTML = '';
+        });
 
         refreshCalendar();
         setInterval(refreshCalendar, 30000);
