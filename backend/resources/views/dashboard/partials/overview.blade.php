@@ -227,7 +227,7 @@
                                         <span x-text="alert.ultima_actividad_human || 'Sin registros recientes'"></span>
                                     </p>
                                     <p class="mb-0 small text-muted">
-                                        Tutor: <span x-text="alert.tutor || 'No asignado'"></span>
+                                        Estratega: <span x-text="alert.tutor || 'No asignado'"></span>
                                         <template x-if="alert.coordinador">
                                             <span class="ms-2">Coordinador: <span x-text="alert.coordinador"></span></span>
                                         </template>
