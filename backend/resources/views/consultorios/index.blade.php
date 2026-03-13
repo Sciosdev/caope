@@ -809,13 +809,13 @@
             bitacoraContainer.innerHTML = '';
         });
 
-        if (bitacoraBulkDeleteForm) {
-            bitacoraBulkDeleteForm.addEventListener('change', (event) => {
-                if (event.target.matches('.bitacora-select-item')) {
-                    updateBitacoraBulkState();
-                }
-            });
+        document.addEventListener('change', (event) => {
+            if (event.target.matches('.bitacora-select-item')) {
+                updateBitacoraBulkState();
+            }
+        });
 
+        if (bitacoraBulkDeleteForm) {
             bitacoraBulkDeleteForm.addEventListener('submit', (event) => {
                 const selected = document.querySelectorAll(`.bitacora-select-item[form="${bitacoraBulkDeleteForm.id}"]:checked`).length;
                 if (!selected || !window.confirm(`¿Eliminar ${selected} registro(s) seleccionado(s)?`)) {
