@@ -31,7 +31,7 @@ class ExpedientesExport extends DefaultValueBinder implements FromQuery, WithHea
             'Consultante',
             'Estado',
             'Fecha de apertura',
-            'Docente Asignado',
+            'Estratega',
             'Coordinador',
             'Capturado por',
         ];

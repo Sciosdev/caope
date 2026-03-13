@@ -49,7 +49,7 @@
                 <span class="fw-semibold">{{ $expediente->turno }}</span>
             </div>
             <div class="col-md-4">
-                <span class="text-muted small d-block">Docente Asignado</span>
+                <span class="text-muted small d-block">Estratega</span>
                 <span class="fw-semibold">{{ $expediente->tutor?->name ?? 'Sin asignar' }}</span>
             </div>
             <div class="col-md-4">
