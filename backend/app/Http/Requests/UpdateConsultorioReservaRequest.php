@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\ConsultorioReserva;
+use Carbon\Carbon;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -35,10 +36,12 @@ class UpdateConsultorioReservaRequest extends FormRequest
             $fecha = $this->input('fecha');
             $horaInicio = $this->input('hora_inicio');
             $horaFin = $this->input('hora_fin');
+            $horaInicioComparable = $this->toDatabaseTime($horaInicio);
+            $horaFinComparable = $this->toDatabaseTime($horaFin);
             $consultorio = (int) $this->input('consultorio_numero');
             $cubiculo = (int) $this->input('cubiculo_numero');
 
-            if (! $fecha || ! $horaInicio || ! $horaFin || ! $reserva) {
+            if (! $fecha || ! $horaInicio || ! $horaFin || ! $horaInicioComparable || ! $horaFinComparable || ! $reserva) {
                 return;
             }
 
@@ -55,13 +58,22 @@ class UpdateConsultorioReservaRequest extends FormRequest
                 ->whereDate('fecha', $fecha)
                 ->where('consultorio_numero', $consultorio)
                 ->where('cubiculo_numero', $cubiculo)
-                ->where('hora_inicio', '<', $horaFin)
-                ->where('hora_fin', '>', $horaInicio)
+                ->where('hora_inicio', '<', $horaFinComparable)
+                ->where('hora_fin', '>', $horaInicioComparable)
                 ->exists();
 
             if ($overlap) {
                 $validator->errors()->add('hora_inicio', 'Ese consultorio ya está reservado en el bloque seleccionado.');
             }
         });
+    }
+
+    protected function toDatabaseTime(?string $time): ?string
+    {
+        if (! $time) {
+            return null;
+        }
+
+        return Carbon::createFromFormat('H:i', $time)?->format('H:i:s');
     }
 }
