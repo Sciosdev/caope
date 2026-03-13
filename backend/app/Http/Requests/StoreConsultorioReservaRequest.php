@@ -23,7 +23,7 @@ class StoreConsultorioReservaRequest extends FormRequest
             'fecha_inicio_repeticion' => ['required_if:modo_repeticion,semanal', 'nullable', 'date', 'after_or_equal:today'],
             'fecha_fin_repeticion' => ['required_if:modo_repeticion,semanal', 'nullable', 'date', 'after_or_equal:fecha_inicio_repeticion'],
             'dias_semana' => ['nullable', 'array', 'min:1'],
-            'dias_semana.*' => ['integer', 'between:1,6'],
+            'dias_semana.*' => ['nullable', 'integer', 'between:1,6'],
             'hora_inicio' => ['required', 'date_format:H:i'],
             'hora_fin' => ['required', 'date_format:H:i', 'after:hora_inicio'],
             'consultorio_numero' => ['required', 'integer', Rule::exists('catalogo_consultorios', 'numero')->where('activo', true)],
@@ -97,7 +97,10 @@ class StoreConsultorioReservaRequest extends FormRequest
 
         $inicio = $this->input('fecha_inicio_repeticion');
         $fin = $this->input('fecha_fin_repeticion');
-        $dias = collect($this->input('dias_semana', []))->map(fn ($dia) => (int) $dia)->unique();
+        $dias = collect($this->input('dias_semana', []))
+            ->filter(fn ($dia) => filled($dia))
+            ->map(fn ($dia) => (int) $dia)
+            ->unique();
 
         if (! $inicio || ! $fin) {
             return collect();

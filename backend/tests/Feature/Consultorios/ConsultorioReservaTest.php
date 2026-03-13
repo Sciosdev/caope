@@ -191,6 +191,58 @@ class ConsultorioReservaTest extends TestCase
             ->assertJsonPath('reservas.0.estrategia', 'Terapia individual');
     }
 
+
+    public function test_permite_repeticion_semanal_con_selector_de_dia_habil(): void
+    {
+        $role = Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $admin = User::factory()->create();
+        $admin->assignRole($role);
+
+        $inicio = now()->addWeek()->startOfWeek()->toDateString(); // lunes
+        $fin = now()->addWeeks(4)->endOfWeek()->toDateString();
+
+        $response = $this->actingAs($admin)->post(route('consultorios.store'), [
+            'modo_repeticion' => 'semanal',
+            'fecha_inicio_repeticion' => $inicio,
+            'fecha_fin_repeticion' => $fin,
+            'dias_semana' => ['2'],
+            'hora_inicio' => '09:00',
+            'hora_fin' => '10:00',
+            'consultorio_numero' => 3,
+            'cubiculo_numero' => 1,
+            'estrategia' => 'Intervención breve',
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertGreaterThan(1, ConsultorioReserva::query()->count());
+        $this->assertTrue(ConsultorioReserva::query()->get()->every(fn (ConsultorioReserva $reserva) => $reserva->fecha->dayOfWeekIso === 2));
+    }
+
+    public function test_repeticion_semanal_ignora_valores_vacios_en_dias_semana(): void
+    {
+        $role = Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $admin = User::factory()->create();
+        $admin->assignRole($role);
+
+        $inicio = now()->addWeek()->startOfWeek()->addDay()->toDateString(); // martes
+        $fin = now()->addWeeks(2)->endOfWeek()->toDateString();
+
+        $response = $this->actingAs($admin)->post(route('consultorios.store'), [
+            'modo_repeticion' => 'semanal',
+            'fecha_inicio_repeticion' => $inicio,
+            'fecha_fin_repeticion' => $fin,
+            'dias_semana' => [''],
+            'hora_inicio' => '11:00',
+            'hora_fin' => '12:00',
+            'consultorio_numero' => 5,
+            'cubiculo_numero' => 2,
+            'estrategia' => 'Otra estrategia',
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertGreaterThan(0, ConsultorioReserva::query()->count());
+    }
+
     public function test_crea_reservas_masivas_con_repeticion_semanal_sin_seleccionar_dias(): void
     {
         $role = Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
