@@ -263,16 +263,19 @@
         const JORNADA_INICIO = 7 * 60;
         const JORNADA_FIN = 22 * 60;
 
-        const reservasRegistradas = @json($reservas->getCollection()->map(fn ($reserva) => [
-            'fecha' => $reserva->fecha->format('Y-m-d'),
-            'consultorio_numero' => $reserva->consultorio_numero,
-            'cubiculo_numero' => $reserva->cubiculo_numero,
-            'hora_inicio' => $reserva->hora_inicio,
-            'hora_fin' => $reserva->hora_fin,
-            'estrategia' => $reserva->estrategia,
-            'estratega_nombre' => $reserva->estratega?->name,
-            'usuario_atendido_nombre' => $reserva->usuarioAtendido?->name,
-        ])->values());
+        @php
+            $reservasRegistradas = $reservas->getCollection()->map(fn ($reserva) => [
+                'fecha' => $reserva->fecha->format('Y-m-d'),
+                'consultorio_numero' => $reserva->consultorio_numero,
+                'cubiculo_numero' => $reserva->cubiculo_numero,
+                'hora_inicio' => $reserva->hora_inicio,
+                'hora_fin' => $reserva->hora_fin,
+                'estrategia' => $reserva->estrategia,
+                'estratega_nombre' => $reserva->estratega?->name,
+                'usuario_atendido_nombre' => $reserva->usuarioAtendido?->name,
+            ])->values();
+        @endphp
+        const reservasRegistradas = @json($reservasRegistradas);
 
         const timeToMinutes = (time) => {
             const [hours = '0', minutes = '0'] = (time ?? '').split(':');
