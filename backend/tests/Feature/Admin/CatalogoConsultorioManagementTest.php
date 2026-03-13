@@ -3,6 +3,7 @@
 namespace Tests\Feature\Admin;
 
 use App\Models\CatalogoConsultorio;
+use App\Models\CatalogoCubiculo;
 use App\Models\CatalogoEstrategia;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -58,6 +59,45 @@ class CatalogoConsultorioManagementTest extends TestCase
 
         $deleteResponse->assertRedirect(route('admin.catalogos.consultorios.index'));
         $this->assertDatabaseMissing('catalogo_consultorios', ['id' => $consultorio->id]);
+    }
+
+    public function test_admin_can_create_update_and_delete_cubiculo_catalog_entry(): void
+    {
+        $admin = $this->createAdmin();
+
+        $createResponse = $this->actingAs($admin)->post(route('admin.catalogos.cubiculos.store'), [
+            'nombre' => 'Cubículo Norte',
+            'numero' => 30,
+            'activo' => 1,
+        ]);
+
+        $createResponse->assertRedirect(route('admin.catalogos.cubiculos.index'));
+        $this->assertDatabaseHas('catalogo_cubiculos', [
+            'nombre' => 'Cubículo Norte',
+            'numero' => 30,
+            'activo' => true,
+        ]);
+
+        $cubiculo = CatalogoCubiculo::query()->where('numero', 30)->firstOrFail();
+
+        $updateResponse = $this->actingAs($admin)->put(route('admin.catalogos.cubiculos.update', $cubiculo), [
+            'nombre' => 'Cubículo Norte A',
+            'numero' => 31,
+            'activo' => 1,
+        ]);
+
+        $updateResponse->assertRedirect(route('admin.catalogos.cubiculos.index'));
+        $this->assertDatabaseHas('catalogo_cubiculos', [
+            'id' => $cubiculo->id,
+            'nombre' => 'Cubículo Norte A',
+            'numero' => 31,
+            'activo' => true,
+        ]);
+
+        $deleteResponse = $this->actingAs($admin)->delete(route('admin.catalogos.cubiculos.force-destroy', $cubiculo));
+
+        $deleteResponse->assertRedirect(route('admin.catalogos.cubiculos.index'));
+        $this->assertDatabaseMissing('catalogo_cubiculos', ['id' => $cubiculo->id]);
     }
 
     public function test_consultorio_and_sesion_forms_render_active_estrategias_from_catalog(): void

@@ -22,12 +22,12 @@ class StoreConsultorioReservaRequest extends FormRequest
             'fecha' => ['required_if:modo_repeticion,unica', 'nullable', 'date', 'after_or_equal:today'],
             'fecha_inicio_repeticion' => ['required_if:modo_repeticion,semanal', 'nullable', 'date', 'after_or_equal:today'],
             'fecha_fin_repeticion' => ['required_if:modo_repeticion,semanal', 'nullable', 'date', 'after_or_equal:fecha_inicio_repeticion'],
-            'dias_semana' => ['required_if:modo_repeticion,semanal', 'array', 'min:1'],
+            'dias_semana' => ['nullable', 'array', 'min:1'],
             'dias_semana.*' => ['integer', 'between:1,6'],
             'hora_inicio' => ['required', 'date_format:H:i'],
             'hora_fin' => ['required', 'date_format:H:i', 'after:hora_inicio'],
             'consultorio_numero' => ['required', 'integer', Rule::exists('catalogo_consultorios', 'numero')->where('activo', true)],
-            'cubiculo_numero' => ['required', 'integer', 'between:1,14'],
+            'cubiculo_numero' => ['required', 'integer', Rule::exists('catalogo_cubiculos', 'numero')->where('activo', true)],
             'estrategia' => ['required', 'string', 'max:255', Rule::exists('catalogo_estrategias', 'nombre')->where('activo', true)],
             'usuario_atendido_id' => ['nullable', 'integer', 'exists:users,id'],
             'estratega_id' => ['nullable', 'integer', 'exists:users,id'],
@@ -88,8 +88,12 @@ class StoreConsultorioReservaRequest extends FormRequest
         $fin = $this->input('fecha_fin_repeticion');
         $dias = collect($this->input('dias_semana', []))->map(fn ($dia) => (int) $dia)->unique();
 
-        if (! $inicio || ! $fin || $dias->isEmpty()) {
+        if (! $inicio || ! $fin) {
             return collect();
+        }
+
+        if ($dias->isEmpty()) {
+            $dias = collect([(int) Carbon::parse($inicio)->dayOfWeekIso]);
         }
 
         $cursor = Carbon::parse($inicio)->startOfDay();

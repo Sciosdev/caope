@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\CatalogoCarreraController;
+use App\Http\Controllers\Admin\CatalogoCubiculoController;
 use App\Http\Controllers\Admin\CatalogoEstrategiaController;
 use App\Http\Controllers\Admin\CatalogoConsultorioController;
 use App\Http\Controllers\Admin\CatalogoPadecimientoController;
@@ -57,6 +58,9 @@ Route::middleware(['auth', 'active_user'])->group(function () {
         Route::resource('consultorios', CatalogoConsultorioController::class)->except('show');
         Route::patch('consultorios/{consultorio}/estado', [CatalogoConsultorioController::class, 'toggleActive'])->name('consultorios.toggle-active');
         Route::delete('consultorios/{consultorio}/eliminar', [CatalogoConsultorioController::class, 'forceDestroy'])->name('consultorios.force-destroy');
+        Route::resource('cubiculos', CatalogoCubiculoController::class)->except('show');
+        Route::patch('cubiculos/{cubiculo}/estado', [CatalogoCubiculoController::class, 'toggleActive'])->name('cubiculos.toggle-active');
+        Route::delete('cubiculos/{cubiculo}/eliminar', [CatalogoCubiculoController::class, 'forceDestroy'])->name('cubiculos.force-destroy');
         Route::resource('estrategias', CatalogoEstrategiaController::class)->except('show');
         Route::patch('estrategias/{estrategia}/estado', [CatalogoEstrategiaController::class, 'toggleActive'])->name('estrategias.toggle-active');
         Route::delete('estrategias/{estrategia}/eliminar', [CatalogoEstrategiaController::class, 'forceDestroy'])->name('estrategias.force-destroy');

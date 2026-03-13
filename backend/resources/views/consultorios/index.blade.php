@@ -88,9 +88,9 @@
                 <div class="col-md-2">
                     <label class="form-label">Cubículo</label>
                     <select name="cubiculo_numero" class="form-select" id="asignacion-cubiculo" required>
-                        @for ($i = 1; $i <= 14; $i++)
-                            <option value="{{ $i }}" @selected((int) old('cubiculo_numero', 1) === $i)>Cubículo {{ $i }}</option>
-                        @endfor
+                        @foreach ($cubiculosActivos as $cubiculo)
+                            <option value="{{ $cubiculo->numero }}" @selected((int) old('cubiculo_numero', (int) ($cubiculosActivos->first()->numero ?? 1)) === (int) $cubiculo->numero)>{{ $cubiculo->nombre }}</option>
+                        @endforeach
                     </select>
                 </div>
                 <div class="col-md-4">
@@ -253,8 +253,10 @@
         const bitacoraContainer = document.getElementById('bitacora-vista-dinamica');
         const repeticionConfig = document.getElementById('repeticion-config');
         const modoRepeticionInputs = document.querySelectorAll('input[name="modo_repeticion"]');
+        const diasSemanaInputs = document.querySelectorAll('input[name="dias_semana[]"]');
+        const catalogoCubiculos = @json($cubiculosActivos->pluck('numero')->map(fn ($numero) => (int) $numero)->values());
         const weekDayLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-        const TOTAL_CUBICULOS = 14;
+        const TOTAL_CUBICULOS = catalogoCubiculos.length || 14;
         const JORNADA_INICIO = 7 * 60;
         const JORNADA_FIN = 22 * 60;
 
@@ -387,6 +389,14 @@
             if (formFecha) {
                 formFecha.required = mode !== 'semanal';
             }
+
+            if (mode === 'semanal' && !Array.from(diasSemanaInputs).some((input) => input.checked) && formFecha?.value) {
+                const selectedDate = new Date(`${formFecha.value}T00:00:00`);
+                const isoDay = selectedDate.getDay() === 0 ? 7 : selectedDate.getDay();
+                diasSemanaInputs.forEach((input) => {
+                    input.checked = Number(input.value) === isoDay;
+                });
+            }
         };
 
         const fetchAvailability = async (params) => {
@@ -487,7 +497,8 @@
                 return carry;
             }, {});
 
-            const rows = Array.from({ length: 14 }, (_, index) => index + 1).map((cubiculo) => {
+            const cubiculos = catalogoCubiculos.length ? catalogoCubiculos : Array.from({ length: 14 }, (_, index) => index + 1);
+            const rows = cubiculos.map((cubiculo) => {
                 const columns = dateHeaders.map((fecha) => {
                     const matches = grouped[`${cubiculo}_${fecha}`] ?? [];
                     if (!matches.length) {

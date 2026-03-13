@@ -26,7 +26,7 @@
                     <thead>
                         <tr>
                             <th scope="col">{{ __('Nombre') }}</th>
-                            @if ($routePrefix === 'admin.catalogos.consultorios')
+                            @if (in_array($routePrefix, ['admin.catalogos.consultorios', 'admin.catalogos.cubiculos'], true))
                                 <th scope="col">{{ __('Número') }}</th>
                             @endif
                             <th scope="col">{{ __('Estado') }}</th>
@@ -38,7 +38,7 @@
                         @forelse ($items as $item)
                             <tr>
                                 <td>{{ $item->nombre }}</td>
-                                @if ($routePrefix === 'admin.catalogos.consultorios')
+                                @if (in_array($routePrefix, ['admin.catalogos.consultorios', 'admin.catalogos.cubiculos'], true))
                                     <td>{{ $item->numero }}</td>
                                 @endif
                                 <td>
@@ -89,7 +89,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="{{ $routePrefix === 'admin.catalogos.consultorios' ? 5 : 4 }}" class="text-center text-muted py-4">
+                                <td colspan="{{ in_array($routePrefix, ['admin.catalogos.consultorios', 'admin.catalogos.cubiculos'], true) ? 5 : 4 }}" class="text-center text-muted py-4">
                                     {{ __('No hay :resource registrados todavía.', ['resource' => strtolower($resourceNamePlural)]) }}
                                 </td>
                             </tr>

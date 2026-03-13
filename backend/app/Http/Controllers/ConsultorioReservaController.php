@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreConsultorioReservaRequest;
 use App\Http\Requests\UpdateConsultorioReservaRequest;
+use App\Models\CatalogoCubiculo;
 use App\Models\CatalogoConsultorio;
 use App\Models\CatalogoEstrategia;
 use App\Models\ConsultorioReserva;
@@ -23,9 +24,13 @@ class ConsultorioReservaController extends Controller
 
         $fechaFiltro = $request->string('fecha')->toString() ?: now()->toDateString();
         $consultoriosActivos = CatalogoConsultorio::activos();
+        $cubiculosActivos = CatalogoCubiculo::activos();
+        $cubiculosDisponibles = $cubiculosActivos->pluck('numero')->map(fn ($numero) => (int) $numero)->values();
+        $defaultCubiculo = (int) ($cubiculosDisponibles->first() ?? 1);
         $consultorioSeleccionado = (int) $request->integer('consultorio_numero', (int) ($consultoriosActivos->first()->numero ?? 1));
-        $cubiculoSeleccionado = $request->filled('cubiculo_numero')
-            ? max(1, min(14, (int) $request->integer('cubiculo_numero')))
+        $cubiculoSolicitado = (int) $request->integer('cubiculo_numero', $defaultCubiculo);
+        $cubiculoSeleccionado = $request->filled('cubiculo_numero') && $cubiculosDisponibles->contains($cubiculoSolicitado)
+            ? $cubiculoSolicitado
             : null;
 
         $reservas = ConsultorioReserva::query()
@@ -59,6 +64,7 @@ class ConsultorioReservaController extends Controller
             'usuarios' => $usuariosActivos,
             'docentes' => $docentes,
             'consultoriosActivos' => $consultoriosActivos,
+            'cubiculosActivos' => $cubiculosActivos,
             'estrategiasActivas' => CatalogoEstrategia::activos(),
         ]);
     }
@@ -116,6 +122,7 @@ class ConsultorioReservaController extends Controller
             'usuarios' => User::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'docentes' => User::role('docente')->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'consultoriosActivos' => CatalogoConsultorio::activos(),
+            'cubiculosActivos' => CatalogoCubiculo::activos(),
             'estrategiasActivas' => CatalogoEstrategia::activos(),
         ]);
     }

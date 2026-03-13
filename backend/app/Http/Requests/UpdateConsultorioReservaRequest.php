@@ -20,7 +20,7 @@ class UpdateConsultorioReservaRequest extends FormRequest
             'hora_inicio' => ['required', 'date_format:H:i'],
             'hora_fin' => ['required', 'date_format:H:i', 'after:hora_inicio'],
             'consultorio_numero' => ['required', 'integer', Rule::exists('catalogo_consultorios', 'numero')->where('activo', true)],
-            'cubiculo_numero' => ['required', 'integer', 'between:1,14'],
+            'cubiculo_numero' => ['required', 'integer', Rule::exists('catalogo_cubiculos', 'numero')->where('activo', true)],
             'estrategia' => ['required', 'string', 'max:255', Rule::exists('catalogo_estrategias', 'nombre')->where('activo', true)],
             'usuario_atendido_id' => ['nullable', 'integer', 'exists:users,id'],
             'estratega_id' => ['nullable', 'integer', 'exists:users,id'],

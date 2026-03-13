@@ -12,7 +12,7 @@
 </div>
 
 
-@if ($routePrefix === 'admin.catalogos.consultorios')
+@if (in_array($routePrefix, ['admin.catalogos.consultorios', 'admin.catalogos.cubiculos'], true))
     <div class="mb-3">
         <label for="numero" class="form-label">{{ __('Número') }}</label>
         <input type="number" id="numero" name="numero" value="{{ old('numero', $editing && $item ? $item->numero : '') }}" min="1" max="99" class="form-control" required>
