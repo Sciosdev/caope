@@ -199,7 +199,6 @@
                 <form method="POST" action="{{ route('consultorios.bulk-destroy', request()->query()) }}" id="bitacora-bulk-delete-form" class="mb-3 d-flex flex-wrap align-items-center gap-2">
                     @csrf
                     @method('DELETE')
-                    <button type="submit" class="btn btn-sm btn-outline-danger" id="bitacora-bulk-delete-button" disabled>Eliminar seleccionados</button>
                     <span class="small text-muted" id="bitacora-bulk-delete-count">0 registro(s) seleccionado(s)</span>
                 </form>
             @endif
@@ -289,7 +288,6 @@
         const bitacoraAplicarFiltro = document.getElementById('bitacora-aplicar-filtro');
         const bitacoraContainer = document.getElementById('bitacora-vista-dinamica');
         const bitacoraBulkDeleteForm = document.getElementById('bitacora-bulk-delete-form');
-        const bitacoraBulkDeleteButton = document.getElementById('bitacora-bulk-delete-button');
         const bitacoraBulkDeleteCount = document.getElementById('bitacora-bulk-delete-count');
         const bitacoraSelectAll = document.getElementById('bitacora-select-all');
         const repeticionConfig = document.getElementById('repeticion-config');
@@ -635,9 +633,6 @@
 
             const itemCheckboxes = getBitacoraItemCheckboxes();
             const selected = Array.from(itemCheckboxes).filter((input) => input.checked).length;
-            if (bitacoraBulkDeleteButton) {
-                bitacoraBulkDeleteButton.disabled = selected === 0;
-            }
             if (bitacoraBulkDeleteCount) {
                 bitacoraBulkDeleteCount.textContent = `${selected} registro(s) seleccionado(s)`;
             }
