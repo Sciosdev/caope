@@ -178,7 +178,8 @@
         <div class="card-header d-flex flex-wrap gap-2 justify-content-between align-items-center">
             <span>Bitácora de asignaciones (alta, baja y modificación)</span>
             <div class="d-flex gap-2 align-items-center">
-                <input type="date" class="form-control" id="bitacora-fecha-base" value="{{ $fechaFiltro }}">
+                <input type="date" class="form-control" id="bitacora-fecha-base" value="{{ $fechaFiltro }}" aria-label="Fecha inicial de bitácora">
+                <input type="date" class="form-control" id="bitacora-fecha-fin" value="{{ $fechaFiltro }}" aria-label="Fecha final de bitácora">
                 <button type="button" class="btn btn-outline-secondary" id="bitacora-aplicar-filtro">Mostrar</button>
             </div>
         </div>
@@ -247,6 +248,7 @@
         const diaSeleccionadoLabel = document.getElementById('ocupacion-dia-seleccionado');
         const detalleDiaContainer = document.getElementById('ocupacion-dia-detalle');
         const bitacoraFechaBase = document.getElementById('bitacora-fecha-base');
+        const bitacoraFechaFin = document.getElementById('bitacora-fecha-fin');
         const bitacoraAplicarFiltro = document.getElementById('bitacora-aplicar-filtro');
         const bitacoraContainer = document.getElementById('bitacora-vista-dinamica');
         const repeticionConfig = document.getElementById('repeticion-config');
@@ -465,7 +467,15 @@
                 return;
             }
 
-            const rangeDates = [new Date(`${bitacoraFechaBase.value}T00:00:00`)];
+            const startDate = new Date(`${bitacoraFechaBase.value}T00:00:00`);
+            const endDate = new Date(`${(bitacoraFechaFin?.value || bitacoraFechaBase.value)}T00:00:00`);
+            const rangeDates = [];
+            const cursor = new Date(startDate);
+
+            while (cursor <= endDate) {
+                rangeDates.push(new Date(cursor));
+                cursor.setDate(cursor.getDate() + 1);
+            }
 
             const dateHeaders = rangeDates.map((date) => dateISO(date));
             const agruparPorFecha = (sourceItems) => sourceItems.reduce((carry, item) => {
@@ -556,7 +566,9 @@
                 `;
             }).join('');
 
-            const labelPeriodo = 'la fecha seleccionada';
+            const labelPeriodo = bitacoraFechaFin?.value && bitacoraFechaFin.value !== bitacoraFechaBase.value
+                ? `el periodo ${bitacoraFechaBase.value} al ${bitacoraFechaFin.value}`
+                : `la fecha ${bitacoraFechaBase.value}`;
 
             bitacoraContainer.innerHTML = `
                 <div class="alert alert-light border d-flex justify-content-between align-items-center" role="status">
@@ -613,8 +625,16 @@
             }
 
             try {
-                const startISO = bitacoraFechaBase.value;
-                const endISO = bitacoraFechaBase.value;
+                const selectedStart = bitacoraFechaBase.value;
+                const selectedEnd = bitacoraFechaFin?.value || selectedStart;
+                const [startISO, endISO] = selectedStart <= selectedEnd
+                    ? [selectedStart, selectedEnd]
+                    : [selectedEnd, selectedStart];
+
+                if (bitacoraFechaFin) {
+                    bitacoraFechaFin.value = endISO;
+                }
+                bitacoraFechaBase.value = startISO;
 
                 const params = new URLSearchParams({
                     fecha_inicio: startISO,
@@ -716,6 +736,9 @@
         });
         bitacoraAplicarFiltro?.addEventListener('click', refreshBitacora);
         bitacoraFechaBase?.addEventListener('change', () => {
+            bitacoraContainer.innerHTML = '';
+        });
+        bitacoraFechaFin?.addEventListener('change', () => {
             bitacoraContainer.innerHTML = '';
         });
         refreshCalendar();
