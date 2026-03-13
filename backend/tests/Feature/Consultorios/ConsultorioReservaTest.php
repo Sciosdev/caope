@@ -2,6 +2,9 @@
 
 namespace Tests\Feature\Consultorios;
 
+use App\Models\CatalogoConsultorio;
+use App\Models\CatalogoCubiculo;
+use App\Models\CatalogoEstrategia;
 use App\Models\ConsultorioReserva;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -11,6 +14,54 @@ use Tests\TestCase;
 class ConsultorioReservaTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        CatalogoConsultorio::query()->firstOrCreate([
+            'nombre' => 'Consultorio 3',
+            'numero' => 3,
+            'activo' => true,
+        ]);
+        CatalogoConsultorio::query()->firstOrCreate([
+            'nombre' => 'Consultorio 5',
+            'numero' => 5,
+            'activo' => true,
+        ]);
+        CatalogoConsultorio::query()->firstOrCreate([
+            'nombre' => 'Consultorio 6',
+            'numero' => 6,
+            'activo' => true,
+        ]);
+        CatalogoCubiculo::query()->firstOrCreate([
+            'nombre' => 'Cubículo 1',
+            'numero' => 1,
+            'activo' => true,
+        ]);
+        CatalogoCubiculo::query()->firstOrCreate([
+            'nombre' => 'Cubículo 2',
+            'numero' => 2,
+            'activo' => true,
+        ]);
+        CatalogoCubiculo::query()->firstOrCreate([
+            'nombre' => 'Cubículo 3',
+            'numero' => 3,
+            'activo' => true,
+        ]);
+        CatalogoEstrategia::query()->firstOrCreate([
+            'nombre' => 'Intervención breve',
+            'activo' => true,
+        ]);
+        CatalogoEstrategia::query()->firstOrCreate([
+            'nombre' => 'Otra estrategia',
+            'activo' => true,
+        ]);
+        CatalogoEstrategia::query()->firstOrCreate([
+            'nombre' => 'Terapia individual',
+            'activo' => true,
+        ]);
+    }
 
     public function test_no_permite_empalmes_en_mismo_consultorio_y_cubiculo(): void
     {
@@ -108,6 +159,31 @@ class ConsultorioReservaTest extends TestCase
             ->assertJsonCount(1, 'reservas')
             ->assertJsonPath('reservas.0.cubiculo_numero', 3)
             ->assertJsonPath('reservas.0.estrategia', 'Terapia individual');
+    }
+
+    public function test_crea_reservas_masivas_con_repeticion_semanal_sin_seleccionar_dias(): void
+    {
+        $role = Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $admin = User::factory()->create();
+        $admin->assignRole($role);
+
+        $inicio = now()->addWeek()->startOfWeek()->addDay()->toDateString(); // martes
+        $fin = now()->addWeek()->addWeeks(2)->endOfWeek()->subDay()->toDateString();
+
+        $response = $this->actingAs($admin)->post(route('consultorios.store'), [
+            'modo_repeticion' => 'semanal',
+            'fecha_inicio_repeticion' => $inicio,
+            'fecha_fin_repeticion' => $fin,
+            'hora_inicio' => '09:00',
+            'hora_fin' => '10:00',
+            'consultorio_numero' => 3,
+            'cubiculo_numero' => 2,
+            'estrategia' => 'Intervención breve',
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect(route('consultorios.index'));
+        $this->assertGreaterThan(1, ConsultorioReserva::query()->count());
     }
 
 }
