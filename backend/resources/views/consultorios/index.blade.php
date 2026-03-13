@@ -263,6 +263,17 @@
         const JORNADA_INICIO = 7 * 60;
         const JORNADA_FIN = 22 * 60;
 
+        const reservasRegistradas = @json($reservas->getCollection()->map(fn ($reserva) => [
+            'fecha' => $reserva->fecha->format('Y-m-d'),
+            'consultorio_numero' => $reserva->consultorio_numero,
+            'cubiculo_numero' => $reserva->cubiculo_numero,
+            'hora_inicio' => $reserva->hora_inicio,
+            'hora_fin' => $reserva->hora_fin,
+            'estrategia' => $reserva->estrategia,
+            'estratega_nombre' => $reserva->estratega?->name,
+            'usuario_atendido_nombre' => $reserva->usuarioAtendido?->name,
+        ])->values());
+
         const timeToMinutes = (time) => {
             const [hours = '0', minutes = '0'] = (time ?? '').split(':');
             return (Number(hours) * 60) + Number(minutes);
@@ -472,7 +483,7 @@
 
             const mode = bitacoraVista?.value ?? 'semana';
             const base = new Date(`${bitacoraFechaBase.value}T00:00:00`);
-            let rangeDates = [];
+            const rangeDates = [];
 
             if (mode === 'semana') {
                 const day = base.getDay() || 7;
@@ -491,7 +502,7 @@
             }
 
             const dateHeaders = rangeDates.map((date) => dateISO(date));
-            const grouped = items.reduce((carry, item) => {
+            const agruparPorFecha = (sourceItems) => sourceItems.reduce((carry, item) => {
                 const key = item.fecha;
                 if (!carry[key]) {
                     carry[key] = [];
@@ -499,21 +510,26 @@
                 carry[key].push(item);
                 return carry;
             }, {});
+            const mostradosPorFecha = agruparPorFecha(items ?? []);
+            const registradosPorFecha = agruparPorFecha(reservasRegistradas ?? []);
 
-            const dayBlocks = dateHeaders.map((fecha) => {
-                const registros = (grouped[fecha] ?? []).sort((a, b) => {
-                    const horaInicio = (a.hora_inicio ?? '').localeCompare(b.hora_inicio ?? '');
-                    if (horaInicio !== 0) {
-                        return horaInicio;
-                    }
+            const ordenarRegistros = (sourceItems) => [...sourceItems].sort((a, b) => {
+                const horaInicio = (a.hora_inicio ?? '').localeCompare(b.hora_inicio ?? '');
+                if (horaInicio !== 0) {
+                    return horaInicio;
+                }
 
-                    return Number(a.cubiculo_numero) - Number(b.cubiculo_numero);
-                });
+                return Number(a.cubiculo_numero) - Number(b.cubiculo_numero);
+            });
 
+            const renderSection = (titulo, registros, badgeClass) => {
                 if (!registros.length) {
                     return `
-                        <div class="border rounded p-3 h-100 bg-light">
-                            <div class="fw-semibold mb-2">${fecha}</div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="mb-0">${titulo}</h6>
+                                <span class="badge ${badgeClass}">0 registros</span>
+                            </div>
                             <p class="text-muted mb-0 small">Sin registros para este día.</p>
                         </div>
                     `;
@@ -522,6 +538,7 @@
                 const rows = registros.map((item) => {
                     const horaInicio = (item.hora_inicio ?? '').slice(0, 5);
                     const horaFin = (item.hora_fin ?? '').slice(0, 5);
+                    const consultorio = item.consultorio_numero ?? '—';
                     const cubiculo = item.cubiculo_numero ?? '—';
                     const estrategia = item.estrategia ?? '—';
                     const estratega = item.estratega_nombre ?? '—';
@@ -530,7 +547,7 @@
                     return `
                         <tr>
                             <td class="small text-nowrap">${horaInicio} - ${horaFin}</td>
-                            <td class="small text-nowrap">Cubículo ${cubiculo}</td>
+                            <td class="small text-nowrap">Consultorio ${consultorio} · Cubículo ${cubiculo}</td>
                             <td class="small">${estrategia}</td>
                             <td class="small">${estratega}</td>
                             <td class="small">${usuario}</td>
@@ -539,17 +556,17 @@
                 }).join('');
 
                 return `
-                    <div class="border rounded p-3 h-100">
+                    <div class="mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <div class="fw-semibold">${fecha}</div>
-                            <span class="badge text-bg-secondary">${registros.length} registro(s)</span>
+                            <h6 class="mb-0">${titulo}</h6>
+                            <span class="badge ${badgeClass}">${registros.length} registro(s)</span>
                         </div>
                         <div class="table-responsive">
                             <table class="table table-sm align-middle mb-0">
                                 <thead>
                                     <tr>
                                         <th>Horario</th>
-                                        <th>Cubículo</th>
+                                        <th>Consultorio / Cubículo</th>
                                         <th>Estrategia</th>
                                         <th>Estratega</th>
                                         <th>Usuario</th>
@@ -558,6 +575,19 @@
                                 <tbody>${rows}</tbody>
                             </table>
                         </div>
+                    </div>
+                `;
+            };
+
+            const dayBlocks = dateHeaders.map((fecha) => {
+                const mostrados = ordenarRegistros(mostradosPorFecha[fecha] ?? []);
+                const registrados = ordenarRegistros(registradosPorFecha[fecha] ?? []);
+
+                return `
+                    <div class="border rounded p-3 h-100">
+                        <div class="fw-semibold mb-3">${fecha}</div>
+                        ${renderSection('Mostrados por filtro', mostrados, 'text-bg-primary')}
+                        ${renderSection('Registrados (tabla inferior)', registrados, 'text-bg-secondary')}
                     </div>
                 `;
             }).join('');
@@ -633,7 +663,6 @@
                 const params = new URLSearchParams({
                     fecha_inicio: startISO,
                     fecha_fin: endISO,
-                    consultorio_numero: filtroConsultorio.value,
                 });
                 const data = await fetchAvailability(params);
                 if (!data) {
