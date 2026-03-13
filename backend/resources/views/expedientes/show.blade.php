@@ -118,7 +118,7 @@
                         <dt class="col-sm-3">Consultante</dt>
                         <dd class="col-sm-9">{{ $expediente->paciente }}</dd>
 
-                        <dt class="col-sm-3">Tutor</dt>
+                        <dt class="col-sm-3">Estratega</dt>
                         <dd class="col-sm-9">{{ $expediente->tutor?->name ?? 'Sin asignar' }}</dd>
 
                         <dt class="col-sm-3">Coordinador</dt>

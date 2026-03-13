@@ -44,7 +44,7 @@
             <input type="text" class="form-control flatpickr" id="filtro-hasta" name="hasta" value="{{ $filters['hasta'] ?? '' }}" placeholder="AAAA-MM-DD">
         </div>
         <div class="col-md-2">
-            <label class="form-label text-muted small" for="filtro-tutor">{{ __('Tutor') }}</label>
+            <label class="form-label text-muted small" for="filtro-tutor">{{ __('Estratega') }}</label>
             <select class="form-select" id="filtro-tutor" name="tutor_id">
                 <option value="">{{ __('Todos') }}</option>
                 @foreach ($tutores as $tutor)
@@ -83,7 +83,7 @@
                     <th>{{ __('Consultante') }}</th>
                     <th>{{ __('Estado') }}</th>
                     <th>{{ __('Apertura') }}</th>
-                    <th>{{ __('Tutor') }}</th>
+                    <th>{{ __('Estratega') }}</th>
                     <th>{{ __('Coordinador') }}</th>
                     <th>{{ __('Capturado por') }}</th>
                 </tr>
