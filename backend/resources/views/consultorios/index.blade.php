@@ -619,7 +619,8 @@
                 return;
             }
 
-            const selected = bitacoraBulkDeleteForm.querySelectorAll('.bitacora-select-item:checked').length;
+            const itemCheckboxes = document.querySelectorAll(`.bitacora-select-item[form="${bitacoraBulkDeleteForm.id}"]`);
+            const selected = document.querySelectorAll(`.bitacora-select-item[form="${bitacoraBulkDeleteForm.id}"]:checked`).length;
             if (bitacoraBulkDeleteButton) {
                 bitacoraBulkDeleteButton.disabled = selected === 0;
             }
@@ -627,7 +628,7 @@
                 bitacoraBulkDeleteCount.textContent = `${selected} registro(s) seleccionado(s)`;
             }
 
-            const total = bitacoraBulkDeleteForm.querySelectorAll('.bitacora-select-item').length;
+            const total = itemCheckboxes.length;
             if (bitacoraSelectAll) {
                 bitacoraSelectAll.checked = total > 0 && selected === total;
                 bitacoraSelectAll.indeterminate = selected > 0 && selected < total;
@@ -639,7 +640,7 @@
                 return;
             }
 
-            bitacoraBulkDeleteForm.querySelectorAll('.bitacora-select-item').forEach((input) => {
+            document.querySelectorAll(`.bitacora-select-item[form="${bitacoraBulkDeleteForm.id}"]`).forEach((input) => {
                 input.checked = checked;
             });
             updateBitacoraBulkState();
@@ -816,7 +817,7 @@
             });
 
             bitacoraBulkDeleteForm.addEventListener('submit', (event) => {
-                const selected = bitacoraBulkDeleteForm.querySelectorAll('.bitacora-select-item:checked').length;
+                const selected = document.querySelectorAll(`.bitacora-select-item[form="${bitacoraBulkDeleteForm.id}"]:checked`).length;
                 if (!selected || !window.confirm(`¿Eliminar ${selected} registro(s) seleccionado(s)?`)) {
                     event.preventDefault();
                 }
