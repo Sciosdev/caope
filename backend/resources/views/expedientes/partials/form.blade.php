@@ -160,7 +160,7 @@
             </div>
 
             <div class="col-md-4">
-                <label for="tutor_id" class="form-label">Docente Asignado</label>
+                <label for="tutor_id" class="form-label">Estratega</label>
                 <select
                     name="tutor_id"
                     id="tutor_id"
