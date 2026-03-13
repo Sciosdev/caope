@@ -177,4 +177,29 @@ class ConsultorioReservaController extends Controller
 
         return redirect()->route('consultorios.index')->with('status', 'Reserva eliminada correctamente.');
     }
+
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        abort_unless($request->user()?->hasRole('admin'), 403);
+
+        $ids = collect($request->input('reservas', []))
+            ->filter(fn ($id) => is_numeric($id))
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+
+        if ($ids->isEmpty()) {
+            return redirect()
+                ->route('consultorios.index', $request->query())
+                ->with('status', 'Selecciona al menos un registro para dar de baja.');
+        }
+
+        $eliminadas = ConsultorioReserva::query()->whereIn('id', $ids)->delete();
+
+        return redirect()
+            ->route('consultorios.index', $request->query())
+            ->with('status', $eliminadas > 1
+                ? 'Reservas eliminadas correctamente.'
+                : 'Reserva eliminada correctamente.');
+    }
 }

@@ -79,6 +79,7 @@ Route::middleware(['auth', 'active_user'])->group(function () {
         Route::get('/availability', [ConsultorioReservaController::class, 'availability'])->name('availability');
         Route::middleware('role:admin')->group(function (): void {
             Route::post('/', [ConsultorioReservaController::class, 'store'])->name('store');
+            Route::delete('/', [ConsultorioReservaController::class, 'bulkDestroy'])->name('bulk-destroy');
             Route::get('{reserva}/editar', [ConsultorioReservaController::class, 'edit'])->name('edit');
             Route::put('{reserva}', [ConsultorioReservaController::class, 'update'])->name('update');
             Route::delete('{reserva}', [ConsultorioReservaController::class, 'destroy'])->name('destroy');
