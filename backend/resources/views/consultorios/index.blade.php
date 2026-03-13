@@ -256,6 +256,62 @@
         const repeticionConfig = document.getElementById('repeticion-config');
         const modoRepeticionInputs = document.querySelectorAll('input[name="modo_repeticion"]');
         const weekDayLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+        const TOTAL_CUBICULOS = 14;
+        const JORNADA_INICIO = 7 * 60;
+        const JORNADA_FIN = 22 * 60;
+
+        const timeToMinutes = (time) => {
+            const [hours = '0', minutes = '0'] = (time ?? '').split(':');
+            return (Number(hours) * 60) + Number(minutes);
+        };
+
+        const hasAnyAvailableSlot = (items) => {
+            if (!items.length) {
+                return true;
+            }
+
+            const events = [];
+
+            items.forEach((item) => {
+                const start = Math.max(timeToMinutes(item.hora_inicio), JORNADA_INICIO);
+                const end = Math.min(timeToMinutes(item.hora_fin), JORNADA_FIN);
+
+                if (end <= start) {
+                    return;
+                }
+
+                events.push({ minute: start, delta: 1 });
+                events.push({ minute: end, delta: -1 });
+            });
+
+            if (!events.length) {
+                return true;
+            }
+
+            events.sort((a, b) => {
+                if (a.minute !== b.minute) {
+                    return a.minute - b.minute;
+                }
+
+                return a.delta - b.delta;
+            });
+
+            let activeReservations = 0;
+            let previousMinute = JORNADA_INICIO;
+
+            for (const event of events) {
+                const currentMinute = Math.max(Math.min(event.minute, JORNADA_FIN), JORNADA_INICIO);
+
+                if (currentMinute > previousMinute && activeReservations < TOTAL_CUBICULOS) {
+                    return true;
+                }
+
+                activeReservations += event.delta;
+                previousMinute = currentMinute;
+            }
+
+            return previousMinute < JORNADA_FIN && activeReservations < TOTAL_CUBICULOS;
+        };
 
         const hideAlert = () => {
             alerta.textContent = '';
@@ -367,10 +423,15 @@
                 const isSelected = iso === filtroFecha.value;
                 const items = groupedByDate[iso] ?? [];
                 const occupiedCubicles = new Set(items.map((item) => Number(item.cubiculo_numero))).size;
+                const isAvailable = hasAnyAvailableSlot(items);
+                const dayStyle = isAvailable
+                    ? 'background-color: #7fae9d; color: #0f2920; border-color: #6a9787;'
+                    : 'background-color: #9b6b87; color: #ffffff; border-color: #855774;';
                 cells.push(`
-                    <button type="button" class="btn btn-sm border rounded text-start p-2 h-100 ${isSelected ? 'btn-primary text-white' : 'btn-light'}" data-calendar-day="${iso}">
+                    <button type="button" class="btn btn-sm border rounded text-start p-2 h-100" style="${dayStyle}${isSelected ? ' box-shadow: inset 0 0 0 2px #212529;' : ''}" data-calendar-day="${iso}">
                         <div class="fw-semibold">${day}</div>
-                        <div class="small">${occupiedCubicles} cubículos ocupados</div>
+                        <div class="small">${isAvailable ? 'Disponible' : 'Sin disponibilidad'}</div>
+                        <div class="small opacity-75">${occupiedCubicles} cubículos ocupados</div>
                     </button>
                 `);
             }
@@ -379,6 +440,16 @@
                 <div class="d-grid gap-2" style="grid-template-columns: repeat(7, minmax(0,1fr));">
                     ${weekDayLabels.map((label) => `<div class="text-center text-muted small fw-semibold">${label}</div>`).join('')}
                     ${cells.join('')}
+                </div>
+                <div class="d-flex flex-wrap gap-3 mt-3 small">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="rounded" style="width: 1rem; height: 1rem; background-color: #7fae9d;"></span>
+                        <span>Disponible</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="rounded" style="width: 1rem; height: 1rem; background-color: #9b6b87;"></span>
+                        <span>Sin disponibilidad</span>
+                    </div>
                 </div>
             `;
         };
