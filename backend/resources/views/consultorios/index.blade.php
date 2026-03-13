@@ -183,8 +183,11 @@
                 @if($cubiculoSeleccionado)
                     <input type="hidden" name="cubiculo_numero" value="{{ $cubiculoSeleccionado }}">
                 @endif
-                <input type="date" class="form-control" id="bitacora-fecha-base" name="bitacora_inicio" value="{{ $bitacoraInicio }}" aria-label="Fecha inicial de bitácora">
-                <input type="date" class="form-control" id="bitacora-fecha-fin" name="bitacora_fin" value="{{ $bitacoraFin }}" aria-label="Fecha final de bitácora">
+                <input type="date" class="form-control" id="bitacora-fecha-base" name="bitacora_inicio" value="{{ $bitacoraInicio }}" aria-label="Fecha base de bitácora">
+                <select class="form-select" id="bitacora-modo" name="bitacora_modo" aria-label="Modo de vista de bitácora">
+                    <option value="semana" @selected($bitacoraModo === 'semana')>Semana</option>
+                    <option value="mes" @selected($bitacoraModo === 'mes')>Mes</option>
+                </select>
                 <button type="submit" class="btn btn-outline-secondary" id="bitacora-aplicar-filtro">Mostrar</button>
             </form>
         </div>
@@ -278,7 +281,7 @@
         const diaSeleccionadoLabel = document.getElementById('ocupacion-dia-seleccionado');
         const detalleDiaContainer = document.getElementById('ocupacion-dia-detalle');
         const bitacoraFechaBase = document.getElementById('bitacora-fecha-base');
-        const bitacoraFechaFin = document.getElementById('bitacora-fecha-fin');
+                const bitacoraModo = document.getElementById('bitacora-modo');
         const bitacoraAplicarFiltro = document.getElementById('bitacora-aplicar-filtro');
         const bitacoraContainer = document.getElementById('bitacora-vista-dinamica');
         const bitacoraBulkDeleteForm = document.getElementById('bitacora-bulk-delete-form');
@@ -497,12 +500,17 @@
         };
 
         const renderBitacoraGrid = (items) => {
-            if (!bitacoraContainer || !bitacoraFechaBase?.value) {
+            if (!bitacoraContainer) {
                 return;
             }
 
-            const startDate = new Date(`${bitacoraFechaBase.value}T00:00:00`);
-            const endDate = new Date(`${(bitacoraFechaFin?.value || bitacoraFechaBase.value)}T00:00:00`);
+            const bounds = computeBitacoraBounds();
+            if (!bounds) {
+                return;
+            }
+
+            const startDate = new Date(`${bounds.startISO}T00:00:00`);
+            const endDate = new Date(`${bounds.endISO}T00:00:00`);
             const rangeDates = [];
             const cursor = new Date(startDate);
 
@@ -600,9 +608,9 @@
                 `;
             }).join('');
 
-            const labelPeriodo = bitacoraFechaFin?.value && bitacoraFechaFin.value !== bitacoraFechaBase.value
-                ? `el periodo ${bitacoraFechaBase.value} al ${bitacoraFechaFin.value}`
-                : `la fecha ${bitacoraFechaBase.value}`;
+            const labelPeriodo = bounds.startISO === bounds.endISO
+                ? `la fecha ${bounds.startISO}`
+                : `el periodo ${bounds.startISO} al ${bounds.endISO}`;
 
             bitacoraContainer.innerHTML = `
                 <div class="alert alert-light border d-flex justify-content-between align-items-center" role="status">
@@ -686,26 +694,47 @@
             }
         };
 
-        const refreshBitacora = async () => {
+        const computeBitacoraBounds = () => {
             if (!bitacoraFechaBase?.value) {
+                return null;
+            }
+
+            const base = new Date(`${bitacoraFechaBase.value}T00:00:00`);
+            if (Number.isNaN(base.getTime())) {
+                return null;
+            }
+
+            const mode = bitacoraModo?.value === 'mes' ? 'mes' : 'semana';
+            const startDate = new Date(base);
+            const endDate = new Date(base);
+
+            if (mode === 'mes') {
+                startDate.setDate(1);
+                endDate.setMonth(endDate.getMonth() + 1, 0);
+            } else {
+                const day = startDate.getDay();
+                const diffToMonday = day === 0 ? -6 : 1 - day;
+                startDate.setDate(startDate.getDate() + diffToMonday);
+                endDate.setDate(startDate.getDate() + 6);
+            }
+
+            return {
+                mode,
+                startISO: dateISO(startDate),
+                endISO: dateISO(endDate),
+            };
+        };
+
+        const refreshBitacora = async () => {
+            const bounds = computeBitacoraBounds();
+            if (!bounds) {
                 return;
             }
 
             try {
-                const selectedStart = bitacoraFechaBase.value;
-                const selectedEnd = bitacoraFechaFin?.value || selectedStart;
-                const [startISO, endISO] = selectedStart <= selectedEnd
-                    ? [selectedStart, selectedEnd]
-                    : [selectedEnd, selectedStart];
-
-                if (bitacoraFechaFin) {
-                    bitacoraFechaFin.value = endISO;
-                }
-                bitacoraFechaBase.value = startISO;
-
                 const params = new URLSearchParams({
-                    fecha_inicio: startISO,
-                    fecha_fin: endISO,
+                    fecha_inicio: bounds.startISO,
+                    fecha_fin: bounds.endISO,
                 });
                 const data = await fetchAvailability(params);
                 if (!data) {
@@ -794,20 +823,26 @@
 
             filtroFecha.value = button.dataset.calendarDay;
             diaSeleccionadoLabel.textContent = filtroFecha.value;
+            if (bitacoraFechaBase) {
+                bitacoraFechaBase.value = filtroFecha.value;
+            }
             refreshCalendar();
+            refreshBitacora();
         });
 
-        filtroFecha?.addEventListener('change', refreshCalendar);
+        filtroFecha?.addEventListener('change', () => {
+            if (bitacoraFechaBase) {
+                bitacoraFechaBase.value = filtroFecha.value;
+            }
+            refreshCalendar();
+            refreshBitacora();
+        });
         filtroConsultorio?.addEventListener('change', () => {
             refreshCalendar();
         });
         bitacoraAplicarFiltro?.addEventListener('click', refreshBitacora);
-        bitacoraFechaBase?.addEventListener('change', () => {
-            bitacoraContainer.innerHTML = '';
-        });
-        bitacoraFechaFin?.addEventListener('change', () => {
-            bitacoraContainer.innerHTML = '';
-        });
+        bitacoraFechaBase?.addEventListener('change', refreshBitacora);
+        bitacoraModo?.addEventListener('change', refreshBitacora);
 
         document.addEventListener('change', (event) => {
             if (event.target.matches('.bitacora-select-item')) {
