@@ -76,7 +76,7 @@ class ReporteExpedienteController extends Controller
             return response()->json([
                 'status' => 'pending',
                 'token' => $token,
-                'status_url' => route('reportes.expedientes.export.status', $token),
+                'status_url' => route('reportes.expedientes.export.status', $token, false),
                 'message' => __('Tu exportación se está procesando en segundo plano. Te avisaremos en cuanto esté lista.'),
             ]);
         }
@@ -93,7 +93,7 @@ class ReporteExpedienteController extends Controller
         return response()->json([
             'status' => 'ready',
             'token' => $token,
-            'download_url' => route('reportes.expedientes.download', $token),
+            'download_url' => route('reportes.expedientes.download', $token, false),
             'message' => __('El archivo se generó correctamente.'),
         ]);
     }
@@ -114,7 +114,7 @@ class ReporteExpedienteController extends Controller
 
         return response()->json([
             'status' => 'ready',
-            'download_url' => route('reportes.expedientes.download', $token),
+            'download_url' => route('reportes.expedientes.download', $token, false),
         ]);
     }
 
