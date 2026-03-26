@@ -133,7 +133,9 @@
 @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            flatpickr('.flatpickr', { dateFormat: 'Y-m-d' });
+            if (typeof flatpickr === 'function') {
+                flatpickr('.flatpickr', { dateFormat: 'Y-m-d' });
+            }
 
             const exportButtons = document.querySelectorAll('[data-export-format]');
             const form = document.getElementById('report-filters-form');
@@ -206,14 +208,18 @@
                         },
                         body: formData,
                     })
-                        .then((response) => {
+                        .then(async (response) => {
+                            const payload = await response.json().catch(() => null);
+
                             if (!response.ok) {
-                                return response.json().then((payload) => {
-                                    throw payload;
-                                });
+                                throw payload ?? new Error('request-error');
                             }
 
-                            return response.json();
+                            if (!payload) {
+                                throw new Error('invalid-json');
+                            }
+
+                            return payload;
                         })
                         .then((payload) => {
                             if (payload.status === 'ready' && payload.download_url) {
