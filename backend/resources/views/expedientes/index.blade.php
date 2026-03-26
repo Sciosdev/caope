@@ -6,12 +6,18 @@
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <h4 class="mb-0">Expedientes</h4>
 
-        @can('create', App\Models\Expediente::class)
-            <a href="{{ route('expedientes.create') }}" class="btn btn-primary">
-                <i class="mdi mdi-plus"></i>
-                Nuevo expediente
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ route('expedientes.export.ficha-identificacion', request()->query()) }}" class="btn btn-outline-success">
+                <i class="mdi mdi-file-excel"></i>
+                Descargar XLS (ficha de identificación)
             </a>
-        @endcan
+            @can('create', App\Models\Expediente::class)
+                <a href="{{ route('expedientes.create') }}" class="btn btn-primary">
+                    <i class="mdi mdi-plus"></i>
+                    Nuevo expediente
+                </a>
+            @endcan
+        </div>
     </div>
 
     <form class="row g-3 mb-4" method="get">
