@@ -139,6 +139,8 @@ Route::middleware(['auth', 'active_user'])->group(function () {
         ->name('expedientes.sesiones.observe');
     Route::post('expedientes/{expediente}/sesiones/{sesion}/validate', [SesionController::class, 'validateSesion'])
         ->name('expedientes.sesiones.validate');
+    Route::get('expedientes/export/ficha-identificacion/xlsx', [ExpedienteController::class, 'exportFichaIdentificacion'])
+        ->name('expedientes.export.ficha-identificacion');
 
     Route::resource('expedientes', ExpedienteController::class)->middleware('auth');
     Route::resource('expedientes.sesiones', SesionController::class)

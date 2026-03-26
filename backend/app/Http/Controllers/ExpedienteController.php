@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\ExpedientesFichaIdentificacionExport;
 use App\Http\Requests\StoreExpedienteRequest;
 use App\Http\Requests\UpdateExpedienteRequest;
 use App\Models\Anexo;
@@ -30,7 +31,9 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
 use RuntimeException;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ExpedienteController extends Controller
 {
@@ -107,29 +110,7 @@ class ExpedienteController extends Controller
 
         $user = $request->user();
 
-        $query = Expediente::query()
-            ->with('creadoPor')
-            ->when(! $user->can('expedientes.manage'), function ($q) use ($user) {
-                if ($user->hasRole('docente')) {
-                    $q->where('tutor_id', $user->id);
-                } elseif ($user->hasRole('alumno')) {
-                    $q->where('creado_por', $user->id);
-                } else {
-                    $q->whereRaw('1 = 0');
-                }
-            })
-            ->when($busqueda, function ($q) use ($busqueda) {
-                $q->where(function ($w) use ($busqueda) {
-                    $w->where('no_control', 'like', "%{$busqueda}%")
-                        ->orWhere('paciente', 'like', "%{$busqueda}%");
-                });
-            })
-            ->when($estado, fn ($q) => $q->where('estado', $estado))
-            ->when($carrera, fn ($q) => $q->where('carrera', $carrera))
-            ->when($turno, fn ($q) => $q->where('turno', $turno))
-            ->when($desde, fn ($q) => $q->whereDate('apertura', '>=', $desde))
-            ->when($hasta, fn ($q) => $q->whereDate('apertura', '<=', $hasta))
-            ->orderByDesc('apertura');
+        $query = $this->indexQuery($request);
 
         $expedientes = $query->paginate(10)->withQueryString();
 
@@ -148,6 +129,16 @@ class ExpedienteController extends Controller
             'carreras' => $carreras,
             'turnos' => $turnos,
         ]);
+    }
+
+    public function exportFichaIdentificacion(Request $request): BinaryFileResponse
+    {
+        $this->authorize('viewAny', Expediente::class);
+
+        $query = $this->indexQuery($request);
+        $filename = sprintf('expedientes_ficha_identificacion_%s.xlsx', now()->format('Ymd_His'));
+
+        return Excel::download(new ExpedientesFichaIdentificacionExport($query), $filename);
     }
 
     public function create(): View
@@ -193,6 +184,44 @@ class ExpedienteController extends Controller
             ->max() ?? 0;
 
         return sprintf('%s-%d-%04d', $prefix, $year, $maxSequence + 1);
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Builder<Expediente>
+     */
+    private function indexQuery(Request $request): \Illuminate\Database\Eloquent\Builder
+    {
+        $busqueda = (string) $request->input('q', '');
+        $estado = (string) $request->input('estado', '');
+        $carrera = (string) $request->input('carrera', '');
+        $turno = (string) $request->input('turno', '');
+        $desde = $request->input('desde') ? Carbon::parse($request->input('desde')) : null;
+        $hasta = $request->input('hasta') ? Carbon::parse($request->input('hasta')) : null;
+        $user = $request->user();
+
+        return Expediente::query()
+            ->with('creadoPor')
+            ->when(! $user->can('expedientes.manage'), function ($q) use ($user) {
+                if ($user->hasRole('docente')) {
+                    $q->where('tutor_id', $user->id);
+                } elseif ($user->hasRole('alumno')) {
+                    $q->where('creado_por', $user->id);
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
+            })
+            ->when($busqueda, function ($q) use ($busqueda) {
+                $q->where(function ($w) use ($busqueda) {
+                    $w->where('no_control', 'like', "%{$busqueda}%")
+                        ->orWhere('paciente', 'like', "%{$busqueda}%");
+                });
+            })
+            ->when($estado, fn ($q) => $q->where('estado', $estado))
+            ->when($carrera, fn ($q) => $q->where('carrera', $carrera))
+            ->when($turno, fn ($q) => $q->where('turno', $turno))
+            ->when($desde, fn ($q) => $q->whereDate('apertura', '>=', $desde))
+            ->when($hasta, fn ($q) => $q->whereDate('apertura', '<=', $hasta))
+            ->orderByDesc('apertura');
     }
 
     public function store(StoreExpedienteRequest $request): JsonResponse|RedirectResponse
