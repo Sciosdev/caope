@@ -90,6 +90,7 @@ class ExpedientesReportTest extends TestCase
 
         $token = $response->json('token');
         $this->assertNotNull($token);
+        $this->assertSame(route('reportes.expedientes.download', $token, false), $response->json('download_url'));
 
         Excel::assertStored("exports/expedientes_{$token}.xlsx", 'local');
 
@@ -122,6 +123,7 @@ class ExpedientesReportTest extends TestCase
         $response->assertJsonStructure(['token', 'status_url']);
 
         $token = $response->json('token');
+        $this->assertSame(route('reportes.expedientes.export.status', $token, false), $response->json('status_url'));
 
         Excel::assertQueued("exports/expedientes_{$token}.xlsx", 'local');
 
@@ -176,5 +178,6 @@ class ExpedientesReportTest extends TestCase
         $response->assertOk();
         $response->assertJsonPath('status', 'ready');
         $response->assertJsonStructure(['download_url']);
+        $response->assertJsonPath('download_url', route('reportes.expedientes.download', $token, false));
     }
 }

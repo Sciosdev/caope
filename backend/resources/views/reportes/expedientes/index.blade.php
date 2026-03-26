@@ -142,7 +142,7 @@
             const feedback = document.getElementById('export-feedback');
             const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
             const csrfToken = csrfTokenMeta?.getAttribute('content') ?? @json(csrf_token());
-            const exportUrl = @json(route('reportes.expedientes.export'));
+            const exportUrl = @json(route('reportes.expedientes.export', [], false));
             let pollTimer = null;
 
             const showMessage = (type, message) => {
