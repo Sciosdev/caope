@@ -138,12 +138,13 @@
             const exportButtons = document.querySelectorAll('[data-export-format]');
             const form = document.getElementById('report-filters-form');
             const feedback = document.getElementById('export-feedback');
-            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+            const csrfToken = csrfTokenMeta?.getAttribute('content') ?? @json(csrf_token());
             const exportUrl = @json(route('reportes.expedientes.export'));
             let pollTimer = null;
 
             const showMessage = (type, message) => {
-                feedback.classList.remove('d-none', 'alert-success', 'alert-danger', 'alert-warning');
+                feedback.classList.remove('d-none', 'alert-success', 'alert-danger', 'alert-warning', 'alert-info');
                 feedback.classList.add(`alert-${type}`);
                 feedback.textContent = message;
             };
