@@ -615,6 +615,76 @@
     </div>
 </div>
 
+@if (request()->routeIs('expedientes.create'))
+    <div class="card border shadow-none mb-4">
+        <div class="card-body">
+            <div class="mb-4">
+                <h6 class="mb-0">Nueva asignación</h6>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <label class="form-label">Día</label>
+                    <input type="date" class="form-control" value="{{ now()->toDateString() }}" disabled>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label d-block">Tipo de registro</label>
+                    <div class="d-flex gap-3 mt-2">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" checked disabled>
+                            <label class="form-check-label">Fecha única</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" disabled>
+                            <label class="form-check-label">Repetición semanal</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label">Inicio</label>
+                    <input type="time" class="form-control" value="07:00" disabled>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label">Fin</label>
+                    <input type="time" class="form-control" value="08:00" disabled>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label">Consultorio</label>
+                    <input type="text" class="form-control" value="Consultorio 1" disabled>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label">Cubículo</label>
+                    <input type="text" class="form-control" value="Cubículo 1" disabled>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Estrategia</label>
+                    <input type="text" class="form-control" value="Selecciona una estrategia" disabled>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Usuario atendido</label>
+                    <input type="text" class="form-control" value="--" disabled>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Estratega</label>
+                    <input type="text" class="form-control" value="--" disabled>
+                </div>
+
+                <div class="col-12">
+                    <a href="{{ route('consultorios.index') }}" class="btn btn-primary">Asignar espacio</a>
+                </div>
+            </div>
+        </div>
+    </div>
+@endif
+
 @include('expedientes.partials.alumno.family-history')
 
 <input type="hidden" name="client_context[browser]" id="expediente_client_context_browser">
