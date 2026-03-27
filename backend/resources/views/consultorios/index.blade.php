@@ -50,11 +50,11 @@
                     <div class="row g-2">
                         <div class="col-md-4">
                             <label class="form-label">Desde</label>
-                            <input type="date" name="fecha_inicio_repeticion" class="form-control" value="{{ old('fecha_inicio_repeticion', now()->toDateString()) }}">
+                            <input type="date" name="fecha_inicio_repeticion" id="repeticion-fecha-inicio" class="form-control" value="{{ old('fecha_inicio_repeticion', now()->toDateString()) }}">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Hasta</label>
-                            <input type="date" name="fecha_fin_repeticion" class="form-control" value="{{ old('fecha_fin_repeticion', now()->addMonth()->toDateString()) }}">
+                            <input type="date" name="fecha_fin_repeticion" id="repeticion-fecha-fin" class="form-control" value="{{ old('fecha_fin_repeticion', now()->addMonth()->toDateString()) }}">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Día hábil</label>
@@ -297,12 +297,18 @@
         const getBitacoraBulkDeleteForm = () => document.getElementById('bitacora-bulk-delete-form');
         const repeticionConfig = document.getElementById('repeticion-config');
         const modoRepeticionInputs = document.querySelectorAll('input[name="modo_repeticion"]');
+        const repeticionFechaInicio = document.getElementById('repeticion-fecha-inicio');
+        const repeticionFechaFin = document.getElementById('repeticion-fecha-fin');
         const diaSemanaSelect = document.getElementById('repeticion-dia-semana');
         const catalogoCubiculos = @json($cubiculosActivos->pluck('numero')->map(fn ($numero) => (int) $numero)->values());
         const weekDayLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
         const TOTAL_CUBICULOS = catalogoCubiculos.length || 14;
         const JORNADA_INICIO = 7 * 60;
         const JORNADA_FIN = 22 * 60;
+
+        if (diaSemanaSelect?.value) {
+            diaSemanaSelect.dataset.userSelected = 'true';
+        }
 
         const timeToMinutes = (time) => {
             const [hours = '0', minutes = '0'] = (time ?? '').split(':');
@@ -427,6 +433,31 @@
             };
         };
 
+        const toIsoWeekday = (dateValue) => {
+            if (!dateValue) {
+                return null;
+            }
+
+            const selectedDate = new Date(`${dateValue}T00:00:00`);
+            if (Number.isNaN(selectedDate.getTime())) {
+                return null;
+            }
+
+            const isoDay = selectedDate.getDay() === 0 ? 7 : selectedDate.getDay();
+            return isoDay <= 6 ? isoDay : null;
+        };
+
+        const syncRepeatDayFromStartDate = () => {
+            if (!diaSemanaSelect || diaSemanaSelect.dataset.userSelected === 'true') {
+                return;
+            }
+
+            const isoDay = toIsoWeekday(repeticionFechaInicio?.value);
+            if (isoDay) {
+                diaSemanaSelect.value = String(isoDay);
+            }
+        };
+
         const toggleRepeatConfig = () => {
             const mode = document.querySelector('input[name="modo_repeticion"]:checked')?.value ?? 'unica';
             repeticionConfig?.classList.toggle('d-none', mode !== 'semanal');
@@ -434,12 +465,20 @@
                 formFecha.required = mode !== 'semanal';
             }
 
-            if (mode === 'semanal' && !diaSemanaSelect?.value && formFecha?.value) {
-                const selectedDate = new Date(`${formFecha.value}T00:00:00`);
-                const isoDay = selectedDate.getDay() === 0 ? 7 : selectedDate.getDay();
-                if (isoDay <= 6 && diaSemanaSelect) {
-                    diaSemanaSelect.value = String(isoDay);
+            if (mode === 'semanal') {
+                if (repeticionFechaInicio && !repeticionFechaInicio.value && formFecha?.value) {
+                    repeticionFechaInicio.value = formFecha.value;
                 }
+
+                if (repeticionFechaFin && !repeticionFechaFin.value && repeticionFechaInicio?.value) {
+                    const endDate = new Date(`${repeticionFechaInicio.value}T00:00:00`);
+                    if (!Number.isNaN(endDate.getTime())) {
+                        endDate.setMonth(endDate.getMonth() + 1);
+                        repeticionFechaFin.value = dateISO(endDate);
+                    }
+                }
+
+                syncRepeatDayFromStartDate();
             }
         };
 
@@ -786,6 +825,12 @@
         }
         modoRepeticionInputs.forEach((input) => {
             input.addEventListener('change', toggleRepeatConfig);
+        });
+        repeticionFechaInicio?.addEventListener('change', () => {
+            syncRepeatDayFromStartDate();
+        });
+        diaSemanaSelect?.addEventListener('change', () => {
+            diaSemanaSelect.dataset.userSelected = diaSemanaSelect.value ? 'true' : 'false';
         });
         toggleRepeatConfig();
 
