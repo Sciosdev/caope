@@ -50,11 +50,11 @@
                     <div class="row g-2">
                         <div class="col-md-4">
                             <label class="form-label">Desde</label>
-                            <input type="date" name="fecha_inicio_repeticion" id="repeticion-fecha-inicio" class="form-control" value="{{ old('fecha_inicio_repeticion', now()->toDateString()) }}">
+                            <input type="date" name="fecha_inicio_repeticion" id="repeticion-fecha-inicio" class="form-control" value="{{ old('fecha_inicio_repeticion') }}">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Hasta</label>
-                            <input type="date" name="fecha_fin_repeticion" id="repeticion-fecha-fin" class="form-control" value="{{ old('fecha_fin_repeticion', now()->addMonth()->toDateString()) }}">
+                            <input type="date" name="fecha_fin_repeticion" id="repeticion-fecha-fin" class="form-control" value="{{ old('fecha_fin_repeticion') }}">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Día hábil</label>
@@ -458,6 +458,29 @@
             }
         };
 
+        const syncRepeatStartFromSelectedDate = () => {
+            if (!repeticionFechaInicio || !formFecha?.value || repeticionFechaInicio.dataset.userSelected === 'true') {
+                return;
+            }
+
+            repeticionFechaInicio.value = formFecha.value;
+            syncRepeatDayFromStartDate();
+        };
+
+        const syncRepeatEndFromStartDate = () => {
+            if (!repeticionFechaFin || repeticionFechaFin.dataset.userSelected === 'true' || !repeticionFechaInicio?.value) {
+                return;
+            }
+
+            const endDate = new Date(`${repeticionFechaInicio.value}T00:00:00`);
+            if (Number.isNaN(endDate.getTime())) {
+                return;
+            }
+
+            endDate.setMonth(endDate.getMonth() + 1);
+            repeticionFechaFin.value = dateISO(endDate);
+        };
+
         const toggleRepeatConfig = () => {
             const mode = document.querySelector('input[name="modo_repeticion"]:checked')?.value ?? 'unica';
             repeticionConfig?.classList.toggle('d-none', mode !== 'semanal');
@@ -466,18 +489,8 @@
             }
 
             if (mode === 'semanal') {
-                if (repeticionFechaInicio && !repeticionFechaInicio.value && formFecha?.value) {
-                    repeticionFechaInicio.value = formFecha.value;
-                }
-
-                if (repeticionFechaFin && !repeticionFechaFin.value && repeticionFechaInicio?.value) {
-                    const endDate = new Date(`${repeticionFechaInicio.value}T00:00:00`);
-                    if (!Number.isNaN(endDate.getTime())) {
-                        endDate.setMonth(endDate.getMonth() + 1);
-                        repeticionFechaFin.value = dateISO(endDate);
-                    }
-                }
-
+                syncRepeatStartFromSelectedDate();
+                syncRepeatEndFromStartDate();
                 syncRepeatDayFromStartDate();
             }
         };
@@ -819,7 +832,13 @@
             formCubiculo.addEventListener('change', () => {
                 checkAvailability();
             });
-            formFecha.addEventListener('change', checkAvailability);
+            formFecha.addEventListener('change', () => {
+                checkAvailability();
+                if (document.querySelector('input[name="modo_repeticion"]:checked')?.value === 'semanal') {
+                    syncRepeatStartFromSelectedDate();
+                    syncRepeatEndFromStartDate();
+                }
+            });
             formHoraInicio.addEventListener('change', checkAvailability);
             formHoraFin.addEventListener('change', checkAvailability);
         }
@@ -827,7 +846,12 @@
             input.addEventListener('change', toggleRepeatConfig);
         });
         repeticionFechaInicio?.addEventListener('change', () => {
+            repeticionFechaInicio.dataset.userSelected = repeticionFechaInicio.value ? 'true' : 'false';
             syncRepeatDayFromStartDate();
+            syncRepeatEndFromStartDate();
+        });
+        repeticionFechaFin?.addEventListener('change', () => {
+            repeticionFechaFin.dataset.userSelected = repeticionFechaFin.value ? 'true' : 'false';
         });
         diaSemanaSelect?.addEventListener('change', () => {
             diaSemanaSelect.dataset.userSelected = diaSemanaSelect.value ? 'true' : 'false';
