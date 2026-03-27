@@ -206,7 +206,7 @@
                     @endif
                     <input type="hidden" name="bitacora_inicio" value="{{ request('bitacora_inicio', $bitacoraInicio) }}">
                     <input type="hidden" name="bitacora_modo" value="{{ request('bitacora_modo', $bitacoraModo) }}">
-                    <button type="submit" class="btn btn-sm btn-outline-danger" id="bitacora-bulk-delete-button" disabled>
+                    <button type="button" class="btn btn-sm btn-outline-danger" id="bitacora-bulk-delete-button" disabled aria-disabled="true">
                         Eliminar seleccionadas
                     </button>
                 </form>
@@ -890,7 +890,9 @@
 
             const bitacoraSelectItems = getBitacoraSelectItems();
             const selectedCount = bitacoraSelectItems.filter((item) => item.checked).length;
-            bitacoraBulkDeleteButton.disabled = selectedCount === 0;
+            const isDisabled = selectedCount === 0;
+            bitacoraBulkDeleteButton.disabled = isDisabled;
+            bitacoraBulkDeleteButton.setAttribute('aria-disabled', isDisabled ? 'true' : 'false');
         };
 
         const handleBitacoraItemSelection = (event) => {
@@ -909,9 +911,9 @@
         document.addEventListener('change', handleBitacoraItemSelection);
         document.addEventListener('input', handleBitacoraItemSelection);
 
-        document.addEventListener('submit', (event) => {
+        const submitBitacoraBulkDelete = (event) => {
             const bitacoraBulkDeleteForm = getBitacoraBulkDeleteForm();
-            if (!bitacoraBulkDeleteForm || event.target !== bitacoraBulkDeleteForm) {
+            if (!bitacoraBulkDeleteForm) {
                 return;
             }
 
@@ -941,8 +943,13 @@
 
             if (!window.confirm(`¿Eliminar ${selectedCount} registro${selectedCount === 1 ? '' : 's'} seleccionado${selectedCount === 1 ? '' : 's'}?`)) {
                 event.preventDefault();
+                return;
             }
-        });
+
+            bitacoraBulkDeleteForm.submit();
+        };
+
+        getBitacoraBulkDeleteButton()?.addEventListener('click', submitBitacoraBulkDelete);
 
         updateBitacoraSelectionState();
 
