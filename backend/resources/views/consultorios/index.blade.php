@@ -231,7 +231,7 @@
                         <tr>
                             @if(auth()->user()?->hasRole('admin'))
                                 <td>
-                                    <input type="checkbox" class="form-check-input bitacora-select-item" name="reservas[]" value="{{ $reserva->id }}" form="bitacora-bulk-delete-form" aria-label="Seleccionar reserva {{ $reserva->id }}">
+                                    <input type="checkbox" class="form-check-input bitacora-select-item" data-reserva-id="{{ $reserva->id }}" aria-label="Seleccionar reserva {{ $reserva->id }}">
                                 </td>
                             @endif
                             <td>{{ $reserva->fecha->format('Y-m-d') }}</td>
@@ -244,10 +244,10 @@
                             <td>
                                 <div class="d-flex gap-2">
                                 <a class="btn btn-sm btn-outline-primary" href="{{ route('consultorios.edit', $reserva) }}">Modificar</a>
-                                <form action="{{ route('consultorios.destroy', $reserva) }}" method="POST" onsubmit="return confirm('¿Eliminar reserva?')">
+                                <form action="{{ route('consultorios.destroy', $reserva) }}" method="POST" onsubmit="return confirm('¿Dar de baja reserva?')">
                                     @csrf
                                     @method('DELETE')
-                                    <button class="btn btn-sm btn-outline-danger">Eliminar</button>
+                                    <button class="btn btn-sm btn-outline-danger">Baja</button>
                                 </form>
                                 </div>
                             </td>
@@ -926,10 +926,15 @@
 
             bitacoraBulkDeleteForm.querySelectorAll('input[name="reservas[]"][data-generated="true"]').forEach((input) => input.remove());
             selectedItems.forEach((item) => {
+                const reservaId = item.dataset.reservaId;
+                if (!reservaId) {
+                    return;
+                }
+
                 const hidden = document.createElement('input');
                 hidden.type = 'hidden';
                 hidden.name = 'reservas[]';
-                hidden.value = item.value;
+                hidden.value = reservaId;
                 hidden.dataset.generated = 'true';
                 bitacoraBulkDeleteForm.appendChild(hidden);
             });
