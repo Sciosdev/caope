@@ -441,5 +441,67 @@ class ConsultorioReservaTest extends TestCase
         $this->assertDatabaseCount('consultorio_reservas', 1);
     }
 
+    public function test_permite_recrear_bloque_tras_baja_individual(): void
+    {
+        $role = Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $admin = User::factory()->create();
+        $admin->assignRole($role);
+
+        $payload = [
+            'fecha' => now()->addDays(5)->toDateString(),
+            'hora_inicio' => '07:00',
+            'hora_fin' => '08:00',
+            'consultorio_numero' => 3,
+            'cubiculo_numero' => 1,
+            'estrategia' => 'Intervención breve',
+        ];
+
+        $this->actingAs($admin)->post(route('consultorios.store'), $payload)->assertSessionHasNoErrors();
+
+        $reserva = ConsultorioReserva::query()->firstOrFail();
+        $this->actingAs($admin)->delete(route('consultorios.destroy', $reserva))->assertRedirect(route('consultorios.index'));
+        $this->assertDatabaseMissing('consultorio_reservas', ['id' => $reserva->id]);
+
+        $this->actingAs($admin)->post(route('consultorios.store'), $payload)
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('consultorios.index'));
+    }
+
+    public function test_permite_recrear_repeticion_semanal_tras_baja_seleccionada(): void
+    {
+        $role = Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $admin = User::factory()->create();
+        $admin->assignRole($role);
+
+        $inicio = now()->addWeek()->startOfWeek()->toDateString();
+        $fin = now()->addWeeks(2)->endOfWeek()->toDateString();
+        $payload = [
+            'modo_repeticion' => 'semanal',
+            'fecha_inicio_repeticion' => $inicio,
+            'fecha_fin_repeticion' => $fin,
+            'dias_semana' => ['5'],
+            'hora_inicio' => '11:00',
+            'hora_fin' => '12:00',
+            'consultorio_numero' => 5,
+            'cubiculo_numero' => 2,
+            'estrategia' => 'Otra estrategia',
+        ];
+
+        $this->actingAs($admin)->post(route('consultorios.store'), $payload)->assertSessionHasNoErrors();
+
+        $ids = ConsultorioReserva::query()->pluck('id')->all();
+        $this->actingAs($admin)->delete(route('consultorios.bulk-destroy'), [
+            'reservas' => $ids,
+        ])->assertRedirect(route('consultorios.index'));
+
+        foreach ($ids as $id) {
+            $this->assertDatabaseMissing('consultorio_reservas', ['id' => $id]);
+        }
+
+        $this->actingAs($admin)->post(route('consultorios.store'), $payload)
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('consultorios.index'));
+    }
+
 
 }

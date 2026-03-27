@@ -174,7 +174,10 @@ class ConsultorioReservaController extends Controller
     {
         abort_unless($request->user()?->hasRole('admin'), 403);
 
-        $reserva->delete();
+        ConsultorioReserva::query()
+            ->whereKey($reserva->getKey())
+            ->toBase()
+            ->delete();
 
         return redirect()->route('consultorios.index')->with('status', 'Reserva eliminada correctamente.');
     }
@@ -195,12 +198,17 @@ class ConsultorioReservaController extends Controller
                 ->with('status', 'Selecciona al menos un registro para dar de baja.');
         }
 
-        $eliminadas = ConsultorioReserva::query()->whereIn('id', $ids)->delete();
+        $eliminadas = ConsultorioReserva::query()
+            ->whereIn('id', $ids)
+            ->toBase()
+            ->delete();
 
         return redirect()
             ->route('consultorios.index', $request->query())
             ->with('status', $eliminadas > 1
                 ? 'Reservas eliminadas correctamente.'
-                : 'Reserva eliminada correctamente.');
+                : ($eliminadas === 1
+                    ? 'Reserva eliminada correctamente.'
+                    : 'No se encontró un registro vigente para eliminar.'));
     }
 }
