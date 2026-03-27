@@ -207,7 +207,7 @@
                     <input type="hidden" name="bitacora_inicio" value="{{ request('bitacora_inicio', $bitacoraInicio) }}">
                     <input type="hidden" name="bitacora_modo" value="{{ request('bitacora_modo', $bitacoraModo) }}">
                     <button type="submit" class="btn btn-sm btn-outline-danger" id="bitacora-bulk-delete-button" disabled>
-                        Baja seleccionadas
+                        Eliminar seleccionadas
                     </button>
                     <span class="text-muted small" id="bitacora-seleccion-count">0 seleccionadas</span>
                 </form>
@@ -250,7 +250,7 @@
                                 <form action="{{ route('consultorios.destroy', $reserva) }}" method="POST" onsubmit="return confirm('¿Eliminar reserva?')">
                                     @csrf
                                     @method('DELETE')
-                                    <button class="btn btn-sm btn-outline-danger">Baja</button>
+                                    <button class="btn btn-sm btn-outline-danger">Eliminar</button>
                                 </form>
                                 </div>
                             </td>
