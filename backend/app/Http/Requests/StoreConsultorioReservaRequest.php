@@ -19,8 +19,8 @@ class StoreConsultorioReservaRequest extends FormRequest
     {
         return [
             'modo_repeticion' => ['nullable', 'in:unica,semanal'],
-            'fecha' => ['required_if:modo_repeticion,unica', 'nullable', 'date', 'after_or_equal:today'],
-            'fecha_inicio_repeticion' => ['required_if:modo_repeticion,semanal', 'nullable', 'date', 'after_or_equal:today'],
+            'fecha' => ['required_if:modo_repeticion,unica', 'nullable', 'date'],
+            'fecha_inicio_repeticion' => ['required_if:modo_repeticion,semanal', 'nullable', 'date'],
             'fecha_fin_repeticion' => ['required_if:modo_repeticion,semanal', 'nullable', 'date', 'after_or_equal:fecha_inicio_repeticion'],
             'dias_semana' => ['nullable', 'array', 'min:1'],
             'dias_semana.*' => ['nullable', 'integer', 'between:1,6'],
