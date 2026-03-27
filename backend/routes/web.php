@@ -77,6 +77,7 @@ Route::middleware(['auth', 'active_user'])->group(function () {
     Route::prefix('consultorios')->name('consultorios.')->middleware('role:admin|coordinador|alumno')->group(function (): void {
         Route::get('/', [ConsultorioReservaController::class, 'index'])->name('index');
         Route::get('/availability', [ConsultorioReservaController::class, 'availability'])->name('availability');
+        Route::get('/export/xlsx', [ConsultorioReservaController::class, 'export'])->name('export');
         Route::middleware('role:admin')->group(function (): void {
             Route::post('/', [ConsultorioReservaController::class, 'store'])->name('store');
             Route::delete('/', [ConsultorioReservaController::class, 'bulkDestroy'])->name('bulk-destroy');
