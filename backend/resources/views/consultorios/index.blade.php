@@ -195,9 +195,31 @@
             <div id="bitacora-vista-dinamica" class="table-responsive"></div>
         </div>
         <div class="card-body table-responsive">
+            @if(auth()->user()?->hasRole('admin'))
+                <form id="bitacora-bulk-delete-form" action="{{ route('consultorios.bulk-destroy') }}" method="POST" class="mb-3 d-flex align-items-center gap-2">
+                    @csrf
+                    @method('DELETE')
+                    <input type="hidden" name="fecha" value="{{ $fechaFiltro }}">
+                    <input type="hidden" name="consultorio_numero" value="{{ $consultorioSeleccionado }}">
+                    @if($cubiculoSeleccionado)
+                        <input type="hidden" name="cubiculo_numero" value="{{ $cubiculoSeleccionado }}">
+                    @endif
+                    <input type="hidden" name="bitacora_inicio" value="{{ request('bitacora_inicio', $bitacoraInicio) }}">
+                    <input type="hidden" name="bitacora_modo" value="{{ request('bitacora_modo', $bitacoraModo) }}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" id="bitacora-bulk-delete-button" disabled>
+                        Baja seleccionadas
+                    </button>
+                    <span class="text-muted small" id="bitacora-seleccion-count">0 seleccionadas</span>
+                </form>
+            @endif
             <table class="table table-sm align-middle">
                 <thead>
                     <tr>
+                        @if(auth()->user()?->hasRole('admin'))
+                            <th style="width: 1%;">
+                                <input type="checkbox" class="form-check-input" id="bitacora-select-all" aria-label="Seleccionar todas las reservas visibles en bitácora">
+                            </th>
+                        @endif
                         <th>Fecha</th>
                         <th>Horario</th>
                         <th>Cubículo</th>
@@ -210,6 +232,11 @@
                 <tbody>
                     @forelse ($reservas as $reserva)
                         <tr>
+                            @if(auth()->user()?->hasRole('admin'))
+                                <td>
+                                    <input type="checkbox" class="form-check-input bitacora-select-item" name="reservas[]" value="{{ $reserva->id }}" form="bitacora-bulk-delete-form" aria-label="Seleccionar reserva {{ $reserva->id }}">
+                                </td>
+                            @endif
                             <td>{{ $reserva->fecha->format('Y-m-d') }}</td>
                             <td>{{ substr($reserva->hora_inicio, 0, 5) }} - {{ substr($reserva->hora_fin, 0, 5) }}</td>
                             <td>Consultorio {{ $reserva->consultorio_numero }} · Cubículo {{ $reserva->cubiculo_numero }}</td>
@@ -230,7 +257,7 @@
                             @endif
                         </tr>
                     @empty
-                        <tr><td colspan="{{ auth()->user()?->hasRole('admin') ? 7 : 6 }}" class="text-center text-muted">Sin registros.</td></tr>
+                        <tr><td colspan="{{ auth()->user()?->hasRole('admin') ? 8 : 6 }}" class="text-center text-muted">Sin registros.</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -263,6 +290,11 @@
         const bitacoraModo = document.getElementById('bitacora-modo');
         const bitacoraAplicarFiltro = document.getElementById('bitacora-aplicar-filtro');
         const bitacoraContainer = document.getElementById('bitacora-vista-dinamica');
+        const bitacoraSelectAll = document.getElementById('bitacora-select-all');
+        const bitacoraSelectItems = Array.from(document.querySelectorAll('.bitacora-select-item'));
+        const bitacoraBulkDeleteButton = document.getElementById('bitacora-bulk-delete-button');
+        const bitacoraSeleccionCount = document.getElementById('bitacora-seleccion-count');
+        const bitacoraBulkDeleteForm = document.getElementById('bitacora-bulk-delete-form');
         const repeticionConfig = document.getElementById('repeticion-config');
         const modoRepeticionInputs = document.querySelectorAll('input[name="modo_repeticion"]');
         const diaSemanaSelect = document.getElementById('repeticion-dia-semana');
@@ -785,6 +817,47 @@
         bitacoraAplicarFiltro?.addEventListener('click', refreshBitacora);
         bitacoraFechaBase?.addEventListener('change', refreshBitacora);
         bitacoraModo?.addEventListener('change', refreshBitacora);
+
+        const updateBitacoraSelectionState = () => {
+            if (!bitacoraSelectItems.length || !bitacoraBulkDeleteButton || !bitacoraSeleccionCount) {
+                return;
+            }
+
+            const selectedCount = bitacoraSelectItems.filter((item) => item.checked).length;
+            bitacoraBulkDeleteButton.disabled = selectedCount === 0;
+            bitacoraSeleccionCount.textContent = `${selectedCount} seleccionada${selectedCount === 1 ? '' : 's'}`;
+
+            if (bitacoraSelectAll) {
+                bitacoraSelectAll.checked = selectedCount > 0 && selectedCount === bitacoraSelectItems.length;
+                bitacoraSelectAll.indeterminate = selectedCount > 0 && selectedCount < bitacoraSelectItems.length;
+            }
+        };
+
+        bitacoraSelectAll?.addEventListener('change', () => {
+            bitacoraSelectItems.forEach((item) => {
+                item.checked = bitacoraSelectAll.checked;
+            });
+            updateBitacoraSelectionState();
+        });
+
+        bitacoraSelectItems.forEach((item) => {
+            item.addEventListener('change', updateBitacoraSelectionState);
+        });
+
+        bitacoraBulkDeleteForm?.addEventListener('submit', (event) => {
+            const selectedCount = bitacoraSelectItems.filter((item) => item.checked).length;
+
+            if (!selectedCount) {
+                event.preventDefault();
+                return;
+            }
+
+            if (!window.confirm(`¿Eliminar ${selectedCount} registro${selectedCount === 1 ? '' : 's'} seleccionado${selectedCount === 1 ? '' : 's'}?`)) {
+                event.preventDefault();
+            }
+        });
+
+        updateBitacoraSelectionState();
 
         refreshCalendar();
         refreshBitacora();
