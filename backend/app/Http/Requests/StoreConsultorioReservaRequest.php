@@ -10,6 +10,32 @@ use Illuminate\Validation\Rule;
 
 class StoreConsultorioReservaRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $mode = $this->input('modo_repeticion', 'unica');
+
+        if ($mode !== 'semanal') {
+            return;
+        }
+
+        $fechaBase = $this->input('fecha');
+        $inicio = $this->input('fecha_inicio_repeticion');
+        $fin = $this->input('fecha_fin_repeticion');
+
+        if (! $inicio && $fechaBase) {
+            $inicio = $fechaBase;
+        }
+
+        if (! $fin && $inicio) {
+            $fin = Carbon::parse($inicio)->addMonth()->toDateString();
+        }
+
+        $this->merge([
+            'fecha_inicio_repeticion' => $inicio,
+            'fecha_fin_repeticion' => $fin,
+        ]);
+    }
+
     public function authorize(): bool
     {
         return $this->user()?->hasRole('admin') ?? false;
