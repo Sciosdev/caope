@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Exports\ExpedientesExport;
-use App\Jobs\FinalizeQueuedExport;
 use App\Models\Expediente;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
@@ -21,8 +20,6 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ReporteExpedienteController extends Controller
 {
-    private const QUEUE_THRESHOLD = 200;
-
     public function index(Request $request): View
     {
         $filters = $this->validateFilters($request);
@@ -58,29 +55,6 @@ class ReporteExpedienteController extends Controller
         $userId = (int) $request->user()->id;
 
         $export = new ExpedientesExport($filters);
-        $total = (clone $this->baseQuery($filters))->count();
-
-        if ($total > self::QUEUE_THRESHOLD) {
-            Cache::put($token, [
-                'status' => 'pending',
-                'path' => $path,
-                'filename' => $filename,
-                'user_id' => $userId,
-            ], now()->addMinutes(30));
-
-            Excel::queue($export, $path, 'local', $writerType)
-                ->chain([
-                    new FinalizeQueuedExport($token, $path, $filename, $userId),
-                ]);
-
-            return response()->json([
-                'status' => 'pending',
-                'token' => $token,
-                'status_url' => route('reportes.expedientes.export.status', $token, false),
-                'message' => __('Tu exportación se está procesando en segundo plano. Te avisaremos en cuanto esté lista.'),
-            ]);
-        }
-
         Excel::store($export, $path, 'local', $writerType);
 
         Cache::put($token, [

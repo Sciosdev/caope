@@ -143,7 +143,6 @@
             const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
             const csrfToken = csrfTokenMeta?.getAttribute('content') ?? @json(csrf_token());
             const exportUrl = @json(route('reportes.expedientes.export', [], false));
-            let pollTimer = null;
 
             const showMessage = (type, message) => {
                 feedback.classList.remove('d-none', 'alert-success', 'alert-danger', 'alert-warning', 'alert-info');
@@ -155,38 +154,6 @@
                 exportButtons.forEach((button) => {
                     button.disabled = disabled;
                 });
-            };
-
-            const startPolling = (statusUrl) => {
-                if (pollTimer) {
-                    clearInterval(pollTimer);
-                }
-
-                pollTimer = setInterval(() => {
-                    fetch(statusUrl, { headers: { 'Accept': 'application/json' } })
-                        .then((response) => {
-                            if (!response.ok) {
-                                throw new Error('status-error');
-                            }
-
-                            return response.json();
-                        })
-                        .then((payload) => {
-                            if (payload.status === 'ready' && payload.download_url) {
-                                clearInterval(pollTimer);
-                                pollTimer = null;
-                                showMessage('success', @json(__('El archivo está listo, iniciando descarga...')));
-                                window.location.href = payload.download_url;
-                                setButtonsDisabled(false);
-                            }
-                        })
-                        .catch(() => {
-                            clearInterval(pollTimer);
-                            pollTimer = null;
-                            showMessage('danger', @json(__('No se pudo verificar el estado de la exportación. Intenta nuevamente.')));
-                            setButtonsDisabled(false);
-                        });
-                }, 4000);
             };
 
             exportButtons.forEach((button) => {
@@ -226,9 +193,6 @@
                                 showMessage('success', payload.message ?? @json(__('El archivo está listo.')));
                                 window.location.href = payload.download_url;
                                 setButtonsDisabled(false);
-                            } else if (payload.status === 'pending' && payload.status_url) {
-                                showMessage('info', payload.message ?? @json(__('El reporte se está procesando, te avisaremos cuando esté listo.')));
-                                startPolling(payload.status_url);
                             } else {
                                 throw new Error('invalid-payload');
                             }
