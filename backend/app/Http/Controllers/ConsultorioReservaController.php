@@ -195,7 +195,7 @@ class ConsultorioReservaController extends Controller
         if ($ids->isEmpty()) {
             return redirect()
                 ->route('consultorios.index', $request->query())
-                ->with('status', 'Selecciona al menos un registro para dar de baja.');
+                ->with('status', 'Selecciona al menos un registro para eliminar.');
         }
 
         $eliminadas = ConsultorioReserva::query()

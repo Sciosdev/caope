@@ -460,7 +460,7 @@ class ConsultorioReservaTest extends TestCase
         ]);
 
         $response->assertRedirect(route('consultorios.index'));
-        $response->assertSessionHas('status', 'Selecciona al menos un registro para dar de baja.');
+        $response->assertSessionHas('status', 'Selecciona al menos un registro para eliminar.');
         $this->assertDatabaseCount('consultorio_reservas', 1);
     }
 
