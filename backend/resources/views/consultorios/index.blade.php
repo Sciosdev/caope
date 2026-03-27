@@ -843,22 +843,40 @@
             updateBitacoraSelectionState();
         });
 
-        document.addEventListener('change', (event) => {
-            if (!event.target.matches('.bitacora-select-item')) {
+        const handleBitacoraItemSelection = (event) => {
+            const target = event.target instanceof Element
+                ? event.target.closest('.bitacora-select-item')
+                : null;
+
+            if (!target) {
                 return;
             }
 
             updateBitacoraSelectionState();
-        });
+        };
+
+        document.addEventListener('change', handleBitacoraItemSelection);
+        document.addEventListener('click', handleBitacoraItemSelection);
 
         bitacoraBulkDeleteForm?.addEventListener('submit', (event) => {
             const bitacoraSelectItems = getBitacoraSelectItems();
-            const selectedCount = bitacoraSelectItems.filter((item) => item.checked).length;
+            const selectedItems = bitacoraSelectItems.filter((item) => item.checked);
+            const selectedCount = selectedItems.length;
 
             if (!selectedCount) {
                 event.preventDefault();
                 return;
             }
+
+            bitacoraBulkDeleteForm.querySelectorAll('input[name="reservas[]"][data-generated="true"]').forEach((input) => input.remove());
+            selectedItems.forEach((item) => {
+                const hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.name = 'reservas[]';
+                hidden.value = item.value;
+                hidden.dataset.generated = 'true';
+                bitacoraBulkDeleteForm.appendChild(hidden);
+            });
 
             if (!window.confirm(`¿Eliminar ${selectedCount} registro${selectedCount === 1 ? '' : 's'} seleccionado${selectedCount === 1 ? '' : 's'}?`)) {
                 event.preventDefault();
