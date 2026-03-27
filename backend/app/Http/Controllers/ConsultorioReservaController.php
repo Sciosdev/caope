@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\ConsultorioReservasExport;
 use App\Http\Requests\StoreConsultorioReservaRequest;
 use App\Http\Requests\UpdateConsultorioReservaRequest;
 use App\Models\CatalogoCubiculo;
@@ -13,8 +14,11 @@ use Illuminate\Support\Arr;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ConsultorioReservaController extends Controller
 {
@@ -123,6 +127,15 @@ class ConsultorioReservaController extends Controller
             'consultorio_numero' => $consultorioNumero,
             'reservas' => $reservas,
         ]);
+    }
+
+    public function export(Request $request): BinaryFileResponse
+    {
+        abort_unless($request->user()?->hasAnyRole(['admin', 'coordinador', 'alumno']), 403);
+
+        $filename = sprintf('bitacora_reservas_%s.xlsx', Date::now()->format('Ymd_His'));
+
+        return Excel::download(new ConsultorioReservasExport, $filename);
     }
 
     public function edit(Request $request, ConsultorioReserva $reserva): View

@@ -189,6 +189,7 @@
                     <option value="mes" @selected($bitacoraModo === 'mes')>Mes</option>
                 </select>
                 <button type="submit" class="btn btn-outline-secondary" id="bitacora-aplicar-filtro">Mostrar</button>
+                <a href="{{ route('consultorios.export') }}" class="btn btn-outline-success">Descargar XLS</a>
             </form>
         </div>
         <div class="card-body border-bottom">
