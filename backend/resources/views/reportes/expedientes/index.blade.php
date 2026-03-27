@@ -12,18 +12,16 @@
         </div>
 
         <div class="d-flex flex-wrap gap-2">
-            <button type="button" class="btn btn-outline-secondary" data-export-format="csv">
+            <button type="button" class="btn btn-outline-secondary" data-download-format="csv">
                 <i class="mdi mdi-download"></i>
-                {{ __('Exportar CSV') }}
+                {{ __('Descargar CSV') }}
             </button>
-            <button type="button" class="btn btn-primary" data-export-format="xlsx">
+            <button type="button" class="btn btn-primary" data-download-format="xlsx">
                 <i class="mdi mdi-file-excel"></i>
-                {{ __('Exportar XLSX') }}
+                {{ __('Descargar XLSX') }}
             </button>
         </div>
     </div>
-
-    <div id="export-feedback" class="alert d-none" role="alert"></div>
 
     <form id="report-filters-form" class="row g-3 mb-4" method="get">
         <div class="col-md-3">
@@ -137,76 +135,19 @@
                 flatpickr('.flatpickr', { dateFormat: 'Y-m-d' });
             }
 
-            const exportButtons = document.querySelectorAll('[data-export-format]');
+            const downloadButtons = document.querySelectorAll('[data-download-format]');
             const form = document.getElementById('report-filters-form');
-            const feedback = document.getElementById('export-feedback');
-            const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
-            const csrfToken = csrfTokenMeta?.getAttribute('content') ?? @json(csrf_token());
-            const exportUrl = @json(route('reportes.expedientes.export', [], false));
+            const downloadUrl = @json(route('reportes.expedientes.download-direct', [], false));
 
-            const showMessage = (type, message) => {
-                feedback.classList.remove('d-none', 'alert-success', 'alert-danger', 'alert-warning', 'alert-info');
-                feedback.classList.add(`alert-${type}`);
-                feedback.textContent = message;
-            };
-
-            const setButtonsDisabled = (disabled) => {
-                exportButtons.forEach((button) => {
-                    button.disabled = disabled;
-                });
-            };
-
-            exportButtons.forEach((button) => {
+            downloadButtons.forEach((button) => {
                 button.addEventListener('click', (event) => {
                     event.preventDefault();
 
-                    const format = button.dataset.exportFormat;
-                    const formData = new FormData(form);
-                    formData.append('format', format);
+                    const format = button.dataset.downloadFormat;
+                    const params = new URLSearchParams(new FormData(form));
+                    params.set('format', format);
 
-                    setButtonsDisabled(true);
-                    showMessage('warning', @json(__('Generando reporte, espera un momento...')));
-
-                    fetch(exportUrl, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': csrfToken,
-                            'Accept': 'application/json',
-                        },
-                        body: formData,
-                    })
-                        .then(async (response) => {
-                            const payload = await response.json().catch(() => null);
-
-                            if (!response.ok) {
-                                throw payload ?? new Error('request-error');
-                            }
-
-                            if (!payload) {
-                                throw new Error('invalid-json');
-                            }
-
-                            return payload;
-                        })
-                        .then((payload) => {
-                            if (payload.status === 'ready' && payload.download_url) {
-                                showMessage('success', payload.message ?? @json(__('El archivo está listo.')));
-                                window.location.href = payload.download_url;
-                                setButtonsDisabled(false);
-                            } else {
-                                throw new Error('invalid-payload');
-                            }
-                        })
-                        .catch((error) => {
-                            if (error?.errors) {
-                                const firstError = Object.values(error.errors)[0]?.[0] ?? @json(__('No fue posible generar el reporte.'));
-                                showMessage('danger', firstError);
-                            } else {
-                                showMessage('danger', @json(__('No fue posible generar el reporte.')));
-                            }
-
-                            setButtonsDisabled(false);
-                        });
+                    window.location.href = `${downloadUrl}?${params.toString()}`;
                 });
             });
         });

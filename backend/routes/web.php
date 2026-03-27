@@ -88,6 +88,7 @@ Route::middleware(['auth', 'active_user'])->group(function () {
 
     Route::middleware('role:admin|coordinador')->group(function (): void {
         Route::get('reportes/expedientes', [ReporteExpedienteController::class, 'index'])->name('reportes.index');
+        Route::get('reportes/expedientes/download', [ReporteExpedienteController::class, 'downloadDirect'])->name('reportes.expedientes.download-direct');
         Route::post('reportes/expedientes/export', [ReporteExpedienteController::class, 'export'])->name('reportes.expedientes.export');
         Route::get('reportes/expedientes/export/{token}', [ReporteExpedienteController::class, 'download'])->name('reportes.expedientes.download');
         Route::get('reportes/expedientes/export/{token}/status', [ReporteExpedienteController::class, 'status'])->name('reportes.expedientes.export.status');

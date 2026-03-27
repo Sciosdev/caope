@@ -72,6 +72,20 @@ class ReporteExpedienteController extends Controller
         ]);
     }
 
+    public function downloadDirect(Request $request): BinaryFileResponse
+    {
+        $filters = $this->validateFilters($request);
+
+        $format = $request->validate([
+            'format' => ['required', Rule::in(['xlsx', 'csv'])],
+        ])['format'];
+
+        $filename = sprintf('reporte_expedientes_%s.%s', now()->format('Ymd_His'), $format);
+        $writerType = $format === 'csv' ? ExcelWriter::CSV : ExcelWriter::XLSX;
+
+        return Excel::download(new ExpedientesExport($filters), $filename, $writerType);
+    }
+
     public function status(Request $request, string $token): JsonResponse
     {
         $data = Cache::get($token);
