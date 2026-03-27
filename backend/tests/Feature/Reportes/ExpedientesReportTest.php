@@ -100,7 +100,7 @@ class ExpedientesReportTest extends TestCase
         $this->assertSame($admin->id, $cacheData['user_id']);
     }
 
-    public function test_large_export_is_queued(): void
+    public function test_large_export_generates_file_immediately(): void
     {
         Excel::fake();
 
@@ -119,18 +119,17 @@ class ExpedientesReportTest extends TestCase
         ]);
 
         $response->assertOk();
-        $response->assertJsonPath('status', 'pending');
-        $response->assertJsonStructure(['token', 'status_url']);
+        $response->assertJsonPath('status', 'ready');
+        $response->assertJsonStructure(['token', 'download_url']);
 
         $token = $response->json('token');
-        $this->assertSame(route('reportes.expedientes.export.status', $token, false), $response->json('status_url'));
+        $this->assertSame(route('reportes.expedientes.download', $token, false), $response->json('download_url'));
 
-        Excel::assertQueued("exports/expedientes_{$token}.xlsx", 'local');
+        Excel::assertStored("exports/expedientes_{$token}.xlsx", 'local');
 
         $cacheData = Cache::get($token);
         $this->assertNotNull($cacheData);
-        $this->assertSame('pending', $cacheData['status']);
-
+        $this->assertSame('ready', $cacheData['status']);
     }
 
     public function test_download_ready_export_returns_file(): void
