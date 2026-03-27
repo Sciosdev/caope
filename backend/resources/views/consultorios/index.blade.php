@@ -291,7 +291,7 @@
         const bitacoraAplicarFiltro = document.getElementById('bitacora-aplicar-filtro');
         const bitacoraContainer = document.getElementById('bitacora-vista-dinamica');
         const bitacoraSelectAll = document.getElementById('bitacora-select-all');
-        const bitacoraSelectItems = Array.from(document.querySelectorAll('.bitacora-select-item'));
+        const getBitacoraSelectItems = () => Array.from(document.querySelectorAll('.bitacora-select-item'));
         const bitacoraBulkDeleteButton = document.getElementById('bitacora-bulk-delete-button');
         const bitacoraSeleccionCount = document.getElementById('bitacora-seleccion-count');
         const bitacoraBulkDeleteForm = document.getElementById('bitacora-bulk-delete-form');
@@ -819,32 +819,40 @@
         bitacoraModo?.addEventListener('change', refreshBitacora);
 
         const updateBitacoraSelectionState = () => {
-            if (!bitacoraSelectItems.length || !bitacoraBulkDeleteButton || !bitacoraSeleccionCount) {
+            if (!bitacoraBulkDeleteButton || !bitacoraSeleccionCount) {
                 return;
             }
 
+            const bitacoraSelectItems = getBitacoraSelectItems();
             const selectedCount = bitacoraSelectItems.filter((item) => item.checked).length;
             bitacoraBulkDeleteButton.disabled = selectedCount === 0;
             bitacoraSeleccionCount.textContent = `${selectedCount} seleccionada${selectedCount === 1 ? '' : 's'}`;
 
             if (bitacoraSelectAll) {
-                bitacoraSelectAll.checked = selectedCount > 0 && selectedCount === bitacoraSelectItems.length;
-                bitacoraSelectAll.indeterminate = selectedCount > 0 && selectedCount < bitacoraSelectItems.length;
+                const totalItems = bitacoraSelectItems.length;
+                bitacoraSelectAll.checked = selectedCount > 0 && selectedCount === totalItems;
+                bitacoraSelectAll.indeterminate = selectedCount > 0 && selectedCount < totalItems;
             }
         };
 
         bitacoraSelectAll?.addEventListener('change', () => {
+            const bitacoraSelectItems = getBitacoraSelectItems();
             bitacoraSelectItems.forEach((item) => {
                 item.checked = bitacoraSelectAll.checked;
             });
             updateBitacoraSelectionState();
         });
 
-        bitacoraSelectItems.forEach((item) => {
-            item.addEventListener('change', updateBitacoraSelectionState);
+        document.addEventListener('change', (event) => {
+            if (!event.target.matches('.bitacora-select-item')) {
+                return;
+            }
+
+            updateBitacoraSelectionState();
         });
 
         bitacoraBulkDeleteForm?.addEventListener('submit', (event) => {
+            const bitacoraSelectItems = getBitacoraSelectItems();
             const selectedCount = bitacoraSelectItems.filter((item) => item.checked).length;
 
             if (!selectedCount) {
