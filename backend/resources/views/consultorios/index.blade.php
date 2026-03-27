@@ -209,16 +209,13 @@
                     <button type="submit" class="btn btn-sm btn-outline-danger" id="bitacora-bulk-delete-button" disabled>
                         Eliminar seleccionadas
                     </button>
-                    <span class="text-muted small" id="bitacora-seleccion-count">0 seleccionadas</span>
                 </form>
             @endif
             <table class="table table-sm align-middle">
                 <thead>
                     <tr>
                         @if(auth()->user()?->hasRole('admin'))
-                            <th style="width: 1%;">
-                                <input type="checkbox" class="form-check-input" id="bitacora-select-all" aria-label="Seleccionar todas las reservas visibles en bitácora">
-                            </th>
+                            <th style="width: 1%;"></th>
                         @endif
                         <th>Fecha</th>
                         <th>Horario</th>
@@ -290,10 +287,8 @@
         const bitacoraModo = document.getElementById('bitacora-modo');
         const bitacoraAplicarFiltro = document.getElementById('bitacora-aplicar-filtro');
         const bitacoraContainer = document.getElementById('bitacora-vista-dinamica');
-        const getBitacoraSelectAll = () => document.getElementById('bitacora-select-all');
         const getBitacoraSelectItems = () => Array.from(document.querySelectorAll('.bitacora-select-item'));
         const getBitacoraBulkDeleteButton = () => document.getElementById('bitacora-bulk-delete-button');
-        const getBitacoraSeleccionCount = () => document.getElementById('bitacora-seleccion-count');
         const getBitacoraBulkDeleteForm = () => document.getElementById('bitacora-bulk-delete-form');
         const repeticionConfig = document.getElementById('repeticion-config');
         const modoRepeticionInputs = document.querySelectorAll('input[name="modo_repeticion"]');
@@ -889,36 +884,18 @@
 
         const updateBitacoraSelectionState = () => {
             const bitacoraBulkDeleteButton = getBitacoraBulkDeleteButton();
-            const bitacoraSeleccionCount = getBitacoraSeleccionCount();
-            if (!bitacoraBulkDeleteButton || !bitacoraSeleccionCount) {
+            if (!bitacoraBulkDeleteButton) {
                 return;
             }
 
             const bitacoraSelectItems = getBitacoraSelectItems();
             const selectedCount = bitacoraSelectItems.filter((item) => item.checked).length;
             bitacoraBulkDeleteButton.disabled = selectedCount === 0;
-            bitacoraSeleccionCount.textContent = `${selectedCount} seleccionada${selectedCount === 1 ? '' : 's'}`;
-
-            const bitacoraSelectAll = getBitacoraSelectAll();
-            if (bitacoraSelectAll) {
-                const totalItems = bitacoraSelectItems.length;
-                bitacoraSelectAll.checked = selectedCount > 0 && selectedCount === totalItems;
-                bitacoraSelectAll.indeterminate = selectedCount > 0 && selectedCount < totalItems;
-            }
         };
 
         const handleBitacoraItemSelection = (event) => {
             const target = event.target;
             if (!(target instanceof HTMLInputElement)) {
-                return;
-            }
-
-            if (target.id === 'bitacora-select-all') {
-                const bitacoraSelectItems = getBitacoraSelectItems();
-                bitacoraSelectItems.forEach((item) => {
-                    item.checked = target.checked;
-                });
-                updateBitacoraSelectionState();
                 return;
             }
 
