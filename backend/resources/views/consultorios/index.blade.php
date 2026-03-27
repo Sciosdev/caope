@@ -908,23 +908,21 @@
         };
 
         const handleBitacoraItemSelection = (event) => {
-            if (!(event.target instanceof Element)) {
+            const target = event.target;
+            if (!(target instanceof HTMLInputElement)) {
                 return;
             }
 
-            const selectAllTarget = event.target.closest('#bitacora-select-all');
-            if (selectAllTarget) {
+            if (target.id === 'bitacora-select-all') {
                 const bitacoraSelectItems = getBitacoraSelectItems();
                 bitacoraSelectItems.forEach((item) => {
-                    item.checked = selectAllTarget.checked;
+                    item.checked = target.checked;
                 });
                 updateBitacoraSelectionState();
                 return;
             }
 
-            const target = event.target.closest('.bitacora-select-item');
-
-            if (!target) {
+            if (!target.classList.contains('bitacora-select-item')) {
                 return;
             }
 
@@ -932,7 +930,7 @@
         };
 
         document.addEventListener('change', handleBitacoraItemSelection);
-        document.addEventListener('click', handleBitacoraItemSelection);
+        document.addEventListener('input', handleBitacoraItemSelection);
 
         document.addEventListener('submit', (event) => {
             const bitacoraBulkDeleteForm = getBitacoraBulkDeleteForm();
