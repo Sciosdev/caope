@@ -206,7 +206,7 @@
                     @endif
                     <input type="hidden" name="bitacora_inicio" value="{{ request('bitacora_inicio', $bitacoraInicio) }}">
                     <input type="hidden" name="bitacora_modo" value="{{ request('bitacora_modo', $bitacoraModo) }}">
-                    <button type="button" class="btn btn-sm btn-outline-danger" id="bitacora-bulk-delete-button" disabled aria-disabled="true">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" id="bitacora-bulk-delete-button" disabled aria-disabled="true">
                         Eliminar seleccionadas
                     </button>
                 </form>
@@ -231,7 +231,15 @@
                         <tr>
                             @if(auth()->user()?->hasRole('admin'))
                                 <td>
-                                    <input type="checkbox" class="form-check-input bitacora-select-item" data-reserva-id="{{ $reserva->id }}" aria-label="Seleccionar reserva {{ $reserva->id }}">
+                                    <input
+                                        type="checkbox"
+                                        class="form-check-input bitacora-select-item"
+                                        data-reserva-id="{{ $reserva->id }}"
+                                        name="reservas[]"
+                                        value="{{ $reserva->id }}"
+                                        form="bitacora-bulk-delete-form"
+                                        aria-label="Seleccionar reserva {{ $reserva->id }}"
+                                    >
                                 </td>
                             @endif
                             <td>{{ $reserva->fecha->format('Y-m-d') }}</td>
@@ -912,8 +920,8 @@
         document.addEventListener('input', handleBitacoraItemSelection);
 
         const submitBitacoraBulkDelete = (event) => {
-            const bitacoraBulkDeleteForm = getBitacoraBulkDeleteForm();
-            if (!bitacoraBulkDeleteForm) {
+            const bitacoraBulkDeleteForm = event.currentTarget;
+            if (!(bitacoraBulkDeleteForm instanceof HTMLFormElement)) {
                 return;
             }
 
@@ -926,30 +934,13 @@
                 return;
             }
 
-            bitacoraBulkDeleteForm.querySelectorAll('input[name="reservas[]"][data-generated="true"]').forEach((input) => input.remove());
-            selectedItems.forEach((item) => {
-                const reservaId = item.dataset.reservaId;
-                if (!reservaId) {
-                    return;
-                }
-
-                const hidden = document.createElement('input');
-                hidden.type = 'hidden';
-                hidden.name = 'reservas[]';
-                hidden.value = reservaId;
-                hidden.dataset.generated = 'true';
-                bitacoraBulkDeleteForm.appendChild(hidden);
-            });
-
             if (!window.confirm(`¿Eliminar ${selectedCount} registro${selectedCount === 1 ? '' : 's'} seleccionado${selectedCount === 1 ? '' : 's'}?`)) {
                 event.preventDefault();
                 return;
             }
-
-            bitacoraBulkDeleteForm.submit();
         };
 
-        getBitacoraBulkDeleteButton()?.addEventListener('click', submitBitacoraBulkDelete);
+        getBitacoraBulkDeleteForm()?.addEventListener('submit', submitBitacoraBulkDelete);
 
         updateBitacoraSelectionState();
 
