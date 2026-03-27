@@ -367,6 +367,29 @@ class ConsultorioReservaTest extends TestCase
         $this->assertGreaterThan(1, ConsultorioReserva::query()->count());
     }
 
+    public function test_repeticion_semanal_autocompleta_fechas_cuando_solo_se_envia_fecha_base(): void
+    {
+        $role = Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $admin = User::factory()->create();
+        $admin->assignRole($role);
+
+        $fechaBase = now()->addWeek()->startOfWeek()->toDateString(); // lunes
+
+        $response = $this->actingAs($admin)->post(route('consultorios.store'), [
+            'modo_repeticion' => 'semanal',
+            'fecha' => $fechaBase,
+            'hora_inicio' => '09:00',
+            'hora_fin' => '10:00',
+            'consultorio_numero' => 3,
+            'cubiculo_numero' => 2,
+            'estrategia' => 'Intervención breve',
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect(route('consultorios.index'));
+        $this->assertGreaterThan(1, ConsultorioReserva::query()->count());
+    }
+
 
     public function test_elimina_registros_seleccionados_en_bitacora(): void
     {
