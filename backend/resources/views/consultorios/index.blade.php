@@ -290,11 +290,11 @@
         const bitacoraModo = document.getElementById('bitacora-modo');
         const bitacoraAplicarFiltro = document.getElementById('bitacora-aplicar-filtro');
         const bitacoraContainer = document.getElementById('bitacora-vista-dinamica');
-        const bitacoraSelectAll = document.getElementById('bitacora-select-all');
+        const getBitacoraSelectAll = () => document.getElementById('bitacora-select-all');
         const getBitacoraSelectItems = () => Array.from(document.querySelectorAll('.bitacora-select-item'));
-        const bitacoraBulkDeleteButton = document.getElementById('bitacora-bulk-delete-button');
-        const bitacoraSeleccionCount = document.getElementById('bitacora-seleccion-count');
-        const bitacoraBulkDeleteForm = document.getElementById('bitacora-bulk-delete-form');
+        const getBitacoraBulkDeleteButton = () => document.getElementById('bitacora-bulk-delete-button');
+        const getBitacoraSeleccionCount = () => document.getElementById('bitacora-seleccion-count');
+        const getBitacoraBulkDeleteForm = () => document.getElementById('bitacora-bulk-delete-form');
         const repeticionConfig = document.getElementById('repeticion-config');
         const modoRepeticionInputs = document.querySelectorAll('input[name="modo_repeticion"]');
         const diaSemanaSelect = document.getElementById('repeticion-dia-semana');
@@ -819,6 +819,8 @@
         bitacoraModo?.addEventListener('change', refreshBitacora);
 
         const updateBitacoraSelectionState = () => {
+            const bitacoraBulkDeleteButton = getBitacoraBulkDeleteButton();
+            const bitacoraSeleccionCount = getBitacoraSeleccionCount();
             if (!bitacoraBulkDeleteButton || !bitacoraSeleccionCount) {
                 return;
             }
@@ -828,6 +830,7 @@
             bitacoraBulkDeleteButton.disabled = selectedCount === 0;
             bitacoraSeleccionCount.textContent = `${selectedCount} seleccionada${selectedCount === 1 ? '' : 's'}`;
 
+            const bitacoraSelectAll = getBitacoraSelectAll();
             if (bitacoraSelectAll) {
                 const totalItems = bitacoraSelectItems.length;
                 bitacoraSelectAll.checked = selectedCount > 0 && selectedCount === totalItems;
@@ -835,18 +838,22 @@
             }
         };
 
-        bitacoraSelectAll?.addEventListener('change', () => {
-            const bitacoraSelectItems = getBitacoraSelectItems();
-            bitacoraSelectItems.forEach((item) => {
-                item.checked = bitacoraSelectAll.checked;
-            });
-            updateBitacoraSelectionState();
-        });
-
         const handleBitacoraItemSelection = (event) => {
-            const target = event.target instanceof Element
-                ? event.target.closest('.bitacora-select-item')
-                : null;
+            if (!(event.target instanceof Element)) {
+                return;
+            }
+
+            const selectAllTarget = event.target.closest('#bitacora-select-all');
+            if (selectAllTarget) {
+                const bitacoraSelectItems = getBitacoraSelectItems();
+                bitacoraSelectItems.forEach((item) => {
+                    item.checked = selectAllTarget.checked;
+                });
+                updateBitacoraSelectionState();
+                return;
+            }
+
+            const target = event.target.closest('.bitacora-select-item');
 
             if (!target) {
                 return;
@@ -858,7 +865,12 @@
         document.addEventListener('change', handleBitacoraItemSelection);
         document.addEventListener('click', handleBitacoraItemSelection);
 
-        bitacoraBulkDeleteForm?.addEventListener('submit', (event) => {
+        document.addEventListener('submit', (event) => {
+            const bitacoraBulkDeleteForm = getBitacoraBulkDeleteForm();
+            if (!bitacoraBulkDeleteForm || event.target !== bitacoraBulkDeleteForm) {
+                return;
+            }
+
             const bitacoraSelectItems = getBitacoraSelectItems();
             const selectedItems = bitacoraSelectItems.filter((item) => item.checked);
             const selectedCount = selectedItems.length;
