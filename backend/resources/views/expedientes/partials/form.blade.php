@@ -710,60 +710,106 @@
             <div class="row g-3">
                 <div class="col-md-2">
                     <label class="form-label">Día</label>
-                    <input type="date" class="form-control" value="{{ now()->toDateString() }}" disabled>
+                    <input type="date" class="form-control" id="expediente-asignacion-fecha" value="{{ now()->toDateString() }}" required>
                 </div>
 
                 <div class="col-md-4">
                     <label class="form-label d-block">Tipo de registro</label>
                     <div class="d-flex gap-3 mt-2">
                         <div class="form-check">
-                            <input class="form-check-input" type="radio" checked disabled>
-                            <label class="form-check-label">Fecha única</label>
+                            <input class="form-check-input" type="radio" name="expediente_modo_repeticion" id="expediente-modo-repeticion-unica" value="unica" checked>
+                            <label class="form-check-label" for="expediente-modo-repeticion-unica">Fecha única</label>
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="radio" disabled>
-                            <label class="form-check-label">Repetición semanal</label>
+                            <input class="form-check-input" type="radio" name="expediente_modo_repeticion" id="expediente-modo-repeticion-semanal" value="semanal">
+                            <label class="form-check-label" for="expediente-modo-repeticion-semanal">Repetición semanal</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 d-none" id="expediente-repeticion-config">
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <label class="form-label">Desde</label>
+                            <input type="date" id="expediente-repeticion-fecha-inicio" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Hasta</label>
+                            <input type="date" id="expediente-repeticion-fecha-fin" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Día hábil</label>
+                            <select class="form-select" id="expediente-repeticion-dia-semana">
+                                <option value="">Selecciona un día</option>
+                                @foreach ([1 => 'Lunes', 2 => 'Martes', 3 => 'Miércoles', 4 => 'Jueves', 5 => 'Viernes', 6 => 'Sábado'] as $dayNumber => $dayLabel)
+                                    <option value="{{ $dayNumber }}">{{ $dayLabel }}</option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
                 </div>
 
                 <div class="col-md-2">
                     <label class="form-label">Inicio</label>
-                    <input type="time" class="form-control" value="07:00" disabled>
+                    <input type="time" class="form-control" id="expediente-asignacion-hora-inicio" min="07:00" max="22:00" value="07:00" required>
                 </div>
 
                 <div class="col-md-2">
                     <label class="form-label">Fin</label>
-                    <input type="time" class="form-control" value="08:00" disabled>
+                    <input type="time" class="form-control" id="expediente-asignacion-hora-fin" min="07:00" max="22:00" value="08:00" required>
                 </div>
 
                 <div class="col-md-2">
                     <label class="form-label">Consultorio</label>
-                    <input type="text" class="form-control" value="Consultorio 1" disabled>
+                    <select class="form-select" id="expediente-asignacion-consultorio" required>
+                        @foreach ($consultoriosActivos as $consultorio)
+                            <option value="{{ $consultorio->numero }}">{{ $consultorio->nombre }}</option>
+                        @endforeach
+                    </select>
                 </div>
 
                 <div class="col-md-2">
                     <label class="form-label">Cubículo</label>
-                    <input type="text" class="form-control" value="Cubículo 1" disabled>
+                    <select class="form-select" id="expediente-asignacion-cubiculo" required>
+                        @foreach ($cubiculosActivos as $cubiculo)
+                            <option value="{{ $cubiculo->numero }}">{{ $cubiculo->nombre }}</option>
+                        @endforeach
+                    </select>
                 </div>
 
                 <div class="col-md-4">
                     <label class="form-label">Estrategia</label>
-                    <input type="text" class="form-control" value="Selecciona una estrategia" disabled>
+                    <select class="form-select" id="expediente-asignacion-estrategia" required>
+                        <option value="">Selecciona una estrategia</option>
+                        @foreach ($estrategiasActivas as $estrategia)
+                            <option value="{{ $estrategia->nombre }}">{{ $estrategia->nombre }}</option>
+                        @endforeach
+                    </select>
                 </div>
 
                 <div class="col-md-4">
                     <label class="form-label">Usuario atendido</label>
-                    <input type="text" class="form-control" value="--" disabled>
+                    <select class="form-select" id="expediente-asignacion-usuario-atendido">
+                        <option value="">--</option>
+                        @foreach ($usuariosActivos as $usuario)
+                            <option value="{{ $usuario->id }}">{{ $usuario->name }}</option>
+                        @endforeach
+                    </select>
                 </div>
 
                 <div class="col-md-4">
                     <label class="form-label">Estratega</label>
-                    <input type="text" class="form-control" value="--" disabled>
+                    <select class="form-select" id="expediente-asignacion-estratega">
+                        <option value="">--</option>
+                        @foreach ($docentesActivos as $usuario)
+                            <option value="{{ $usuario->id }}">{{ $usuario->name }}</option>
+                        @endforeach
+                    </select>
                 </div>
 
                 <div class="col-12">
-                    <a href="{{ route('consultorios.index') }}" class="btn btn-primary">Asignar espacio</a>
+                    <div id="expediente-asignacion-alerta" class="alert d-none mb-3" role="alert"></div>
+                    <button type="button" class="btn btn-primary" id="expediente-asignar-espacio">Asignar espacio</button>
                 </div>
             </div>
         </div>
@@ -857,6 +903,199 @@
                         timezoneField.value = 'unknown';
                     }
                 }
+
+                const assignmentButton = document.getElementById('expediente-asignar-espacio');
+                const assignmentAlert = document.getElementById('expediente-asignacion-alerta');
+
+                if (!assignmentButton || !assignmentAlert) {
+                    return;
+                }
+
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+                const availabilityEndpoint = @json(route('consultorios.availability'));
+                const storeEndpoint = @json(route('consultorios.store'));
+                const dateInput = document.getElementById('expediente-asignacion-fecha');
+                const startInput = document.getElementById('expediente-asignacion-hora-inicio');
+                const endInput = document.getElementById('expediente-asignacion-hora-fin');
+                const consultorioInput = document.getElementById('expediente-asignacion-consultorio');
+                const cubiculoInput = document.getElementById('expediente-asignacion-cubiculo');
+                const estrategiaInput = document.getElementById('expediente-asignacion-estrategia');
+                const usuarioAtendidoInput = document.getElementById('expediente-asignacion-usuario-atendido');
+                const estrategaInput = document.getElementById('expediente-asignacion-estratega');
+                const repeatConfig = document.getElementById('expediente-repeticion-config');
+                const repeatStartInput = document.getElementById('expediente-repeticion-fecha-inicio');
+                const repeatEndInput = document.getElementById('expediente-repeticion-fecha-fin');
+                const repeatDayInput = document.getElementById('expediente-repeticion-dia-semana');
+                const modeInputs = Array.from(document.querySelectorAll('input[name="expediente_modo_repeticion"]'));
+
+                const getMode = () => modeInputs.find((input) => input.checked)?.value ?? 'unica';
+                const toMinutes = (time) => {
+                    if (!time || !time.includes(':')) {
+                        return 0;
+                    }
+
+                    const [hours, minutes] = time.split(':').map(Number);
+                    return (hours * 60) + minutes;
+                };
+
+                const showAssignmentAlert = (message, type = 'warning') => {
+                    assignmentAlert.className = `alert alert-${type} mb-3`;
+                    assignmentAlert.textContent = message;
+                };
+
+                const hideAssignmentAlert = () => {
+                    assignmentAlert.className = 'alert d-none mb-3';
+                    assignmentAlert.textContent = '';
+                };
+
+                const toggleRepeatConfig = () => {
+                    if (!repeatConfig || !repeatStartInput || !repeatEndInput || !repeatDayInput) {
+                        return;
+                    }
+
+                    const isWeekly = getMode() === 'semanal';
+                    repeatConfig.classList.toggle('d-none', !isWeekly);
+                    repeatStartInput.required = isWeekly;
+                    repeatEndInput.required = isWeekly;
+                    repeatDayInput.required = isWeekly;
+                };
+
+                const findOverlap = (items, start, end, cubiculo) => {
+                    const startMinutes = toMinutes(start);
+                    const endMinutes = toMinutes(end);
+
+                    return items.find((item) => {
+                        if (Number(item.cubiculo_numero) !== Number(cubiculo)) {
+                            return false;
+                        }
+
+                        const itemStartMinutes = toMinutes(String(item.hora_inicio).slice(0, 5));
+                        const itemEndMinutes = toMinutes(String(item.hora_fin).slice(0, 5));
+                        return itemStartMinutes < endMinutes && itemEndMinutes > startMinutes;
+                    });
+                };
+
+                const checkAvailability = async () => {
+                    hideAssignmentAlert();
+
+                    if (!dateInput?.value || !consultorioInput?.value || !cubiculoInput?.value || !startInput?.value || !endInput?.value) {
+                        return true;
+                    }
+
+                    if (startInput.value >= endInput.value) {
+                        showAssignmentAlert('La hora de inicio debe ser menor a la hora de fin.');
+                        return false;
+                    }
+
+                    if (startInput.value < '07:00' || endInput.value > '22:00') {
+                        showAssignmentAlert('El horario permitido es de 07:00 a 22:00.');
+                        return false;
+                    }
+
+                    try {
+                        const params = new URLSearchParams({
+                            fecha: dateInput.value,
+                            consultorio_numero: consultorioInput.value,
+                        });
+                        const response = await fetch(`${availabilityEndpoint}?${params.toString()}`, {
+                            headers: {
+                                'Accept': 'application/json',
+                            },
+                        });
+
+                        if (!response.ok) {
+                            return true;
+                        }
+
+                        const data = await response.json();
+                        const overlap = findOverlap(data.reservas ?? [], startInput.value, endInput.value, cubiculoInput.value);
+
+                        if (overlap) {
+                            showAssignmentAlert(`⚠️ El Consultorio ${consultorioInput.value}, Cubículo ${cubiculoInput.value} ya está ocupado de ${String(overlap.hora_inicio).slice(0, 5)} a ${String(overlap.hora_fin).slice(0, 5)}.`);
+                            return false;
+                        }
+                    } catch (error) {
+                        console.error(error);
+                    }
+
+                    return true;
+                };
+
+                const parseServerError = async (response) => {
+                    const data = await response.json().catch(() => null);
+                    const errors = data?.errors ?? {};
+                    const firstError = Object.values(errors).flat()[0];
+
+                    if (firstError) {
+                        return firstError;
+                    }
+
+                    return data?.message || 'No se pudo registrar la asignación.';
+                };
+
+                modeInputs.forEach((input) => input.addEventListener('change', toggleRepeatConfig));
+                dateInput?.addEventListener('change', checkAvailability);
+                startInput?.addEventListener('change', checkAvailability);
+                endInput?.addEventListener('change', checkAvailability);
+                consultorioInput?.addEventListener('change', checkAvailability);
+                cubiculoInput?.addEventListener('change', checkAvailability);
+                toggleRepeatConfig();
+
+                assignmentButton.addEventListener('click', async () => {
+                    hideAssignmentAlert();
+
+                    if (!estrategiaInput?.value) {
+                        showAssignmentAlert('Selecciona una estrategia para registrar la asignación.');
+                        return;
+                    }
+
+                    const isAvailable = await checkAvailability();
+                    if (!isAvailable) {
+                        return;
+                    }
+
+                    assignmentButton.disabled = true;
+
+                    const payload = {
+                        modo_repeticion: getMode(),
+                        fecha: dateInput?.value,
+                        fecha_inicio_repeticion: repeatStartInput?.value,
+                        fecha_fin_repeticion: repeatEndInput?.value,
+                        dias_semana: repeatDayInput?.value ? [repeatDayInput.value] : [],
+                        hora_inicio: startInput?.value,
+                        hora_fin: endInput?.value,
+                        consultorio_numero: consultorioInput?.value,
+                        cubiculo_numero: cubiculoInput?.value,
+                        estrategia: estrategiaInput?.value,
+                        usuario_atendido_id: usuarioAtendidoInput?.value,
+                        estratega_id: estrategaInput?.value,
+                    };
+
+                    try {
+                        const response = await fetch(storeEndpoint, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken,
+                            },
+                            body: JSON.stringify(payload),
+                        });
+
+                        if (!response.ok) {
+                            const message = await parseServerError(response);
+                            showAssignmentAlert(message, 'danger');
+                            return;
+                        }
+
+                        showAssignmentAlert('Asignación registrada correctamente.', 'success');
+                    } catch (error) {
+                        console.error(error);
+                        showAssignmentAlert('Ocurrió un error inesperado al registrar la asignación.', 'danger');
+                    } finally {
+                        assignmentButton.disabled = false;
+                    }
+                });
             });
         </script>
     @endpush
