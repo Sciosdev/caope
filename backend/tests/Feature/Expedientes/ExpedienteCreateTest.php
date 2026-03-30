@@ -53,7 +53,22 @@ class ExpedienteCreateTest extends TestCase
         $response->assertSee('Consultante');
         $response->assertSee('Facilitador (Alumno responsable)');
         $response->assertSee($admin->name);
+        $response->assertDontSee('Hoja de urgencia');
+        $response->assertDontSee('Nueva asignación');
         $response->assertSee(sprintf('value="CA-%d-0008"', $year), false);
+    }
+
+    public function test_formulario_para_paps_muestra_hoja_urgencia_y_asignacion_pero_oculta_facilitador(): void
+    {
+        $paps = User::factory()->create();
+        $paps->assignRole('paps');
+
+        $response = $this->actingAs($paps)->get(route('expedientes.create'));
+
+        $response->assertOk();
+        $response->assertSee('Hoja de urgencia');
+        $response->assertSee('Nueva asignación');
+        $response->assertDontSee('Facilitador (Alumno responsable)');
     }
 
     public function test_admin_crea_expediente_registra_timeline_y_redirige(): void

@@ -202,21 +202,23 @@
                 @enderror
             </div>
 
-            <div class="col-md-4">
-                <label for="resumen_clinico_facilitador" class="form-label">Facilitador (Alumno responsable)</label>
-                <input
-                    type="text"
-                    name="resumen_clinico[facilitador]"
-                    id="resumen_clinico_facilitador"
-                    value="{{ old('resumen_clinico.facilitador', data_get($expediente->resumen_clinico ?? [], 'facilitador', $isPaps ? null : auth()->user()?->name)) }}"
-                    class="form-control @error('resumen_clinico.facilitador') is-invalid @enderror"
-                    maxlength="150"
-                    readonly
-                >
-                @error('resumen_clinico.facilitador')
-                    <div class="invalid-feedback">{{ $message }}</div>
-                @enderror
-            </div>
+            @if (! $isPaps)
+                <div class="col-md-4">
+                    <label for="resumen_clinico_facilitador" class="form-label">Facilitador (Alumno responsable)</label>
+                    <input
+                        type="text"
+                        name="resumen_clinico[facilitador]"
+                        id="resumen_clinico_facilitador"
+                        value="{{ old('resumen_clinico.facilitador', data_get($expediente->resumen_clinico ?? [], 'facilitador', auth()->user()?->name)) }}"
+                        class="form-control @error('resumen_clinico.facilitador') is-invalid @enderror"
+                        maxlength="150"
+                        readonly
+                    >
+                    @error('resumen_clinico.facilitador')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+            @endif
 
             <div class="col-md-4">
                 <label for="resumen_clinico_cubiculo" class="form-label">Cubículo asignado</label>
@@ -244,60 +246,62 @@
     </div>
 </div>
 
-<div class="card border shadow-none mb-4">
-    <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-            <div>
-                <p class="text-muted text-uppercase small mb-1">Registro vinculado</p>
-                <h6 class="mb-0">Hoja de urgencia</h6>
-            </div>
-        </div>
-
-        @php($urgencia = old('registro_urgencia', $expediente->registroUrgencia?->toArray() ?? []))
-
-        <div class="row g-3">
-            <div class="col-md-4">
-                <label for="registro_urgencia_nivel_riesgo" class="form-label">Nivel de riesgo</label>
-                <select name="registro_urgencia[nivel_riesgo]" id="registro_urgencia_nivel_riesgo" class="form-select @error('registro_urgencia.nivel_riesgo') is-invalid @enderror">
-                    <option value="">Sin clasificar</option>
-                    <option value="bajo" @selected(data_get($urgencia, 'nivel_riesgo') === 'bajo')>Bajo</option>
-                    <option value="medio" @selected(data_get($urgencia, 'nivel_riesgo') === 'medio')>Medio</option>
-                    <option value="alto" @selected(data_get($urgencia, 'nivel_riesgo') === 'alto')>Alto</option>
-                </select>
-                @error('registro_urgencia.nivel_riesgo')
-                    <div class="invalid-feedback">{{ $message }}</div>
-                @enderror
-            </div>
-
-            <div class="col-md-4">
-                <label for="registro_urgencia_canalizacion" class="form-label d-block">Canalización inmediata</label>
-                <div class="form-check form-switch mt-2">
-                    <input class="form-check-input" type="checkbox" role="switch" id="registro_urgencia_canalizacion" name="registro_urgencia[canalizacion_inmediata]" value="1" @checked((bool) data_get($urgencia, 'canalizacion_inmediata'))>
-                    <label class="form-check-label" for="registro_urgencia_canalizacion">Sí</label>
+@if ($isPaps)
+    <div class="card border shadow-none mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                <div>
+                    <p class="text-muted text-uppercase small mb-1">Registro vinculado</p>
+                    <h6 class="mb-0">Hoja de urgencia</h6>
                 </div>
-                @error('registro_urgencia.canalizacion_inmediata')
-                    <div class="text-danger small mt-1">{{ $message }}</div>
-                @enderror
             </div>
 
-            <div class="col-12">
-                <label for="registro_urgencia_motivo" class="form-label">Motivo de urgencia</label>
-                <textarea name="registro_urgencia[motivo]" id="registro_urgencia_motivo" rows="3" class="form-control @error('registro_urgencia.motivo') is-invalid @enderror">{{ data_get($urgencia, 'motivo') }}</textarea>
-                @error('registro_urgencia.motivo')
-                    <div class="invalid-feedback">{{ $message }}</div>
-                @enderror
-            </div>
+            @php($urgencia = old('registro_urgencia', $expediente->registroUrgencia?->toArray() ?? []))
 
-            <div class="col-12">
-                <label for="registro_urgencia_observaciones" class="form-label">Observaciones</label>
-                <textarea name="registro_urgencia[observaciones]" id="registro_urgencia_observaciones" rows="3" class="form-control @error('registro_urgencia.observaciones') is-invalid @enderror">{{ data_get($urgencia, 'observaciones') }}</textarea>
-                @error('registro_urgencia.observaciones')
-                    <div class="invalid-feedback">{{ $message }}</div>
-                @enderror
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="registro_urgencia_nivel_riesgo" class="form-label">Nivel de riesgo</label>
+                    <select name="registro_urgencia[nivel_riesgo]" id="registro_urgencia_nivel_riesgo" class="form-select @error('registro_urgencia.nivel_riesgo') is-invalid @enderror">
+                        <option value="">Sin clasificar</option>
+                        <option value="bajo" @selected(data_get($urgencia, 'nivel_riesgo') === 'bajo')>Bajo</option>
+                        <option value="medio" @selected(data_get($urgencia, 'nivel_riesgo') === 'medio')>Medio</option>
+                        <option value="alto" @selected(data_get($urgencia, 'nivel_riesgo') === 'alto')>Alto</option>
+                    </select>
+                    @error('registro_urgencia.nivel_riesgo')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="col-md-4">
+                    <label for="registro_urgencia_canalizacion" class="form-label d-block">Canalización inmediata</label>
+                    <div class="form-check form-switch mt-2">
+                        <input class="form-check-input" type="checkbox" role="switch" id="registro_urgencia_canalizacion" name="registro_urgencia[canalizacion_inmediata]" value="1" @checked((bool) data_get($urgencia, 'canalizacion_inmediata'))>
+                        <label class="form-check-label" for="registro_urgencia_canalizacion">Sí</label>
+                    </div>
+                    @error('registro_urgencia.canalizacion_inmediata')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="col-12">
+                    <label for="registro_urgencia_motivo" class="form-label">Motivo de urgencia</label>
+                    <textarea name="registro_urgencia[motivo]" id="registro_urgencia_motivo" rows="3" class="form-control @error('registro_urgencia.motivo') is-invalid @enderror">{{ data_get($urgencia, 'motivo') }}</textarea>
+                    @error('registro_urgencia.motivo')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="col-12">
+                    <label for="registro_urgencia_observaciones" class="form-label">Observaciones</label>
+                    <textarea name="registro_urgencia[observaciones]" id="registro_urgencia_observaciones" rows="3" class="form-control @error('registro_urgencia.observaciones') is-invalid @enderror">{{ data_get($urgencia, 'observaciones') }}</textarea>
+                    @error('registro_urgencia.observaciones')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
             </div>
         </div>
     </div>
-</div>
+@endif
 
 <div class="card border shadow-none mb-4">
     <div class="card-body">
@@ -696,7 +700,7 @@
     </div>
 </div>
 
-@if (request()->routeIs('expedientes.create'))
+@if ($isPaps && request()->routeIs('expedientes.create'))
     <div class="card border shadow-none mb-4">
         <div class="card-body">
             <div class="mb-4">
