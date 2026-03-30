@@ -64,6 +64,12 @@ class DatabaseSeeder extends Seeder
                 'carrera' => $carreras->get(2),
                 'turno' => $turnos->get(2),
             ],
+            [
+                'name' => 'PAPS Demo',
+                'email' => 'paps@demo.local',
+                'carrera' => null,
+                'turno' => null,
+            ],
         ];
 
         $rolesPorEmail = [
@@ -71,6 +77,7 @@ class DatabaseSeeder extends Seeder
             'alumno@demo.local' => 'alumno',
             'docente@demo.local' => 'docente',
             'coordinacion@demo.local' => 'coordinador',
+            'paps@demo.local' => 'paps',
         ];
 
         foreach ($usuarios as $usuario) {

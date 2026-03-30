@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Expediente extends Model
@@ -226,6 +227,7 @@ class Expediente extends Model
      *     autorizacion_responsable: ?string,
      *     resultado: ?string,
      *     resultado_detalle: ?string,
+     *     cubiculo: ?int,
      * }
      */
     public static function defaultClinicalSummary(): array
@@ -239,6 +241,7 @@ class Expediente extends Model
             'autorizacion_responsable' => null,
             'resultado' => null,
             'resultado_detalle' => null,
+            'cubiculo' => null,
         ];
     }
 
@@ -280,6 +283,11 @@ class Expediente extends Model
     public function timelineEventos(): HasMany
     {
         return $this->hasMany(TimelineEvento::class);
+    }
+
+    public function registroUrgencia(): HasOne
+    {
+        return $this->hasOne(RegistroUrgencia::class);
     }
 
     public function comentarios(): MorphMany

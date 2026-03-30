@@ -4,6 +4,7 @@ namespace Tests\Feature\Expedientes;
 
 use App\Models\Anexo;
 use App\Models\CatalogoCarrera;
+use App\Models\CatalogoCubiculo;
 use App\Models\CatalogoTurno;
 use App\Models\Expediente;
 use App\Models\User;
@@ -229,6 +230,60 @@ class ExpedienteUpdateTest extends TestCase
         $response->assertForbidden();
 
         $this->assertSame($originalPaciente, $expediente->fresh()->paciente);
+    }
+
+    public function test_paps_no_puede_reasignar_tutor_coordinador_ni_cambiar_cubiculo(): void
+    {
+        $paps = User::factory()->create();
+        $paps->assignRole('paps');
+
+        $tutor = User::factory()->create();
+        $coordinador = User::factory()->create();
+        $tutor->assignRole('docente');
+        $coordinador->assignRole('coordinador');
+
+        $carrera = CatalogoCarrera::create([
+            'nombre' => 'Licenciatura en Psicología',
+            'activo' => true,
+        ]);
+        $turno = CatalogoTurno::create([
+            'nombre' => 'Matutino',
+            'activo' => true,
+        ]);
+        CatalogoCubiculo::query()->create(['numero' => 1, 'activo' => true]);
+        CatalogoCubiculo::query()->create(['numero' => 2, 'activo' => true]);
+
+        CatalogoCarrera::flushCache();
+        CatalogoTurno::flushCache();
+
+        $expediente = Expediente::factory()->create([
+            'carrera' => $carrera->nombre,
+            'turno' => $turno->nombre,
+            'resumen_clinico' => array_merge(Expediente::defaultClinicalSummary(), ['cubiculo' => 1]),
+        ]);
+
+        $payload = [
+            'no_control' => $expediente->no_control,
+            'paciente' => $expediente->paciente,
+            'apertura' => $expediente->apertura->toDateString(),
+            'carrera' => $expediente->carrera,
+            'turno' => $expediente->turno,
+            'tutor_id' => $tutor->id,
+            'coordinador_id' => $coordinador->id,
+            'resumen_clinico' => [
+                'cubiculo' => 2,
+            ],
+        ];
+
+        $response = $this->actingAs($paps)->put(route('expedientes.update', $expediente), $payload);
+
+        $response->assertSessionHasNoErrors();
+
+        $expediente->refresh();
+
+        $this->assertNull($expediente->tutor_id);
+        $this->assertNull($expediente->coordinador_id);
+        $this->assertSame(1, data_get($expediente->resumen_clinico, 'cubiculo'));
     }
 
     public function test_actualizacion_con_json_incompletos_aplica_defaults(): void

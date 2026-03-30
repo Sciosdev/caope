@@ -3,6 +3,7 @@
 namespace Tests\Feature\Expedientes;
 
 use App\Models\CatalogoCarrera;
+use App\Models\CatalogoCubiculo;
 use App\Models\CatalogoTurno;
 use App\Models\Expediente;
 use App\Models\User;
@@ -69,6 +70,7 @@ class ExpedienteCreateTest extends TestCase
             'nombre' => 'Matutino',
             'activo' => true,
         ]);
+        CatalogoCubiculo::query()->create(['numero' => 1, 'activo' => true]);
 
         CatalogoCarrera::flushCache();
         CatalogoTurno::flushCache();
@@ -81,6 +83,13 @@ class ExpedienteCreateTest extends TestCase
             'turno' => $turno->nombre,
             'resumen_clinico' => [
                 'facilitador' => $admin->name,
+                'cubiculo' => 1,
+            ],
+            'registro_urgencia' => [
+                'nivel_riesgo' => 'medio',
+                'motivo' => 'Crisis de ansiedad reportada en entrevista inicial.',
+                'canalizacion_inmediata' => true,
+                'observaciones' => 'Se canaliza para seguimiento semanal.',
             ],
         ];
 
@@ -99,6 +108,13 @@ class ExpedienteCreateTest extends TestCase
         $this->assertSame($payload['carrera'], $expediente->carrera);
         $this->assertSame($payload['turno'], $expediente->turno);
         $this->assertSame($admin->name, data_get($expediente->resumen_clinico, 'facilitador'));
+        $this->assertSame(1, data_get($expediente->resumen_clinico, 'cubiculo'));
+
+        $this->assertDatabaseHas('registro_urgencias', [
+            'expediente_id' => $expediente->id,
+            'nivel_riesgo' => 'medio',
+            'canalizacion_inmediata' => true,
+        ]);
 
         $this->assertDatabaseHas('timeline_eventos', [
             'expediente_id' => $expediente->id,

@@ -182,6 +182,7 @@ trait ExpedienteFormRules
             'antecedentes_personales_patologicos',
             'aparatos_sistemas',
             'resumen_clinico',
+            'registro_urgencia',
         ] as $field) {
             if (! $this->has($field)) {
                 continue;
@@ -296,10 +297,12 @@ trait ExpedienteFormRules
             'observaciones_relevantes' => ['sometimes', 'nullable', 'string', 'max:1000'],
             'aparatos_sistemas' => ['sometimes', 'array'],
             'resumen_clinico' => ['sometimes', 'array'],
+            'registro_urgencia' => ['sometimes', 'array'],
             ...$this->familyHistoryMemberRules(),
             ...$this->personalPathologicalRules(),
             ...$this->systemsReviewRules(),
             ...$this->clinicalSummaryRules(),
+            ...$this->registroUrgenciaRules(),
         ];
     }
 
@@ -429,6 +432,11 @@ trait ExpedienteFormRules
 
             if ($field === 'resultado') {
                 $normalized[$field] = is_string($provided) ? (trim($provided) ?: null) : null;
+                continue;
+            }
+
+            if ($field === 'cubiculo') {
+                $normalized[$field] = is_numeric($provided) ? (int) $provided : null;
                 continue;
             }
 
@@ -563,6 +571,20 @@ trait ExpedienteFormRules
             'resumen_clinico.autorizacion_responsable' => ['sometimes', 'nullable', 'string', 'max:1000'],
             'resumen_clinico.resultado' => ['sometimes', 'nullable', Rule::in(array_keys(Expediente::CLINICAL_OUTCOME_OPTIONS))],
             'resumen_clinico.resultado_detalle' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'resumen_clinico.cubiculo' => ['sometimes', 'nullable', 'integer', Rule::exists('catalogo_cubiculos', 'numero')->where('activo', true)],
+        ];
+    }
+
+    /**
+     * @return array<string, array<int, string|\Illuminate\Validation\Rules\In>>
+     */
+    private function registroUrgenciaRules(): array
+    {
+        return [
+            'registro_urgencia.nivel_riesgo' => ['sometimes', 'nullable', Rule::in(['bajo', 'medio', 'alto'])],
+            'registro_urgencia.motivo' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'registro_urgencia.canalizacion_inmediata' => ['sometimes', 'boolean'],
+            'registro_urgencia.observaciones' => ['sometimes', 'nullable', 'string', 'max:2000'],
         ];
     }
 
@@ -605,6 +627,7 @@ trait ExpedienteFormRules
             'observaciones_relevantes',
             'aparatos_sistemas',
             'resumen_clinico',
+            'registro_urgencia',
             'clinica',
             'recibo_expediente',
             'recibo_diagnostico',

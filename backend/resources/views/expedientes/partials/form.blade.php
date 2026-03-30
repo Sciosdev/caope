@@ -26,6 +26,7 @@
 
 @php($alertaActiva = filled(old('alerta_ingreso', $expediente->alerta_ingreso ?? null)))
 @php($isCreating = ! isset($expediente) || ! $expediente->exists)
+@php($isPaps = auth()->user()?->hasRole('paps'))
 
 <div class="card border shadow-none mb-4">
     <div class="card-body">
@@ -166,6 +167,7 @@
                     id="tutor_id"
                     class="form-select js-select2 @error('tutor_id') is-invalid @enderror"
                     data-placeholder="Sin asignar"
+                    @disabled($isPaps)
                 >
                     <option value="">Sin asignar</option>
                     @foreach ($tutores as $tutor)
@@ -186,6 +188,7 @@
                     id="coordinador_id"
                     class="form-select js-select2 @error('coordinador_id') is-invalid @enderror"
                     data-placeholder="Sin asignar"
+                    @disabled($isPaps)
                 >
                     <option value="">Sin asignar</option>
                     @foreach ($coordinadores as $coordinador)
@@ -211,6 +214,84 @@
                     readonly
                 >
                 @error('resumen_clinico.facilitador')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+
+            <div class="col-md-4">
+                <label for="resumen_clinico_cubiculo" class="form-label">Cubículo asignado</label>
+                <select
+                    name="resumen_clinico[cubiculo]"
+                    id="resumen_clinico_cubiculo"
+                    class="form-select @error('resumen_clinico.cubiculo') is-invalid @enderror"
+                    @disabled(! $isCreating)
+                >
+                    <option value="">Sin asignar</option>
+                    @foreach ($cubiculos as $cubiculo)
+                        <option value="{{ $cubiculo->numero }}" @selected((string) old('resumen_clinico.cubiculo', data_get($expediente->resumen_clinico ?? [], 'cubiculo')) === (string) $cubiculo->numero)>
+                            Cubículo {{ $cubiculo->numero }}
+                        </option>
+                    @endforeach
+                </select>
+                @if (! $isCreating)
+                    <div class="form-text">El cubículo solo puede asignarse durante la creación del expediente.</div>
+                @endif
+                @error('resumen_clinico.cubiculo')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border shadow-none mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+            <div>
+                <p class="text-muted text-uppercase small mb-1">Registro vinculado</p>
+                <h6 class="mb-0">Hoja de urgencia</h6>
+            </div>
+        </div>
+
+        @php($urgencia = old('registro_urgencia', $expediente->registroUrgencia?->toArray() ?? []))
+
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label for="registro_urgencia_nivel_riesgo" class="form-label">Nivel de riesgo</label>
+                <select name="registro_urgencia[nivel_riesgo]" id="registro_urgencia_nivel_riesgo" class="form-select @error('registro_urgencia.nivel_riesgo') is-invalid @enderror">
+                    <option value="">Sin clasificar</option>
+                    <option value="bajo" @selected(data_get($urgencia, 'nivel_riesgo') === 'bajo')>Bajo</option>
+                    <option value="medio" @selected(data_get($urgencia, 'nivel_riesgo') === 'medio')>Medio</option>
+                    <option value="alto" @selected(data_get($urgencia, 'nivel_riesgo') === 'alto')>Alto</option>
+                </select>
+                @error('registro_urgencia.nivel_riesgo')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+
+            <div class="col-md-4">
+                <label for="registro_urgencia_canalizacion" class="form-label d-block">Canalización inmediata</label>
+                <div class="form-check form-switch mt-2">
+                    <input class="form-check-input" type="checkbox" role="switch" id="registro_urgencia_canalizacion" name="registro_urgencia[canalizacion_inmediata]" value="1" @checked((bool) data_get($urgencia, 'canalizacion_inmediata'))>
+                    <label class="form-check-label" for="registro_urgencia_canalizacion">Sí</label>
+                </div>
+                @error('registro_urgencia.canalizacion_inmediata')
+                    <div class="text-danger small mt-1">{{ $message }}</div>
+                @enderror
+            </div>
+
+            <div class="col-12">
+                <label for="registro_urgencia_motivo" class="form-label">Motivo de urgencia</label>
+                <textarea name="registro_urgencia[motivo]" id="registro_urgencia_motivo" rows="3" class="form-control @error('registro_urgencia.motivo') is-invalid @enderror">{{ data_get($urgencia, 'motivo') }}</textarea>
+                @error('registro_urgencia.motivo')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+
+            <div class="col-12">
+                <label for="registro_urgencia_observaciones" class="form-label">Observaciones</label>
+                <textarea name="registro_urgencia[observaciones]" id="registro_urgencia_observaciones" rows="3" class="form-control @error('registro_urgencia.observaciones') is-invalid @enderror">{{ data_get($urgencia, 'observaciones') }}</textarea>
+                @error('registro_urgencia.observaciones')
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
             </div>

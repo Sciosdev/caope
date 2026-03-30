@@ -7,6 +7,7 @@ use App\Http\Requests\StoreExpedienteRequest;
 use App\Http\Requests\UpdateExpedienteRequest;
 use App\Models\Anexo;
 use App\Models\CatalogoCarrera;
+use App\Models\CatalogoCubiculo;
 use App\Models\CatalogoTurno;
 use App\Models\Expediente;
 use App\Models\Parametro;
@@ -236,6 +237,7 @@ class ExpedienteController extends Controller
 
         $data = $request->validatedExpedienteData();
         $data['clinica'] = 'Caope';
+        $data = $this->applyPapsRestrictions($request, $data);
         Log::debug('Validated expediente data for creation', [
             'user_id' => $request->user()?->id,
             'validated_keys' => array_keys($data),
@@ -284,6 +286,7 @@ class ExpedienteController extends Controller
                 'no_control' => $data['no_control'] ?? null,
             ]);
             $expediente = Expediente::create($data);
+            $this->syncRegistroUrgencia($expediente, $request->validated('registro_urgencia', []));
         } catch (QueryException $exception) {
             Log::error('Failed to create expediente', [
                 'user_id' => $request->user()?->id,
@@ -482,6 +485,7 @@ class ExpedienteController extends Controller
     public function update(UpdateExpedienteRequest $request, Expediente $expediente): JsonResponse|RedirectResponse
     {
         $data = $request->validatedExpedienteData();
+        $data = $this->applyPapsRestrictions($request, $data, $expediente);
         [$data, $missingColumns] = $this->prepareExpedienteColumns($data, $expediente, applyDefaults: false);
 
         if (! empty($missingColumns)) {
@@ -528,6 +532,7 @@ class ExpedienteController extends Controller
         try {
             $expediente->fill($data);
             $expediente->save();
+            $this->syncRegistroUrgencia($expediente, $request->validated('registro_urgencia', []));
         } catch (QueryException $exception) {
             Log::error('Failed to update expediente', [
                 'user_id' => $request->user()?->id,
@@ -765,6 +770,7 @@ class ExpedienteController extends Controller
 
         $tutores = User::role('docente')->orderBy('name')->get();
         $coordinadores = User::role('coordinador')->orderBy('name')->get();
+        $cubiculos = CatalogoCubiculo::activos()->orderBy('numero')->get();
 
         $generos = collect(Expediente::GENERO_OPTIONS)
             ->mapWithKeys(function (string $value) {
@@ -791,6 +797,7 @@ class ExpedienteController extends Controller
             'turnos' => $turnos,
             'tutores' => $tutores,
             'coordinadores' => $coordinadores,
+            'cubiculos' => $cubiculos,
             'generos' => $generos,
             'estadosCiviles' => $estadosCiviles,
             'familyHistoryMembers' => Expediente::FAMILY_HISTORY_MEMBERS,
@@ -834,6 +841,48 @@ class ExpedienteController extends Controller
                 )
             );
         });
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function applyPapsRestrictions(Request $request, array $data, ?Expediente $expediente = null): array
+    {
+        if (! $request->user()?->hasRole('paps')) {
+            return $data;
+        }
+
+        $data['tutor_id'] = null;
+        $data['coordinador_id'] = null;
+
+        if ($expediente && array_key_exists('resumen_clinico', $data)) {
+            $summary = is_array($data['resumen_clinico']) ? $data['resumen_clinico'] : [];
+            $summary['cubiculo'] = data_get($expediente->resumen_clinico ?? [], 'cubiculo');
+            $data['resumen_clinico'] = $summary;
+        }
+
+        return $data;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function syncRegistroUrgencia(Expediente $expediente, array $data): void
+    {
+        if ($data === []) {
+            return;
+        }
+
+        $expediente->registroUrgencia()->updateOrCreate(
+            ['expediente_id' => $expediente->id],
+            [
+                'nivel_riesgo' => $data['nivel_riesgo'] ?? null,
+                'motivo' => $data['motivo'] ?? null,
+                'canalizacion_inmediata' => (bool) ($data['canalizacion_inmediata'] ?? false),
+                'observaciones' => $data['observaciones'] ?? null,
+            ]
+        );
     }
 
     /**
