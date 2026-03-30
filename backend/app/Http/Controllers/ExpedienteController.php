@@ -200,6 +200,10 @@ class ExpedienteController extends Controller
         return Expediente::query()
             ->with('creadoPor')
             ->when(! $user->can('expedientes.manage'), function ($q) use ($user) {
+                if ($user->hasRole('paps')) {
+                    return;
+                }
+
                 if ($user->hasRole('docente')) {
                     $q->where('tutor_id', $user->id);
                 } elseif ($user->hasRole('alumno')) {
