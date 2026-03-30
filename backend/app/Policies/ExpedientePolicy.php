@@ -34,7 +34,7 @@ class ExpedientePolicy
 
     public function create(User $user): bool
     {
-        return $this->isAdmin($user) || $user->hasRole('alumno');
+        return $this->isAdmin($user) || $user->hasRole('alumno') || $user->hasRole('paps');
     }
 
     public function update(User $user, Expediente $expediente): bool
