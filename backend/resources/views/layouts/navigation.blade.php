@@ -47,7 +47,7 @@
                             </x-nav-link>
                         @endif
                     @endcan
-                    @role('admin')
+                    @role('admin|paps')
                         <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
                             {{ __('Administración') }}
                         </x-nav-link>
@@ -129,7 +129,7 @@
                     </x-responsive-nav-link>
                 @endif
             @endcan
-            @role('admin')
+            @role('admin|paps')
                 <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
                     {{ __('Administración') }}
                 </x-responsive-nav-link>

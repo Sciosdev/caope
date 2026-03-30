@@ -23,7 +23,7 @@
         </div>
     @endif
 
-    @if(auth()->user()?->hasRole('admin'))
+    @if(auth()->user()?->hasAnyRole(['admin', 'paps']))
     <div class="card mb-4">
         <div class="card-header">Nueva asignación</div>
         <div class="card-body">
@@ -196,7 +196,7 @@
             <div id="bitacora-vista-dinamica" class="table-responsive"></div>
         </div>
         <div class="card-body table-responsive">
-            @if(auth()->user()?->hasRole('admin'))
+            @if(auth()->user()?->hasAnyRole(['admin', 'paps']))
                 <form id="bitacora-bulk-delete-form" action="{{ route('consultorios.bulk-destroy') }}" method="POST" class="mb-3 d-flex align-items-center gap-2">
                     @csrf
                     @method('DELETE')
@@ -215,7 +215,7 @@
             <table class="table table-sm align-middle">
                 <thead>
                     <tr>
-                        @if(auth()->user()?->hasRole('admin'))
+                        @if(auth()->user()?->hasAnyRole(['admin', 'paps']))
                             <th style="width: 1%;"></th>
                         @endif
                         <th>Fecha</th>
@@ -224,13 +224,13 @@
                         <th>Estrategia</th>
                         <th>Estratega</th>
                         <th>Usuario</th>
-                        @if(auth()->user()?->hasRole('admin'))<th>Acciones</th>@endif
+                        @if(auth()->user()?->hasAnyRole(['admin', 'paps']))<th>Acciones</th>@endif
                     </tr>
                 </thead>
                 <tbody>
                     @forelse ($reservas as $reserva)
                         <tr>
-                            @if(auth()->user()?->hasRole('admin'))
+                            @if(auth()->user()?->hasAnyRole(['admin', 'paps']))
                                 <td>
                                     <input
                                         type="checkbox"
@@ -249,7 +249,7 @@
                             <td>{{ $reserva->estrategia }}</td>
                             <td>{{ $reserva->estratega?->name ?? '—' }}</td>
                             <td>{{ $reserva->usuarioAtendido?->name ?? '—' }}</td>
-                            @if(auth()->user()?->hasRole('admin'))
+                            @if(auth()->user()?->hasAnyRole(['admin', 'paps']))
                             <td>
                                 <div class="d-flex gap-2">
                                 <a class="btn btn-sm btn-outline-primary" href="{{ route('consultorios.edit', $reserva) }}">Modificar</a>
@@ -263,7 +263,7 @@
                             @endif
                         </tr>
                     @empty
-                        <tr><td colspan="{{ auth()->user()?->hasRole('admin') ? 8 : 6 }}" class="text-center text-muted">Sin registros.</td></tr>
+                        <tr><td colspan="{{ auth()->user()?->hasAnyRole(['admin', 'paps']) ? 8 : 6 }}" class="text-center text-muted">Sin registros.</td></tr>
                     @endforelse
                 </tbody>
             </table>

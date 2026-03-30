@@ -40,7 +40,7 @@ Route::middleware(['auth', 'active_user'])->group(function () {
     Route::post('expedientes/{expediente}/estado', [ExpedienteController::class, 'changeState'])
         ->name('expedientes.change-state');
 
-    Route::prefix('admin/usuarios')->name('admin.users.')->middleware('role:admin')->group(function (): void {
+    Route::prefix('admin/usuarios')->name('admin.users.')->middleware('role:admin|paps')->group(function (): void {
         Route::get('/', [UserController::class, 'index'])->name('index');
         Route::get('crear', [UserController::class, 'create'])->name('create');
         Route::post('/', [UserController::class, 'store'])->name('store');
@@ -51,7 +51,7 @@ Route::middleware(['auth', 'active_user'])->group(function () {
         Route::delete('{user}', [UserController::class, 'destroy'])->name('destroy');
     });
 
-    Route::prefix('admin/catalogos')->name('admin.catalogos.')->middleware('role:admin')->group(function (): void {
+    Route::prefix('admin/catalogos')->name('admin.catalogos.')->middleware('role:admin|paps')->group(function (): void {
         Route::resource('carreras', CatalogoCarreraController::class)->except('show');
         Route::patch('carreras/{carrera}/estado', [CatalogoCarreraController::class, 'toggleActive'])->name('carreras.toggle-active');
         Route::delete('carreras/{carrera}/eliminar', [CatalogoCarreraController::class, 'forceDestroy'])->name('carreras.force-destroy');
@@ -69,7 +69,7 @@ Route::middleware(['auth', 'active_user'])->group(function () {
         Route::resource('turnos', CatalogoTurnoController::class)->except('show');
     });
 
-    Route::prefix('admin/parametros')->name('admin.parametros.')->middleware('role:admin')->group(function (): void {
+    Route::prefix('admin/parametros')->name('admin.parametros.')->middleware('role:admin|paps')->group(function (): void {
         Route::get('/', [ParametrosController::class, 'index'])->name('index');
         Route::put('{parametro}', [ParametrosController::class, 'update'])->name('update');
     });
@@ -78,7 +78,7 @@ Route::middleware(['auth', 'active_user'])->group(function () {
         Route::get('/', [ConsultorioReservaController::class, 'index'])->name('index');
         Route::get('/availability', [ConsultorioReservaController::class, 'availability'])->name('availability');
         Route::get('/export/xlsx', [ConsultorioReservaController::class, 'export'])->name('export');
-        Route::middleware('role:admin')->group(function (): void {
+        Route::middleware('role:admin|paps')->group(function (): void {
             Route::post('/', [ConsultorioReservaController::class, 'store'])->name('store');
             Route::delete('/', [ConsultorioReservaController::class, 'bulkDestroy'])->name('bulk-destroy');
             Route::get('{reserva}/editar', [ConsultorioReservaController::class, 'edit'])->name('edit');

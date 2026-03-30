@@ -24,7 +24,7 @@ class ConsultorioReservaController extends Controller
 {
     public function index(Request $request): View
     {
-        abort_unless($request->user()?->hasAnyRole(['admin', 'coordinador', 'alumno']), 403);
+        abort_unless($request->user()?->hasAnyRole(['admin', 'paps', 'coordinador', 'alumno']), 403);
 
         $fechaFiltro = $request->string('fecha')->toString() ?: now()->toDateString();
         $bitacoraModo = $request->string('bitacora_modo')->toString() === 'mes' ? 'mes' : 'semana';
@@ -83,7 +83,7 @@ class ConsultorioReservaController extends Controller
 
     public function availability(Request $request): JsonResponse
     {
-        abort_unless($request->user()?->hasAnyRole(['admin', 'coordinador', 'alumno']), 403);
+        abort_unless($request->user()?->hasAnyRole(['admin', 'paps', 'coordinador', 'alumno']), 403);
 
         $fecha = $request->string('fecha')->toString() ?: now()->toDateString();
         $fechaInicio = $request->string('fecha_inicio')->toString();
@@ -131,7 +131,7 @@ class ConsultorioReservaController extends Controller
 
     public function export(Request $request): BinaryFileResponse
     {
-        abort_unless($request->user()?->hasAnyRole(['admin', 'coordinador', 'alumno']), 403);
+        abort_unless($request->user()?->hasAnyRole(['admin', 'paps', 'coordinador', 'alumno']), 403);
 
         $filename = sprintf('bitacora_reservas_%s.xlsx', Date::now()->format('Ymd_His'));
 
@@ -140,7 +140,7 @@ class ConsultorioReservaController extends Controller
 
     public function edit(Request $request, ConsultorioReserva $reserva): View
     {
-        abort_unless($request->user()?->hasRole('admin'), 403);
+        abort_unless($request->user()?->hasAnyRole(['admin', 'paps']), 403);
 
         return view('consultorios.edit', [
             'reserva' => $reserva->load(['usuarioAtendido', 'estratega', 'supervisor']),
@@ -185,7 +185,7 @@ class ConsultorioReservaController extends Controller
 
     public function destroy(Request $request, ConsultorioReserva $reserva): RedirectResponse
     {
-        abort_unless($request->user()?->hasRole('admin'), 403);
+        abort_unless($request->user()?->hasAnyRole(['admin', 'paps']), 403);
 
         ConsultorioReserva::query()
             ->whereKey($reserva->getKey())
@@ -197,7 +197,7 @@ class ConsultorioReservaController extends Controller
 
     public function bulkDestroy(Request $request): RedirectResponse
     {
-        abort_unless($request->user()?->hasRole('admin'), 403);
+        abort_unless($request->user()?->hasAnyRole(['admin', 'paps']), 403);
 
         $ids = collect($request->input('reservas', []))
             ->filter(fn ($id) => is_numeric($id))

@@ -53,7 +53,7 @@ class ComentarioPolicy
 
     private function isAdminOrManager(User $user): bool
     {
-        if ($user->hasRole('admin')) {
+        if ($user->hasAnyRole(['admin', 'paps'])) {
             return true;
         }
 

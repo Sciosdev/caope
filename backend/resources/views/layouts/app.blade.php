@@ -114,7 +114,7 @@
                                 @endif
                             @endcan
 
-                            @role('admin')
+                            @role('admin|paps')
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle {{ request()->routeIs('admin.users.*') || request()->routeIs('admin.catalogos.*') || request()->routeIs('admin.parametros.*') ? 'active fw-semibold' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         {{ __('Administración') }}

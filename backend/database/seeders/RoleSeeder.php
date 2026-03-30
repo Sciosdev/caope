@@ -35,7 +35,7 @@ class RoleSeeder extends Seeder
             'coordinador' => ['expedientes.view', 'expedientes.manage', 'reportes.view', 'sesiones.validate'],
             'docente' => ['expedientes.view', 'sesiones.validate'],
             'alumno' => ['expedientes.view'],
-            'paps' => ['expedientes.view', 'expedientes.manage'],
+            'paps' => $permissions,
         ];
 
         foreach ($roles as $roleName => $rolePermissions) {
