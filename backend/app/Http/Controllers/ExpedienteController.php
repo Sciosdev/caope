@@ -776,7 +776,7 @@ class ExpedienteController extends Controller
 
         $tutores = User::role('docente')->orderBy('name')->get();
         $coordinadores = User::role('coordinador')->orderBy('name')->get();
-        $cubiculos = CatalogoCubiculo::activos()->orderBy('numero')->get();
+        $cubiculos = CatalogoCubiculo::activos()->sortBy('numero')->values();
 
         $generos = collect(Expediente::GENERO_OPTIONS)
             ->mapWithKeys(function (string $value) {
