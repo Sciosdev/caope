@@ -208,7 +208,7 @@
                     type="text"
                     name="resumen_clinico[facilitador]"
                     id="resumen_clinico_facilitador"
-                    value="{{ old('resumen_clinico.facilitador', data_get($expediente->resumen_clinico ?? [], 'facilitador', auth()->user()?->name)) }}"
+                    value="{{ old('resumen_clinico.facilitador', data_get($expediente->resumen_clinico ?? [], 'facilitador', $isPaps ? null : auth()->user()?->name)) }}"
                     class="form-control @error('resumen_clinico.facilitador') is-invalid @enderror"
                     maxlength="150"
                     readonly

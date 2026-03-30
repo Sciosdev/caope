@@ -286,7 +286,10 @@ class ExpedienteController extends Controller
                 'no_control' => $data['no_control'] ?? null,
             ]);
             $expediente = Expediente::create($data);
-            $this->syncRegistroUrgencia($expediente, $request->validated('registro_urgencia', []));
+            $this->syncRegistroUrgencia(
+                $expediente,
+                $this->resolveUrgencyPayloadForUser($request, $request->validated('registro_urgencia', []))
+            );
         } catch (QueryException $exception) {
             Log::error('Failed to create expediente', [
                 'user_id' => $request->user()?->id,
@@ -532,7 +535,10 @@ class ExpedienteController extends Controller
         try {
             $expediente->fill($data);
             $expediente->save();
-            $this->syncRegistroUrgencia($expediente, $request->validated('registro_urgencia', []));
+            $this->syncRegistroUrgencia(
+                $expediente,
+                $this->resolveUrgencyPayloadForUser($request, $request->validated('registro_urgencia', []))
+            );
         } catch (QueryException $exception) {
             Log::error('Failed to update expediente', [
                 'user_id' => $request->user()?->id,
@@ -856,6 +862,12 @@ class ExpedienteController extends Controller
         $data['tutor_id'] = null;
         $data['coordinador_id'] = null;
 
+        if (array_key_exists('resumen_clinico', $data)) {
+            $summary = is_array($data['resumen_clinico']) ? $data['resumen_clinico'] : [];
+            $summary['facilitador'] = null;
+            $data['resumen_clinico'] = $summary;
+        }
+
         if ($expediente && array_key_exists('resumen_clinico', $data)) {
             $summary = is_array($data['resumen_clinico']) ? $data['resumen_clinico'] : [];
             $summary['cubiculo'] = data_get($expediente->resumen_clinico ?? [], 'cubiculo');
@@ -883,6 +895,28 @@ class ExpedienteController extends Controller
                 'observaciones' => $data['observaciones'] ?? null,
             ]
         );
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function resolveUrgencyPayloadForUser(Request $request, array $data): array
+    {
+        if (! $request->user()?->hasRole('paps')) {
+            return $data;
+        }
+
+        if ($data !== []) {
+            return $data;
+        }
+
+        return [
+            'nivel_riesgo' => null,
+            'motivo' => null,
+            'canalizacion_inmediata' => false,
+            'observaciones' => null,
+        ];
     }
 
     /**

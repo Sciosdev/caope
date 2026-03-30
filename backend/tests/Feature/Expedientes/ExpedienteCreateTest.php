@@ -133,6 +133,62 @@ class ExpedienteCreateTest extends TestCase
         $this->assertSame($payload['turno'], $evento->payload['datos']['turno']);
     }
 
+    public function test_paps_crea_expediente_sin_facilitador_y_con_registro_urgencia_vinculado(): void
+    {
+        $paps = User::factory()->create();
+        $paps->assignRole('paps');
+
+        $tutor = User::factory()->create();
+        $coordinador = User::factory()->create();
+        $tutor->assignRole('docente');
+        $coordinador->assignRole('coordinador');
+
+        $carrera = CatalogoCarrera::create([
+            'nombre' => 'Licenciatura en Psicología',
+            'activo' => true,
+        ]);
+
+        $turno = CatalogoTurno::create([
+            'nombre' => 'Matutino',
+            'activo' => true,
+        ]);
+
+        CatalogoCubiculo::query()->create(['numero' => 1, 'activo' => true]);
+
+        CatalogoCarrera::flushCache();
+        CatalogoTurno::flushCache();
+
+        $payload = [
+            'no_control' => 'CA-2025-9001',
+            'paciente' => 'Paciente PAPS',
+            'apertura' => Carbon::now()->toDateString(),
+            'carrera' => $carrera->nombre,
+            'turno' => $turno->nombre,
+            'tutor_id' => $tutor->id,
+            'coordinador_id' => $coordinador->id,
+            'resumen_clinico' => [
+                'facilitador' => $paps->name,
+                'cubiculo' => 1,
+            ],
+        ];
+
+        $response = $this->actingAs($paps)->post(route('expedientes.store'), $payload);
+
+        $response->assertSessionHasNoErrors();
+
+        $expediente = Expediente::where('no_control', $payload['no_control'])->first();
+        $this->assertNotNull($expediente);
+
+        $this->assertNull($expediente->tutor_id);
+        $this->assertNull($expediente->coordinador_id);
+        $this->assertNull(data_get($expediente->resumen_clinico, 'facilitador'));
+        $this->assertSame(1, data_get($expediente->resumen_clinico, 'cubiculo'));
+
+        $this->assertDatabaseHas('registro_urgencias', [
+            'expediente_id' => $expediente->id,
+        ]);
+    }
+
     public function test_no_control_debe_cumplir_formato_por_defecto(): void
     {
         $admin = User::factory()->create();
