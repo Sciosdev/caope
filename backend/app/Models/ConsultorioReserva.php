@@ -21,10 +21,12 @@ class ConsultorioReserva extends Model
         'estratega_id',
         'supervisor_id',
         'creado_por',
+        'origen_expediente',
     ];
 
     protected $casts = [
         'fecha' => 'date:Y-m-d',
+        'origen_expediente' => 'boolean',
     ];
 
     public function usuarioAtendido(): BelongsTo
