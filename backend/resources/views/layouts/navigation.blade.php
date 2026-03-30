@@ -6,6 +6,7 @@
         'sesiones.validar.index',
         'sesiones.validation.index',
     ])->first(fn ($name) => Route::has($name));
+    $showExpedientesLink = auth()->user()?->can('expedientes.view') || auth()->user()?->hasRole('paps');
 @endphp
 
 <nav x-data="{ open: false }" class="bg-white border-b border-gray-100">
@@ -25,11 +26,11 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Inicio') }}
                     </x-nav-link>
-                    @can('expedientes.view')
+                    @if ($showExpedientesLink)
                         <x-nav-link :href="route('expedientes.index')" :active="request()->routeIs('expedientes.*')">
                             {{ __('Expedientes') }}
                         </x-nav-link>
-                    @endcan
+                    @endif
                     @role('admin|coordinador|alumno|paps')
                         <x-nav-link :href="route('consultorios.index')" :active="request()->routeIs('consultorios.*')">
                             {{ __('Consultorios') }}
@@ -107,11 +108,11 @@
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Inicio') }}
             </x-responsive-nav-link>
-            @can('expedientes.view')
+            @if ($showExpedientesLink)
                 <x-responsive-nav-link :href="route('expedientes.index')" :active="request()->routeIs('expedientes.*')">
                     {{ __('Expedientes') }}
                 </x-responsive-nav-link>
-            @endcan
+            @endif
             @role('admin|coordinador|alumno|paps')
                 <x-responsive-nav-link :href="route('consultorios.index')" :active="request()->routeIs('consultorios.*')">
                     {{ __('Consultorios') }}
