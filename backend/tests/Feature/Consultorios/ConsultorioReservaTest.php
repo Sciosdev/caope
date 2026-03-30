@@ -149,6 +149,37 @@ class ConsultorioReservaTest extends TestCase
         $response->assertSessionHasNoErrors();
         $this->assertDatabaseCount('consultorio_reservas', 2);
     }
+
+    public function test_puede_registrar_reserva_desde_peticion_json(): void
+    {
+        $role = Role::query()->firstOrCreate(['name' => 'paps', 'guard_name' => 'web']);
+        $paps = User::factory()->create();
+        $paps->assignRole($role);
+
+        $response = $this->actingAs($paps)->postJson(route('consultorios.store'), [
+            'modo_repeticion' => 'unica',
+            'fecha' => now()->addDay()->toDateString(),
+            'hora_inicio' => '12:00',
+            'hora_fin' => '13:00',
+            'consultorio_numero' => 3,
+            'cubiculo_numero' => 1,
+            'estrategia' => 'Intervención breve',
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message', 'Reserva registrada correctamente.');
+
+        $this->assertDatabaseHas('consultorio_reservas', [
+            'consultorio_numero' => 3,
+            'cubiculo_numero' => 1,
+            'hora_inicio' => '12:00',
+            'hora_fin' => '13:00',
+            'estrategia' => 'Intervención breve',
+            'creado_por' => $paps->id,
+        ]);
+    }
+
     public function test_consulta_disponibilidad_por_fecha_y_consultorio(): void
     {
         $role = Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);

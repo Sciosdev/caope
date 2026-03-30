@@ -7,7 +7,9 @@ use App\Http\Requests\StoreExpedienteRequest;
 use App\Http\Requests\UpdateExpedienteRequest;
 use App\Models\Anexo;
 use App\Models\CatalogoCarrera;
+use App\Models\CatalogoConsultorio;
 use App\Models\CatalogoCubiculo;
+use App\Models\CatalogoEstrategia;
 use App\Models\CatalogoTurno;
 use App\Models\Expediente;
 use App\Models\Parametro;
@@ -778,6 +780,10 @@ class ExpedienteController extends Controller
         $tutores = User::role('docente')->orderBy('name')->get();
         $coordinadores = User::role('coordinador')->orderBy('name')->get();
         $cubiculos = CatalogoCubiculo::activos()->sortBy('numero')->values();
+        $consultoriosActivos = CatalogoConsultorio::activos();
+        $estrategiasActivas = CatalogoEstrategia::activos();
+        $usuariosActivos = User::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        $docentes = User::role('docente')->where('is_active', true)->orderBy('name')->get(['id', 'name']);
 
         $generos = collect(Expediente::GENERO_OPTIONS)
             ->mapWithKeys(function (string $value) {
@@ -805,6 +811,11 @@ class ExpedienteController extends Controller
             'tutores' => $tutores,
             'coordinadores' => $coordinadores,
             'cubiculos' => $cubiculos,
+            'consultoriosActivos' => $consultoriosActivos,
+            'cubiculosActivos' => $cubiculos,
+            'estrategiasActivas' => $estrategiasActivas,
+            'usuariosActivos' => $usuariosActivos,
+            'docentesActivos' => $docentes,
             'generos' => $generos,
             'estadosCiviles' => $estadosCiviles,
             'familyHistoryMembers' => Expediente::FAMILY_HISTORY_MEMBERS,

@@ -11,9 +11,9 @@ use App\Models\CatalogoEstrategia;
 use App\Models\ConsultorioReserva;
 use App\Models\User;
 use Illuminate\Support\Arr;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
@@ -152,7 +152,7 @@ class ConsultorioReservaController extends Controller
         ]);
     }
 
-    public function store(StoreConsultorioReservaRequest $request): RedirectResponse
+    public function store(StoreConsultorioReservaRequest $request): RedirectResponse|JsonResponse
     {
         $validated = $request->validated();
         $baseData = Arr::only($validated, [
@@ -170,6 +170,12 @@ class ConsultorioReservaController extends Controller
             ConsultorioReserva::query()->create($baseData + [
                 'fecha' => $fecha,
                 'creado_por' => $request->user()->id,
+            ]);
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Reserva registrada correctamente.',
             ]);
         }
 
