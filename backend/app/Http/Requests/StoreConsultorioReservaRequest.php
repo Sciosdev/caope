@@ -38,7 +38,20 @@ class StoreConsultorioReservaRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['admin', 'paps']) ?? false;
+        $user = $this->user();
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->hasRole('admin')) {
+            return true;
+        }
+
+        if (! $user->hasRole('paps')) {
+            return false;
+        }
+
+        return $this->boolean('origen_expediente');
     }
 
     public function rules(): array
@@ -58,6 +71,7 @@ class StoreConsultorioReservaRequest extends FormRequest
             'usuario_atendido_id' => ['nullable', 'integer', 'exists:users,id'],
             'estratega_id' => ['nullable', 'integer', 'exists:users,id'],
             'supervisor_id' => ['nullable', 'integer', 'exists:users,id'],
+            'origen_expediente' => ['nullable', 'boolean'],
         ];
     }
 

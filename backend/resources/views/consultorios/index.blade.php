@@ -7,6 +7,10 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h4 class="mb-0">Reserva de consultorios</h4>
     </div>
+    @php
+        $isAdmin = auth()->user()?->hasRole('admin') ?? false;
+        $canManageBitacora = auth()->user()?->hasAnyRole(['admin', 'paps']) ?? false;
+    @endphp
 
     @if (session('status'))
         <div class="alert alert-success">{{ session('status') }}</div>
@@ -23,7 +27,7 @@
         </div>
     @endif
 
-    @if(auth()->user()?->hasAnyRole(['admin', 'paps']))
+    @if($isAdmin)
     <div class="card mb-4">
         <div class="card-header">Nueva asignación</div>
         <div class="card-body">
@@ -196,7 +200,7 @@
             <div id="bitacora-vista-dinamica" class="table-responsive"></div>
         </div>
         <div class="card-body table-responsive">
-            @if(auth()->user()?->hasAnyRole(['admin', 'paps']))
+            @if($canManageBitacora)
                 <form id="bitacora-bulk-delete-form" action="{{ route('consultorios.bulk-destroy') }}" method="POST" class="mb-3 d-flex align-items-center gap-2">
                     @csrf
                     @method('DELETE')
@@ -215,7 +219,7 @@
             <table class="table table-sm align-middle">
                 <thead>
                     <tr>
-                        @if(auth()->user()?->hasAnyRole(['admin', 'paps']))
+                        @if($canManageBitacora)
                             <th style="width: 1%;"></th>
                         @endif
                         <th>Fecha</th>
@@ -224,46 +228,57 @@
                         <th>Estrategia</th>
                         <th>Estratega</th>
                         <th>Usuario</th>
-                        @if(auth()->user()?->hasAnyRole(['admin', 'paps']))<th>Acciones</th>@endif
+                        @if($canManageBitacora)<th>Acciones</th>@endif
                     </tr>
                 </thead>
                 <tbody>
                     @forelse ($reservas as $reserva)
                         <tr>
-                            @if(auth()->user()?->hasAnyRole(['admin', 'paps']))
+                            @if($canManageBitacora)
                                 <td>
-                                    <input
-                                        type="checkbox"
-                                        class="form-check-input bitacora-select-item"
-                                        data-reserva-id="{{ $reserva->id }}"
-                                        name="reservas[]"
-                                        value="{{ $reserva->id }}"
-                                        form="bitacora-bulk-delete-form"
-                                        aria-label="Seleccionar reserva {{ $reserva->id }}"
-                                    >
+                                    @if (! $reserva->origen_expediente)
+                                        <input
+                                            type="checkbox"
+                                            class="form-check-input bitacora-select-item"
+                                            data-reserva-id="{{ $reserva->id }}"
+                                            name="reservas[]"
+                                            value="{{ $reserva->id }}"
+                                            form="bitacora-bulk-delete-form"
+                                            aria-label="Seleccionar reserva {{ $reserva->id }}"
+                                        >
+                                    @endif
                                 </td>
                             @endif
                             <td>{{ $reserva->fecha->format('Y-m-d') }}</td>
                             <td>{{ substr($reserva->hora_inicio, 0, 5) }} - {{ substr($reserva->hora_fin, 0, 5) }}</td>
                             <td>Consultorio {{ $reserva->consultorio_numero }} · Cubículo {{ $reserva->cubiculo_numero }}</td>
-                            <td>{{ $reserva->estrategia }}</td>
+                            <td>
+                                {{ $reserva->estrategia }}
+                                @if ($reserva->origen_expediente)
+                                    <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle ms-2">Desde expediente</span>
+                                @endif
+                            </td>
                             <td>{{ $reserva->estratega?->name ?? '—' }}</td>
                             <td>{{ $reserva->usuarioAtendido?->name ?? '—' }}</td>
-                            @if(auth()->user()?->hasAnyRole(['admin', 'paps']))
+                            @if($canManageBitacora)
                             <td>
-                                <div class="d-flex gap-2">
-                                <a class="btn btn-sm btn-outline-primary" href="{{ route('consultorios.edit', $reserva) }}">Modificar</a>
-                                <form action="{{ route('consultorios.destroy', $reserva) }}" method="POST" onsubmit="return confirm('¿Dar de baja reserva?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button class="btn btn-sm btn-outline-danger">Baja</button>
-                                </form>
-                                </div>
+                                @if ($reserva->origen_expediente)
+                                    <span class="text-muted small">Sin acciones</span>
+                                @else
+                                    <div class="d-flex gap-2">
+                                        <a class="btn btn-sm btn-outline-primary" href="{{ route('consultorios.edit', $reserva) }}">Modificar</a>
+                                        <form action="{{ route('consultorios.destroy', $reserva) }}" method="POST" onsubmit="return confirm('¿Dar de baja reserva?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="btn btn-sm btn-outline-danger">Baja</button>
+                                        </form>
+                                    </div>
+                                @endif
                             </td>
                             @endif
                         </tr>
                     @empty
-                        <tr><td colspan="{{ auth()->user()?->hasAnyRole(['admin', 'paps']) ? 8 : 6 }}" class="text-center text-muted">Sin registros.</td></tr>
+                        <tr><td colspan="{{ $canManageBitacora ? 8 : 6 }}" class="text-center text-muted">Sin registros.</td></tr>
                     @endforelse
                 </tbody>
             </table>

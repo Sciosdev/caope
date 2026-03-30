@@ -1069,6 +1069,7 @@
                         estrategia: estrategiaInput?.value,
                         usuario_atendido_id: usuarioAtendidoInput?.value,
                         estratega_id: estrategaInput?.value,
+                        origen_expediente: true,
                     };
 
                     try {
