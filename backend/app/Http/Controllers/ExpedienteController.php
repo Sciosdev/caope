@@ -93,10 +93,7 @@ class ExpedienteController extends Controller
     public function __construct(
         private TimelineLogger $timelineLogger,
         private ExpedienteStateValidator $stateValidator,
-    )
-    {
-        $this->middleware('permission:expedientes.view')->only('index');
-    }
+    ) {}
 
     public function index(Request $request): View
     {

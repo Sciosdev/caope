@@ -12,7 +12,7 @@ class ExpedientePolicy
 
     public function viewAny(User $user): bool
     {
-        return $user->can('expedientes.view');
+        return $this->isAdmin($user) || $user->can('expedientes.view');
     }
 
     public function view(User $user, Expediente $expediente): bool
