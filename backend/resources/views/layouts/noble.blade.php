@@ -59,6 +59,7 @@
             'sesiones.validar.index',
             'sesiones.validation.index',
         ])->first(fn ($name) => Route::has($name));
+        $showExpedientesLink = auth()->user()?->can('expedientes.view') || auth()->user()?->hasRole('paps');
     @endphp
 
     <nav class="navbar">
@@ -73,12 +74,12 @@
                class="text-muted small {{ request()->routeIs('dashboard') ? 'fw-semibold text-body' : '' }}">
               Pendientes
             </a>
-            @can('expedientes.view')
+            @if ($showExpedientesLink)
               <a href="{{ route('expedientes.index') }}"
                  class="text-muted small {{ request()->routeIs('expedientes.*') ? 'fw-semibold text-body' : '' }}">
                 Expedientes
               </a>
-            @endcan
+            @endif
             @role('admin|coordinador|alumno|paps')
               <a href="{{ route('consultorios.index') }}"
                  class="text-muted small {{ request()->routeIs('consultorios.*') ? 'fw-semibold text-body' : '' }}">
