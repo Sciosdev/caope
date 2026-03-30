@@ -79,7 +79,7 @@ class ExpedientePolicy
 
     private function isAdmin(User $user): bool
     {
-        return $user->hasRole('admin');
+        return $user->hasAnyRole(['admin', 'paps']);
     }
 
     private function canManage(User $user): bool

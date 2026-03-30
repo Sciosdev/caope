@@ -40,7 +40,7 @@ abstract class CatalogoController extends Controller
 
     public function __construct()
     {
-        $this->middleware('role:admin');
+        $this->middleware('role:admin|paps');
     }
 
     public function index(): View

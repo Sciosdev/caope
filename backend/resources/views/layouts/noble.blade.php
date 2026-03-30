@@ -99,7 +99,7 @@
                 </a>
               @endif
             @endcan
-            @role('admin')
+            @role('admin|paps')
               <div class="dropdown">
                 <button
                   class="btn btn-sm btn-outline-secondary dropdown-toggle"
