@@ -90,7 +90,7 @@
                                     </a>
                                 </li>
                             @endcan
-                            @role('admin|coordinador|alumno')
+                            @role('admin|coordinador|alumno|paps')
                                 <li class="nav-item">
                                     <a class="nav-link {{ request()->routeIs('consultorios.*') ? 'active fw-semibold' : '' }}" href="{{ route('consultorios.index') }}">
                                         {{ __('Consultorios') }}

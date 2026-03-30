@@ -74,7 +74,7 @@ Route::middleware(['auth', 'active_user'])->group(function () {
         Route::put('{parametro}', [ParametrosController::class, 'update'])->name('update');
     });
 
-    Route::prefix('consultorios')->name('consultorios.')->middleware('role:admin|coordinador|alumno')->group(function (): void {
+    Route::prefix('consultorios')->name('consultorios.')->middleware('role:admin|coordinador|alumno|paps')->group(function (): void {
         Route::get('/', [ConsultorioReservaController::class, 'index'])->name('index');
         Route::get('/availability', [ConsultorioReservaController::class, 'availability'])->name('availability');
         Route::get('/export/xlsx', [ConsultorioReservaController::class, 'export'])->name('export');
@@ -87,7 +87,7 @@ Route::middleware(['auth', 'active_user'])->group(function () {
         });
     });
 
-    Route::middleware('role:admin|coordinador')->group(function (): void {
+    Route::middleware('role:admin|coordinador|paps')->group(function (): void {
         Route::get('reportes/expedientes', [ReporteExpedienteController::class, 'index'])->name('reportes.index');
         Route::get('reportes/expedientes/download', [ReporteExpedienteController::class, 'downloadDirect'])->name('reportes.expedientes.download-direct');
         Route::post('reportes/expedientes/export', [ReporteExpedienteController::class, 'export'])->name('reportes.expedientes.export');
