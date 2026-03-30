@@ -62,6 +62,25 @@ class UserManagementTest extends TestCase
         $response->assertSee('tutor', false);
     }
 
+
+    public function test_create_form_displays_paps_role_even_if_missing_in_roles_table(): void
+    {
+        $this->seedRoles();
+
+        $admin = User::factory()->create();
+        $admin->syncRoles(['admin']);
+
+        Role::query()->where('name', 'paps')->delete();
+
+        $this->actingAs($admin);
+
+        $response = $this->get(route('admin.users.create'));
+
+        $response->assertOk();
+        $response->assertSee('value="paps"', false);
+        $this->assertDatabaseHas('roles', ['name' => 'paps', 'guard_name' => 'web']);
+    }
+
     public function test_admin_can_create_user_with_roles(): void
     {
         $this->seedRoles();

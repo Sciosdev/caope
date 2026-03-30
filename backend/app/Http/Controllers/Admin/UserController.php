@@ -175,6 +175,11 @@ class UserController extends Controller
 
     private function availableRoles(): array
     {
+        Role::query()->firstOrCreate([
+            'name' => 'paps',
+            'guard_name' => 'web',
+        ]);
+
         return Role::query()->orderBy('name')->pluck('name', 'name')->all();
     }
 
