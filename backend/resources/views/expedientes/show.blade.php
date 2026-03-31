@@ -104,6 +104,22 @@
 
     @php
         $permiteGestionarSesiones = $expediente->estado === 'abierto';
+        $registroUrgencia = $expediente->registroUrgencia;
+        $urgenciaTieneDatos = $registroUrgencia
+            && (
+                filled($registroUrgencia->nivel_riesgo)
+                || filled($registroUrgencia->motivo)
+                || filled($registroUrgencia->observaciones)
+                || (bool) $registroUrgencia->canalizacion_inmediata
+            );
+        $nivelesRiesgo = [
+            'bajo' => 'Bajo',
+            'medio' => 'Medio',
+            'alto' => 'Alto',
+        ];
+        $nivelRiesgoLabel = $urgenciaTieneDatos
+            ? ($nivelesRiesgo[$registroUrgencia->nivel_riesgo] ?? ucfirst((string) $registroUrgencia->nivel_riesgo))
+            : null;
     @endphp
 
     <div class="tab-content" id="expedienteTabsContent">
@@ -140,6 +156,28 @@
                             <div class="alert alert-danger" role="alert">
                                 <strong>Alerta:</strong>
                                 {{ $expediente->alerta_ingreso }}
+                            </div>
+                        @endif
+
+                        @if ($urgenciaTieneDatos)
+                            <div class="alert alert-danger" role="alert">
+                                <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                                    <strong>Hoja de urgencia</strong>
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Registro vinculado</span>
+                                </div>
+                                <dl class="row mb-0 small">
+                                    <dt class="col-sm-3">Nivel de riesgo</dt>
+                                    <dd class="col-sm-9">{{ $nivelRiesgoLabel ?: '—' }}</dd>
+
+                                    <dt class="col-sm-3">Canalización inmediata</dt>
+                                    <dd class="col-sm-9">{{ $registroUrgencia->canalizacion_inmediata ? 'Sí' : 'No' }}</dd>
+
+                                    <dt class="col-sm-3">Motivo de urgencia</dt>
+                                    <dd class="col-sm-9">{{ $registroUrgencia->motivo ?: '—' }}</dd>
+
+                                    <dt class="col-sm-3">Observaciones</dt>
+                                    <dd class="col-sm-9">{{ $registroUrgencia->observaciones ?: '—' }}</dd>
+                                </dl>
                             </div>
                         @endif
 
@@ -400,6 +438,28 @@
                         <div class="alert alert-danger small" role="alert">
                             <strong>Alerta:</strong>
                             {{ $expediente->alerta_ingreso }}
+                        </div>
+                    @endif
+
+                    @if ($urgenciaTieneDatos)
+                        <div class="alert alert-danger small" role="alert">
+                            <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                                <strong>Hoja de urgencia</strong>
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Registro vinculado</span>
+                            </div>
+                            <dl class="row mb-0">
+                                <dt class="col-sm-4">Nivel de riesgo</dt>
+                                <dd class="col-sm-8">{{ $nivelRiesgoLabel ?: '—' }}</dd>
+
+                                <dt class="col-sm-4">Canalización inmediata</dt>
+                                <dd class="col-sm-8">{{ $registroUrgencia->canalizacion_inmediata ? 'Sí' : 'No' }}</dd>
+
+                                <dt class="col-sm-4">Motivo de urgencia</dt>
+                                <dd class="col-sm-8">{{ $registroUrgencia->motivo ?: '—' }}</dd>
+
+                                <dt class="col-sm-4">Observaciones</dt>
+                                <dd class="col-sm-8">{{ $registroUrgencia->observaciones ?: '—' }}</dd>
+                            </dl>
                         </div>
                     @endif
 

@@ -425,6 +425,7 @@ class ExpedienteController extends Controller
             'alumno',
             'tutor',
             'coordinador',
+            'registroUrgencia',
             'sesiones' => fn ($q) => $q->with(['realizadaPor', 'validadaPor'])->orderByDesc('fecha'),
             'consentimientos' => fn ($q) => $q->with('subidoPor')->orderByDesc('requerido')->orderBy('tratamiento'),
             'anexos' => fn ($q) => $q->with('subidoPor')->filter($activeFilters)->latest(),
