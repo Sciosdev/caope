@@ -183,6 +183,7 @@ trait ExpedienteFormRules
             'aparatos_sistemas',
             'resumen_clinico',
             'registro_urgencia',
+            'consultorio_reserva',
         ] as $field) {
             if (! $this->has($field)) {
                 continue;
@@ -585,6 +586,15 @@ trait ExpedienteFormRules
             'registro_urgencia.motivo' => ['sometimes', 'nullable', 'string', 'max:2000'],
             'registro_urgencia.canalizacion_inmediata' => ['sometimes', 'boolean'],
             'registro_urgencia.observaciones' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'consultorio_reserva' => ['sometimes', 'array'],
+            'consultorio_reserva.fecha' => ['sometimes', 'required_with:consultorio_reserva.consultorio_numero', 'date'],
+            'consultorio_reserva.hora_inicio' => ['sometimes', 'required_with:consultorio_reserva.consultorio_numero', 'date_format:H:i'],
+            'consultorio_reserva.hora_fin' => ['sometimes', 'required_with:consultorio_reserva.consultorio_numero', 'date_format:H:i', 'after:consultorio_reserva.hora_inicio'],
+            'consultorio_reserva.consultorio_numero' => ['sometimes', 'integer', Rule::exists('catalogo_consultorios', 'numero')->where('activo', true)],
+            'consultorio_reserva.cubiculo_numero' => ['sometimes', 'required_with:consultorio_reserva.consultorio_numero', 'integer', Rule::exists('catalogo_cubiculos', 'numero')->where('activo', true)],
+            'consultorio_reserva.estrategia' => ['sometimes', 'required_with:consultorio_reserva.consultorio_numero', 'string', 'max:255', Rule::exists('catalogo_estrategias', 'nombre')->where('activo', true)],
+            'consultorio_reserva.usuario_atendido_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
+            'consultorio_reserva.estratega_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
         ];
     }
 
@@ -653,6 +663,16 @@ trait ExpedienteFormRules
             'medico_referencia_nombre',
             'medico_referencia_correo',
             'medico_referencia_telefono',
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function validatedConsultorioReservaData(): array
+    {
+        return $this->safe()->only([
+            'consultorio_reserva',
         ]);
     }
 

@@ -11,6 +11,7 @@ use App\Models\CatalogoConsultorio;
 use App\Models\CatalogoCubiculo;
 use App\Models\CatalogoEstrategia;
 use App\Models\CatalogoTurno;
+use App\Models\ConsultorioReserva;
 use App\Models\Expediente;
 use App\Models\Parametro;
 use App\Models\User;
@@ -28,11 +29,13 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use RuntimeException;
@@ -239,6 +242,7 @@ class ExpedienteController extends Controller
         ]);
 
         $data = $request->validatedExpedienteData();
+        $consultorioReservaData = data_get($request->validatedConsultorioReservaData(), 'consultorio_reserva', []);
         $data['clinica'] = 'Caope';
         $data = $this->applyPapsRestrictions($request, $data);
         Log::debug('Validated expediente data for creation', [
@@ -288,11 +292,18 @@ class ExpedienteController extends Controller
                 'user_id' => $request->user()?->id,
                 'no_control' => $data['no_control'] ?? null,
             ]);
-            $expediente = Expediente::create($data);
-            $this->syncRegistroUrgencia(
-                $expediente,
-                $this->resolveUrgencyPayloadForUser($request, $request->validated('registro_urgencia', []))
-            );
+            $expediente = DB::transaction(function () use ($request, $data, $consultorioReservaData): Expediente {
+                $expediente = Expediente::create($data);
+                $this->syncRegistroUrgencia(
+                    $expediente,
+                    $this->resolveUrgencyPayloadForUser($request, $request->validated('registro_urgencia', []))
+                );
+                $this->syncConsultorioReservaFromPayload($request, $consultorioReservaData);
+
+                return $expediente;
+            });
+        } catch (ValidationException $exception) {
+            throw $exception;
         } catch (QueryException $exception) {
             Log::error('Failed to create expediente', [
                 'user_id' => $request->user()?->id,
@@ -657,6 +668,13 @@ class ExpedienteController extends Controller
         $table = $reference->getTable();
         $columns = array_flip(Schema::getColumnListing($table));
         $missingColumns = [];
+        $virtualFields = ['registro_urgencia', 'consultorio_reserva'];
+
+        foreach ($virtualFields as $field) {
+            if (array_key_exists($field, $data)) {
+                unset($data[$field]);
+            }
+        }
 
         $columnDefaults = [
             'antecedentes_familiares' => static fn () => Expediente::defaultFamilyHistory(),
@@ -700,6 +718,65 @@ class ExpedienteController extends Controller
         $missingColumns = array_values(array_unique($missingColumns));
 
         return [$data, $missingColumns];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function syncConsultorioReservaFromPayload(Request $request, array $payload): void
+    {
+        if (! $request->user()?->hasRole('paps')) {
+            return;
+        }
+
+        if (! filled(data_get($payload, 'consultorio_numero'))) {
+            return;
+        }
+
+        $fecha = (string) data_get($payload, 'fecha', '');
+        $horaInicio = (string) data_get($payload, 'hora_inicio', '');
+        $horaFin = (string) data_get($payload, 'hora_fin', '');
+        $consultorioNumero = (int) data_get($payload, 'consultorio_numero');
+        $cubiculoNumero = (int) data_get($payload, 'cubiculo_numero');
+
+        if (
+            $fecha === ''
+            || $horaInicio === ''
+            || $horaFin === ''
+            || $consultorioNumero <= 0
+            || $cubiculoNumero <= 0
+        ) {
+            throw ValidationException::withMessages([
+                'consultorio_reserva' => 'Completa los datos de asignación para guardar el consultorio junto con el expediente.',
+            ]);
+        }
+
+        $overlap = ConsultorioReserva::query()
+            ->whereDate('fecha', $fecha)
+            ->where('consultorio_numero', $consultorioNumero)
+            ->where('cubiculo_numero', $cubiculoNumero)
+            ->where('hora_inicio', '<', $horaFin.':00')
+            ->where('hora_fin', '>', $horaInicio.':00')
+            ->exists();
+
+        if ($overlap) {
+            throw ValidationException::withMessages([
+                'consultorio_reserva.hora_inicio' => 'Ese consultorio ya está reservado en el bloque seleccionado.',
+            ]);
+        }
+
+        ConsultorioReserva::query()->create([
+            'fecha' => $fecha,
+            'hora_inicio' => $horaInicio,
+            'hora_fin' => $horaFin,
+            'consultorio_numero' => $consultorioNumero,
+            'cubiculo_numero' => $cubiculoNumero,
+            'estrategia' => (string) data_get($payload, 'estrategia'),
+            'usuario_atendido_id' => data_get($payload, 'usuario_atendido_id') ?: null,
+            'estratega_id' => data_get($payload, 'estratega_id') ?: null,
+            'creado_por' => $request->user()->id,
+            'origen_expediente' => true,
+        ]);
     }
 
     public function destroy(Expediente $expediente): RedirectResponse

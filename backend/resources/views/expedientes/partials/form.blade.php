@@ -807,11 +807,20 @@
 
                 <div class="col-12">
                     <div id="expediente-asignacion-alerta" class="alert d-none mb-3" role="alert"></div>
-                    <button type="button" class="btn btn-primary" id="expediente-asignar-espacio">Asignar espacio</button>
+                    <p class="text-muted small mb-0">La asignación se guardará automáticamente al guardar el expediente.</p>
                 </div>
             </div>
         </div>
     </div>
+
+    <input type="hidden" name="consultorio_reserva[fecha]" id="expediente-consultorio-fecha" value="{{ old('consultorio_reserva.fecha', now()->toDateString()) }}">
+    <input type="hidden" name="consultorio_reserva[hora_inicio]" id="expediente-consultorio-hora-inicio" value="{{ old('consultorio_reserva.hora_inicio', '07:00') }}">
+    <input type="hidden" name="consultorio_reserva[hora_fin]" id="expediente-consultorio-hora-fin" value="{{ old('consultorio_reserva.hora_fin', '08:00') }}">
+    <input type="hidden" name="consultorio_reserva[consultorio_numero]" id="expediente-consultorio-numero" value="{{ old('consultorio_reserva.consultorio_numero') }}">
+    <input type="hidden" name="consultorio_reserva[cubiculo_numero]" id="expediente-consultorio-cubiculo" value="{{ old('consultorio_reserva.cubiculo_numero') }}">
+    <input type="hidden" name="consultorio_reserva[estrategia]" id="expediente-consultorio-estrategia" value="{{ old('consultorio_reserva.estrategia') }}">
+    <input type="hidden" name="consultorio_reserva[usuario_atendido_id]" id="expediente-consultorio-usuario" value="{{ old('consultorio_reserva.usuario_atendido_id') }}">
+    <input type="hidden" name="consultorio_reserva[estratega_id]" id="expediente-consultorio-estratega" value="{{ old('consultorio_reserva.estratega_id') }}">
 @endif
 
 @include('expedientes.partials.alumno.family-history')
@@ -902,16 +911,13 @@
                     }
                 }
 
-                const assignmentButton = document.getElementById('expediente-asignar-espacio');
                 const assignmentAlert = document.getElementById('expediente-asignacion-alerta');
 
-                if (!assignmentButton || !assignmentAlert) {
+                if (!assignmentAlert) {
                     return;
                 }
 
-                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
                 const availabilityEndpoint = @json(route('consultorios.availability'));
-                const storeEndpoint = @json(route('consultorios.store'));
                 const dateInput = document.getElementById('expediente-asignacion-fecha');
                 const startInput = document.getElementById('expediente-asignacion-hora-inicio');
                 const endInput = document.getElementById('expediente-asignacion-hora-fin');
@@ -925,6 +931,14 @@
                 const repeatEndInput = document.getElementById('expediente-repeticion-fecha-fin');
                 const repeatDayInput = document.getElementById('expediente-repeticion-dia-semana');
                 const modeInputs = Array.from(document.querySelectorAll('input[name="expediente_modo_repeticion"]'));
+                const hiddenDateInput = document.getElementById('expediente-consultorio-fecha');
+                const hiddenStartInput = document.getElementById('expediente-consultorio-hora-inicio');
+                const hiddenEndInput = document.getElementById('expediente-consultorio-hora-fin');
+                const hiddenConsultorioInput = document.getElementById('expediente-consultorio-numero');
+                const hiddenCubiculoInput = document.getElementById('expediente-consultorio-cubiculo');
+                const hiddenEstrategiaInput = document.getElementById('expediente-consultorio-estrategia');
+                const hiddenUsuarioInput = document.getElementById('expediente-consultorio-usuario');
+                const hiddenEstrategaInput = document.getElementById('expediente-consultorio-estratega');
 
                 const getMode = () => modeInputs.find((input) => input.checked)?.value ?? 'unica';
                 const toMinutes = (time) => {
@@ -1019,16 +1033,15 @@
                     return true;
                 };
 
-                const parseServerError = async (response) => {
-                    const data = await response.json().catch(() => null);
-                    const errors = data?.errors ?? {};
-                    const firstError = Object.values(errors).flat()[0];
-
-                    if (firstError) {
-                        return firstError;
-                    }
-
-                    return data?.message || 'No se pudo registrar la asignación.';
+                const syncHiddenAssignmentFields = () => {
+                    if (hiddenDateInput) hiddenDateInput.value = dateInput?.value ?? '';
+                    if (hiddenStartInput) hiddenStartInput.value = startInput?.value ?? '';
+                    if (hiddenEndInput) hiddenEndInput.value = endInput?.value ?? '';
+                    if (hiddenConsultorioInput) hiddenConsultorioInput.value = consultorioInput?.value ?? '';
+                    if (hiddenCubiculoInput) hiddenCubiculoInput.value = cubiculoInput?.value ?? '';
+                    if (hiddenEstrategiaInput) hiddenEstrategiaInput.value = estrategiaInput?.value ?? '';
+                    if (hiddenUsuarioInput) hiddenUsuarioInput.value = usuarioAtendidoInput?.value ?? '';
+                    if (hiddenEstrategaInput) hiddenEstrategaInput.value = estrategaInput?.value ?? '';
                 };
 
                 modeInputs.forEach((input) => input.addEventListener('change', toggleRepeatConfig));
@@ -1037,64 +1050,17 @@
                 endInput?.addEventListener('change', checkAvailability);
                 consultorioInput?.addEventListener('change', checkAvailability);
                 cubiculoInput?.addEventListener('change', checkAvailability);
+                dateInput?.addEventListener('change', syncHiddenAssignmentFields);
+                startInput?.addEventListener('change', syncHiddenAssignmentFields);
+                endInput?.addEventListener('change', syncHiddenAssignmentFields);
+                consultorioInput?.addEventListener('change', syncHiddenAssignmentFields);
+                cubiculoInput?.addEventListener('change', syncHiddenAssignmentFields);
+                estrategiaInput?.addEventListener('change', syncHiddenAssignmentFields);
+                usuarioAtendidoInput?.addEventListener('change', syncHiddenAssignmentFields);
+                estrategaInput?.addEventListener('change', syncHiddenAssignmentFields);
                 toggleRepeatConfig();
-
-                assignmentButton.addEventListener('click', async () => {
-                    hideAssignmentAlert();
-
-                    if (!estrategiaInput?.value) {
-                        showAssignmentAlert('Selecciona una estrategia para registrar la asignación.');
-                        return;
-                    }
-
-                    const isAvailable = await checkAvailability();
-                    if (!isAvailable) {
-                        return;
-                    }
-
-                    assignmentButton.disabled = true;
-
-                    const payload = {
-                        modo_repeticion: getMode(),
-                        fecha: dateInput?.value,
-                        fecha_inicio_repeticion: repeatStartInput?.value,
-                        fecha_fin_repeticion: repeatEndInput?.value,
-                        dias_semana: repeatDayInput?.value ? [repeatDayInput.value] : [],
-                        hora_inicio: startInput?.value,
-                        hora_fin: endInput?.value,
-                        consultorio_numero: consultorioInput?.value,
-                        cubiculo_numero: cubiculoInput?.value,
-                        estrategia: estrategiaInput?.value,
-                        usuario_atendido_id: usuarioAtendidoInput?.value,
-                        estratega_id: estrategaInput?.value,
-                        origen_expediente: true,
-                    };
-
-                    try {
-                        const response = await fetch(storeEndpoint, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json',
-                                'X-CSRF-TOKEN': csrfToken,
-                            },
-                            body: JSON.stringify(payload),
-                        });
-
-                        if (!response.ok) {
-                            const message = await parseServerError(response);
-                            showAssignmentAlert(message, 'danger');
-                            return;
-                        }
-
-                        showAssignmentAlert('Asignación registrada correctamente.', 'success');
-                    } catch (error) {
-                        console.error(error);
-                        showAssignmentAlert('Ocurrió un error inesperado al registrar la asignación.', 'danger');
-                    } finally {
-                        assignmentButton.disabled = false;
-                    }
-                });
+                syncHiddenAssignmentFields();
+                checkAvailability();
             });
         </script>
     @endpush
