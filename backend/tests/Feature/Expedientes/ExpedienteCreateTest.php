@@ -3,7 +3,9 @@
 namespace Tests\Feature\Expedientes;
 
 use App\Models\CatalogoCarrera;
+use App\Models\CatalogoConsultorio;
 use App\Models\CatalogoCubiculo;
+use App\Models\CatalogoEstrategia;
 use App\Models\CatalogoTurno;
 use App\Models\Expediente;
 use App\Models\User;
@@ -201,6 +203,70 @@ class ExpedienteCreateTest extends TestCase
 
         $this->assertDatabaseHas('registro_urgencias', [
             'expediente_id' => $expediente->id,
+        ]);
+    }
+
+    public function test_paps_guarda_expediente_y_asignacion_de_consultorio_en_un_solo_envio(): void
+    {
+        $paps = User::factory()->create();
+        $paps->assignRole('paps');
+
+        $carrera = CatalogoCarrera::create([
+            'nombre' => 'Licenciatura en Psicología',
+            'activo' => true,
+        ]);
+        $turno = CatalogoTurno::create([
+            'nombre' => 'Matutino',
+            'activo' => true,
+        ]);
+        CatalogoConsultorio::query()->create(['numero' => 1, 'nombre' => 'Consultorio 1', 'activo' => true]);
+        CatalogoCubiculo::query()->create(['numero' => 1, 'nombre' => 'Cubículo 1', 'activo' => true]);
+        CatalogoEstrategia::query()->create(['nombre' => 'Intervención breve', 'activo' => true]);
+
+        CatalogoCarrera::flushCache();
+        CatalogoTurno::flushCache();
+
+        $payload = [
+            'no_control' => 'CA-2025-9010',
+            'paciente' => 'Paciente con consultorio',
+            'apertura' => Carbon::now()->toDateString(),
+            'carrera' => $carrera->nombre,
+            'turno' => $turno->nombre,
+            'resumen_clinico' => [
+                'cubiculo' => 1,
+            ],
+            'registro_urgencia' => [
+                'nivel_riesgo' => 'bajo',
+            ],
+            'consultorio_reserva' => [
+                'fecha' => Carbon::now()->toDateString(),
+                'hora_inicio' => '07:00',
+                'hora_fin' => '08:00',
+                'consultorio_numero' => 1,
+                'cubiculo_numero' => 1,
+                'estrategia' => 'Intervención breve',
+            ],
+        ];
+
+        $response = $this->actingAs($paps)->post(route('expedientes.store'), $payload);
+
+        $response->assertSessionHasNoErrors();
+
+        $expediente = Expediente::query()->where('no_control', 'CA-2025-9010')->first();
+        $this->assertNotNull($expediente);
+
+        $this->assertDatabaseHas('registro_urgencias', [
+            'expediente_id' => $expediente->id,
+        ]);
+        $this->assertDatabaseHas('consultorio_reservas', [
+            'fecha' => Carbon::now()->toDateString(),
+            'hora_inicio' => '07:00:00',
+            'hora_fin' => '08:00:00',
+            'consultorio_numero' => 1,
+            'cubiculo_numero' => 1,
+            'estrategia' => 'Intervención breve',
+            'creado_por' => $paps->id,
+            'origen_expediente' => true,
         ]);
     }
 
