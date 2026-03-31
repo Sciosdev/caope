@@ -871,9 +871,6 @@ class ExpedienteController extends Controller
             return $data;
         }
 
-        $data['tutor_id'] = null;
-        $data['coordinador_id'] = null;
-
         if (array_key_exists('resumen_clinico', $data)) {
             $summary = is_array($data['resumen_clinico']) ? $data['resumen_clinico'] : [];
             $summary['facilitador'] = null;
