@@ -167,7 +167,6 @@
                     id="tutor_id"
                     class="form-select js-select2 @error('tutor_id') is-invalid @enderror"
                     data-placeholder="Sin asignar"
-                    @disabled($isPaps)
                 >
                     <option value="">Sin asignar</option>
                     @foreach ($tutores as $tutor)
@@ -188,7 +187,6 @@
                     id="coordinador_id"
                     class="form-select js-select2 @error('coordinador_id') is-invalid @enderror"
                     data-placeholder="Sin asignar"
-                    @disabled($isPaps)
                 >
                     <option value="">Sin asignar</option>
                     @foreach ($coordinadores as $coordinador)

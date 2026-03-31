@@ -232,7 +232,7 @@ class ExpedienteUpdateTest extends TestCase
         $this->assertSame($originalPaciente, $expediente->fresh()->paciente);
     }
 
-    public function test_paps_no_puede_reasignar_tutor_coordinador_ni_cambiar_cubiculo(): void
+    public function test_paps_puede_reasignar_tutor_y_coordinador_pero_no_cambiar_cubiculo(): void
     {
         $paps = User::factory()->create();
         $paps->assignRole('paps');
@@ -281,8 +281,8 @@ class ExpedienteUpdateTest extends TestCase
 
         $expediente->refresh();
 
-        $this->assertNull($expediente->tutor_id);
-        $this->assertNull($expediente->coordinador_id);
+        $this->assertSame($tutor->id, $expediente->tutor_id);
+        $this->assertSame($coordinador->id, $expediente->coordinador_id);
         $this->assertSame(1, data_get($expediente->resumen_clinico, 'cubiculo'));
     }
 
