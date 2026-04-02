@@ -60,6 +60,10 @@
             'sesiones.validation.index',
         ])->first(fn ($name) => Route::has($name));
         $showExpedientesLink = auth()->user()?->can('expedientes.view') || auth()->user()?->hasRole('paps');
+        $pendingConsultorioSolicitudesCount = auth()->user()?->hasRole('admin')
+            && \Illuminate\Support\Facades\Schema::hasTable('consultorio_reserva_solicitudes')
+            ? \App\Models\ConsultorioReservaSolicitud::query()->where('status', 'pendiente')->count()
+            : 0;
     @endphp
 
     <nav class="navbar">
@@ -109,6 +113,9 @@
                   aria-expanded="false"
                 >
                   Administración
+                  @if ($pendingConsultorioSolicitudesCount > 0)
+                    <span class="badge rounded-pill bg-danger ms-1">{{ $pendingConsultorioSolicitudesCount }}</span>
+                  @endif
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end">
                   <li><a class="dropdown-item" href="{{ route('admin.users.index') }}">Usuarios</a></li>
@@ -116,6 +123,17 @@
                   <li><a class="dropdown-item" href="{{ route('admin.catalogos.consultorios.index') }}">Consultorios</a></li>
                   <li><a class="dropdown-item" href="{{ route('admin.catalogos.cubiculos.index') }}">Cubículos</a></li>
                   <li><a class="dropdown-item" href="{{ route('admin.catalogos.estrategias.index') }}">Estrategias</a></li>
+                  @if (auth()->user()?->hasRole('admin'))
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                      <a class="dropdown-item d-flex justify-content-between align-items-center" href="{{ route('admin.consultorios.solicitudes.index') }}">
+                        <span>Herramientas · Solicitudes consultorios</span>
+                        @if ($pendingConsultorioSolicitudesCount > 0)
+                          <span class="badge rounded-pill bg-danger">{{ $pendingConsultorioSolicitudesCount }}</span>
+                        @endif
+                      </a>
+                    </li>
+                  @endif
                 </ul>
               </div>
             @endrole

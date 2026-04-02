@@ -18,29 +18,6 @@
         <div class="alert alert-success">{{ session('status') }}</div>
     @endif
 
-    @if ($isAdmin && $solicitudesPendientes->isNotEmpty())
-        <div class="alert alert-warning">
-            <h6 class="mb-2">Solicitudes pendientes de usuarios PAPS</h6>
-            <ul class="mb-0">
-                @foreach ($solicitudesPendientes as $solicitud)
-                    <li class="mb-1">
-                        <strong>{{ $solicitud->requestedBy?->name ?? 'Usuario' }}</strong>
-                        solicitó
-                        <strong>{{ $solicitud->tipo === 'baja' ? 'dar de baja' : 'editar' }}</strong>
-                        la reserva #{{ $solicitud->consultorio_reserva_id }}
-                        @if ($solicitud->reserva)
-                            ({{ $solicitud->reserva->fecha?->format('Y-m-d') }} ·
-                            {{ substr((string) $solicitud->reserva->hora_inicio, 0, 5) }}-{{ substr((string) $solicitud->reserva->hora_fin, 0, 5) }} ·
-                            Consultorio {{ $solicitud->reserva->consultorio_numero }}).
-                        @else
-                            (registro ya no disponible).
-                        @endif
-                    </li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-
     @if ($errors->any())
         <div class="alert alert-danger">
             <strong>No se pudo registrar la asignación.</strong>
@@ -301,15 +278,14 @@
                                     </div>
                                 @elseif ($isPapsAprobado)
                                     <div class="d-flex gap-2">
-                                        <a
-                                            class="btn btn-sm btn-outline-primary"
-                                            href="{{ route('consultorios.edit', $reserva) }}"
-                                            onclick="return confirm('Se enviará una solicitud de edición. El administrador general será quien aplique los cambios.');"
-                                        >Solicitar edición</a>
+                                        <form action="{{ route('consultorios.request-edit', $reserva) }}" method="POST" onsubmit="return confirm('Se enviará una solicitud al administrador para editar este registro.');">
+                                            @csrf
+                                            <button class="btn btn-sm btn-outline-primary">Solicitar edición</button>
+                                        </form>
                                         <form
                                             action="{{ route('consultorios.request-destroy', $reserva) }}"
                                             method="POST"
-                                            onsubmit="return confirm('Se enviará una solicitud de baja. El administrador general será quien elimine este registro.');"
+                                            onsubmit="return confirm('Se enviará una solicitud al administrador para dar de baja este registro.');"
                                         >
                                             @csrf
                                             @method('DELETE')
