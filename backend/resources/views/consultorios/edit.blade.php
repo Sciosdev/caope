@@ -8,7 +8,15 @@
     <div class="card">
         <div class="card-header">Modificar asignación</div>
         <div class="card-body">
-            <form method="POST" action="{{ route('consultorios.update', $reserva) }}" class="row g-3">
+            @php
+                $isAdmin = auth()->user()?->hasRole('admin') ?? false;
+            @endphp
+            @unless($isAdmin)
+                <div class="alert alert-warning">
+                    Esta edición se enviará como solicitud. El administrador general será quien aplique el cambio.
+                </div>
+            @endunless
+            <form method="POST" action="{{ $isAdmin ? route('consultorios.update', $reserva) : route('consultorios.request-update', $reserva) }}" class="row g-3">
                 @csrf @method('PUT')
                 <div class="col-md-2"><label class="form-label">Día</label><input type="date" name="fecha" class="form-control" value="{{ old('fecha', $reserva->fecha->format('Y-m-d')) }}" required></div>
                 <div class="col-md-2"><label class="form-label">Inicio</label><input type="time" name="hora_inicio" class="form-control" value="{{ old('hora_inicio', substr($reserva->hora_inicio,0,5)) }}" required></div>
@@ -26,7 +34,13 @@
                 <div class="col-md-4"><label class="form-label">Estratega</label><select name="estratega_id" class="form-select"><option value="">--</option>@foreach($docentes as $u)<option value="{{ $u->id }}" @selected((int) old('estratega_id', $reserva->estratega_id)===$u->id)>{{ $u->name }}</option>@endforeach</select></div>
                 
                 <div class="col-12 d-flex gap-2">
-                    <button class="btn btn-primary">Guardar cambios</button>
+                    @if($isAdmin)
+                        <button class="btn btn-primary">Guardar cambios</button>
+                    @else
+                        <button class="btn btn-primary" onclick="return confirm('Se enviará la solicitud de edición y el administrador general revisará este cambio.');">
+                            Enviar solicitud de edición
+                        </button>
+                    @endif
                     <a class="btn btn-outline-secondary" href="{{ route('consultorios.index') }}">Cancelar</a>
                 </div>
             </form>

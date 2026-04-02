@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ConsultorioReserva extends Model
 {
@@ -47,5 +48,10 @@ class ConsultorioReserva extends Model
     public function creadoPor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'creado_por');
+    }
+
+    public function solicitudes(): HasMany
+    {
+        return $this->hasMany(ConsultorioReservaSolicitud::class, 'consultorio_reserva_id');
     }
 }
