@@ -9,6 +9,7 @@ use App\Models\CatalogoCubiculo;
 use App\Models\CatalogoConsultorio;
 use App\Models\CatalogoEstrategia;
 use App\Models\ConsultorioReserva;
+use App\Models\ConsultorioReservaSolicitud;
 use App\Models\User;
 use Illuminate\Support\Arr;
 use Illuminate\Http\JsonResponse;
@@ -30,8 +31,15 @@ class ConsultorioReservaController extends Controller
             return false;
         }
 
-        if ($user->hasRole('admin')) {
-            return true;
+        return $user->hasRole('admin');
+    }
+
+    private function canRequestBitacoraChanges(Request $request): bool
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return false;
         }
 
         return $user->hasRole('paps') && ! is_null($user->approved_at);
@@ -95,6 +103,14 @@ class ConsultorioReservaController extends Controller
             'consultoriosActivos' => $consultoriosActivos,
             'cubiculosActivos' => $cubiculosActivos,
             'estrategiasActivas' => CatalogoEstrategia::activos(),
+            'solicitudesPendientes' => $request->user()?->hasRole('admin')
+                ? ConsultorioReservaSolicitud::query()
+                    ->with(['reserva', 'requestedBy'])
+                    ->where('status', 'pendiente')
+                    ->latest()
+                    ->limit(10)
+                    ->get()
+                : collect(),
         ]);
     }
 
@@ -157,7 +173,10 @@ class ConsultorioReservaController extends Controller
 
     public function edit(Request $request, ConsultorioReserva $reserva): View
     {
-        abort_unless($this->canManageBitacora($request), 403);
+        abort_unless(
+            $this->canManageBitacora($request) || $this->canRequestBitacoraChanges($request),
+            403
+        );
         abort_if($reserva->origen_expediente, 403, 'Las asignaciones creadas desde expediente no se pueden modificar.');
 
         return view('consultorios.edit', [
@@ -204,6 +223,7 @@ class ConsultorioReservaController extends Controller
 
     public function update(UpdateConsultorioReservaRequest $request, ConsultorioReserva $reserva): RedirectResponse
     {
+        abort_unless($this->canManageBitacora($request), 403);
         abort_if($reserva->origen_expediente, 403, 'Las asignaciones creadas desde expediente no se pueden modificar.');
 
         $reserva->update($request->validated());
@@ -222,6 +242,39 @@ class ConsultorioReservaController extends Controller
             ->delete();
 
         return redirect()->route('consultorios.index')->with('status', 'Reserva eliminada correctamente.');
+    }
+
+
+    public function requestUpdate(UpdateConsultorioReservaRequest $request, ConsultorioReserva $reserva): RedirectResponse
+    {
+        abort_unless($this->canRequestBitacoraChanges($request), 403);
+        abort_if($reserva->origen_expediente, 403, 'Las asignaciones creadas desde expediente no se pueden modificar.');
+
+        ConsultorioReservaSolicitud::query()->create([
+            'consultorio_reserva_id' => $reserva->id,
+            'requested_by' => $request->user()->id,
+            'tipo' => 'edicion',
+            'payload' => $request->validated(),
+            'status' => 'pendiente',
+        ]);
+
+        return redirect()->route('consultorios.index')->with('status', 'Solicitud de modificación enviada. El administrador general revisará el cambio.');
+    }
+
+    public function requestDestroy(Request $request, ConsultorioReserva $reserva): RedirectResponse
+    {
+        abort_unless($this->canRequestBitacoraChanges($request), 403);
+        abort_if($reserva->origen_expediente, 403, 'Las asignaciones creadas desde expediente no se pueden eliminar.');
+
+        ConsultorioReservaSolicitud::query()->create([
+            'consultorio_reserva_id' => $reserva->id,
+            'requested_by' => $request->user()->id,
+            'tipo' => 'baja',
+            'payload' => null,
+            'status' => 'pendiente',
+        ]);
+
+        return redirect()->route('consultorios.index')->with('status', 'Solicitud de baja enviada. El administrador general revisará la solicitud.');
     }
 
     public function bulkDestroy(Request $request): RedirectResponse

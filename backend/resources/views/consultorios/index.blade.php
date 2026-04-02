@@ -10,11 +10,35 @@
     @php
         $currentUser = auth()->user();
         $isAdmin = $currentUser?->hasRole('admin') ?? false;
-        $canManageBitacora = $isAdmin || (($currentUser?->hasRole('paps') ?? false) && ! is_null($currentUser?->approved_at));
+        $isPapsAprobado = ($currentUser?->hasRole('paps') ?? false) && ! is_null($currentUser?->approved_at);
+        $canManageBitacora = $isAdmin;
     @endphp
 
     @if (session('status'))
         <div class="alert alert-success">{{ session('status') }}</div>
+    @endif
+
+    @if ($isAdmin && $solicitudesPendientes->isNotEmpty())
+        <div class="alert alert-warning">
+            <h6 class="mb-2">Solicitudes pendientes de usuarios PAPS</h6>
+            <ul class="mb-0">
+                @foreach ($solicitudesPendientes as $solicitud)
+                    <li class="mb-1">
+                        <strong>{{ $solicitud->requestedBy?->name ?? 'Usuario' }}</strong>
+                        solicitó
+                        <strong>{{ $solicitud->tipo === 'baja' ? 'dar de baja' : 'editar' }}</strong>
+                        la reserva #{{ $solicitud->consultorio_reserva_id }}
+                        @if ($solicitud->reserva)
+                            ({{ $solicitud->reserva->fecha?->format('Y-m-d') }} ·
+                            {{ substr((string) $solicitud->reserva->hora_inicio, 0, 5) }}-{{ substr((string) $solicitud->reserva->hora_fin, 0, 5) }} ·
+                            Consultorio {{ $solicitud->reserva->consultorio_numero }}).
+                        @else
+                            (registro ya no disponible).
+                        @endif
+                    </li>
+                @endforeach
+            </ul>
+        </div>
     @endif
 
     @if ($errors->any())
@@ -229,7 +253,7 @@
                         <th>Estrategia</th>
                         <th>Estratega</th>
                         <th>Usuario (capturó)</th>
-                        @if($canManageBitacora)<th>Acción realizada</th>@endif
+                        @if($canManageBitacora || $isPapsAprobado)<th>Acción realizada</th>@endif
                     </tr>
                 </thead>
                 <tbody>
@@ -261,12 +285,12 @@
                             </td>
                             <td>{{ $reserva->estratega?->name ?? '—' }}</td>
                             <td>{{ $reserva->creadoPor?->name ?? '—' }}</td>
-                            @if($canManageBitacora)
+                            @if($canManageBitacora || $isPapsAprobado)
                             <td>
                                 <span class="small text-muted d-block mb-2">
                                     {{ $reserva->origen_expediente ? 'Alta automática (asignación de cubículo desde expediente)' : 'Alta manual (asignación de cubículo)' }}
                                 </span>
-                                @if (! $reserva->origen_expediente)
+                                @if (! $reserva->origen_expediente && $isAdmin)
                                     <div class="d-flex gap-2">
                                         <a class="btn btn-sm btn-outline-primary" href="{{ route('consultorios.edit', $reserva) }}">Modificar</a>
                                         <form action="{{ route('consultorios.destroy', $reserva) }}" method="POST" onsubmit="return confirm('¿Dar de baja reserva?')">
@@ -275,12 +299,29 @@
                                             <button class="btn btn-sm btn-outline-danger">Baja</button>
                                         </form>
                                     </div>
+                                @elseif (! $reserva->origen_expediente && $isPapsAprobado)
+                                    <div class="d-flex gap-2">
+                                        <a
+                                            class="btn btn-sm btn-outline-primary"
+                                            href="{{ route('consultorios.edit', $reserva) }}"
+                                            onclick="return confirm('Se enviará una solicitud de edición. El administrador general será quien aplique los cambios.');"
+                                        >Solicitar edición</a>
+                                        <form
+                                            action="{{ route('consultorios.request-destroy', $reserva) }}"
+                                            method="POST"
+                                            onsubmit="return confirm('Se enviará una solicitud de baja. El administrador general será quien elimine este registro.');"
+                                        >
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="btn btn-sm btn-outline-danger">Solicitar baja</button>
+                                        </form>
+                                    </div>
                                 @endif
                             </td>
                             @endif
                         </tr>
                     @empty
-                        <tr><td colspan="{{ $canManageBitacora ? 8 : 6 }}" class="text-center text-muted">Sin registros.</td></tr>
+                        <tr><td colspan="{{ ($canManageBitacora || $isPapsAprobado) ? 8 : 6 }}" class="text-center text-muted">Sin registros.</td></tr>
                     @endforelse
                 </tbody>
             </table>

@@ -84,6 +84,8 @@ Route::middleware(['auth', 'active_user'])->group(function () {
             Route::get('{reserva}/editar', [ConsultorioReservaController::class, 'edit'])->name('edit');
             Route::put('{reserva}', [ConsultorioReservaController::class, 'update'])->name('update');
             Route::delete('{reserva}', [ConsultorioReservaController::class, 'destroy'])->name('destroy');
+            Route::put('{reserva}/solicitar-edicion', [ConsultorioReservaController::class, 'requestUpdate'])->name('request-update');
+            Route::delete('{reserva}/solicitar-baja', [ConsultorioReservaController::class, 'requestDestroy'])->name('request-destroy');
         });
     });
 
