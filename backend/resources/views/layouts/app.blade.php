@@ -63,6 +63,10 @@
                 'sesiones.validation.index',
             ])->first(fn ($name) => Route::has($name));
             $showExpedientesLink = auth()->user()?->can('expedientes.view') || auth()->user()?->hasRole('paps');
+            $pendingConsultorioSolicitudesCount = auth()->user()?->hasRole('admin')
+                && \Illuminate\Support\Facades\Schema::hasTable('consultorio_reserva_solicitudes')
+                ? \App\Models\ConsultorioReservaSolicitud::query()->where('status', 'pendiente')->count()
+                : 0;
         @endphp
 
         <nav class="navbar navbar-expand-lg navbar-light bg-body border-bottom">
@@ -117,8 +121,11 @@
 
                             @role('admin|paps')
                                 <li class="nav-item dropdown">
-                                    <a class="nav-link dropdown-toggle {{ request()->routeIs('admin.users.*') || request()->routeIs('admin.catalogos.*') || request()->routeIs('admin.parametros.*') ? 'active fw-semibold' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <a class="nav-link dropdown-toggle {{ request()->routeIs('admin.users.*') || request()->routeIs('admin.catalogos.*') || request()->routeIs('admin.parametros.*') || request()->routeIs('admin.consultorios.solicitudes.*') ? 'active fw-semibold' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         {{ __('Administración') }}
+                                        @if ($pendingConsultorioSolicitudesCount > 0)
+                                            <span class="badge rounded-pill bg-danger ms-1">{{ $pendingConsultorioSolicitudesCount }}</span>
+                                        @endif
                                     </a>
                                     <ul class="dropdown-menu">
                                         <li><a class="dropdown-item" href="{{ route('admin.users.index') }}">{{ __('Usuarios') }}</a></li>
@@ -126,6 +133,17 @@
                                         <li><a class="dropdown-item" href="{{ route('admin.catalogos.consultorios.index') }}">{{ __('Consultorios') }}</a></li>
                                         <li><a class="dropdown-item" href="{{ route('admin.catalogos.cubiculos.index') }}">{{ __('Cubículos') }}</a></li>
                                         <li><a class="dropdown-item" href="{{ route('admin.catalogos.estrategias.index') }}">{{ __('Estrategias') }}</a></li>
+                                        @if (auth()->user()?->hasRole('admin'))
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <a class="dropdown-item d-flex justify-content-between align-items-center" href="{{ route('admin.consultorios.solicitudes.index') }}">
+                                                    <span>Herramientas · Solicitudes consultorios</span>
+                                                    @if ($pendingConsultorioSolicitudesCount > 0)
+                                                        <span class="badge rounded-pill bg-danger">{{ $pendingConsultorioSolicitudesCount }}</span>
+                                                    @endif
+                                                </a>
+                                            </li>
+                                        @endif
                                     </ul>
                                 </li>
                             @endrole

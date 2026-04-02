@@ -109,14 +109,6 @@ class ConsultorioReservaController extends Controller
             'consultoriosActivos' => $consultoriosActivos,
             'cubiculosActivos' => $cubiculosActivos,
             'estrategiasActivas' => CatalogoEstrategia::activos(),
-            'solicitudesPendientes' => $request->user()?->hasRole('admin') && $this->hasSolicitudesTable()
-                ? ConsultorioReservaSolicitud::query()
-                    ->with(['reserva', 'requestedBy'])
-                    ->where('status', 'pendiente')
-                    ->latest()
-                    ->limit(10)
-                    ->get()
-                : collect(),
         ]);
     }
 
@@ -271,6 +263,35 @@ class ConsultorioReservaController extends Controller
         return redirect()->route('consultorios.index')->with('status', 'Solicitud de modificación enviada. El administrador general revisará el cambio.');
     }
 
+    public function requestEdit(Request $request, ConsultorioReserva $reserva): RedirectResponse
+    {
+        abort_unless($this->canRequestBitacoraChanges($request), 403);
+        abort_if($reserva->origen_expediente, 403, 'Las asignaciones creadas desde expediente no se pueden modificar.');
+        if (! $this->hasSolicitudesTable()) {
+            return redirect()->route('consultorios.index')->with('status', 'Las solicitudes de modificación no están disponibles temporalmente.');
+        }
+
+        ConsultorioReservaSolicitud::query()->create([
+            'consultorio_reserva_id' => $reserva->id,
+            'requested_by' => $request->user()->id,
+            'tipo' => 'edicion',
+            'payload' => [
+                'fecha' => $reserva->fecha?->format('Y-m-d'),
+                'hora_inicio' => substr((string) $reserva->hora_inicio, 0, 5),
+                'hora_fin' => substr((string) $reserva->hora_fin, 0, 5),
+                'consultorio_numero' => (int) $reserva->consultorio_numero,
+                'cubiculo_numero' => (int) $reserva->cubiculo_numero,
+                'estrategia' => $reserva->estrategia,
+                'usuario_atendido_id' => $reserva->usuario_atendido_id,
+                'estratega_id' => $reserva->estratega_id,
+                'supervisor_id' => $reserva->supervisor_id,
+            ],
+            'status' => 'pendiente',
+        ]);
+
+        return redirect()->route('consultorios.index')->with('status', 'Solicitud enviada al administrador.');
+    }
+
     public function requestDestroy(Request $request, ConsultorioReserva $reserva): RedirectResponse
     {
         abort_unless($this->canRequestBitacoraChanges($request), 403);
@@ -287,7 +308,7 @@ class ConsultorioReservaController extends Controller
             'status' => 'pendiente',
         ]);
 
-        return redirect()->route('consultorios.index')->with('status', 'Solicitud de baja enviada. El administrador general revisará la solicitud.');
+        return redirect()->route('consultorios.index')->with('status', 'Solicitud enviada al administrador.');
     }
 
     public function bulkDestroy(Request $request): RedirectResponse

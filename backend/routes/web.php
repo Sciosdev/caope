@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\CatalogoConsultorioController;
 use App\Http\Controllers\Admin\CatalogoPadecimientoController;
 use App\Http\Controllers\Admin\CatalogoTratamientoController;
 use App\Http\Controllers\Admin\CatalogoTurnoController;
+use App\Http\Controllers\Admin\ConsultorioSolicitudController;
 use App\Http\Controllers\Admin\ParametrosController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AnexoController;
@@ -74,6 +75,11 @@ Route::middleware(['auth', 'active_user'])->group(function () {
         Route::put('{parametro}', [ParametrosController::class, 'update'])->name('update');
     });
 
+    Route::prefix('admin/herramientas/consultorios')->name('admin.consultorios.solicitudes.')->middleware('role:admin')->group(function (): void {
+        Route::get('solicitudes', [ConsultorioSolicitudController::class, 'index'])->name('index');
+        Route::post('solicitudes/{solicitud}/aprobar', [ConsultorioSolicitudController::class, 'approve'])->name('approve');
+    });
+
     Route::prefix('consultorios')->name('consultorios.')->middleware('role:admin|coordinador|alumno|paps')->group(function (): void {
         Route::get('/', [ConsultorioReservaController::class, 'index'])->name('index');
         Route::get('/availability', [ConsultorioReservaController::class, 'availability'])->name('availability');
@@ -84,6 +90,7 @@ Route::middleware(['auth', 'active_user'])->group(function () {
             Route::get('{reserva}/editar', [ConsultorioReservaController::class, 'edit'])->name('edit');
             Route::put('{reserva}', [ConsultorioReservaController::class, 'update'])->name('update');
             Route::delete('{reserva}', [ConsultorioReservaController::class, 'destroy'])->name('destroy');
+            Route::post('{reserva}/solicitar-edicion', [ConsultorioReservaController::class, 'requestEdit'])->name('request-edit');
             Route::put('{reserva}/solicitar-edicion', [ConsultorioReservaController::class, 'requestUpdate'])->name('request-update');
             Route::delete('{reserva}/solicitar-baja', [ConsultorioReservaController::class, 'requestDestroy'])->name('request-destroy');
         });
