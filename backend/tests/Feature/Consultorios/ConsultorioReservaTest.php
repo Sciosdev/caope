@@ -589,5 +589,77 @@ class ConsultorioReservaTest extends TestCase
             ->assertRedirect(route('consultorios.index'));
     }
 
+    public function test_admin_puede_editar_y_eliminar_reserva_creada_desde_expediente(): void
+    {
+        $adminRole = Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $admin = User::factory()->create();
+        $admin->assignRole($adminRole);
+
+        $reserva = ConsultorioReserva::query()->create([
+            'fecha' => now()->addDay()->toDateString(),
+            'hora_inicio' => '09:00',
+            'hora_fin' => '10:00',
+            'consultorio_numero' => 3,
+            'cubiculo_numero' => 1,
+            'estrategia' => 'Intervención breve',
+            'creado_por' => $admin->id,
+            'origen_expediente' => true,
+        ]);
+
+        $this->actingAs($admin)->put(route('consultorios.update', $reserva), [
+            'fecha' => now()->addDays(2)->toDateString(),
+            'hora_inicio' => '10:00',
+            'hora_fin' => '11:00',
+            'consultorio_numero' => 5,
+            'cubiculo_numero' => 2,
+            'estrategia' => 'Otra estrategia',
+        ])->assertRedirect(route('consultorios.index'));
+
+        $this->assertDatabaseHas('consultorio_reservas', [
+            'id' => $reserva->id,
+            'consultorio_numero' => 5,
+            'cubiculo_numero' => 2,
+            'estrategia' => 'Otra estrategia',
+            'origen_expediente' => true,
+        ]);
+
+        $this->actingAs($admin)->delete(route('consultorios.destroy', $reserva))
+            ->assertRedirect(route('consultorios.index'));
+
+        $this->assertDatabaseMissing('consultorio_reservas', ['id' => $reserva->id]);
+    }
+
+    public function test_paps_no_puede_editar_ni_eliminar_reserva_creada_desde_expediente(): void
+    {
+        $adminRole = Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $papsRole = Role::query()->firstOrCreate(['name' => 'paps', 'guard_name' => 'web']);
+        $admin = User::factory()->create();
+        $admin->assignRole($adminRole);
+        $paps = User::factory()->create(['approved_at' => now()]);
+        $paps->assignRole($papsRole);
+
+        $reserva = ConsultorioReserva::query()->create([
+            'fecha' => now()->addDay()->toDateString(),
+            'hora_inicio' => '09:00',
+            'hora_fin' => '10:00',
+            'consultorio_numero' => 3,
+            'cubiculo_numero' => 1,
+            'estrategia' => 'Intervención breve',
+            'creado_por' => $admin->id,
+            'origen_expediente' => true,
+        ]);
+
+        $this->actingAs($paps)->get(route('consultorios.edit', $reserva))->assertForbidden();
+        $this->actingAs($paps)->delete(route('consultorios.request-destroy', $reserva))->assertForbidden();
+        $this->actingAs($paps)->put(route('consultorios.request-update', $reserva), [
+            'fecha' => now()->addDays(3)->toDateString(),
+            'hora_inicio' => '11:00',
+            'hora_fin' => '12:00',
+            'consultorio_numero' => 3,
+            'cubiculo_numero' => 1,
+            'estrategia' => 'Intervención breve',
+        ])->assertForbidden();
+    }
+
 
 }

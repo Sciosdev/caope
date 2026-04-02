@@ -261,7 +261,7 @@
                         <tr>
                             @if($canManageBitacora)
                                 <td>
-                                    @if (! $reserva->origen_expediente)
+                                    @if ($isAdmin)
                                         <input
                                             type="checkbox"
                                             class="form-check-input bitacora-select-item"
@@ -290,7 +290,7 @@
                                 <span class="small text-muted d-block mb-2">
                                     {{ $reserva->origen_expediente ? 'Alta automática (asignación de cubículo desde expediente)' : 'Alta manual (asignación de cubículo)' }}
                                 </span>
-                                @if (! $reserva->origen_expediente && $isAdmin)
+                                @if ($isAdmin)
                                     <div class="d-flex gap-2">
                                         <a class="btn btn-sm btn-outline-primary" href="{{ route('consultorios.edit', $reserva) }}">Editar</a>
                                         <form action="{{ route('consultorios.destroy', $reserva) }}" method="POST" onsubmit="return confirm('¿Dar de baja reserva?')">
