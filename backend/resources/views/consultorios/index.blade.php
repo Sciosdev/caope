@@ -292,11 +292,11 @@
                                 </span>
                                 @if (! $reserva->origen_expediente && $isAdmin)
                                     <div class="d-flex gap-2">
-                                        <a class="btn btn-sm btn-outline-primary" href="{{ route('consultorios.edit', $reserva) }}">Modificar</a>
+                                        <a class="btn btn-sm btn-outline-primary" href="{{ route('consultorios.edit', $reserva) }}">Editar</a>
                                         <form action="{{ route('consultorios.destroy', $reserva) }}" method="POST" onsubmit="return confirm('¿Dar de baja reserva?')">
                                             @csrf
                                             @method('DELETE')
-                                            <button class="btn btn-sm btn-outline-danger">Baja</button>
+                                            <button class="btn btn-sm btn-outline-danger">Eliminar</button>
                                         </form>
                                     </div>
                                 @elseif (! $reserva->origen_expediente && $isPapsAprobado)
