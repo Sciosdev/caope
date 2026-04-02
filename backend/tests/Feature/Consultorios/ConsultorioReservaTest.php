@@ -224,6 +224,38 @@ class ConsultorioReservaTest extends TestCase
 
 
 
+
+    public function test_index_muestra_usuario_que_captura_accion_realizada_y_fecha_base_actual(): void
+    {
+        $role = Role::query()->firstOrCreate(['name' => 'paps', 'guard_name' => 'web']);
+        $paps = User::factory()->create(['name' => 'Usuario PAPS']);
+        $paps->assignRole($role);
+
+        $fecha = now()->toDateString();
+
+        ConsultorioReserva::query()->create([
+            'fecha' => $fecha,
+            'hora_inicio' => '07:00',
+            'hora_fin' => '08:00',
+            'consultorio_numero' => 3,
+            'cubiculo_numero' => 1,
+            'estrategia' => 'Intervención breve',
+            'creado_por' => $paps->id,
+            'origen_expediente' => true,
+        ]);
+
+        $response = $this->actingAs($paps)->get(route('consultorios.index', [
+            'fecha' => $fecha,
+        ]));
+
+        $response
+            ->assertOk()
+            ->assertSee('Usuario (capturó)')
+            ->assertSee('Usuario PAPS')
+            ->assertSee('Alta automática (asignación de cubículo desde expediente)')
+            ->assertSee('id="bitacora-fecha-base" name="bitacora_inicio" value="'.$fecha.'"', false);
+    }
+
     public function test_index_filtra_bitacora_por_semana_desde_fecha_base(): void
     {
         $role = Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);

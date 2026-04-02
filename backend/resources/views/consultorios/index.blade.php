@@ -187,7 +187,7 @@
                 @if($cubiculoSeleccionado)
                     <input type="hidden" name="cubiculo_numero" value="{{ $cubiculoSeleccionado }}">
                 @endif
-                <input type="date" class="form-control" id="bitacora-fecha-base" name="bitacora_inicio" value="{{ $bitacoraInicio }}" aria-label="Fecha base de bitácora">
+                <input type="date" class="form-control" id="bitacora-fecha-base" name="bitacora_inicio" value="{{ $bitacoraFechaSeleccionada }}" aria-label="Fecha base de bitácora">
                 <select class="form-select" id="bitacora-modo" name="bitacora_modo" aria-label="Modo de vista de bitácora">
                     <option value="semana" @selected($bitacoraModo === 'semana')>Semana</option>
                     <option value="mes" @selected($bitacoraModo === 'mes')>Mes</option>
@@ -209,7 +209,7 @@
                     @if($cubiculoSeleccionado)
                         <input type="hidden" name="cubiculo_numero" value="{{ $cubiculoSeleccionado }}">
                     @endif
-                    <input type="hidden" name="bitacora_inicio" value="{{ request('bitacora_inicio', $bitacoraInicio) }}">
+                    <input type="hidden" name="bitacora_inicio" value="{{ request('bitacora_inicio', $bitacoraFechaSeleccionada) }}">
                     <input type="hidden" name="bitacora_modo" value="{{ request('bitacora_modo', $bitacoraModo) }}">
                     <button type="submit" class="btn btn-sm btn-outline-danger" id="bitacora-bulk-delete-button" disabled aria-disabled="true">
                         Eliminar seleccionadas
@@ -227,8 +227,8 @@
                         <th>Cubículo</th>
                         <th>Estrategia</th>
                         <th>Estratega</th>
-                        <th>Usuario</th>
-                        @if($canManageBitacora)<th>Acciones</th>@endif
+                        <th>Usuario (capturó)</th>
+                        @if($canManageBitacora)<th>Acción realizada</th>@endif
                     </tr>
                 </thead>
                 <tbody>
@@ -259,12 +259,13 @@
                                 @endif
                             </td>
                             <td>{{ $reserva->estratega?->name ?? '—' }}</td>
-                            <td>{{ $reserva->usuarioAtendido?->name ?? '—' }}</td>
+                            <td>{{ $reserva->creadoPor?->name ?? '—' }}</td>
                             @if($canManageBitacora)
                             <td>
-                                @if ($reserva->origen_expediente)
-                                    <span class="text-muted small">Sin acciones</span>
-                                @else
+                                <span class="small text-muted d-block mb-2">
+                                    {{ $reserva->origen_expediente ? 'Alta automática (asignación de cubículo desde expediente)' : 'Alta manual (asignación de cubículo)' }}
+                                </span>
+                                @if (! $reserva->origen_expediente)
                                     <div class="d-flex gap-2">
                                         <a class="btn btn-sm btn-outline-primary" href="{{ route('consultorios.edit', $reserva) }}">Modificar</a>
                                         <form action="{{ route('consultorios.destroy', $reserva) }}" method="POST" onsubmit="return confirm('¿Dar de baja reserva?')">

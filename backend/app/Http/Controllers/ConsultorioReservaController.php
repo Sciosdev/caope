@@ -29,6 +29,7 @@ class ConsultorioReservaController extends Controller
         $fechaFiltro = $request->string('fecha')->toString() ?: now()->toDateString();
         $bitacoraModo = $request->string('bitacora_modo')->toString() === 'mes' ? 'mes' : 'semana';
         $bitacoraFechaBase = Carbon::parse($request->string('bitacora_inicio')->toString() ?: $fechaFiltro);
+        $bitacoraFechaSeleccionada = $bitacoraFechaBase->toDateString();
         $bitacoraInicio = ($bitacoraModo === 'mes' ? $bitacoraFechaBase->copy()->startOfMonth() : $bitacoraFechaBase->copy()->startOfWeek(Carbon::MONDAY))->toDateString();
         $bitacoraFin = ($bitacoraModo === 'mes' ? $bitacoraFechaBase->copy()->endOfMonth() : $bitacoraFechaBase->copy()->endOfWeek(Carbon::SUNDAY))->toDateString();
         $consultoriosActivos = CatalogoConsultorio::activos();
@@ -68,6 +69,7 @@ class ConsultorioReservaController extends Controller
             'reservas' => $reservas,
             'ocupacionPorCubiculo' => $ocupacionPorCubiculo,
             'fechaFiltro' => $fechaFiltro,
+            'bitacoraFechaSeleccionada' => $bitacoraFechaSeleccionada,
             'bitacoraInicio' => $bitacoraInicio,
             'bitacoraFin' => $bitacoraFin,
             'bitacoraModo' => $bitacoraModo,
