@@ -183,7 +183,11 @@ class ConsultorioReservaController extends Controller
             $this->canManageBitacora($request) || $this->canRequestBitacoraChanges($request),
             403
         );
-        abort_if($reserva->origen_expediente, 403, 'Las asignaciones creadas desde expediente no se pueden modificar.');
+        abort_if(
+            $reserva->origen_expediente && ! $this->canManageBitacora($request),
+            403,
+            'Las asignaciones creadas desde expediente solo las puede modificar el administrador general.'
+        );
 
         return view('consultorios.edit', [
             'reserva' => $reserva->load(['usuarioAtendido', 'estratega', 'supervisor']),
@@ -230,7 +234,6 @@ class ConsultorioReservaController extends Controller
     public function update(UpdateConsultorioReservaRequest $request, ConsultorioReserva $reserva): RedirectResponse
     {
         abort_unless($this->canManageBitacora($request), 403);
-        abort_if($reserva->origen_expediente, 403, 'Las asignaciones creadas desde expediente no se pueden modificar.');
 
         $reserva->update($request->validated());
 
@@ -240,8 +243,6 @@ class ConsultorioReservaController extends Controller
     public function destroy(Request $request, ConsultorioReserva $reserva): RedirectResponse
     {
         abort_unless($this->canManageBitacora($request), 403);
-        abort_if($reserva->origen_expediente, 403, 'Las asignaciones creadas desde expediente no se pueden eliminar.');
-
         ConsultorioReserva::query()
             ->whereKey($reserva->getKey())
             ->toBase()
@@ -303,17 +304,6 @@ class ConsultorioReservaController extends Controller
             return redirect()
                 ->route('consultorios.index', $request->query())
                 ->with('status', 'Selecciona al menos un registro para eliminar.');
-        }
-
-        $idsProtegidos = ConsultorioReserva::query()
-            ->whereIn('id', $ids)
-            ->where('origen_expediente', true)
-            ->pluck('id');
-
-        if ($idsProtegidos->isNotEmpty()) {
-            return redirect()
-                ->route('consultorios.index', $request->query())
-                ->with('status', 'Las asignaciones creadas desde expediente no se pueden eliminar.');
         }
 
         $eliminadas = ConsultorioReserva::query()
