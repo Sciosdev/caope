@@ -338,7 +338,7 @@
         const repeticionFechaInicio = document.getElementById('repeticion-fecha-inicio');
         const repeticionFechaFin = document.getElementById('repeticion-fecha-fin');
         const diaSemanaSelect = document.getElementById('repeticion-dia-semana');
-        const weekDayLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+        const weekDayLabels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
         if (diaSemanaSelect?.value) {
             diaSemanaSelect.dataset.userSelected = 'true';
@@ -501,35 +501,43 @@
             }
 
             const { start, end } = monthBounds(monthValue);
-            const firstDayOffset = (start.getDay() + 6) % 7;
-            const cells = [];
-            for (let i = 0; i < firstDayOffset; i += 1) {
-                cells.push('<div class="border rounded bg-light-subtle" aria-hidden="true"></div>');
-            }
+            const startOffset = (start.getDay() + 6) % 7;
+            const calendarStart = new Date(start);
+            calendarStart.setDate(start.getDate() - startOffset);
 
-            for (let day = 1; day <= end.getDate(); day += 1) {
-                const current = new Date(start.getFullYear(), start.getMonth(), day);
-                const iso = dateISO(current);
-                const isSelected = iso === filtroFecha.value;
-                const items = groupedByDate[iso] ?? [];
-                const dayOfWeek = current.getDay();
-                const isBusinessDay = dayOfWeek >= 1 && dayOfWeek <= 5;
-                const occupiedCubicles = new Set(items.map((item) => Number(item.cubiculo_numero))).size;
-                const dayStyle = isBusinessDay
-                    ? 'background-color: #d1e7dd; color: #0f5132; border-color: #a3cfbb;'
-                    : 'background-color: #f8d7da; color: #842029; border-color: #f1aeb5;';
-                const dayTypeLabel = isBusinessDay ? 'Hábil' : 'No hábil';
-                const reservationsLabel = items.length
-                    ? `${items.length} reserva(s)`
-                    : 'Sin reservas';
-                cells.push(`
-                    <button type="button" class="btn btn-sm border rounded text-start p-2 h-100" style="${dayStyle}${isSelected ? ' box-shadow: inset 0 0 0 2px #212529;' : ''}" data-calendar-day="${iso}">
-                        <div class="fw-semibold">${day}</div>
-                        <div class="small">${dayTypeLabel}</div>
-                        <div class="small opacity-75">${reservationsLabel}</div>
-                        <div class="small opacity-75">${occupiedCubicles} cubículo(s) ocupado(s)</div>
-                    </button>
-                `);
+            const rows = [];
+            const cursor = new Date(calendarStart);
+
+            while (cursor <= end || cursor.getDay() !== 1) {
+                const weekCells = [];
+                for (let i = 0; i < 7; i += 1) {
+                    const current = new Date(cursor);
+                    const iso = dateISO(current);
+                    const items = groupedByDate[iso] ?? [];
+                    const isSelected = iso === filtroFecha.value;
+                    const isCurrentMonth = current.getMonth() === start.getMonth();
+                    const dayOfWeek = current.getDay();
+                    const isBusinessDay = dayOfWeek >= 1 && dayOfWeek <= 5;
+                    const occupiedCubicles = new Set(items.map((item) => Number(item.cubiculo_numero))).size;
+                    const dayClass = isBusinessDay ? 'bg-success-subtle' : 'bg-danger-subtle';
+                    const mutedClass = isCurrentMonth ? '' : 'text-muted opacity-50';
+                    const selectionStyle = isSelected ? ' style="box-shadow: inset 0 0 0 2px #212529;"' : '';
+                    const reservationsLabel = items.length ? `${items.length} reserva(s)` : 'Sin reservas';
+                    weekCells.push(`
+                        <td class="${dayClass} align-top p-0">
+                            <button type="button" class="btn btn-sm w-100 h-100 text-start rounded-0 border-0 p-2 ${mutedClass}"${selectionStyle} data-calendar-day="${iso}">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <span class="fw-semibold">${current.getDate()}</span>
+                                    <span class="small">${occupiedCubicles} cub.</span>
+                                </div>
+                                <div class="small">${reservationsLabel}</div>
+                            </button>
+                        </td>
+                    `);
+                    cursor.setDate(cursor.getDate() + 1);
+                }
+
+                rows.push(`<tr>${weekCells.join('')}</tr>`);
             }
 
             const monthTitle = start.toLocaleDateString('es-MX', {
@@ -542,17 +550,25 @@
                     <h6 class="mb-0 text-capitalize">Mes: ${monthTitle}</h6>
                     <small class="text-muted">Haz clic en cualquier día para ver su detalle</small>
                 </div>
-                <div class="d-grid gap-2" style="grid-template-columns: repeat(7, minmax(0,1fr));">
-                    ${weekDayLabels.map((label) => `<div class="text-center text-muted small fw-semibold">${label}</div>`).join('')}
-                    ${cells.join('')}
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                ${weekDayLabels.map((label) => `<th class="text-center small fw-semibold">${label}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rows.join('')}
+                        </tbody>
+                    </table>
                 </div>
                 <div class="d-flex flex-wrap gap-3 mt-3 small">
                     <div class="d-flex align-items-center gap-2">
-                        <span class="rounded border" style="width: 1rem; height: 1rem; background-color: #d1e7dd; border-color: #a3cfbb;"></span>
+                        <span class="rounded border bg-success-subtle" style="width: 1rem; height: 1rem;"></span>
                         <span>Día hábil</span>
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                        <span class="rounded border" style="width: 1rem; height: 1rem; background-color: #f8d7da; border-color: #f1aeb5;"></span>
+                        <span class="rounded border bg-danger-subtle" style="width: 1rem; height: 1rem;"></span>
                         <span>Día no hábil</span>
                     </div>
                 </div>
