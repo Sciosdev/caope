@@ -16,6 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -23,6 +24,11 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class ConsultorioReservaController extends Controller
 {
+    private function hasSolicitudesTable(): bool
+    {
+        return Schema::hasTable('consultorio_reserva_solicitudes');
+    }
+
     private function canManageBitacora(Request $request): bool
     {
         $user = $request->user();
@@ -103,7 +109,7 @@ class ConsultorioReservaController extends Controller
             'consultoriosActivos' => $consultoriosActivos,
             'cubiculosActivos' => $cubiculosActivos,
             'estrategiasActivas' => CatalogoEstrategia::activos(),
-            'solicitudesPendientes' => $request->user()?->hasRole('admin')
+            'solicitudesPendientes' => $request->user()?->hasRole('admin') && $this->hasSolicitudesTable()
                 ? ConsultorioReservaSolicitud::query()
                     ->with(['reserva', 'requestedBy'])
                     ->where('status', 'pendiente')
@@ -249,6 +255,9 @@ class ConsultorioReservaController extends Controller
     {
         abort_unless($this->canRequestBitacoraChanges($request), 403);
         abort_if($reserva->origen_expediente, 403, 'Las asignaciones creadas desde expediente no se pueden modificar.');
+        if (! $this->hasSolicitudesTable()) {
+            return redirect()->route('consultorios.index')->with('status', 'Las solicitudes de modificación no están disponibles temporalmente.');
+        }
 
         ConsultorioReservaSolicitud::query()->create([
             'consultorio_reserva_id' => $reserva->id,
@@ -265,6 +274,9 @@ class ConsultorioReservaController extends Controller
     {
         abort_unless($this->canRequestBitacoraChanges($request), 403);
         abort_if($reserva->origen_expediente, 403, 'Las asignaciones creadas desde expediente no se pueden eliminar.');
+        if (! $this->hasSolicitudesTable()) {
+            return redirect()->route('consultorios.index')->with('status', 'Las solicitudes de baja no están disponibles temporalmente.');
+        }
 
         ConsultorioReservaSolicitud::query()->create([
             'consultorio_reserva_id' => $reserva->id,
