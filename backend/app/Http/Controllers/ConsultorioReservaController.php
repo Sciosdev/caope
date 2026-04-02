@@ -22,6 +22,21 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class ConsultorioReservaController extends Controller
 {
+    private function canManageBitacora(Request $request): bool
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->hasRole('admin')) {
+            return true;
+        }
+
+        return $user->hasRole('paps') && ! is_null($user->approved_at);
+    }
+
     public function index(Request $request): View
     {
         abort_unless($request->user()?->hasAnyRole(['admin', 'paps', 'coordinador', 'alumno']), 403);
@@ -142,7 +157,7 @@ class ConsultorioReservaController extends Controller
 
     public function edit(Request $request, ConsultorioReserva $reserva): View
     {
-        abort_unless($request->user()?->hasAnyRole(['admin', 'paps']), 403);
+        abort_unless($this->canManageBitacora($request), 403);
         abort_if($reserva->origen_expediente, 403, 'Las asignaciones creadas desde expediente no se pueden modificar.');
 
         return view('consultorios.edit', [
@@ -198,7 +213,7 @@ class ConsultorioReservaController extends Controller
 
     public function destroy(Request $request, ConsultorioReserva $reserva): RedirectResponse
     {
-        abort_unless($request->user()?->hasAnyRole(['admin', 'paps']), 403);
+        abort_unless($this->canManageBitacora($request), 403);
         abort_if($reserva->origen_expediente, 403, 'Las asignaciones creadas desde expediente no se pueden eliminar.');
 
         ConsultorioReserva::query()
@@ -211,7 +226,7 @@ class ConsultorioReservaController extends Controller
 
     public function bulkDestroy(Request $request): RedirectResponse
     {
-        abort_unless($request->user()?->hasAnyRole(['admin', 'paps']), 403);
+        abort_unless($this->canManageBitacora($request), 403);
 
         $ids = collect($request->input('reservas', []))
             ->filter(fn ($id) => is_numeric($id))

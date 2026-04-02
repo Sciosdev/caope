@@ -11,7 +11,17 @@ class UpdateConsultorioReservaRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['admin', 'paps']) ?? false;
+        $user = $this->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->hasRole('admin')) {
+            return true;
+        }
+
+        return $user->hasRole('paps') && ! is_null($user->approved_at);
     }
 
     public function rules(): array

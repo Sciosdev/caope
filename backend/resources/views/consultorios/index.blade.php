@@ -8,8 +8,9 @@
         <h4 class="mb-0">Reserva de consultorios</h4>
     </div>
     @php
-        $isAdmin = auth()->user()?->hasRole('admin') ?? false;
-        $canManageBitacora = auth()->user()?->hasAnyRole(['admin', 'paps']) ?? false;
+        $currentUser = auth()->user();
+        $isAdmin = $currentUser?->hasRole('admin') ?? false;
+        $canManageBitacora = $isAdmin || (($currentUser?->hasRole('paps') ?? false) && ! is_null($currentUser?->approved_at));
     @endphp
 
     @if (session('status'))
