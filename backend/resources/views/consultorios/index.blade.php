@@ -338,11 +338,7 @@
         const repeticionFechaInicio = document.getElementById('repeticion-fecha-inicio');
         const repeticionFechaFin = document.getElementById('repeticion-fecha-fin');
         const diaSemanaSelect = document.getElementById('repeticion-dia-semana');
-        const catalogoCubiculos = @json($cubiculosActivos->pluck('numero')->map(fn ($numero) => (int) $numero)->values());
         const weekDayLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-        const TOTAL_CUBICULOS = catalogoCubiculos.length || 14;
-        const JORNADA_INICIO = 7 * 60;
-        const JORNADA_FIN = 22 * 60;
 
         if (diaSemanaSelect?.value) {
             diaSemanaSelect.dataset.userSelected = 'true';
@@ -351,54 +347,6 @@
         const timeToMinutes = (time) => {
             const [hours = '0', minutes = '0'] = (time ?? '').split(':');
             return (Number(hours) * 60) + Number(minutes);
-        };
-
-        const hasAnyAvailableSlot = (items) => {
-            if (!items.length) {
-                return true;
-            }
-
-            const events = [];
-
-            items.forEach((item) => {
-                const start = Math.max(timeToMinutes(item.hora_inicio), JORNADA_INICIO);
-                const end = Math.min(timeToMinutes(item.hora_fin), JORNADA_FIN);
-
-                if (end <= start) {
-                    return;
-                }
-
-                events.push({ minute: start, delta: 1 });
-                events.push({ minute: end, delta: -1 });
-            });
-
-            if (!events.length) {
-                return true;
-            }
-
-            events.sort((a, b) => {
-                if (a.minute !== b.minute) {
-                    return a.minute - b.minute;
-                }
-
-                return a.delta - b.delta;
-            });
-
-            let activeReservations = 0;
-            let previousMinute = JORNADA_INICIO;
-
-            for (const event of events) {
-                const currentMinute = Math.max(Math.min(event.minute, JORNADA_FIN), JORNADA_INICIO);
-
-                if (currentMinute > previousMinute && activeReservations < TOTAL_CUBICULOS) {
-                    return true;
-                }
-
-                activeReservations += event.delta;
-                previousMinute = currentMinute;
-            }
-
-            return previousMinute < JORNADA_FIN && activeReservations < TOTAL_CUBICULOS;
         };
 
         const hideAlert = () => {
@@ -556,7 +504,7 @@
             const firstDayOffset = (start.getDay() + 6) % 7;
             const cells = [];
             for (let i = 0; i < firstDayOffset; i += 1) {
-                cells.push('<div class="border rounded bg-light"></div>');
+                cells.push('<div class="border rounded bg-light-subtle" aria-hidden="true"></div>');
             }
 
             for (let day = 1; day <= end.getDate(); day += 1) {
@@ -564,33 +512,48 @@
                 const iso = dateISO(current);
                 const isSelected = iso === filtroFecha.value;
                 const items = groupedByDate[iso] ?? [];
+                const dayOfWeek = current.getDay();
+                const isBusinessDay = dayOfWeek >= 1 && dayOfWeek <= 5;
                 const occupiedCubicles = new Set(items.map((item) => Number(item.cubiculo_numero))).size;
-                const isAvailable = hasAnyAvailableSlot(items);
-                const dayStyle = isAvailable
-                    ? 'background-color: #7fae9d; color: #0f2920; border-color: #6a9787;'
-                    : 'background-color: #9b6b87; color: #ffffff; border-color: #855774;';
+                const dayStyle = isBusinessDay
+                    ? 'background-color: #d1e7dd; color: #0f5132; border-color: #a3cfbb;'
+                    : 'background-color: #f8d7da; color: #842029; border-color: #f1aeb5;';
+                const dayTypeLabel = isBusinessDay ? 'Hábil' : 'No hábil';
+                const reservationsLabel = items.length
+                    ? `${items.length} reserva(s)`
+                    : 'Sin reservas';
                 cells.push(`
                     <button type="button" class="btn btn-sm border rounded text-start p-2 h-100" style="${dayStyle}${isSelected ? ' box-shadow: inset 0 0 0 2px #212529;' : ''}" data-calendar-day="${iso}">
                         <div class="fw-semibold">${day}</div>
-                        <div class="small">${isAvailable ? 'Disponible' : 'Sin disponibilidad'}</div>
-                        <div class="small opacity-75">${occupiedCubicles} cubículos ocupados</div>
+                        <div class="small">${dayTypeLabel}</div>
+                        <div class="small opacity-75">${reservationsLabel}</div>
+                        <div class="small opacity-75">${occupiedCubicles} cubículo(s) ocupado(s)</div>
                     </button>
                 `);
             }
 
+            const monthTitle = start.toLocaleDateString('es-MX', {
+                month: 'long',
+                year: 'numeric',
+            });
+
             calendarioContainer.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0 text-capitalize">Mes: ${monthTitle}</h6>
+                    <small class="text-muted">Haz clic en cualquier día para ver su detalle</small>
+                </div>
                 <div class="d-grid gap-2" style="grid-template-columns: repeat(7, minmax(0,1fr));">
                     ${weekDayLabels.map((label) => `<div class="text-center text-muted small fw-semibold">${label}</div>`).join('')}
                     ${cells.join('')}
                 </div>
                 <div class="d-flex flex-wrap gap-3 mt-3 small">
                     <div class="d-flex align-items-center gap-2">
-                        <span class="rounded" style="width: 1rem; height: 1rem; background-color: #7fae9d;"></span>
-                        <span>Disponible</span>
+                        <span class="rounded border" style="width: 1rem; height: 1rem; background-color: #d1e7dd; border-color: #a3cfbb;"></span>
+                        <span>Día hábil</span>
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                        <span class="rounded" style="width: 1rem; height: 1rem; background-color: #9b6b87;"></span>
-                        <span>Sin disponibilidad</span>
+                        <span class="rounded border" style="width: 1rem; height: 1rem; background-color: #f8d7da; border-color: #f1aeb5;"></span>
+                        <span>Día no hábil</span>
                     </div>
                 </div>
             `;
