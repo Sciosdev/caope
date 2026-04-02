@@ -10,6 +10,8 @@ class ConsultorioReservaSolicitud extends Model
 {
     use HasFactory;
 
+    protected $table = 'consultorio_reserva_solicitudes';
+
     protected $fillable = [
         'consultorio_reserva_id',
         'requested_by',
