@@ -299,7 +299,7 @@
                                             <button class="btn btn-sm btn-outline-danger">Eliminar</button>
                                         </form>
                                     </div>
-                                @elseif (! $reserva->origen_expediente && $isPapsAprobado)
+                                @elseif ($isPapsAprobado)
                                     <div class="d-flex gap-2">
                                         <a
                                             class="btn btn-sm btn-outline-primary"

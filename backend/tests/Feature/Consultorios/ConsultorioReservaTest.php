@@ -253,6 +253,8 @@ class ConsultorioReservaTest extends TestCase
             ->assertSee('Usuario (capturó)')
             ->assertSee('Usuario PAPS')
             ->assertSee('Alta automática (asignación de cubículo desde expediente)')
+            ->assertSee('Solicitar edición')
+            ->assertSee('Solicitar baja')
             ->assertSee('id="bitacora-fecha-base" name="bitacora_inicio" value="'.$fecha.'"', false);
     }
 
