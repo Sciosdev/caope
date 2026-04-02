@@ -631,7 +631,7 @@ class ConsultorioReservaTest extends TestCase
         $this->assertDatabaseMissing('consultorio_reservas', ['id' => $reserva->id]);
     }
 
-    public function test_paps_no_puede_editar_ni_eliminar_reserva_creada_desde_expediente(): void
+    public function test_paps_solo_puede_solicitar_cambios_para_reserva_creada_desde_expediente(): void
     {
         $adminRole = Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
         $papsRole = Role::query()->firstOrCreate(['name' => 'paps', 'guard_name' => 'web']);
@@ -652,7 +652,8 @@ class ConsultorioReservaTest extends TestCase
         ]);
 
         $this->actingAs($paps)->get(route('consultorios.edit', $reserva))->assertForbidden();
-        $this->actingAs($paps)->delete(route('consultorios.request-destroy', $reserva))->assertForbidden();
+        $this->actingAs($paps)->delete(route('consultorios.request-destroy', $reserva))
+            ->assertRedirect(route('consultorios.index'));
         $this->actingAs($paps)->put(route('consultorios.request-update', $reserva), [
             'fecha' => now()->addDays(3)->toDateString(),
             'hora_inicio' => '11:00',
@@ -660,7 +661,21 @@ class ConsultorioReservaTest extends TestCase
             'consultorio_numero' => 3,
             'cubiculo_numero' => 1,
             'estrategia' => 'Intervención breve',
-        ])->assertForbidden();
+        ])->assertRedirect(route('consultorios.index'));
+
+        $this->assertDatabaseHas('consultorio_reserva_solicitudes', [
+            'consultorio_reserva_id' => $reserva->id,
+            'requested_by' => $paps->id,
+            'tipo' => 'baja',
+            'status' => 'pendiente',
+        ]);
+
+        $this->assertDatabaseHas('consultorio_reserva_solicitudes', [
+            'consultorio_reserva_id' => $reserva->id,
+            'requested_by' => $paps->id,
+            'tipo' => 'edicion',
+            'status' => 'pendiente',
+        ]);
     }
 
     public function test_paps_puede_solicitar_edicion_desde_bitacora_sin_salir_de_la_pagina(): void
