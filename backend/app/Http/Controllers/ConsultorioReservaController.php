@@ -247,7 +247,6 @@ class ConsultorioReservaController extends Controller
     public function requestUpdate(UpdateConsultorioReservaRequest $request, ConsultorioReserva $reserva): RedirectResponse
     {
         abort_unless($this->canRequestBitacoraChanges($request), 403);
-        abort_if($reserva->origen_expediente, 403, 'Las asignaciones creadas desde expediente no se pueden modificar.');
         if (! $this->hasSolicitudesTable()) {
             return redirect()->route('consultorios.index')->with('status', 'Las solicitudes de modificación no están disponibles temporalmente.');
         }
@@ -266,7 +265,6 @@ class ConsultorioReservaController extends Controller
     public function requestEdit(Request $request, ConsultorioReserva $reserva): RedirectResponse
     {
         abort_unless($this->canRequestBitacoraChanges($request), 403);
-        abort_if($reserva->origen_expediente, 403, 'Las asignaciones creadas desde expediente no se pueden modificar.');
         if (! $this->hasSolicitudesTable()) {
             return redirect()->route('consultorios.index')->with('status', 'Las solicitudes de modificación no están disponibles temporalmente.');
         }
@@ -295,7 +293,6 @@ class ConsultorioReservaController extends Controller
     public function requestDestroy(Request $request, ConsultorioReserva $reserva): RedirectResponse
     {
         abort_unless($this->canRequestBitacoraChanges($request), 403);
-        abort_if($reserva->origen_expediente, 403, 'Las asignaciones creadas desde expediente no se pueden eliminar.');
         if (! $this->hasSolicitudesTable()) {
             return redirect()->route('consultorios.index')->with('status', 'Las solicitudes de baja no están disponibles temporalmente.');
         }
