@@ -726,7 +726,7 @@ class ExpedienteController extends Controller
      */
     private function syncConsultorioReservaFromPayload(Request $request, array $payload): void
     {
-        if (! $request->user()?->hasRole('paps')) {
+        if (! $request->user()?->hasAnyRole(['paps', 'admin', 'alumno'])) {
             return;
         }
 
