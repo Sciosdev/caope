@@ -60,7 +60,7 @@
             'sesiones.validation.index',
         ])->first(fn ($name) => Route::has($name));
         $showExpedientesLink = auth()->user()?->can('expedientes.view') || auth()->user()?->hasRole('paps');
-        $pendingConsultorioSolicitudesCount = auth()->user()?->hasRole('admin')
+        $pendingConsultorioSolicitudesCount = auth()->user()?->hasAnyRole(['admin', 'paps'])
             && \Illuminate\Support\Facades\Schema::hasTable('consultorio_reserva_solicitudes')
             ? \App\Models\ConsultorioReservaSolicitud::query()->where('status', 'pendiente')->count()
             : 0;
@@ -123,7 +123,7 @@
                   <li><a class="dropdown-item" href="{{ route('admin.catalogos.consultorios.index') }}">Consultorios</a></li>
                   <li><a class="dropdown-item" href="{{ route('admin.catalogos.cubiculos.index') }}">Cubículos</a></li>
                   <li><a class="dropdown-item" href="{{ route('admin.catalogos.estrategias.index') }}">Estrategias</a></li>
-                  @if (auth()->user()?->hasRole('admin'))
+                  @if (auth()->user()?->hasAnyRole(['admin', 'paps']))
                     <li><hr class="dropdown-divider"></li>
                     <li>
                       <a class="dropdown-item d-flex justify-content-between align-items-center" href="{{ route('admin.consultorios.solicitudes.index') }}">

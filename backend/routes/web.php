@@ -75,7 +75,7 @@ Route::middleware(['auth', 'active_user'])->group(function () {
         Route::put('{parametro}', [ParametrosController::class, 'update'])->name('update');
     });
 
-    Route::prefix('admin/herramientas/consultorios')->name('admin.consultorios.solicitudes.')->middleware('role:admin')->group(function (): void {
+    Route::prefix('admin/herramientas/consultorios')->name('admin.consultorios.solicitudes.')->middleware('role:admin|paps')->group(function (): void {
         Route::get('solicitudes', [ConsultorioSolicitudController::class, 'index'])->name('index');
         Route::post('solicitudes/{solicitud}/aprobar', [ConsultorioSolicitudController::class, 'approve'])->name('approve');
     });
