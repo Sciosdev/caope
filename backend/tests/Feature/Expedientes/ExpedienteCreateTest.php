@@ -38,7 +38,7 @@ class ExpedienteCreateTest extends TestCase
     }
 
 
-    public function test_formulario_muestra_consultante_y_no_control_autogenerado(): void
+    public function test_formulario_muestra_consultante_nueva_asignacion_y_no_control_autogenerado(): void
     {
         $admin = User::factory()->create();
         $admin->assignRole('admin');
@@ -56,8 +56,20 @@ class ExpedienteCreateTest extends TestCase
         $response->assertSee('Facilitador (Alumno responsable)');
         $response->assertSee($admin->name);
         $response->assertDontSee('Hoja de urgencia');
-        $response->assertDontSee('Nueva asignación');
+        $response->assertSee('Nueva asignación');
         $response->assertSee(sprintf('value="CA-%d-0008"', $year), false);
+    }
+
+    public function test_formulario_para_alumno_muestra_nueva_asignacion_y_oculta_hoja_urgencia(): void
+    {
+        $alumno = User::factory()->create();
+        $alumno->assignRole('alumno');
+
+        $response = $this->actingAs($alumno)->get(route('expedientes.create'));
+
+        $response->assertOk();
+        $response->assertSee('Nueva asignación');
+        $response->assertDontSee('Hoja de urgencia');
     }
 
     public function test_formulario_para_paps_muestra_hoja_urgencia_y_asignacion_pero_oculta_facilitador(): void

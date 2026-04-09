@@ -27,6 +27,7 @@
 @php($alertaActiva = filled(old('alerta_ingreso', $expediente->alerta_ingreso ?? null)))
 @php($isCreating = ! isset($expediente) || ! $expediente->exists)
 @php($isPaps = auth()->user()?->hasRole('paps'))
+@php($showNuevaAsignacion = auth()->user()?->hasAnyRole(['paps', 'admin', 'alumno']))
 
 <div class="card border shadow-none mb-4">
     <div class="card-body">
@@ -698,7 +699,7 @@
     </div>
 </div>
 
-@if ($isPaps && request()->routeIs('expedientes.create'))
+@if ($showNuevaAsignacion && request()->routeIs('expedientes.create'))
     <div class="card border shadow-none mb-4">
         <div class="card-body">
             <div class="mb-4">
