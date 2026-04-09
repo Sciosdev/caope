@@ -9,7 +9,7 @@
         <div class="d-flex flex-wrap gap-2">
             <a href="{{ route('expedientes.export.ficha-identificacion', request()->query()) }}" class="btn btn-outline-success">
                 <i class="mdi mdi-file-excel"></i>
-                Descargar XLS (ficha de identificación)
+                Descargar XLS
             </a>
             @can('create', App\Models\Expediente::class)
                 <a href="{{ route('expedientes.create') }}" class="btn btn-primary">
