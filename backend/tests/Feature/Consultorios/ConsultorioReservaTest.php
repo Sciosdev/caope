@@ -6,6 +6,7 @@ use App\Models\CatalogoConsultorio;
 use App\Models\CatalogoCubiculo;
 use App\Models\CatalogoEstrategia;
 use App\Models\ConsultorioReserva;
+use App\Models\ConsultorioReservaSolicitud;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
@@ -746,6 +747,44 @@ class ConsultorioReservaTest extends TestCase
             'id' => $solicitud->id,
             'status' => 'atendida',
         ]);
+    }
+
+    public function test_paps_puede_ver_solicitudes_pendientes_pero_no_puede_aprobarlas(): void
+    {
+        $adminRole = Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $papsRole = Role::query()->firstOrCreate(['name' => 'paps', 'guard_name' => 'web']);
+        $admin = User::factory()->create();
+        $admin->assignRole($adminRole);
+        $paps = User::factory()->create(['approved_at' => now()]);
+        $paps->assignRole($papsRole);
+
+        $reserva = ConsultorioReserva::query()->create([
+            'fecha' => now()->addDay()->toDateString(),
+            'hora_inicio' => '10:00',
+            'hora_fin' => '11:00',
+            'consultorio_numero' => 3,
+            'cubiculo_numero' => 1,
+            'estrategia' => 'Intervención breve',
+            'creado_por' => $admin->id,
+            'origen_expediente' => false,
+        ]);
+
+        $solicitud = ConsultorioReservaSolicitud::query()->create([
+            'consultorio_reserva_id' => $reserva->id,
+            'requested_by' => $paps->id,
+            'tipo' => 'edicion',
+            'status' => 'pendiente',
+        ]);
+
+        $this->actingAs($paps)
+            ->get(route('admin.consultorios.solicitudes.index'))
+            ->assertOk()
+            ->assertSee('Solicitudes pendientes de consultorios')
+            ->assertDontSee('Aprobar');
+
+        $this->actingAs($paps)
+            ->post(route('admin.consultorios.solicitudes.approve', $solicitud))
+            ->assertForbidden();
     }
 
 

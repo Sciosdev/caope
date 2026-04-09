@@ -51,10 +51,12 @@
                                             @if ($solicitud->tipo === 'edicion' && $solicitud->reserva)
                                                 <a href="{{ route('consultorios.edit', $solicitud->reserva) }}" class="btn btn-sm btn-outline-primary">Editar reserva</a>
                                             @endif
-                                            <form method="POST" action="{{ route('admin.consultorios.solicitudes.approve', $solicitud) }}" onsubmit="return confirm('¿Aprobar esta solicitud?');">
-                                                @csrf
-                                                <button class="btn btn-sm btn-success">Aprobar</button>
-                                            </form>
+                                            @if (auth()->user()?->hasRole('admin'))
+                                                <form method="POST" action="{{ route('admin.consultorios.solicitudes.approve', $solicitud) }}" onsubmit="return confirm('¿Aprobar esta solicitud?');">
+                                                    @csrf
+                                                    <button class="btn btn-sm btn-success">Aprobar</button>
+                                                </form>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>

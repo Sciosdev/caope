@@ -19,7 +19,7 @@ class ConsultorioSolicitudController extends Controller
 
     public function index(Request $request): View
     {
-        abort_unless($request->user()?->hasRole('admin'), 403);
+        abort_unless($request->user()?->hasAnyRole(['admin', 'paps']), 403);
 
         $solicitudesPendientes = $this->hasSolicitudesTable()
             ? ConsultorioReservaSolicitud::query()
