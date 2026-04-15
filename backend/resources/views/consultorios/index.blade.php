@@ -325,7 +325,6 @@
         const diaSemanaSelect = document.getElementById('repeticion-dia-semana');
         const weekDayLabels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
         let groupedByDateCache = {};
-        let hasUserSelectedCalendarDay = false;
 
         if (diaSemanaSelect?.value) {
             diaSemanaSelect.dataset.userSelected = 'true';
@@ -344,20 +343,6 @@
         const showAlert = (message) => {
             alerta.textContent = message;
             alerta.classList.remove('d-none');
-        };
-
-        const renderDaySelectionHint = () => {
-            if (!detalleDiaContainer) {
-                return;
-            }
-
-            detalleDiaContainer.innerHTML = `
-                <div class="col-12">
-                    <div class="alert alert-light border mb-0">
-                        Selecciona un día en el calendario para ver los registros y disponibilidad del consultorio.
-                    </div>
-                </div>
-            `;
         };
 
         const renderDayDetail = (items) => {
@@ -739,11 +724,7 @@
                 groupedByDateCache = groupedByDate;
 
                 renderMonthCalendar(monthValue, groupedByDate);
-                if (hasUserSelectedCalendarDay) {
-                    renderDayDetail(groupedByDate[selectedDate] ?? []);
-                } else {
-                    renderDaySelectionHint();
-                }
+                renderDayDetail(groupedByDate[selectedDate] ?? []);
             } catch (error) {
                 console.error(error);
             }
@@ -894,7 +875,6 @@
             }
 
             filtroFecha.value = button.dataset.calendarDay;
-            hasUserSelectedCalendarDay = true;
             diaSeleccionadoLabel.textContent = filtroFecha.value;
             if (bitacoraFechaBase) {
                 bitacoraFechaBase.value = filtroFecha.value;
@@ -905,7 +885,6 @@
         });
 
         filtroFecha?.addEventListener('change', () => {
-            hasUserSelectedCalendarDay = false;
             if (bitacoraFechaBase) {
                 bitacoraFechaBase.value = filtroFecha.value;
             }
@@ -913,7 +892,6 @@
             refreshBitacora();
         });
         filtroConsultorio?.addEventListener('change', () => {
-            hasUserSelectedCalendarDay = false;
             refreshCalendar();
         });
         bitacoraAplicarFiltro?.addEventListener('click', refreshBitacora);
