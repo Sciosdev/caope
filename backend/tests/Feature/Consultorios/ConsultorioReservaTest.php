@@ -262,6 +262,60 @@ class ConsultorioReservaTest extends TestCase
             ->assertSee('id="bitacora-fecha-base" name="bitacora_inicio" value="'.$fecha.'"', false);
     }
 
+    public function test_index_y_disponibilidad_ocultan_reservas_con_solicitud_pendiente(): void
+    {
+        $role = Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $admin = User::factory()->create();
+        $admin->assignRole($role);
+
+        $fecha = now()->toDateString();
+
+        $reservaVisible = ConsultorioReserva::query()->create([
+            'fecha' => $fecha,
+            'hora_inicio' => '07:00',
+            'hora_fin' => '08:00',
+            'consultorio_numero' => 3,
+            'cubiculo_numero' => 1,
+            'estrategia' => 'Intervención breve',
+            'creado_por' => $admin->id,
+            'origen_expediente' => true,
+        ]);
+
+        $reservaOculta = ConsultorioReserva::query()->create([
+            'fecha' => $fecha,
+            'hora_inicio' => '08:00',
+            'hora_fin' => '09:00',
+            'consultorio_numero' => 3,
+            'cubiculo_numero' => 2,
+            'estrategia' => 'Otra estrategia',
+            'creado_por' => $admin->id,
+            'origen_expediente' => true,
+        ]);
+
+        ConsultorioReservaSolicitud::query()->create([
+            'consultorio_reserva_id' => $reservaOculta->id,
+            'requested_by' => $admin->id,
+            'tipo' => 'edicion',
+            'payload' => null,
+            'status' => 'pendiente',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('consultorios.index', ['fecha' => $fecha]))
+            ->assertOk()
+            ->assertSee('Intervención breve')
+            ->assertDontSee('Otra estrategia');
+
+        $this->actingAs($admin)
+            ->getJson(route('consultorios.availability', [
+                'fecha' => $fecha,
+                'consultorio_numero' => 3,
+            ]))
+            ->assertOk()
+            ->assertJsonCount(1, 'reservas')
+            ->assertJsonPath('reservas.0.cubiculo_numero', 1);
+    }
+
     public function test_index_filtra_bitacora_por_semana_desde_fecha_base(): void
     {
         $role = Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);

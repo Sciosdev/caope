@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\ConsultorioReserva;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Builder;
 use Maatwebsite\Excel\Concerns\FromQuery;
@@ -56,9 +57,19 @@ class ConsultorioReservasExport extends DefaultValueBinder implements FromQuery,
 
     public function query(): Builder
     {
-        return ConsultorioReserva::query()
+        $query = ConsultorioReserva::query()
             ->with(['usuarioAtendido:id,name', 'estratega:id,name', 'supervisor:id,name', 'creadoPor:id,name'])
             ->orderByDesc('fecha')
             ->orderByDesc('hora_inicio');
+
+        if (! Schema::hasTable('consultorio_reserva_solicitudes')) {
+            return $query;
+        }
+
+        return $query->whereDoesntHave('solicitudes', function (Builder $solicitudes): void {
+            $solicitudes
+                ->where('status', 'pendiente')
+                ->whereIn('tipo', ['edicion', 'baja']);
+        });
     }
 }

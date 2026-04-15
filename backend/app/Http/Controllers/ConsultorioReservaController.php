@@ -11,6 +11,7 @@ use App\Models\CatalogoEstrategia;
 use App\Models\ConsultorioReserva;
 use App\Models\ConsultorioReservaSolicitud;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -24,6 +25,19 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class ConsultorioReservaController extends Controller
 {
+    private function applyPendingApprovalVisibilityFilter(Builder $query): Builder
+    {
+        if (! $this->hasSolicitudesTable()) {
+            return $query;
+        }
+
+        return $query->whereDoesntHave('solicitudes', function (Builder $solicitudes): void {
+            $solicitudes
+                ->where('status', 'pendiente')
+                ->whereIn('tipo', ['edicion', 'baja']);
+        });
+    }
+
     private function hasSolicitudesTable(): bool
     {
         return Schema::hasTable('consultorio_reserva_solicitudes');
@@ -86,22 +100,26 @@ class ConsultorioReservaController extends Controller
             ? $cubiculoSolicitado
             : null;
 
-        $reservas = ConsultorioReserva::query()
+        $reservasQuery = ConsultorioReserva::query()
             ->with(['usuarioAtendido', 'estratega', 'supervisor', 'creadoPor'])
             ->orderByDesc('fecha')
             ->orderBy('consultorio_numero')
             ->orderBy('cubiculo_numero')
-            ->orderBy('hora_inicio')
+            ->orderBy('hora_inicio');
+
+        $reservas = $this->applyPendingApprovalVisibilityFilter($reservasQuery)
             ->paginate(25)
             ->withQueryString();
 
-        $ocupacionPorCubiculo = ConsultorioReserva::query()
+        $ocupacionQuery = ConsultorioReserva::query()
             ->with(['usuarioAtendido', 'estratega', 'supervisor'])
             ->whereDate('fecha', $fechaFiltro)
             ->where('consultorio_numero', $consultorioSeleccionado)
             ->when($cubiculoSeleccionado, fn ($query) => $query->where('cubiculo_numero', $cubiculoSeleccionado))
             ->orderBy('cubiculo_numero')
-            ->orderBy('hora_inicio')
+            ->orderBy('hora_inicio');
+
+        $ocupacionPorCubiculo = $this->applyPendingApprovalVisibilityFilter($ocupacionQuery)
             ->get()
             ->groupBy('cubiculo_numero');
 
@@ -137,7 +155,7 @@ class ConsultorioReservaController extends Controller
             ? (int) $request->integer('consultorio_numero')
             : null;
 
-        $reservas = ConsultorioReserva::query()
+        $reservasQuery = ConsultorioReserva::query()
             ->with(['usuarioAtendido:id,name', 'estratega:id,name'])
             ->when(
                 $fechaInicio && $fechaFin,
@@ -150,7 +168,9 @@ class ConsultorioReservaController extends Controller
             ->when($consultorioNumero, fn ($query) => $query->where('consultorio_numero', $consultorioNumero))
             ->orderBy('cubiculo_numero')
             ->orderBy('fecha')
-            ->orderBy('hora_inicio')
+            ->orderBy('hora_inicio');
+
+        $reservas = $this->applyPendingApprovalVisibilityFilter($reservasQuery)
             ->get(['fecha', 'consultorio_numero', 'cubiculo_numero', 'hora_inicio', 'hora_fin', 'estrategia', 'usuario_atendido_id', 'estratega_id'])
             ->map(fn (ConsultorioReserva $reserva) => [
                 'fecha' => $reserva->fecha?->toDateString(),
