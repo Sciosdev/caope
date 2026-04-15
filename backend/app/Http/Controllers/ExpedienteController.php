@@ -12,6 +12,7 @@ use App\Models\CatalogoCubiculo;
 use App\Models\CatalogoEstrategia;
 use App\Models\CatalogoTurno;
 use App\Models\ConsultorioReserva;
+use App\Models\ConsultorioReservaSolicitud;
 use App\Models\Expediente;
 use App\Models\Parametro;
 use App\Models\User;
@@ -734,12 +735,6 @@ class ExpedienteController extends Controller
             return;
         }
 
-        if ($request->user()?->hasRole('paps')) {
-            throw ValidationException::withMessages([
-                'consultorio_reserva' => 'Las asignaciones desde expediente para usuarios PAPS requieren autorización del administrador general.',
-            ]);
-        }
-
         $fecha = (string) data_get($payload, 'fecha', '');
         $horaInicio = (string) data_get($payload, 'hora_inicio', '');
         $horaFin = (string) data_get($payload, 'hora_fin', '');
@@ -772,7 +767,7 @@ class ExpedienteController extends Controller
             ]);
         }
 
-        ConsultorioReserva::query()->create([
+        $reserva = ConsultorioReserva::query()->create([
             'fecha' => $fecha,
             'hora_inicio' => $horaInicio,
             'hora_fin' => $horaFin,
@@ -784,6 +779,25 @@ class ExpedienteController extends Controller
             'creado_por' => $request->user()->id,
             'origen_expediente' => true,
         ]);
+
+        if ($request->user()?->hasRole('paps') && Schema::hasTable('consultorio_reserva_solicitudes')) {
+            ConsultorioReservaSolicitud::query()->create([
+                'consultorio_reserva_id' => $reserva->id,
+                'requested_by' => $request->user()->id,
+                'tipo' => 'edicion',
+                'payload' => [
+                    'fecha' => $fecha,
+                    'hora_inicio' => $horaInicio,
+                    'hora_fin' => $horaFin,
+                    'consultorio_numero' => $consultorioNumero,
+                    'cubiculo_numero' => $cubiculoNumero,
+                    'estrategia' => (string) data_get($payload, 'estrategia'),
+                    'usuario_atendido_id' => data_get($payload, 'usuario_atendido_id') ?: null,
+                    'estratega_id' => data_get($payload, 'estratega_id') ?: null,
+                ],
+                'status' => 'pendiente',
+            ]);
+        }
     }
 
     public function destroy(Expediente $expediente): RedirectResponse

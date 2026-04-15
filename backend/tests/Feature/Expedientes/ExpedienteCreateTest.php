@@ -218,7 +218,7 @@ class ExpedienteCreateTest extends TestCase
         ]);
     }
 
-    public function test_paps_no_puede_guardar_asignacion_de_consultorio_desde_expediente_sin_autorizacion_admin(): void
+    public function test_paps_puede_guardar_expediente_y_genera_solicitud_pendiente_para_aprobar_consultorio(): void
     {
         $paps = User::factory()->create();
         $paps->assignRole('paps');
@@ -261,10 +261,7 @@ class ExpedienteCreateTest extends TestCase
         ];
 
         $response = $this->actingAs($paps)->post(route('expedientes.store'), $payload);
-
-        $response->assertSessionHasErrors([
-            'consultorio_reserva' => 'Las asignaciones desde expediente para usuarios PAPS requieren autorización del administrador general.',
-        ]);
+        $response->assertSessionHasNoErrors();
 
         $expediente = Expediente::query()->where('no_control', 'CA-2025-9010')->first();
         $this->assertNotNull($expediente);
@@ -272,7 +269,7 @@ class ExpedienteCreateTest extends TestCase
         $this->assertDatabaseHas('registro_urgencias', [
             'expediente_id' => $expediente->id,
         ]);
-        $this->assertDatabaseMissing('consultorio_reservas', [
+        $this->assertDatabaseHas('consultorio_reservas', [
             'fecha' => Carbon::now()->toDateString(),
             'hora_inicio' => '07:00:00',
             'hora_fin' => '08:00:00',
@@ -281,6 +278,19 @@ class ExpedienteCreateTest extends TestCase
             'estrategia' => 'Intervención breve',
             'creado_por' => $paps->id,
             'origen_expediente' => true,
+        ]);
+
+        $reserva = \App\Models\ConsultorioReserva::query()
+            ->where('creado_por', $paps->id)
+            ->where('origen_expediente', true)
+            ->first();
+
+        $this->assertNotNull($reserva);
+        $this->assertDatabaseHas('consultorio_reserva_solicitudes', [
+            'consultorio_reserva_id' => $reserva->id,
+            'requested_by' => $paps->id,
+            'tipo' => 'edicion',
+            'status' => 'pendiente',
         ]);
     }
 
