@@ -139,7 +139,7 @@ class ConsultorioReservaController extends Controller
             ->orderBy('hora_inicio')
             ->get(['fecha', 'consultorio_numero', 'cubiculo_numero', 'hora_inicio', 'hora_fin', 'estrategia', 'usuario_atendido_id', 'estratega_id'])
             ->map(fn (ConsultorioReserva $reserva) => [
-                'fecha' => $reserva->fecha,
+                'fecha' => $reserva->fecha?->toDateString(),
                 'consultorio_numero' => $reserva->consultorio_numero,
                 'cubiculo_numero' => $reserva->cubiculo_numero,
                 'hora_inicio' => $reserva->hora_inicio,
