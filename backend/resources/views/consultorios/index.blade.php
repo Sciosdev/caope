@@ -154,12 +154,11 @@
         </div>
         <div class="card-body">
             <div id="ocupacion-calendario" class="mb-4"></div>
-            <h6 class="mb-3">Detalle del día seleccionado: <span id="ocupacion-dia-seleccionado">{{ $fechaFiltro }}</span></h6>
+            <h6 class="mb-3">Calendario del día seleccionado: <span id="ocupacion-dia-seleccionado">{{ $fechaFiltro }}</span></h6>
             <div id="ocupacion-dia-detalle" class="row g-3">
                 <div class="col-12">
-                    <div class="alert alert-light border mb-0">
-                        <div id="ocupacion-calendario-grafico" class="mb-3"></div>
-                        Selecciona un día en el calendario para ver los registros y disponibilidad del consultorio.
+                    <div class="border rounded p-3">
+                        <div id="ocupacion-calendario-grafico"></div>
                     </div>
                 </div>
             </div>
@@ -347,52 +346,8 @@
             alerta.classList.remove('d-none');
         };
 
-        const renderDayDetail = (items) => {
-            if (!detalleDiaContainer) {
-                return;
-            }
-
-            if (!items.length) {
-                detalleDiaContainer.innerHTML = `
-                    <div class="col-12">
-                        <div class="alert alert-light border mb-0 text-center">
-                            No hay registros para este día.
-                        </div>
-                    </div>
-                `;
-                return;
-            }
-
-            const sortedItems = [...items].sort((a, b) => {
-                const horaInicio = (a.hora_inicio ?? '').localeCompare(b.hora_inicio ?? '');
-                if (horaInicio !== 0) {
-                    return horaInicio;
-                }
-
-                return Number(a.cubiculo_numero) - Number(b.cubiculo_numero);
-            });
-
-            const rows = sortedItems.map((item) => {
-                const inicio = (item.hora_inicio ?? '').slice(0, 5);
-                const fin = (item.hora_fin ?? '').slice(0, 5);
-                const estrategia = item.estrategia ?? '—';
-                const consultorio = item.consultorio_numero ?? filtroConsultorio?.value ?? '—';
-                const cubiculo = item.cubiculo_numero ?? '—';
-                const usuario = item.usuario_atendido_nombre ?? '—';
-
-                return `
-                    <div class="col-md-6">
-                        <div class="border rounded p-3 h-100">
-                            <p class="mb-1"><strong>${inicio} - ${fin}</strong></p>
-                            <p class="mb-1">Consultorio ${consultorio} · Cubículo ${cubiculo}</p>
-                            <p class="mb-1">${estrategia}</p>
-                            <p class="mb-0 text-muted small">Usuario: ${usuario}</p>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            detalleDiaContainer.innerHTML = rows;
+        const renderDayDetail = () => {
+            // Se conserva el contenedor del calendario gráfico visible en todo momento.
         };
 
         let calendarioGrafico = null;
