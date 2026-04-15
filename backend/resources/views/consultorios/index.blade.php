@@ -45,6 +45,12 @@
                 box-shadow: none;
             }
 
+            #ocupacion-calendario-grafico {
+                position: sticky;
+                top: 1rem;
+                z-index: 2;
+            }
+
             #ocupacion-calendario-grafico .flatpickr-input {
                 position: absolute !important;
                 width: 0 !important;
