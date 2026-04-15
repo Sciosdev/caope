@@ -155,6 +155,27 @@
         <div class="card-body">
             <div id="ocupacion-calendario" class="mb-0"></div>
         </div>
+        <div class="card-footer bg-transparent">
+            <div class="small text-muted mb-2">Calendario visual</div>
+            <div id="ocupacion-calendario-grafico"></div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="ocupacion-dia-modal" tabindex="-1" aria-labelledby="ocupacion-dia-modal-label" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title mb-1" id="ocupacion-dia-modal-label">Registros del día</h5>
+                        <div id="ocupacion-dia-seleccionado" class="small text-muted"></div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="ocupacion-dia-detalle"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="card">
@@ -301,6 +322,7 @@
         const calendarioGraficoContainer = document.getElementById('ocupacion-calendario-grafico');
         const diaSeleccionadoLabel = document.getElementById('ocupacion-dia-seleccionado');
         const detalleDiaContainer = document.getElementById('ocupacion-dia-detalle');
+        const dayDetailModalElement = document.getElementById('ocupacion-dia-modal');
         const bitacoraFechaBase = document.getElementById('bitacora-fecha-base');
         const bitacoraModo = document.getElementById('bitacora-modo');
         const bitacoraAplicarFiltro = document.getElementById('bitacora-aplicar-filtro');
@@ -315,6 +337,9 @@
         const diaSemanaSelect = document.getElementById('repeticion-dia-semana');
         const weekDayLabels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
         let groupedByDateCache = {};
+        const dayDetailModal = dayDetailModalElement && window.bootstrap?.Modal
+            ? new window.bootstrap.Modal(dayDetailModalElement)
+            : null;
         const formatSelectedDateLabel = (fecha) => {
             if (!fecha || !diaSeleccionadoLabel) {
                 return;
@@ -416,6 +441,16 @@
             `;
         };
 
+        const openDayDetailModal = (fecha, items) => {
+            if (!fecha) {
+                return;
+            }
+
+            formatSelectedDateLabel(fecha);
+            renderDayDetail(items);
+            dayDetailModal?.show();
+        };
+
         let calendarioGrafico = null;
         const syncFromGraphicCalendar = (fecha) => {
             if (!fecha || !filtroFecha) {
@@ -423,11 +458,10 @@
             }
 
             filtroFecha.value = fecha;
-            formatSelectedDateLabel(fecha);
             if (bitacoraFechaBase) {
                 bitacoraFechaBase.value = fecha;
             }
-            renderDayDetail(groupedByDateCache[fecha] ?? []);
+            openDayDetailModal(fecha, groupedByDateCache[fecha] ?? []);
             refreshCalendar();
             refreshBitacora();
         };
@@ -603,17 +637,17 @@
                         const isCurrentMonth = current.getMonth() === start.getMonth();
                         const dayOfWeek = current.getDay();
                         const isBusinessDay = dayOfWeek >= 1 && dayOfWeek <= 5;
-                        const occupiedCubicles = new Set(items.map((item) => Number(item.cubiculo_numero))).size;
                         const dayClass = isBusinessDay ? 'bg-success-subtle' : 'bg-danger-subtle';
                         const mutedClass = isCurrentMonth ? '' : 'text-muted opacity-50';
                         const selectionStyle = isSelected ? ' style="box-shadow: inset 0 0 0 2px #212529;"' : '';
                         const reservationsLabel = items.length ? `${items.length} reserva(s)` : 'Sin reservas';
+                        const recordsLabel = `${items.length} registro${items.length === 1 ? '' : 's'}`;
                         weekCells.push(`
                             <td class="${dayClass} align-top p-0">
                                 <button type="button" class="btn btn-sm w-100 h-100 text-start rounded-0 border-0 p-1 ${mutedClass}" style="min-height: 74px;"${selectionStyle} data-calendar-day="${iso}">
                                     <div class="d-flex justify-content-between align-items-start">
                                         <span class="fw-semibold">${current.getDate()}</span>
-                                        <span class="small text-nowrap">${occupiedCubicles} cub.</span>
+                                        <span class="small text-nowrap">${recordsLabel}</span>
                                     </div>
                                     <div class="small text-truncate">${reservationsLabel}</div>
                                 </button>
@@ -996,11 +1030,10 @@
             }
 
             filtroFecha.value = button.dataset.calendarDay;
-            formatSelectedDateLabel(filtroFecha.value);
             if (bitacoraFechaBase) {
                 bitacoraFechaBase.value = filtroFecha.value;
             }
-            renderDayDetail(groupedByDateCache[filtroFecha.value] ?? []);
+            openDayDetailModal(filtroFecha.value, groupedByDateCache[filtroFecha.value] ?? []);
             refreshCalendar();
             refreshBitacora();
         });
