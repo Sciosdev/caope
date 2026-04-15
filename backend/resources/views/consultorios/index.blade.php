@@ -1,4 +1,57 @@
 <x-app-layout>
+    @push('styles')
+        <style>
+            .consultorio-empty-calendar {
+                max-width: 340px;
+                margin: 0 auto;
+                border: 1px solid #dce1e7;
+                border-radius: .75rem;
+                background-color: #fff;
+                box-shadow: 0 2px 10px rgba(33, 37, 41, .06);
+            }
+
+            .consultorio-empty-calendar__header {
+                background: #0d6efd;
+                color: #fff;
+                border-radius: .75rem .75rem 0 0;
+                padding: .5rem .75rem;
+                text-transform: capitalize;
+                font-weight: 600;
+                text-align: center;
+                font-size: .9rem;
+            }
+
+            .consultorio-empty-calendar__weekdays,
+            .consultorio-empty-calendar__grid {
+                display: grid;
+                grid-template-columns: repeat(7, minmax(0, 1fr));
+                gap: .25rem;
+                padding: .5rem .75rem;
+            }
+
+            .consultorio-empty-calendar__weekdays span {
+                text-align: center;
+                font-size: .7rem;
+                font-weight: 600;
+                color: #6c757d;
+            }
+
+            .consultorio-empty-calendar__day {
+                text-align: center;
+                font-size: .75rem;
+                line-height: 1.8;
+                border-radius: .35rem;
+                color: #6c757d;
+            }
+
+            .consultorio-empty-calendar__day--active {
+                background: #0d6efd;
+                color: #fff;
+                font-weight: 700;
+            }
+        </style>
+    @endpush
+
     @section('breadcrumbs')
         <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Inicio</a></li>
         <li class="breadcrumb-item active" aria-current="page">Consultorios</li>
@@ -173,7 +226,10 @@
                     </div>
                 @empty
                     <div class="col-12">
-                        <div class="alert alert-light border mb-0">No hay registros para este día.</div>
+                        <div class="alert alert-light border mb-0 text-center">
+                            <p class="mb-3">No hay registros para este día.</p>
+                            <div class="js-empty-calendar" data-date="{{ $fechaFiltro }}"></div>
+                        </div>
                     </div>
                 @endforelse
             </div>
@@ -339,6 +395,7 @@
         const repeticionFechaFin = document.getElementById('repeticion-fecha-fin');
         const diaSemanaSelect = document.getElementById('repeticion-dia-semana');
         const weekDayLabels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+        const miniCalendarWeekdays = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
         if (diaSemanaSelect?.value) {
             diaSemanaSelect.dataset.userSelected = 'true';
@@ -359,13 +416,64 @@
             alerta.classList.remove('d-none');
         };
 
+        const buildMiniCalendarMarkup = (dateValue) => {
+            const currentDate = dateValue ? new Date(`${dateValue}T00:00:00`) : new Date();
+            const safeDate = Number.isNaN(currentDate.getTime()) ? new Date() : currentDate;
+            const year = safeDate.getFullYear();
+            const month = safeDate.getMonth();
+            const selectedDay = safeDate.getDate();
+            const firstDay = new Date(year, month, 1);
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const offset = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+            const totalCells = Math.ceil((offset + daysInMonth) / 7) * 7;
+            const monthLabel = safeDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+
+            const calendarDays = Array.from({ length: totalCells }, (_, index) => {
+                if (index < offset) {
+                    return '<div class="consultorio-empty-calendar__day"></div>';
+                }
+
+                const day = (index - offset) + 1;
+                if (day > daysInMonth) {
+                    return '<div class="consultorio-empty-calendar__day"></div>';
+                }
+
+                return `<div class="consultorio-empty-calendar__day ${day === selectedDay ? 'consultorio-empty-calendar__day--active' : ''}">${day}</div>`;
+            }).join('');
+
+            return `
+                <div class="consultorio-empty-calendar">
+                    <div class="consultorio-empty-calendar__header">${monthLabel}</div>
+                    <div class="consultorio-empty-calendar__weekdays">
+                        ${miniCalendarWeekdays.map((weekday) => `<span>${weekday}</span>`).join('')}
+                    </div>
+                    <div class="consultorio-empty-calendar__grid">${calendarDays}</div>
+                </div>
+            `;
+        };
+
+        const renderInlineEmptyCalendars = () => {
+            document.querySelectorAll('.js-empty-calendar').forEach((container) => {
+                container.innerHTML = buildMiniCalendarMarkup(container.dataset.date || filtroFecha?.value);
+            });
+        };
+
+        const renderEmptyDayState = (dateValue) => `
+            <div class="col-12">
+                <div class="alert alert-light border mb-0 text-center">
+                    <p class="mb-3">No hay registros para este día.</p>
+                    ${buildMiniCalendarMarkup(dateValue)}
+                </div>
+            </div>
+        `;
+
         const renderDayDetail = (items) => {
             if (!detalleDiaContainer) {
                 return;
             }
 
             if (!items.length) {
-                detalleDiaContainer.innerHTML = '<div class="col-12"><div class="alert alert-light border mb-0">No hay registros para este día.</div></div>';
+                detalleDiaContainer.innerHTML = renderEmptyDayState(filtroFecha?.value);
                 return;
             }
 
@@ -400,6 +508,8 @@
 
             detalleDiaContainer.innerHTML = rows;
         };
+
+        renderInlineEmptyCalendars();
 
         const dateISO = (date) => {
             const fixedDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
