@@ -153,17 +153,7 @@
             <div id="disponibilidad-alerta" class="alert alert-warning d-none" role="alert"></div>
         </div>
         <div class="card-body">
-            <div class="row g-3">
-                <div class="col-12 col-xl-8">
-                    <div id="ocupacion-calendario" class="mb-0"></div>
-                </div>
-                <div class="col-12 col-xl-4">
-                    <div class="border rounded p-3 h-100">
-                        <div id="ocupacion-dia-seleccionado" class="mb-3 text-muted">Selecciona un día para ver su detalle.</div>
-                        <div id="ocupacion-dia-detalle" class="small text-muted">Sin información para mostrar.</div>
-                    </div>
-                </div>
-            </div>
+            <div id="ocupacion-calendario" class="mb-0"></div>
         </div>
     </div>
 
@@ -620,12 +610,12 @@
                         const reservationsLabel = items.length ? `${items.length} reserva(s)` : 'Sin reservas';
                         weekCells.push(`
                             <td class="${dayClass} align-top p-0">
-                                <button type="button" class="btn btn-sm w-100 h-100 text-start rounded-0 border-0 p-2 ${mutedClass}"${selectionStyle} data-calendar-day="${iso}">
+                                <button type="button" class="btn btn-sm w-100 h-100 text-start rounded-0 border-0 p-1 ${mutedClass}" style="min-height: 74px;"${selectionStyle} data-calendar-day="${iso}">
                                     <div class="d-flex justify-content-between align-items-start">
                                         <span class="fw-semibold">${current.getDate()}</span>
-                                        <span class="small">${occupiedCubicles} cub.</span>
+                                        <span class="small text-nowrap">${occupiedCubicles} cub.</span>
                                     </div>
-                                    <div class="small">${reservationsLabel}</div>
+                                    <div class="small text-truncate">${reservationsLabel}</div>
                                 </button>
                             </td>
                         `);
@@ -641,11 +631,11 @@
                 });
 
                 return `
-                    <div class="col-12 col-xl-6">
+                    <div class="col-12">
                         <div class="border rounded p-2 h-100">
                             <h6 class="mb-2 text-capitalize">Mes: ${monthTitle}</h6>
                             <div class="table-responsive">
-                                <table class="table table-bordered align-middle mb-0">
+                                <table class="table table-bordered align-middle mb-0" style="table-layout: fixed;">
                                     <thead class="table-light">
                                         <tr>
                                             ${weekDayLabels.map((label) => `<th class="text-center small fw-semibold">${label}</th>`).join('')}
@@ -664,7 +654,7 @@
             calendarioContainer.innerHTML = `
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h6 class="mb-0">Calendarios de ${yearValue}</h6>
-                    <small class="text-muted">Mostrando únicamente el mes en curso. Haz clic en cualquier día para ver su detalle</small>
+                    <small class="text-muted">Mostrando únicamente el mes en curso. Haz clic en cualquier día para seleccionarlo.</small>
                 </div>
                 <div class="row g-3">
                     ${monthCards.join('')}
