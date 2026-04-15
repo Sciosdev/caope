@@ -45,6 +45,14 @@
                 box-shadow: none;
             }
 
+            #ocupacion-calendario-grafico .flatpickr-input {
+                position: absolute !important;
+                width: 0 !important;
+                height: 0 !important;
+                opacity: 0 !important;
+                pointer-events: none;
+            }
+
             #ocupacion-calendario-grafico .flatpickr-months {
                 background: #0d6efd;
                 border-radius: 12px 12px 0 0;
@@ -472,7 +480,15 @@
                 return;
             }
 
-            calendarioGrafico = window.flatpickr(calendarioGraficoContainer, {
+            calendarioGraficoContainer.innerHTML = '<input type="text" id="ocupacion-calendario-grafico-input" class="form-control" aria-label="Seleccionar fecha del calendario visual">';
+            const calendarInput = document.getElementById('ocupacion-calendario-grafico-input');
+
+            if (!calendarInput) {
+                renderGraphicCalendarFallback();
+                return;
+            }
+
+            calendarioGrafico = window.flatpickr(calendarInput, {
                 locale: {
                     firstDayOfWeek: 1,
                     weekdays: {
