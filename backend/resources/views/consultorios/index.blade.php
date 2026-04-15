@@ -367,9 +367,6 @@
             {{ $reservas->links('pagination::bootstrap-5') }}
         </div>
     </div>
-</x-app-layout>
-
-
 @push('scripts')
 <script>
     const initConsultoriosPage = () => {
@@ -1113,3 +1110,4 @@
     }
 </script>
 @endpush
+</x-app-layout>
