@@ -801,6 +801,9 @@
 
             const dayBlocks = dateHeaders.map((fecha) => {
                 const mostrados = ordenarRegistros(mostradosPorFecha[fecha] ?? []);
+                if (!mostrados.length) {
+                    return '';
+                }
 
                 return `
                     <div class="border rounded p-3 h-100">
@@ -819,7 +822,9 @@
                     <span>Total de registros encontrados en ${labelPeriodo}:</span>
                     <strong>${totalRegistros}</strong>
                 </div>
-                <div class="row row-cols-1 g-3">${dayBlocks}</div>
+                ${dayBlocks.trim()
+                    ? `<div class="row row-cols-1 g-3">${dayBlocks}</div>`
+                    : '<p class="text-muted mb-0 small">Sin registros para el periodo seleccionado.</p>'}
             `;
         };
 
