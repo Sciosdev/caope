@@ -610,72 +610,86 @@
             return response.json();
         };
 
-        const renderMonthCalendar = (monthValue, groupedByDate) => {
+        const renderYearCalendars = (yearValue, groupedByDate) => {
             if (!calendarioContainer) {
                 return;
             }
 
-            const { start, end } = monthBounds(monthValue);
-            const startOffset = (start.getDay() + 6) % 7;
-            const calendarStart = new Date(start);
-            calendarStart.setDate(start.getDate() - startOffset);
+            const monthCards = Array.from({ length: 12 }, (_, monthIndex) => {
+                const monthValue = `${yearValue}-${String(monthIndex + 1).padStart(2, '0')}`;
+                const { start, end } = monthBounds(monthValue);
+                const startOffset = (start.getDay() + 6) % 7;
+                const calendarStart = new Date(start);
+                calendarStart.setDate(start.getDate() - startOffset);
 
-            const rows = [];
-            const cursor = new Date(calendarStart);
+                const rows = [];
+                const cursor = new Date(calendarStart);
 
-            while (cursor <= end || cursor.getDay() !== 1) {
-                const weekCells = [];
-                for (let i = 0; i < 7; i += 1) {
-                    const current = new Date(cursor);
-                    const iso = dateISO(current);
-                    const items = groupedByDate[iso] ?? [];
-                    const isSelected = iso === filtroFecha.value;
-                    const isCurrentMonth = current.getMonth() === start.getMonth();
-                    const dayOfWeek = current.getDay();
-                    const isBusinessDay = dayOfWeek >= 1 && dayOfWeek <= 5;
-                    const occupiedCubicles = new Set(items.map((item) => Number(item.cubiculo_numero))).size;
-                    const dayClass = isBusinessDay ? 'bg-success-subtle' : 'bg-danger-subtle';
-                    const mutedClass = isCurrentMonth ? '' : 'text-muted opacity-50';
-                    const selectionStyle = isSelected ? ' style="box-shadow: inset 0 0 0 2px #212529;"' : '';
-                    const reservationsLabel = items.length ? `${items.length} reserva(s)` : 'Sin reservas';
-                    weekCells.push(`
-                        <td class="${dayClass} align-top p-0">
-                            <button type="button" class="btn btn-sm w-100 h-100 text-start rounded-0 border-0 p-2 ${mutedClass}"${selectionStyle} data-calendar-day="${iso}">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <span class="fw-semibold">${current.getDate()}</span>
-                                    <span class="small">${occupiedCubicles} cub.</span>
-                                </div>
-                                <div class="small">${reservationsLabel}</div>
-                            </button>
-                        </td>
-                    `);
-                    cursor.setDate(cursor.getDate() + 1);
+                while (cursor <= end || cursor.getDay() !== 1) {
+                    const weekCells = [];
+                    for (let i = 0; i < 7; i += 1) {
+                        const current = new Date(cursor);
+                        const iso = dateISO(current);
+                        const items = groupedByDate[iso] ?? [];
+                        const isSelected = iso === filtroFecha.value;
+                        const isCurrentMonth = current.getMonth() === start.getMonth();
+                        const dayOfWeek = current.getDay();
+                        const isBusinessDay = dayOfWeek >= 1 && dayOfWeek <= 5;
+                        const occupiedCubicles = new Set(items.map((item) => Number(item.cubiculo_numero))).size;
+                        const dayClass = isBusinessDay ? 'bg-success-subtle' : 'bg-danger-subtle';
+                        const mutedClass = isCurrentMonth ? '' : 'text-muted opacity-50';
+                        const selectionStyle = isSelected ? ' style="box-shadow: inset 0 0 0 2px #212529;"' : '';
+                        const reservationsLabel = items.length ? `${items.length} reserva(s)` : 'Sin reservas';
+                        weekCells.push(`
+                            <td class="${dayClass} align-top p-0">
+                                <button type="button" class="btn btn-sm w-100 h-100 text-start rounded-0 border-0 p-2 ${mutedClass}"${selectionStyle} data-calendar-day="${iso}">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <span class="fw-semibold">${current.getDate()}</span>
+                                        <span class="small">${occupiedCubicles} cub.</span>
+                                    </div>
+                                    <div class="small">${reservationsLabel}</div>
+                                </button>
+                            </td>
+                        `);
+                        cursor.setDate(cursor.getDate() + 1);
+                    }
+
+                    rows.push(`<tr>${weekCells.join('')}</tr>`);
                 }
 
-                rows.push(`<tr>${weekCells.join('')}</tr>`);
-            }
+                const monthTitle = start.toLocaleDateString('es-MX', {
+                    month: 'long',
+                    year: 'numeric',
+                });
 
-            const monthTitle = start.toLocaleDateString('es-MX', {
-                month: 'long',
-                year: 'numeric',
+                return `
+                    <div class="col-12 col-xl-6">
+                        <div class="border rounded p-2 h-100">
+                            <h6 class="mb-2 text-capitalize">Mes: ${monthTitle}</h6>
+                            <div class="table-responsive">
+                                <table class="table table-bordered align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            ${weekDayLabels.map((label) => `<th class="text-center small fw-semibold">${label}</th>`).join('')}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${rows.join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `;
             });
 
             calendarioContainer.innerHTML = `
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="mb-0 text-capitalize">Mes: ${monthTitle}</h6>
-                    <small class="text-muted">Haz clic en cualquier día para ver su detalle</small>
+                    <h6 class="mb-0">Calendarios de ${yearValue}</h6>
+                    <small class="text-muted">12 meses disponibles. Haz clic en cualquier día para ver su detalle</small>
                 </div>
-                <div class="table-responsive">
-                    <table class="table table-bordered align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                ${weekDayLabels.map((label) => `<th class="text-center small fw-semibold">${label}</th>`).join('')}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${rows.join('')}
-                        </tbody>
-                    </table>
+                <div class="row g-3">
+                    ${monthCards.join('')}
                 </div>
                 <div class="d-flex flex-wrap gap-3 mt-3 small">
                     <div class="d-flex align-items-center gap-2">
@@ -818,18 +832,17 @@
             }
 
             try {
-                const monthValue = filtroFecha.value.slice(0, 7);
-                const bounds = monthBounds(monthValue);
-                const selectedDate = filtroFecha.value?.startsWith(monthValue)
+                const yearValue = filtroFecha.value.slice(0, 4);
+                const selectedDate = filtroFecha.value?.startsWith(`${yearValue}-`)
                     ? filtroFecha.value
-                    : bounds.startISO;
+                    : `${yearValue}-01-01`;
                 filtroFecha.value = selectedDate;
                 formatSelectedDateLabel(selectedDate);
-                renderMonthCalendar(monthValue, {});
+                renderYearCalendars(yearValue, {});
                 renderDayDetail([]);
                 const params = new URLSearchParams({
-                    fecha_inicio: bounds.startISO,
-                    fecha_fin: bounds.endISO,
+                    fecha_inicio: `${yearValue}-01-01`,
+                    fecha_fin: `${yearValue}-12-31`,
                 });
 
                 if (filtroConsultorio?.value) {
@@ -854,7 +867,7 @@
                 }
                 groupedByDateCache = groupedByDate;
 
-                renderMonthCalendar(monthValue, groupedByDate);
+                renderYearCalendars(yearValue, groupedByDate);
                 renderDayDetail(groupedByDate[selectedDate] ?? []);
             } catch (error) {
                 console.error(error);
