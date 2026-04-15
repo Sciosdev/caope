@@ -16,6 +16,26 @@
 
     @push('styles')
         <style>
+            #ocupacion-dia-seleccionado {
+                border: 1px solid #d9dee8;
+                border-radius: 12px;
+                padding: 0.85rem 1rem;
+                background: #f8fafc;
+            }
+
+            #ocupacion-dia-seleccionado .fecha-label {
+                font-size: .75rem;
+                text-transform: uppercase;
+                letter-spacing: .05em;
+                color: #6b7280;
+                margin-bottom: .15rem;
+            }
+
+            #ocupacion-dia-seleccionado .fecha-valor {
+                font-weight: 600;
+                color: #111827;
+            }
+
             #ocupacion-calendario-grafico .flatpickr-calendar {
                 width: 320px;
                 max-width: 100%;
@@ -198,7 +218,7 @@
         </div>
         <div class="card-body">
             <div id="ocupacion-calendario" class="mb-4"></div>
-            <h6 class="mb-3">Calendario del día seleccionado: <span id="ocupacion-dia-seleccionado">{{ $fechaFiltro }}</span></h6>
+            <div id="ocupacion-dia-seleccionado" class="mb-3" aria-live="polite"></div>
             <div id="ocupacion-dia-detalle" class="row g-3">
                 <div class="col-12">
                     <div class="border rounded p-3">
@@ -370,6 +390,27 @@
         const diaSemanaSelect = document.getElementById('repeticion-dia-semana');
         const weekDayLabels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
         let groupedByDateCache = {};
+        const formatSelectedDateLabel = (fecha) => {
+            if (!fecha || !diaSeleccionadoLabel) {
+                return;
+            }
+
+            const selectedDate = new Date(`${fecha}T00:00:00`);
+            const isValidDate = !Number.isNaN(selectedDate.getTime());
+            const formattedDate = isValidDate
+                ? selectedDate.toLocaleDateString('es-MX', {
+                    weekday: 'long',
+                    day: '2-digit',
+                    month: 'long',
+                    year: 'numeric',
+                })
+                : fecha;
+
+            diaSeleccionadoLabel.innerHTML = `
+                <div class="fecha-label">Día seleccionado</div>
+                <div class="fecha-valor text-capitalize">${formattedDate}</div>
+            `;
+        };
 
         if (diaSemanaSelect?.value) {
             diaSemanaSelect.dataset.userSelected = 'true';
@@ -401,7 +442,7 @@
             }
 
             filtroFecha.value = fecha;
-            diaSeleccionadoLabel.textContent = fecha;
+            formatSelectedDateLabel(fecha);
             if (bitacoraFechaBase) {
                 bitacoraFechaBase.value = fecha;
             }
@@ -767,7 +808,7 @@
                     ? filtroFecha.value
                     : bounds.startISO;
                 filtroFecha.value = selectedDate;
-                diaSeleccionadoLabel.textContent = selectedDate;
+                formatSelectedDateLabel(selectedDate);
                 if (calendarioGrafico && calendarioGrafico.selectedDates[0]?.toISOString().slice(0, 10) !== selectedDate) {
                     calendarioGrafico.setDate(selectedDate, false);
                 }
