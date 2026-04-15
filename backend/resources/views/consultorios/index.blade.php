@@ -1,4 +1,57 @@
 <x-app-layout>
+    @push('styles')
+        <style>
+            .mini-calendar {
+                max-width: 320px;
+                margin: 0 auto;
+                border: 1px solid #dce1e7;
+                border-radius: .75rem;
+                background: #fff;
+                box-shadow: 0 2px 10px rgba(33, 37, 41, .06);
+            }
+
+            .mini-calendar__header {
+                background: #0d6efd;
+                color: #fff;
+                border-radius: .75rem .75rem 0 0;
+                padding: .5rem .75rem;
+                text-transform: capitalize;
+                font-weight: 600;
+                text-align: center;
+                font-size: .9rem;
+            }
+
+            .mini-calendar__weekdays,
+            .mini-calendar__grid {
+                display: grid;
+                grid-template-columns: repeat(7, minmax(0, 1fr));
+                gap: .25rem;
+                padding: .5rem .75rem;
+            }
+
+            .mini-calendar__weekdays span {
+                text-align: center;
+                font-size: .7rem;
+                font-weight: 600;
+                color: #6c757d;
+            }
+
+            .mini-calendar__day {
+                text-align: center;
+                font-size: .75rem;
+                line-height: 1.8;
+                border-radius: .35rem;
+                color: #6c757d;
+            }
+
+            .mini-calendar__day--active {
+                background: #0d6efd;
+                color: #fff;
+                font-weight: 700;
+            }
+        </style>
+    @endpush
+
     @section('breadcrumbs')
         <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Inicio</a></li>
         <li class="breadcrumb-item active" aria-current="page">Consultorios</li>
@@ -172,8 +225,47 @@
                         </div>
                     </div>
                 @empty
+                    @php
+                        $fechaSinRegistros = \Carbon\Carbon::parse($fechaFiltro);
+                        $inicioMes = $fechaSinRegistros->copy()->startOfMonth();
+                        $finMes = $fechaSinRegistros->copy()->endOfMonth();
+                        $desfaseInicio = $inicioMes->dayOfWeekIso - 1;
+                        $totalCeldas = (int) ceil(($desfaseInicio + $finMes->day) / 7) * 7;
+                        $diasCalendario = collect(range(0, $totalCeldas - 1))->map(function ($indice) use ($inicioMes, $desfaseInicio, $finMes, $fechaSinRegistros) {
+                            if ($indice < $desfaseInicio) {
+                                return ['dia' => null, 'activo' => false];
+                            }
+
+                            $dia = ($indice - $desfaseInicio) + 1;
+                            if ($dia > $finMes->day) {
+                                return ['dia' => null, 'activo' => false];
+                            }
+
+                            return [
+                                'dia' => $dia,
+                                'activo' => $dia === $fechaSinRegistros->day,
+                            ];
+                        });
+                    @endphp
                     <div class="col-12">
-                        <div class="alert alert-light border mb-0">No hay registros para este día.</div>
+                        <div class="alert alert-light border mb-0 text-center">
+                            <p class="mb-3">No hay registros para este día.</p>
+                            <div class="mini-calendar">
+                                <div class="mini-calendar__header">{{ $fechaSinRegistros->locale('es')->translatedFormat('F Y') }}</div>
+                                <div class="mini-calendar__weekdays">
+                                    @foreach (['L', 'M', 'X', 'J', 'V', 'S', 'D'] as $weekday)
+                                        <span>{{ $weekday }}</span>
+                                    @endforeach
+                                </div>
+                                <div class="mini-calendar__grid">
+                                    @foreach ($diasCalendario as $dia)
+                                        <div class="mini-calendar__day {{ $dia['activo'] ? 'mini-calendar__day--active' : '' }}">
+                                            {{ $dia['dia'] ?? '' }}
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 @endforelse
             </div>
@@ -339,6 +431,7 @@
         const repeticionFechaFin = document.getElementById('repeticion-fecha-fin');
         const diaSemanaSelect = document.getElementById('repeticion-dia-semana');
         const weekDayLabels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+        const miniCalendarWeekdays = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
         if (diaSemanaSelect?.value) {
             diaSemanaSelect.dataset.userSelected = 'true';
@@ -359,13 +452,54 @@
             alerta.classList.remove('d-none');
         };
 
+        const renderEmptyDayState = (dateValue) => {
+            const currentDate = dateValue ? new Date(`${dateValue}T00:00:00`) : new Date();
+            const safeDate = Number.isNaN(currentDate.getTime()) ? new Date() : currentDate;
+            const year = safeDate.getFullYear();
+            const month = safeDate.getMonth();
+            const selectedDay = safeDate.getDate();
+            const firstDay = new Date(year, month, 1);
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const offset = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+            const totalCells = Math.ceil((offset + daysInMonth) / 7) * 7;
+            const monthLabel = safeDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+
+            const calendarDays = Array.from({ length: totalCells }, (_, index) => {
+                if (index < offset) {
+                    return '<div class="mini-calendar__day"></div>';
+                }
+
+                const day = (index - offset) + 1;
+                if (day > daysInMonth) {
+                    return '<div class="mini-calendar__day"></div>';
+                }
+
+                return `<div class="mini-calendar__day ${day === selectedDay ? 'mini-calendar__day--active' : ''}">${day}</div>`;
+            }).join('');
+
+            return `
+                <div class="col-12">
+                    <div class="alert alert-light border mb-0 text-center">
+                        <p class="mb-3">No hay registros para este día.</p>
+                        <div class="mini-calendar">
+                            <div class="mini-calendar__header">${monthLabel}</div>
+                            <div class="mini-calendar__weekdays">
+                                ${miniCalendarWeekdays.map((weekday) => `<span>${weekday}</span>`).join('')}
+                            </div>
+                            <div class="mini-calendar__grid">${calendarDays}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+
         const renderDayDetail = (items) => {
             if (!detalleDiaContainer) {
                 return;
             }
 
             if (!items.length) {
-                detalleDiaContainer.innerHTML = '<div class="col-12"><div class="alert alert-light border mb-0">No hay registros para este día.</div></div>';
+                detalleDiaContainer.innerHTML = renderEmptyDayState(filtroFecha?.value);
                 return;
             }
 
