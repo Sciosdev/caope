@@ -55,7 +55,10 @@ class ConsultorioReservaController extends Controller
     {
         abort_unless($request->user()?->hasAnyRole(['admin', 'paps', 'coordinador', 'alumno']), 403);
 
-        $fechaFiltro = $request->string('fecha')->toString() ?: now()->toDateString();
+        $fechaParam = $request->string('fecha')->toString();
+        $fechaFiltro = preg_match('/^\d{4}-\d{2}$/', $fechaParam) === 1
+            ? Carbon::createFromFormat('Y-m', $fechaParam)->startOfMonth()->toDateString()
+            : ($fechaParam ?: now()->toDateString());
         $bitacoraModo = $request->string('bitacora_modo')->toString() === 'mes' ? 'mes' : 'semana';
         $bitacoraFechaBase = Carbon::parse($request->string('bitacora_inicio')->toString() ?: $fechaFiltro);
         $bitacoraFechaSeleccionada = $bitacoraFechaBase->toDateString();

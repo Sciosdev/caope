@@ -140,13 +140,13 @@
         <div class="card-header d-flex justify-content-between align-items-center">
             <span>Calendario de ocupación por cubículo</span>
             <form method="GET" class="d-flex gap-2" id="ocupacion-filtro-form">
-                <input type="date" class="form-control" name="fecha" id="ocupacion-fecha" value="{{ $fechaFiltro }}">
+                <input type="month" class="form-control" name="fecha" id="ocupacion-fecha" value="{{ \Illuminate\Support\Carbon::parse($fechaFiltro)->format('Y-m') }}">
                 <select name="consultorio_numero" class="form-select" id="ocupacion-consultorio">
                     @foreach ($consultoriosActivos as $consultorio)
                         <option value="{{ $consultorio->numero }}" @selected($consultorioSeleccionado === (int) $consultorio->numero)>{{ $consultorio->nombre }}</option>
                     @endforeach
                 </select>
-                <button class="btn btn-outline-secondary" type="submit" id="ocupacion-ver-btn">Ver día</button>
+                <button class="btn btn-outline-secondary" type="submit" id="ocupacion-ver-btn">Ver mes</button>
             </form>
         </div>
         <div class="card-body pb-0">
@@ -332,6 +332,7 @@
         const diaSemanaSelect = document.getElementById('repeticion-dia-semana');
         const weekDayLabels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
         let groupedByDateCache = {};
+        let selectedCalendarDay = null;
         const dayDetailModal = dayDetailModalElement && window.bootstrap?.Modal
             ? new window.bootstrap.Modal(dayDetailModalElement)
             : null;
@@ -540,63 +541,64 @@
             return response.json();
         };
 
-        const renderYearCalendars = (yearValue, groupedByDate) => {
+        const renderMonthCalendar = (monthValue, groupedByDate) => {
             if (!calendarioContainer) {
                 return;
             }
 
-            const currentMonthIndex = new Date().getMonth();
-            const monthCards = [currentMonthIndex].map((monthIndex) => {
-                const monthValue = `${yearValue}-${String(monthIndex + 1).padStart(2, '0')}`;
-                const { start, end } = monthBounds(monthValue);
-                const startOffset = (start.getDay() + 6) % 7;
-                const calendarStart = new Date(start);
-                calendarStart.setDate(start.getDate() - startOffset);
+            const { start, end } = monthBounds(monthValue);
+            const startOffset = (start.getDay() + 6) % 7;
+            const calendarStart = new Date(start);
+            calendarStart.setDate(start.getDate() - startOffset);
 
-                const rows = [];
-                const cursor = new Date(calendarStart);
+            const rows = [];
+            const cursor = new Date(calendarStart);
 
-                while (cursor <= end || cursor.getDay() !== 1) {
-                    const weekCells = [];
-                    for (let i = 0; i < 7; i += 1) {
-                        const current = new Date(cursor);
-                        const iso = dateISO(current);
-                        const items = groupedByDate[iso] ?? [];
-                        const isSelected = iso === filtroFecha.value;
-                        const isCurrentMonth = current.getMonth() === start.getMonth();
-                        const dayOfWeek = current.getDay();
-                        const isBusinessDay = dayOfWeek >= 1 && dayOfWeek <= 5;
-                        const dayClass = isBusinessDay ? 'bg-success-subtle' : 'bg-danger-subtle';
-                        const mutedClass = isCurrentMonth ? '' : 'text-muted opacity-50';
-                        const selectionStyle = isSelected ? ' style="box-shadow: inset 0 0 0 2px #212529;"' : '';
-                        const reservationsLabel = items.length ? `${items.length} reserva(s)` : 'Sin reservas';
-                        const recordsLabel = `${items.length} registro${items.length === 1 ? '' : 's'}`;
-                        weekCells.push(`
-                            <td class="${dayClass} align-top p-0">
-                                <button type="button" class="btn btn-sm w-100 h-100 text-start rounded-0 border-0 p-1 ${mutedClass}" style="min-height: 74px;"${selectionStyle} data-calendar-day="${iso}">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <span class="fw-semibold">${current.getDate()}</span>
-                                        <span class="small text-nowrap">${recordsLabel}</span>
-                                    </div>
-                                    <div class="small text-truncate">${reservationsLabel}</div>
-                                </button>
-                            </td>
-                        `);
-                        cursor.setDate(cursor.getDate() + 1);
-                    }
-
-                    rows.push(`<tr>${weekCells.join('')}</tr>`);
+            while (cursor <= end || cursor.getDay() !== 1) {
+                const weekCells = [];
+                for (let i = 0; i < 7; i += 1) {
+                    const current = new Date(cursor);
+                    const iso = dateISO(current);
+                    const items = groupedByDate[iso] ?? [];
+                    const isSelected = iso === selectedCalendarDay;
+                    const isCurrentMonth = current.getMonth() === start.getMonth();
+                    const dayOfWeek = current.getDay();
+                    const isBusinessDay = dayOfWeek >= 1 && dayOfWeek <= 5;
+                    const dayClass = isBusinessDay ? 'bg-success-subtle' : 'bg-danger-subtle';
+                    const mutedClass = isCurrentMonth ? '' : 'text-muted opacity-50';
+                    const selectionStyle = isSelected ? ' style="box-shadow: inset 0 0 0 2px #212529;"' : '';
+                    const reservationsLabel = items.length ? `${items.length} reserva(s)` : 'Sin reservas';
+                    const recordsLabel = `${items.length} registro${items.length === 1 ? '' : 's'}`;
+                    weekCells.push(`
+                        <td class="${dayClass} align-top p-0">
+                            <button type="button" class="btn btn-sm w-100 h-100 text-start rounded-0 border-0 p-1 ${mutedClass}" style="min-height: 74px;"${selectionStyle} data-calendar-day="${iso}">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <span class="fw-semibold">${current.getDate()}</span>
+                                    <span class="small text-nowrap">${recordsLabel}</span>
+                                </div>
+                                <div class="small text-truncate">${reservationsLabel}</div>
+                            </button>
+                        </td>
+                    `);
+                    cursor.setDate(cursor.getDate() + 1);
                 }
 
-                const monthTitle = start.toLocaleDateString('es-MX', {
-                    month: 'long',
-                    year: 'numeric',
-                });
+                rows.push(`<tr>${weekCells.join('')}</tr>`);
+            }
 
-                return `
+            const monthTitle = start.toLocaleDateString('es-MX', {
+                month: 'long',
+                year: 'numeric',
+            });
+
+            calendarioContainer.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0 text-capitalize">Calendario de ${monthTitle}</h6>
+                    <small class="text-muted">Haz clic en cualquier día para ver su detalle.</small>
+                </div>
+                <div class="row g-3">
                     <div class="col-12">
                         <div class="border rounded p-2 h-100">
-                            <h6 class="mb-2 text-capitalize">Mes: ${monthTitle}</h6>
                             <div class="table-responsive">
                                 <table class="table table-bordered align-middle mb-0" style="table-layout: fixed;">
                                     <thead class="table-light">
@@ -611,16 +613,6 @@
                             </div>
                         </div>
                     </div>
-                `;
-            });
-
-            calendarioContainer.innerHTML = `
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="mb-0">Calendarios de ${yearValue}</h6>
-                    <small class="text-muted">Mostrando únicamente el mes en curso. Haz clic en cualquier día para seleccionarlo.</small>
-                </div>
-                <div class="row g-3">
-                    ${monthCards.join('')}
                 </div>
                 <div class="d-flex flex-wrap gap-3 mt-3 small">
                     <div class="d-flex align-items-center gap-2">
@@ -768,17 +760,17 @@
             }
 
             try {
-                const yearValue = filtroFecha.value.slice(0, 4);
-                const selectedDate = filtroFecha.value?.startsWith(`${yearValue}-`)
-                    ? filtroFecha.value
-                    : `${yearValue}-01-01`;
-                filtroFecha.value = selectedDate;
-                formatSelectedDateLabel(selectedDate);
-                renderYearCalendars(yearValue, {});
+                const monthValue = filtroFecha.value;
+                const bounds = monthBounds(monthValue);
+                if (!selectedCalendarDay || selectedCalendarDay < bounds.startISO || selectedCalendarDay > bounds.endISO) {
+                    selectedCalendarDay = bounds.startISO;
+                }
+                formatSelectedDateLabel(selectedCalendarDay);
+                renderMonthCalendar(monthValue, {});
                 renderDayDetail([]);
                 const params = new URLSearchParams({
-                    fecha_inicio: `${yearValue}-01-01`,
-                    fecha_fin: `${yearValue}-12-31`,
+                    fecha_inicio: bounds.startISO,
+                    fecha_fin: bounds.endISO,
                 });
 
                 if (filtroConsultorio?.value) {
@@ -800,8 +792,8 @@
 
                 groupedByDateCache = groupedByDate;
 
-                renderYearCalendars(yearValue, groupedByDate);
-                renderDayDetail(groupedByDate[selectedDate] ?? []);
+                renderMonthCalendar(monthValue, groupedByDate);
+                renderDayDetail(groupedByDate[selectedCalendarDay] ?? []);
             } catch (error) {
                 console.error(error);
                 showAlert('No fue posible cargar las reservas del calendario. Mostrando vista base sin registros.');
@@ -953,20 +945,20 @@
                 return;
             }
 
-            filtroFecha.value = button.dataset.calendarDay;
+            selectedCalendarDay = button.dataset.calendarDay;
             if (bitacoraFechaBase) {
-                bitacoraFechaBase.value = filtroFecha.value;
+                bitacoraFechaBase.value = selectedCalendarDay;
             }
-            openDayDetailModal(filtroFecha.value, groupedByDateCache[filtroFecha.value] ?? []);
+            openDayDetailModal(selectedCalendarDay, groupedByDateCache[selectedCalendarDay] ?? []);
             refreshCalendar();
             refreshBitacora();
         });
 
         filtroFecha?.addEventListener('change', () => {
             if (bitacoraFechaBase) {
-                bitacoraFechaBase.value = filtroFecha.value;
+                bitacoraFechaBase.value = `${filtroFecha.value}-01`;
             }
-            openDayDetailModal(filtroFecha.value, groupedByDateCache[filtroFecha.value] ?? []);
+            selectedCalendarDay = `${filtroFecha.value}-01`;
             refreshCalendar();
             refreshBitacora();
         });
