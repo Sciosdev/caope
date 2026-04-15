@@ -679,7 +679,7 @@
         };
 
         const refreshCalendar = async () => {
-            if (!filtroFecha?.value || !filtroConsultorio?.value) {
+            if (!filtroFecha?.value) {
                 return;
             }
 
@@ -689,8 +689,11 @@
                 const params = new URLSearchParams({
                     fecha_inicio: bounds.startISO,
                     fecha_fin: bounds.endISO,
-                    consultorio_numero: filtroConsultorio.value,
                 });
+
+                if (filtroConsultorio?.value) {
+                    params.set('consultorio_numero', filtroConsultorio.value);
+                }
                 const data = await fetchAvailability(params);
                 if (!data) {
                     return;
