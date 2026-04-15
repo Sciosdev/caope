@@ -14,84 +14,6 @@
         $canManageBitacora = $isAdmin;
     @endphp
 
-    @push('styles')
-        <style>
-            #ocupacion-dia-seleccionado {
-                border: 1px solid #d9dee8;
-                border-radius: 12px;
-                padding: 0.85rem 1rem;
-                background: #f8fafc;
-            }
-
-            #ocupacion-dia-seleccionado .fecha-label {
-                font-size: .75rem;
-                text-transform: uppercase;
-                letter-spacing: .05em;
-                color: #6b7280;
-                margin-bottom: .15rem;
-            }
-
-            #ocupacion-dia-seleccionado .fecha-valor {
-                font-weight: 600;
-                color: #111827;
-            }
-
-            #ocupacion-calendario-grafico .flatpickr-calendar {
-                width: 320px;
-                max-width: 100%;
-                margin: 0 auto;
-                border: 1px solid #d9dee8;
-                border-radius: 12px;
-                box-shadow: none;
-            }
-
-            #ocupacion-calendario-grafico {
-                position: sticky;
-                top: 1rem;
-                z-index: 2;
-            }
-
-            #ocupacion-calendario-grafico .flatpickr-input {
-                position: absolute !important;
-                width: 0 !important;
-                height: 0 !important;
-                opacity: 0 !important;
-                pointer-events: none;
-            }
-
-            #ocupacion-calendario-grafico .flatpickr-months {
-                background: #0d6efd;
-                border-radius: 12px 12px 0 0;
-            }
-
-            #ocupacion-calendario-grafico .flatpickr-current-month,
-            #ocupacion-calendario-grafico .flatpickr-monthDropdown-months,
-            #ocupacion-calendario-grafico .flatpickr-current-month input.cur-year,
-            #ocupacion-calendario-grafico .flatpickr-prev-month,
-            #ocupacion-calendario-grafico .flatpickr-next-month {
-                color: #fff;
-                fill: #fff;
-            }
-
-            #ocupacion-calendario-grafico .flatpickr-weekdays {
-                background: #f8fafc;
-            }
-
-            #ocupacion-calendario-grafico .flatpickr-weekday {
-                color: #6b7280;
-                font-weight: 600;
-                text-transform: uppercase;
-            }
-
-            #ocupacion-calendario-grafico .flatpickr-day.selected,
-            #ocupacion-calendario-grafico .flatpickr-day.startRange,
-            #ocupacion-calendario-grafico .flatpickr-day.endRange {
-                background: #0d6efd;
-                border-color: #0d6efd;
-            }
-        </style>
-    @endpush
-
     @if (session('status'))
         <div class="alert alert-success">{{ session('status') }}</div>
     @endif
@@ -232,14 +154,6 @@
         </div>
         <div class="card-body">
             <div id="ocupacion-calendario" class="mb-4"></div>
-            <div id="ocupacion-dia-seleccionado" class="mb-3" aria-live="polite"></div>
-            <div id="ocupacion-dia-detalle" class="row g-3">
-                <div class="col-12">
-                    <div class="border rounded p-3">
-                        <div id="ocupacion-calendario-grafico"></div>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
