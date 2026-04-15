@@ -526,7 +526,8 @@
                 return;
             }
 
-            const monthCards = Array.from({ length: 12 }, (_, monthIndex) => {
+            const currentMonthIndex = new Date().getMonth();
+            const monthCards = [currentMonthIndex].map((monthIndex) => {
                 const monthValue = `${yearValue}-${String(monthIndex + 1).padStart(2, '0')}`;
                 const { start, end } = monthBounds(monthValue);
                 const startOffset = (start.getDay() + 6) % 7;
@@ -597,7 +598,7 @@
             calendarioContainer.innerHTML = `
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h6 class="mb-0">Calendarios de ${yearValue}</h6>
-                    <small class="text-muted">12 meses disponibles. Haz clic en cualquier día para ver su detalle</small>
+                    <small class="text-muted">Mostrando únicamente el mes en curso. Haz clic en cualquier día para ver su detalle</small>
                 </div>
                 <div class="row g-3">
                     ${monthCards.join('')}
