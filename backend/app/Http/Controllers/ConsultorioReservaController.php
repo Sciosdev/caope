@@ -73,8 +73,7 @@ class ConsultorioReservaController extends Controller
 
         $reservas = ConsultorioReserva::query()
             ->with(['usuarioAtendido', 'estratega', 'supervisor', 'creadoPor'])
-            ->whereBetween('fecha', [$bitacoraInicio, $bitacoraFin])
-            ->orderBy('fecha')
+            ->orderByDesc('fecha')
             ->orderBy('consultorio_numero')
             ->orderBy('cubiculo_numero')
             ->orderBy('hora_inicio')
