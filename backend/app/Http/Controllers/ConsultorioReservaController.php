@@ -51,9 +51,21 @@ class ConsultorioReservaController extends Controller
         return $user->hasRole('paps') && ! is_null($user->approved_at);
     }
 
+    private function canAccessConsultorios(Request $request): bool
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        return $user->hasAnyRole(['admin', 'coordinador', 'alumno'])
+            || ($user->hasRole('paps') && ! is_null($user->approved_at));
+    }
+
     public function index(Request $request): View
     {
-        abort_unless($request->user()?->hasAnyRole(['admin', 'paps', 'coordinador', 'alumno']), 403);
+        abort_unless($this->canAccessConsultorios($request), 403);
 
         $fechaParam = $request->string('fecha')->toString();
         $fechaFiltro = preg_match('/^\d{4}-\d{2}$/', $fechaParam) === 1
@@ -116,7 +128,7 @@ class ConsultorioReservaController extends Controller
 
     public function availability(Request $request): JsonResponse
     {
-        abort_unless($request->user()?->hasAnyRole(['admin', 'paps', 'coordinador', 'alumno']), 403);
+        abort_unless($this->canAccessConsultorios($request), 403);
 
         $fecha = $request->string('fecha')->toString() ?: now()->toDateString();
         $fechaInicio = $request->string('fecha_inicio')->toString();
@@ -164,7 +176,7 @@ class ConsultorioReservaController extends Controller
 
     public function export(Request $request): BinaryFileResponse
     {
-        abort_unless($request->user()?->hasAnyRole(['admin', 'paps', 'coordinador', 'alumno']), 403);
+        abort_unless($this->canAccessConsultorios($request), 403);
 
         $filename = sprintf('bitacora_reservas_%s.xlsx', Date::now()->format('Ymd_His'));
 
