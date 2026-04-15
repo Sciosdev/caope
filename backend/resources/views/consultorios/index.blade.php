@@ -153,7 +153,17 @@
             <div id="disponibilidad-alerta" class="alert alert-warning d-none" role="alert"></div>
         </div>
         <div class="card-body">
-            <div id="ocupacion-calendario" class="mb-4"></div>
+            <div class="row g-3">
+                <div class="col-12 col-xl-8">
+                    <div id="ocupacion-calendario" class="mb-0"></div>
+                </div>
+                <div class="col-12 col-xl-4">
+                    <div class="border rounded p-3 h-100">
+                        <div id="ocupacion-dia-seleccionado" class="mb-3 text-muted">Selecciona un día para ver su detalle.</div>
+                        <div id="ocupacion-dia-detalle" class="small text-muted">Sin información para mostrar.</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -356,8 +366,64 @@
             alerta.classList.remove('d-none');
         };
 
-        const renderDayDetail = () => {
-            // Se conserva el contenedor del calendario gráfico visible en todo momento.
+        const renderDayDetail = (items) => {
+            if (!detalleDiaContainer) {
+                return;
+            }
+
+            const sortedItems = [...(items ?? [])].sort((a, b) => {
+                const horaInicio = (a.hora_inicio ?? '').localeCompare(b.hora_inicio ?? '');
+                if (horaInicio !== 0) {
+                    return horaInicio;
+                }
+
+                return Number(a.cubiculo_numero) - Number(b.cubiculo_numero);
+            });
+
+            if (!sortedItems.length) {
+                detalleDiaContainer.innerHTML = '<span class="text-muted">Sin reservas para este día.</span>';
+                return;
+            }
+
+            const detailRows = sortedItems.map((item) => {
+                const horaInicio = (item.hora_inicio ?? '').slice(0, 5);
+                const horaFin = (item.hora_fin ?? '').slice(0, 5);
+                const cubiculo = item.cubiculo_numero ?? '—';
+                const estrategia = item.estrategia ?? '—';
+                const estratega = item.estratega_nombre ?? '—';
+                const usuario = item.usuario_atendido_nombre ?? '—';
+
+                return `
+                    <tr>
+                        <td class="text-nowrap">${horaInicio} - ${horaFin}</td>
+                        <td class="text-nowrap">Cubículo ${cubiculo}</td>
+                        <td>${estrategia}</td>
+                        <td>${estratega}</td>
+                        <td>${usuario}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            detalleDiaContainer.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="fw-semibold">Registros del día</span>
+                    <span class="badge text-bg-primary">${sortedItems.length} registro(s)</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Horario</th>
+                                <th>Cubículo</th>
+                                <th>Estrategia</th>
+                                <th>Estratega</th>
+                                <th>Usuario</th>
+                            </tr>
+                        </thead>
+                        <tbody>${detailRows}</tbody>
+                    </table>
+                </div>
+            `;
         };
 
         let calendarioGrafico = null;
@@ -940,7 +1006,7 @@
             }
 
             filtroFecha.value = button.dataset.calendarDay;
-            diaSeleccionadoLabel.textContent = filtroFecha.value;
+            formatSelectedDateLabel(filtroFecha.value);
             if (bitacoraFechaBase) {
                 bitacoraFechaBase.value = filtroFecha.value;
             }
