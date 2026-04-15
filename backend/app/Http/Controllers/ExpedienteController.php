@@ -734,6 +734,12 @@ class ExpedienteController extends Controller
             return;
         }
 
+        if ($request->user()?->hasRole('paps')) {
+            throw ValidationException::withMessages([
+                'consultorio_reserva' => 'Las asignaciones desde expediente para usuarios PAPS requieren autorización del administrador general.',
+            ]);
+        }
+
         $fecha = (string) data_get($payload, 'fecha', '');
         $horaInicio = (string) data_get($payload, 'hora_inicio', '');
         $horaFin = (string) data_get($payload, 'hora_fin', '');
