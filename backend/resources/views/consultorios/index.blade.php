@@ -679,24 +679,26 @@
         };
 
         const refreshCalendar = async () => {
-            if (!filtroFecha?.value || !filtroConsultorio?.value) {
+            if (!filtroFecha?.value) {
                 return;
             }
 
+            const monthValue = filtroFecha.value.slice(0, 7);
+            const bounds = monthBounds(monthValue);
+            const selectedDate = filtroFecha.value?.startsWith(monthValue)
+                ? filtroFecha.value
+                : bounds.startISO;
+
             try {
-                const monthValue = filtroFecha.value.slice(0, 7);
-                const bounds = monthBounds(monthValue);
                 const params = new URLSearchParams({
                     fecha_inicio: bounds.startISO,
                     fecha_fin: bounds.endISO,
-                    consultorio_numero: filtroConsultorio.value,
                 });
-                const data = await fetchAvailability(params);
-                if (!data) {
-                    return;
+                if (filtroConsultorio?.value) {
+                    params.set('consultorio_numero', filtroConsultorio.value);
                 }
-
-                const groupedByDate = (data.reservas ?? []).reduce((carry, item) => {
+                const data = await fetchAvailability(params);
+                const groupedByDate = (data?.reservas ?? []).reduce((carry, item) => {
                     const key = item.fecha;
                     if (!carry[key]) {
                         carry[key] = [];
@@ -705,9 +707,6 @@
                     return carry;
                 }, {});
 
-                const selectedDate = filtroFecha.value?.startsWith(monthValue)
-                    ? filtroFecha.value
-                    : bounds.startISO;
                 filtroFecha.value = selectedDate;
                 diaSeleccionadoLabel.textContent = selectedDate;
                 if (calendarioGrafico && calendarioGrafico.selectedDates[0]?.toISOString().slice(0, 10) !== selectedDate) {
@@ -719,6 +718,9 @@
                 renderDayDetail(groupedByDate[selectedDate] ?? []);
             } catch (error) {
                 console.error(error);
+                groupedByDateCache = {};
+                renderMonthCalendar(monthValue, {});
+                renderDayDetail([]);
             }
         };
 
