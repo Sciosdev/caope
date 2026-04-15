@@ -52,6 +52,8 @@
 
     {{-- Topbar simple --}}
     @php
+        $currentUser = auth()->user();
+        $isApprovedPaps = ($currentUser?->hasRole('paps') ?? false) && ! is_null($currentUser?->approved_at);
         $reportesRouteName = collect(['reportes.index', 'reports.index'])->first(fn ($name) => Route::has($name));
         $sesionesValidacionRouteName = collect([
             'sesiones.validacion',
@@ -59,10 +61,13 @@
             'sesiones.validar.index',
             'sesiones.validation.index',
         ])->first(fn ($name) => Route::has($name));
-        $showExpedientesLink = auth()->user()?->can('expedientes.view') || auth()->user()?->hasRole('paps');
-        $pendingConsultorioSolicitudesCount = auth()->user()?->hasAnyRole(['admin', 'paps'])
+        $showExpedientesLink = $currentUser?->can('expedientes.view') || $isApprovedPaps;
+        $pendingConsultorioSolicitudesCount = (($currentUser?->hasRole('admin') ?? false) || $isApprovedPaps)
             && \Illuminate\Support\Facades\Schema::hasTable('consultorio_reserva_solicitudes')
-            ? \App\Models\ConsultorioReservaSolicitud::query()->where('status', 'pendiente')->count()
+            ? \App\Models\ConsultorioReservaSolicitud::query()
+                ->where('status', 'pendiente')
+                ->when(! ($currentUser?->hasRole('admin') ?? false), fn ($query) => $query->where('requested_by', $currentUser?->id))
+                ->count()
             : 0;
     @endphp
 
@@ -84,7 +89,7 @@
                 Expedientes
               </a>
             @endif
-            @role('admin|coordinador|alumno|paps')
+            @if (($currentUser?->hasAnyRole(['admin', 'coordinador', 'alumno']) ?? false) || $isApprovedPaps)
               <a href="{{ route('consultorios.index') }}"
                  class="text-muted small {{ request()->routeIs('consultorios.*') ? 'fw-semibold text-body' : '' }}">
                 Consultorios
@@ -95,7 +100,7 @@
                   Reportes
                 </a>
               @endif
-            @endrole
+            @endif
             @can('sesiones.validate')
               @if ($sesionesValidacionRouteName)
                 <a href="{{ route($sesionesValidacionRouteName) }}"
@@ -104,7 +109,7 @@
                 </a>
               @endif
             @endcan
-            @role('admin|paps')
+            @if (($currentUser?->hasRole('admin') ?? false) || $isApprovedPaps)
               <div class="dropdown">
                 <button
                   class="btn btn-sm btn-outline-secondary dropdown-toggle"
@@ -123,7 +128,7 @@
                   <li><a class="dropdown-item" href="{{ route('admin.catalogos.consultorios.index') }}">Consultorios</a></li>
                   <li><a class="dropdown-item" href="{{ route('admin.catalogos.cubiculos.index') }}">Cubículos</a></li>
                   <li><a class="dropdown-item" href="{{ route('admin.catalogos.estrategias.index') }}">Estrategias</a></li>
-                  @if (auth()->user()?->hasAnyRole(['admin', 'paps']))
+                  @if (($currentUser?->hasRole('admin') ?? false) || $isApprovedPaps)
                     <li><hr class="dropdown-divider"></li>
                     <li>
                       <a class="dropdown-item d-flex justify-content-between align-items-center" href="{{ route('admin.consultorios.solicitudes.index') }}">
@@ -136,7 +141,7 @@
                   @endif
                 </ul>
               </div>
-            @endrole
+            @endif
 
             <div class="dropdown">
               <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">

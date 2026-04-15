@@ -1,4 +1,6 @@
 @php
+    $currentUser = auth()->user();
+    $isApprovedPaps = ($currentUser?->hasRole('paps') ?? false) && ! is_null($currentUser?->approved_at);
     $reportesRouteName = collect(['reportes.index', 'reports.index'])->first(fn ($name) => Route::has($name));
     $sesionesValidacionRouteName = collect([
         'sesiones.validacion',
@@ -6,7 +8,7 @@
         'sesiones.validar.index',
         'sesiones.validation.index',
     ])->first(fn ($name) => Route::has($name));
-    $showExpedientesLink = auth()->user()?->can('expedientes.view') || auth()->user()?->hasRole('paps');
+    $showExpedientesLink = $currentUser?->can('expedientes.view') || $isApprovedPaps;
 @endphp
 
 <nav x-data="{ open: false }" class="bg-white border-b border-gray-100">
@@ -31,7 +33,7 @@
                             {{ __('Expedientes') }}
                         </x-nav-link>
                     @endif
-                    @role('admin|coordinador|alumno|paps')
+                    @if (($currentUser?->hasAnyRole(['admin', 'coordinador', 'alumno']) ?? false) || $isApprovedPaps)
                         <x-nav-link :href="route('consultorios.index')" :active="request()->routeIs('consultorios.*')">
                             {{ __('Consultorios') }}
                         </x-nav-link>
@@ -40,7 +42,7 @@
                                 {{ __('Reportes') }}
                             </x-nav-link>
                         @endif
-                    @endrole
+                    @endif
                     @can('sesiones.validate')
                         @if ($sesionesValidacionRouteName)
                             <x-nav-link :href="route($sesionesValidacionRouteName)" :active="request()->routeIs($sesionesValidacionRouteName)">
@@ -48,11 +50,11 @@
                             </x-nav-link>
                         @endif
                     @endcan
-                    @role('admin|paps')
+                    @if (($currentUser?->hasRole('admin') ?? false) || $isApprovedPaps)
                         <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
                             {{ __('Administración') }}
                         </x-nav-link>
-                    @endrole
+                    @endif
                 </div>
             </div>
 
@@ -113,7 +115,7 @@
                     {{ __('Expedientes') }}
                 </x-responsive-nav-link>
             @endif
-            @role('admin|coordinador|alumno|paps')
+            @if (($currentUser?->hasAnyRole(['admin', 'coordinador', 'alumno']) ?? false) || $isApprovedPaps)
                 <x-responsive-nav-link :href="route('consultorios.index')" :active="request()->routeIs('consultorios.*')">
                     {{ __('Consultorios') }}
                 </x-responsive-nav-link>
@@ -122,7 +124,7 @@
                         {{ __('Reportes') }}
                     </x-responsive-nav-link>
                 @endif
-            @endrole
+            @endif
             @can('sesiones.validate')
                 @if ($sesionesValidacionRouteName)
                     <x-responsive-nav-link :href="route($sesionesValidacionRouteName)" :active="request()->routeIs($sesionesValidacionRouteName)">
@@ -130,11 +132,11 @@
                     </x-responsive-nav-link>
                 @endif
             @endcan
-            @role('admin|paps')
+            @if (($currentUser?->hasRole('admin') ?? false) || $isApprovedPaps)
                 <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
                     {{ __('Administración') }}
                 </x-responsive-nav-link>
-            @endrole
+            @endif
         </div>
 
         <!-- Responsive Settings Options -->

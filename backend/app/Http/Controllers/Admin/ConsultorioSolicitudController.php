@@ -19,12 +19,17 @@ class ConsultorioSolicitudController extends Controller
 
     public function index(Request $request): View
     {
-        abort_unless($request->user()?->hasAnyRole(['admin', 'paps']), 403);
+        $user = $request->user();
+        $isAdmin = $user?->hasRole('admin') ?? false;
+        $isApprovedPaps = ($user?->hasRole('paps') ?? false) && ! is_null($user?->approved_at);
+
+        abort_unless($isAdmin || $isApprovedPaps, 403);
 
         $solicitudesPendientes = $this->hasSolicitudesTable()
             ? ConsultorioReservaSolicitud::query()
                 ->with(['reserva', 'requestedBy'])
                 ->where('status', 'pendiente')
+                ->when(! $isAdmin, fn ($query) => $query->where('requested_by', $user?->id))
                 ->latest()
                 ->paginate(20)
             : collect();

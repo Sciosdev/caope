@@ -229,7 +229,10 @@ class ConsultorioReservaTest extends TestCase
     public function test_index_muestra_usuario_que_captura_accion_realizada_y_fecha_base_actual(): void
     {
         $role = Role::query()->firstOrCreate(['name' => 'paps', 'guard_name' => 'web']);
-        $paps = User::factory()->create(['name' => 'Usuario PAPS']);
+        $paps = User::factory()->create([
+            'name' => 'Usuario PAPS',
+            'approved_at' => now(),
+        ]);
         $paps->assignRole($role);
 
         $fecha = now()->toDateString();
@@ -784,6 +787,17 @@ class ConsultorioReservaTest extends TestCase
 
         $this->actingAs($paps)
             ->post(route('admin.consultorios.solicitudes.approve', $solicitud))
+            ->assertForbidden();
+    }
+
+    public function test_paps_sin_aprobacion_no_puede_ver_solicitudes_pendientes_de_consultorios(): void
+    {
+        $papsRole = Role::query()->firstOrCreate(['name' => 'paps', 'guard_name' => 'web']);
+        $paps = User::factory()->create(['approved_at' => null]);
+        $paps->assignRole($papsRole);
+
+        $this->actingAs($paps)
+            ->get(route('admin.consultorios.solicitudes.index'))
             ->assertForbidden();
     }
 

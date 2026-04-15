@@ -55,6 +55,8 @@
 <body class="horizontal-menu">
     <div class="main-wrapper">
         @php
+            $currentUser = auth()->user();
+            $isApprovedPaps = ($currentUser?->hasRole('paps') ?? false) && ! is_null($currentUser?->approved_at);
             $reportesRouteName = collect(['reportes.index', 'reports.index'])->first(fn ($name) => Route::has($name));
             $sesionesValidacionRouteName = collect([
                 'sesiones.validacion',
@@ -62,10 +64,13 @@
                 'sesiones.validar.index',
                 'sesiones.validation.index',
             ])->first(fn ($name) => Route::has($name));
-            $showExpedientesLink = auth()->user()?->can('expedientes.view') || auth()->user()?->hasRole('paps');
-            $pendingConsultorioSolicitudesCount = auth()->user()?->hasAnyRole(['admin', 'paps'])
+            $showExpedientesLink = $currentUser?->can('expedientes.view') || $isApprovedPaps;
+            $pendingConsultorioSolicitudesCount = (($currentUser?->hasRole('admin') ?? false) || $isApprovedPaps)
                 && \Illuminate\Support\Facades\Schema::hasTable('consultorio_reserva_solicitudes')
-                ? \App\Models\ConsultorioReservaSolicitud::query()->where('status', 'pendiente')->count()
+                ? \App\Models\ConsultorioReservaSolicitud::query()
+                    ->where('status', 'pendiente')
+                    ->when(! ($currentUser?->hasRole('admin') ?? false), fn ($query) => $query->where('requested_by', $currentUser?->id))
+                    ->count()
                 : 0;
         @endphp
 
@@ -95,7 +100,7 @@
                                     </a>
                                 </li>
                             @endif
-                            @role('admin|coordinador|alumno|paps')
+                            @if (($currentUser?->hasAnyRole(['admin', 'coordinador', 'alumno']) ?? false) || $isApprovedPaps)
                                 <li class="nav-item">
                                     <a class="nav-link {{ request()->routeIs('consultorios.*') ? 'active fw-semibold' : '' }}" href="{{ route('consultorios.index') }}">
                                         {{ __('Consultorios') }}
@@ -108,7 +113,7 @@
                                         </a>
                                     </li>
                                 @endif
-                            @endrole
+                            @endif
                             @can('sesiones.validate')
                                 @if ($sesionesValidacionRouteName)
                                     <li class="nav-item">
@@ -119,7 +124,7 @@
                                 @endif
                             @endcan
 
-                            @role('admin|paps')
+                            @if (($currentUser?->hasRole('admin') ?? false) || $isApprovedPaps)
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle {{ request()->routeIs('admin.users.*') || request()->routeIs('admin.catalogos.*') || request()->routeIs('admin.parametros.*') || request()->routeIs('admin.consultorios.solicitudes.*') ? 'active fw-semibold' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         {{ __('Administración') }}
@@ -133,7 +138,7 @@
                                         <li><a class="dropdown-item" href="{{ route('admin.catalogos.consultorios.index') }}">{{ __('Consultorios') }}</a></li>
                                         <li><a class="dropdown-item" href="{{ route('admin.catalogos.cubiculos.index') }}">{{ __('Cubículos') }}</a></li>
                                         <li><a class="dropdown-item" href="{{ route('admin.catalogos.estrategias.index') }}">{{ __('Estrategias') }}</a></li>
-                                        @if (auth()->user()?->hasAnyRole(['admin', 'paps']))
+                                        @if (($currentUser?->hasRole('admin') ?? false) || $isApprovedPaps)
                                             <li><hr class="dropdown-divider"></li>
                                             <li>
                                                 <a class="dropdown-item d-flex justify-content-between align-items-center" href="{{ route('admin.consultorios.solicitudes.index') }}">
@@ -146,7 +151,7 @@
                                         @endif
                                     </ul>
                                 </li>
-                            @endrole
+                            @endif
                         @endauth
                     </ul>
 
