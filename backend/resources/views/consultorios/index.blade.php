@@ -155,10 +155,6 @@
         <div class="card-body">
             <div id="ocupacion-calendario" class="mb-0"></div>
         </div>
-        <div class="card-footer bg-transparent">
-            <div class="small text-muted mb-2">Calendario visual</div>
-            <div id="ocupacion-calendario-grafico"></div>
-        </div>
     </div>
 
     <div class="modal fade" id="ocupacion-dia-modal" tabindex="-1" aria-labelledby="ocupacion-dia-modal-label" aria-hidden="true">
@@ -319,7 +315,6 @@
         const filtroFecha = document.getElementById('ocupacion-fecha');
         const filtroConsultorio = document.getElementById('ocupacion-consultorio');
         const calendarioContainer = document.getElementById('ocupacion-calendario');
-        const calendarioGraficoContainer = document.getElementById('ocupacion-calendario-grafico');
         const diaSeleccionadoLabel = document.getElementById('ocupacion-dia-seleccionado');
         const detalleDiaContainer = document.getElementById('ocupacion-dia-detalle');
         const dayDetailModalElement = document.getElementById('ocupacion-dia-modal');
@@ -449,72 +444,6 @@
             formatSelectedDateLabel(fecha);
             renderDayDetail(items);
             dayDetailModal?.show();
-        };
-
-        let calendarioGrafico = null;
-        const syncFromGraphicCalendar = (fecha) => {
-            if (!fecha || !filtroFecha) {
-                return;
-            }
-
-            filtroFecha.value = fecha;
-            if (bitacoraFechaBase) {
-                bitacoraFechaBase.value = fecha;
-            }
-            openDayDetailModal(fecha, groupedByDateCache[fecha] ?? []);
-            refreshCalendar();
-            refreshBitacora();
-        };
-
-        const renderGraphicCalendarFallback = () => {
-            if (!calendarioGraficoContainer || calendarioGrafico) {
-                return;
-            }
-
-            calendarioGraficoContainer.innerHTML = `
-                <div class="alert alert-light border mb-0">
-                    <div class="fw-semibold mb-1">Calendario gráfico no disponible</div>
-                    <div class="small text-muted">
-                        No fue posible cargar el selector visual. Usa el calendario mensual de arriba para elegir un día.
-                    </div>
-                </div>
-            `;
-        };
-
-        const initGraphicCalendar = () => {
-            if (!calendarioGraficoContainer || typeof window.flatpickr !== 'function') {
-                renderGraphicCalendarFallback();
-                return;
-            }
-
-            calendarioGraficoContainer.innerHTML = '<input type="text" id="ocupacion-calendario-grafico-input" class="form-control" aria-label="Seleccionar fecha del calendario visual">';
-            const calendarInput = document.getElementById('ocupacion-calendario-grafico-input');
-
-            if (!calendarInput) {
-                renderGraphicCalendarFallback();
-                return;
-            }
-
-            calendarioGrafico = window.flatpickr(calendarInput, {
-                locale: {
-                    firstDayOfWeek: 1,
-                    weekdays: {
-                        shorthand: ['D', 'L', 'M', 'X', 'J', 'V', 'S'],
-                        longhand: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
-                    },
-                    months: {
-                        shorthand: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
-                        longhand: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
-                    },
-                },
-                inline: true,
-                dateFormat: 'Y-m-d',
-                disableMobile: true,
-                defaultDate: filtroFecha?.value || @json($fechaFiltro),
-                onChange: (selectedDates, dateStr) => {
-                    syncFromGraphicCalendar(dateStr);
-                },
-            });
         };
 
         const dateISO = (date) => {
@@ -869,9 +798,6 @@
                     return carry;
                 }, {});
 
-                if (calendarioGrafico && calendarioGrafico.selectedDates[0]?.toISOString().slice(0, 10) !== selectedDate) {
-                    calendarioGrafico.setDate(selectedDate, false);
-                }
                 groupedByDateCache = groupedByDate;
 
                 renderYearCalendars(yearValue, groupedByDate);
@@ -1021,8 +947,6 @@
             diaSemanaSelect.dataset.userSelected = diaSemanaSelect.value ? 'true' : 'false';
         });
         toggleRepeatConfig();
-        initGraphicCalendar();
-
         calendarioContainer?.addEventListener('click', (event) => {
             const button = event.target.closest('[data-calendar-day]');
             if (!button) {
@@ -1042,6 +966,7 @@
             if (bitacoraFechaBase) {
                 bitacoraFechaBase.value = filtroFecha.value;
             }
+            openDayDetailModal(filtroFecha.value, groupedByDateCache[filtroFecha.value] ?? []);
             refreshCalendar();
             refreshBitacora();
         });
