@@ -451,8 +451,24 @@
             refreshBitacora();
         };
 
+        const renderGraphicCalendarFallback = () => {
+            if (!calendarioGraficoContainer || calendarioGrafico) {
+                return;
+            }
+
+            calendarioGraficoContainer.innerHTML = `
+                <div class="alert alert-light border mb-0">
+                    <div class="fw-semibold mb-1">Calendario gráfico no disponible</div>
+                    <div class="small text-muted">
+                        No fue posible cargar el selector visual. Usa el calendario mensual de arriba para elegir un día.
+                    </div>
+                </div>
+            `;
+        };
+
         const initGraphicCalendar = () => {
             if (!calendarioGraficoContainer || typeof window.flatpickr !== 'function') {
+                renderGraphicCalendarFallback();
                 return;
             }
 
@@ -782,6 +798,13 @@
             try {
                 const monthValue = filtroFecha.value.slice(0, 7);
                 const bounds = monthBounds(monthValue);
+                const selectedDate = filtroFecha.value?.startsWith(monthValue)
+                    ? filtroFecha.value
+                    : bounds.startISO;
+                filtroFecha.value = selectedDate;
+                formatSelectedDateLabel(selectedDate);
+                renderMonthCalendar(monthValue, {});
+                renderDayDetail([]);
                 const params = new URLSearchParams({
                     fecha_inicio: bounds.startISO,
                     fecha_fin: bounds.endISO,
@@ -804,11 +827,6 @@
                     return carry;
                 }, {});
 
-                const selectedDate = filtroFecha.value?.startsWith(monthValue)
-                    ? filtroFecha.value
-                    : bounds.startISO;
-                filtroFecha.value = selectedDate;
-                formatSelectedDateLabel(selectedDate);
                 if (calendarioGrafico && calendarioGrafico.selectedDates[0]?.toISOString().slice(0, 10) !== selectedDate) {
                     calendarioGrafico.setDate(selectedDate, false);
                 }
@@ -818,6 +836,7 @@
                 renderDayDetail(groupedByDate[selectedDate] ?? []);
             } catch (error) {
                 console.error(error);
+                showAlert('No fue posible cargar las reservas del calendario. Mostrando vista base sin registros.');
             }
         };
 
@@ -859,6 +878,7 @@
             }
 
             try {
+                renderBitacoraGrid([]);
                 const params = new URLSearchParams({
                     fecha_inicio: bounds.startISO,
                     fecha_fin: bounds.endISO,
@@ -871,6 +891,7 @@
                 renderBitacoraGrid(data.reservas ?? []);
             } catch (error) {
                 console.error(error);
+                showAlert('No fue posible cargar la bitácora dinámica. Se muestra una vista vacía.');
             }
         };
 
