@@ -14,6 +14,50 @@
         $canManageBitacora = $isAdmin;
     @endphp
 
+    @push('styles')
+        <style>
+            #ocupacion-calendario-grafico .flatpickr-calendar {
+                width: 320px;
+                max-width: 100%;
+                margin: 0 auto;
+                border: 1px solid #d9dee8;
+                border-radius: 12px;
+                box-shadow: none;
+            }
+
+            #ocupacion-calendario-grafico .flatpickr-months {
+                background: #0d6efd;
+                border-radius: 12px 12px 0 0;
+            }
+
+            #ocupacion-calendario-grafico .flatpickr-current-month,
+            #ocupacion-calendario-grafico .flatpickr-monthDropdown-months,
+            #ocupacion-calendario-grafico .flatpickr-current-month input.cur-year,
+            #ocupacion-calendario-grafico .flatpickr-prev-month,
+            #ocupacion-calendario-grafico .flatpickr-next-month {
+                color: #fff;
+                fill: #fff;
+            }
+
+            #ocupacion-calendario-grafico .flatpickr-weekdays {
+                background: #f8fafc;
+            }
+
+            #ocupacion-calendario-grafico .flatpickr-weekday {
+                color: #6b7280;
+                font-weight: 600;
+                text-transform: uppercase;
+            }
+
+            #ocupacion-calendario-grafico .flatpickr-day.selected,
+            #ocupacion-calendario-grafico .flatpickr-day.startRange,
+            #ocupacion-calendario-grafico .flatpickr-day.endRange {
+                background: #0d6efd;
+                border-color: #0d6efd;
+            }
+        </style>
+    @endpush
+
     @if (session('status'))
         <div class="alert alert-success">{{ session('status') }}</div>
     @endif
@@ -372,9 +416,20 @@
             }
 
             calendarioGrafico = window.flatpickr(calendarioGraficoContainer, {
-                locale: 'es',
+                locale: {
+                    firstDayOfWeek: 1,
+                    weekdays: {
+                        shorthand: ['D', 'L', 'M', 'X', 'J', 'V', 'S'],
+                        longhand: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
+                    },
+                    months: {
+                        shorthand: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+                        longhand: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+                    },
+                },
                 inline: true,
                 dateFormat: 'Y-m-d',
+                disableMobile: true,
                 defaultDate: filtroFecha?.value || @json($fechaFiltro),
                 onChange: (selectedDates, dateStr) => {
                     syncFromGraphicCalendar(dateStr);
