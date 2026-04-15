@@ -158,6 +158,7 @@
             <div id="ocupacion-dia-detalle" class="row g-3">
                 <div class="col-12">
                     <div class="alert alert-light border mb-0">
+                        <div id="ocupacion-calendario-grafico" class="mb-3"></div>
                         Selecciona un día en el calendario para ver los registros y disponibilidad del consultorio.
                     </div>
                 </div>
@@ -309,6 +310,7 @@
         const filtroFecha = document.getElementById('ocupacion-fecha');
         const filtroConsultorio = document.getElementById('ocupacion-consultorio');
         const calendarioContainer = document.getElementById('ocupacion-calendario');
+        const calendarioGraficoContainer = document.getElementById('ocupacion-calendario-grafico');
         const diaSeleccionadoLabel = document.getElementById('ocupacion-dia-seleccionado');
         const detalleDiaContainer = document.getElementById('ocupacion-dia-detalle');
         const bitacoraFechaBase = document.getElementById('bitacora-fecha-base');
@@ -391,6 +393,38 @@
             }).join('');
 
             detalleDiaContainer.innerHTML = rows;
+        };
+
+        let calendarioGrafico = null;
+        const syncFromGraphicCalendar = (fecha) => {
+            if (!fecha || !filtroFecha) {
+                return;
+            }
+
+            filtroFecha.value = fecha;
+            diaSeleccionadoLabel.textContent = fecha;
+            if (bitacoraFechaBase) {
+                bitacoraFechaBase.value = fecha;
+            }
+            renderDayDetail(groupedByDateCache[fecha] ?? []);
+            refreshCalendar();
+            refreshBitacora();
+        };
+
+        const initGraphicCalendar = () => {
+            if (!calendarioGraficoContainer || typeof window.flatpickr !== 'function') {
+                return;
+            }
+
+            calendarioGrafico = window.flatpickr(calendarioGraficoContainer, {
+                locale: 'es',
+                inline: true,
+                dateFormat: 'Y-m-d',
+                defaultDate: filtroFecha?.value || @json($fechaFiltro),
+                onChange: (selectedDates, dateStr) => {
+                    syncFromGraphicCalendar(dateStr);
+                },
+            });
         };
 
         const dateISO = (date) => {
@@ -721,6 +755,9 @@
                     : bounds.startISO;
                 filtroFecha.value = selectedDate;
                 diaSeleccionadoLabel.textContent = selectedDate;
+                if (calendarioGrafico && calendarioGrafico.selectedDates[0]?.toISOString().slice(0, 10) !== selectedDate) {
+                    calendarioGrafico.setDate(selectedDate, false);
+                }
                 groupedByDateCache = groupedByDate;
 
                 renderMonthCalendar(monthValue, groupedByDate);
@@ -867,6 +904,7 @@
             diaSemanaSelect.dataset.userSelected = diaSemanaSelect.value ? 'true' : 'false';
         });
         toggleRepeatConfig();
+        initGraphicCalendar();
 
         calendarioContainer?.addEventListener('click', (event) => {
             const button = event.target.closest('[data-calendar-day]');
