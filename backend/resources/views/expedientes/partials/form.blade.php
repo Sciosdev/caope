@@ -182,7 +182,7 @@
             </div>
 
             <div class="col-md-4">
-                <label for="coordinador_id" class="form-label">Estratega</label>
+                <label for="coordinador_id" class="form-label">Coordinador</label>
                 <select
                     name="coordinador_id"
                     id="coordinador_id"
