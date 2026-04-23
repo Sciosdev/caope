@@ -111,7 +111,7 @@
                 </div>
 
                 <div class="col-md-4">
-                    <label class="form-label">Usuario atendido</label>
+                    <label class="form-label">Facilitador</label>
                     <select name="usuario_atendido_id" class="form-select">
                         <option value="">--</option>
                         @foreach ($usuarios as $usuario)

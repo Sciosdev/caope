@@ -787,7 +787,7 @@
                 </div>
 
                 <div class="col-md-4">
-                    <label class="form-label">Usuario atendido</label>
+                    <label class="form-label">Facilitador</label>
                     <select class="form-select" id="expediente-asignacion-usuario-atendido">
                         <option value="">--</option>
                         @foreach ($usuariosActivos as $usuario)
