@@ -428,7 +428,7 @@
                                 <th>Cubículo</th>
                                 <th>Estrategia</th>
                                 <th>Estratega</th>
-                                <th>Usuario</th>
+                                <th>Facilitador</th>
                             </tr>
                         </thead>
                         <tbody>${detailRows}</tbody>
@@ -715,7 +715,7 @@
                                         <th>Consultorio / Cubículo</th>
                                         <th>Estrategia</th>
                                         <th>Estratega</th>
-                                        <th>Usuario</th>
+                                        <th>Facilitador</th>
                                     </tr>
                                 </thead>
                                 <tbody>${rows}</tbody>
