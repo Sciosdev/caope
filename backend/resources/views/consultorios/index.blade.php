@@ -223,7 +223,7 @@
                         <th>Cubículo</th>
                         <th>Estrategia</th>
                         <th>Estratega</th>
-                        <th>Usuario (capturó)</th>
+                        <th>Facilitador</th>
                         @if($canManageBitacora || $isPapsAprobado)<th>Acción realizada</th>@endif
                     </tr>
                 </thead>
