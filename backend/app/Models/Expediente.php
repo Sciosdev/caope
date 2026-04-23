@@ -77,7 +77,7 @@ class Expediente extends Model
         'digestivo' => 'Historia Psicosocial y del Desarrollo',
         'respiratorio' => 'Evaluación Psicológica (Estado Mental Actual)',
         'cardiovascular' => 'Evaluación Psicológica Observaciones Clínicas Relevantes',
-        'musculo_esqueletico' => 'Neurologico',
+        'musculo_esqueletico' => 'Neurológico',
         'genito_urinario' => 'Familiograma',
         'linfohematatico' => 'Otro Referente',
         'endocrino' => 'Endócrino',
