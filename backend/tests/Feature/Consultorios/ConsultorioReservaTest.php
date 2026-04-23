@@ -254,7 +254,7 @@ class ConsultorioReservaTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertSee('Usuario (capturó)')
+            ->assertSee('Facilitador')
             ->assertSee('Usuario PAPS')
             ->assertSee('Alta automática (asignación de cubículo desde expediente)')
             ->assertSee('Solicitar edición')
