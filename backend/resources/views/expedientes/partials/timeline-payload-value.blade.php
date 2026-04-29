@@ -39,7 +39,7 @@
         'apertura',
         'estado',
         'turno',
-        'dsm_tr',
+        'posibles_diagnósticos',
         'genero',
         'carrera',
         'clinica',
