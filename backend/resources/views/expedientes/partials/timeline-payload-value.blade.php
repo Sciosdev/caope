@@ -57,6 +57,7 @@
         'no_control' => 'Número de control',
         'paciente' => 'Consultante',
         'apertura' => 'Fecha de apertura',
+        'dsm_tr' => 'Posibles diagnósticos',
     ];
 
     $decodeJsonScalar = static function (mixed $value): mixed {
