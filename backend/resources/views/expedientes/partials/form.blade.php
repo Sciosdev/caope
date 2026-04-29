@@ -307,7 +307,7 @@
         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
             <div>
                 <p class="text-muted text-uppercase small mb-1">Identidad</p>
-                <h6 class="mb-0">Datos del paciente</h6>
+                <h6 class="mb-0">Datos del Consultante</h6>
             </div>
         </div>
 
