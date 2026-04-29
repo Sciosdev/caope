@@ -8,8 +8,13 @@
             return 'Sección '.((int) $key + 1);
         }
 
-        if (isset($timelineSectionCustomLabels[(string) $key])) {
-            return $timelineSectionCustomLabels[(string) $key];
+        $normalizedKey = \Illuminate\Support\Str::of((string) $key)
+            ->replace([' ', '.', '-'], '_')
+            ->lower()
+            ->toString();
+
+        if (isset($timelineSectionCustomLabels[$normalizedKey])) {
+            return $timelineSectionCustomLabels[$normalizedKey];
         }
 
         return \Illuminate\Support\Str::of((string) $key)
