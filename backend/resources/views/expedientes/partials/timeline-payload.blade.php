@@ -1,7 +1,15 @@
 @php
-    $formatTimelineSectionLabel = static function (string|int $key): string {
+    $timelineSectionCustomLabels = [
+        'dsm_tr' => 'Posibles Diagnósticos',
+    ];
+
+    $formatTimelineSectionLabel = static function (string|int $key) use ($timelineSectionCustomLabels): string {
         if (is_int($key) || ctype_digit((string) $key)) {
             return 'Sección '.((int) $key + 1);
+        }
+
+        if (isset($timelineSectionCustomLabels[(string) $key])) {
+            return $timelineSectionCustomLabels[(string) $key];
         }
 
         return \Illuminate\Support\Str::of((string) $key)
