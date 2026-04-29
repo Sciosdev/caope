@@ -4,8 +4,13 @@
             return 'Elemento '.((int) $key + 1);
         }
 
-        if (isset($timelineCustomLabels[(string) $key])) {
-            return $timelineCustomLabels[(string) $key];
+        $normalizedKey = \Illuminate\Support\Str::of((string) $key)
+            ->replace([' ', '.', '-'], '_')
+            ->lower()
+            ->toString();
+
+        if (isset($timelineCustomLabels[$normalizedKey])) {
+            return $timelineCustomLabels[$normalizedKey];
         }
 
         return \Illuminate\Support\Str::of((string) $key)
