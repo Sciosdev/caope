@@ -4,6 +4,10 @@
             return 'Elemento '.((int) $key + 1);
         }
 
+        if (isset($timelineCustomLabels[(string) $key])) {
+            return $timelineCustomLabels[(string) $key];
+        }
+
         return \Illuminate\Support\Str::of((string) $key)
             ->replace(['_', '.'], ' ')
             ->squish()
@@ -22,6 +26,38 @@
 
         return (string) $value;
     };
+
+
+    $preferredTimelineOrder = [
+        'no_control',
+        'paciente',
+        'apertura',
+        'estado',
+        'turno',
+        'dsm_tr',
+        'genero',
+        'carrera',
+        'clinica',
+        'colonia',
+        'entidad',
+        'tutor_id',
+        'ocupacion',
+        'diagnostico',
+        'escolaridad',
+        'plan_accion',
+        'estado_civil',
+        'alerta_ingreso',
+        'coordinador_id',
+        'domicilio_calle',
+        'motivo_consulta',
+        'resumen_clinico',
+    ];
+
+    $timelineCustomLabels = [
+        'no_control' => 'Número de control',
+        'paciente' => 'Consultante',
+        'apertura' => 'Fecha de apertura',
+    ];
 
     $decodeJsonScalar = static function (mixed $value): mixed {
         if (! is_string($value)) {
@@ -58,6 +94,23 @@
             @endforeach
         </ul>
     @else
+        @php
+            $orderMap = array_flip($preferredTimelineOrder);
+
+            uksort($value, static function ($left, $right) use ($orderMap): int {
+                $leftKey = (string) $left;
+                $rightKey = (string) $right;
+
+                $leftIndex = $orderMap[$leftKey] ?? PHP_INT_MAX;
+                $rightIndex = $orderMap[$rightKey] ?? PHP_INT_MAX;
+
+                if ($leftIndex === $rightIndex) {
+                    return strnatcasecmp($leftKey, $rightKey);
+                }
+
+                return $leftIndex <=> $rightIndex;
+            });
+        @endphp
         <dl class="timeline-payload-dl row mb-0 g-1">
             @foreach ($value as $childKey => $childValue)
                 <dt class="col-sm-4 text-muted mb-0">{{ $formatTimelineLabel($childKey) }}</dt>
