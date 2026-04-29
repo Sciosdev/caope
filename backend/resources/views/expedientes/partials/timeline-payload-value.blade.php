@@ -1,5 +1,12 @@
 @php
-    $formatTimelineLabel = static function (string|int $key): string {
+    $timelineCustomLabels = [
+        'no_control' => 'Número de control',
+        'paciente' => 'Consultante',
+        'apertura' => 'Fecha de apertura',
+        'dsm_tr' => 'Posibles Diagnósticos',
+    ];
+
+    $formatTimelineLabel = static function (string|int $key) use ($timelineCustomLabels): string {
         if (is_int($key) || ctype_digit((string) $key)) {
             return 'Elemento '.((int) $key + 1);
         }
@@ -56,13 +63,6 @@
         'domicilio_calle',
         'motivo_consulta',
         'resumen_clinico',
-    ];
-
-    $timelineCustomLabels = [
-        'no_control' => 'Número de control',
-        'paciente' => 'Consultante',
-        'apertura' => 'Fecha de apertura',
-        'dsm_tr' => 'Posibles Diagnósticos',
     ];
 
     $decodeJsonScalar = static function (mixed $value): mixed {
