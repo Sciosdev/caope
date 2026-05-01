@@ -100,7 +100,7 @@
                                     </a>
                                 </li>
                             @endif
-                            @if (($currentUser?->hasAnyRole(['admin', 'coordinador', 'alumno']) ?? false) || $isApprovedPaps)
+                            @if (($currentUser?->hasAnyRole(['admin', 'coordinador', 'alumno', 'docente']) ?? false) || $isApprovedPaps)
                                 <li class="nav-item">
                                     <a class="nav-link {{ request()->routeIs('consultorios.*') ? 'active fw-semibold' : '' }}" href="{{ route('consultorios.index') }}">
                                         {{ __('Consultorios') }}

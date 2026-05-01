@@ -33,7 +33,7 @@
                             {{ __('Expedientes') }}
                         </x-nav-link>
                     @endif
-                    @if (($currentUser?->hasAnyRole(['admin', 'coordinador', 'alumno']) ?? false) || $isApprovedPaps)
+                    @if (($currentUser?->hasAnyRole(['admin', 'coordinador', 'alumno', 'docente']) ?? false) || $isApprovedPaps)
                         <x-nav-link :href="route('consultorios.index')" :active="request()->routeIs('consultorios.*')">
                             {{ __('Consultorios') }}
                         </x-nav-link>
@@ -115,7 +115,7 @@
                     {{ __('Expedientes') }}
                 </x-responsive-nav-link>
             @endif
-            @if (($currentUser?->hasAnyRole(['admin', 'coordinador', 'alumno']) ?? false) || $isApprovedPaps)
+            @if (($currentUser?->hasAnyRole(['admin', 'coordinador', 'alumno', 'docente']) ?? false) || $isApprovedPaps)
                 <x-responsive-nav-link :href="route('consultorios.index')" :active="request()->routeIs('consultorios.*')">
                     {{ __('Consultorios') }}
                 </x-responsive-nav-link>
