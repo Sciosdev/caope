@@ -73,7 +73,7 @@ class ConsultorioReservaController extends Controller
             return false;
         }
 
-        return $user->hasAnyRole(['admin', 'coordinador', 'alumno'])
+        return $user->hasAnyRole(['admin', 'coordinador', 'alumno', 'docente'])
             || ($user->hasRole('paps') && ! is_null($user->approved_at));
     }
 

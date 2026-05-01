@@ -80,7 +80,7 @@ Route::middleware(['auth', 'active_user'])->group(function () {
         Route::post('solicitudes/{solicitud}/aprobar', [ConsultorioSolicitudController::class, 'approve'])->name('approve');
     });
 
-    Route::prefix('consultorios')->name('consultorios.')->middleware('role:admin|coordinador|alumno|paps')->group(function (): void {
+    Route::prefix('consultorios')->name('consultorios.')->middleware('role:admin|coordinador|alumno|docente|paps')->group(function (): void {
         Route::get('/', [ConsultorioReservaController::class, 'index'])->name('index');
         Route::get('/availability', [ConsultorioReservaController::class, 'availability'])->name('availability');
         Route::get('/export/xlsx', [ConsultorioReservaController::class, 'export'])->name('export');
@@ -96,7 +96,7 @@ Route::middleware(['auth', 'active_user'])->group(function () {
         });
     });
 
-    Route::middleware('role:admin|coordinador|paps')->group(function (): void {
+    Route::middleware('role:admin|coordinador|docente|paps')->group(function (): void {
         Route::get('reportes/expedientes', [ReporteExpedienteController::class, 'index'])->name('reportes.index');
         Route::get('reportes/expedientes/download', [ReporteExpedienteController::class, 'downloadDirect'])->name('reportes.expedientes.download-direct');
         Route::post('reportes/expedientes/export', [ReporteExpedienteController::class, 'export'])->name('reportes.expedientes.export');
