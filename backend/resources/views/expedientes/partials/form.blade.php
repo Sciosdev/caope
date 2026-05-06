@@ -768,10 +768,10 @@
                 </div>
 
                 <div class="col-md-2">
-                    <label class="form-label">Consultorio</label>
+                    <label class="form-label">Cubículo</label>
                     <select class="form-select" id="expediente-asignacion-cubiculo" required>
                         @foreach ($cubiculosActivos as $cubiculo)
-                            <option value="{{ $cubiculo->numero }}">Consultorio {{ $cubiculo->numero }}</option>
+                            <option value="{{ $cubiculo->numero }}">Cubículo {{ $cubiculo->numero }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -1024,7 +1024,7 @@
                         const overlap = findOverlap(data.reservas ?? [], startInput.value, endInput.value, cubiculoInput.value);
 
                         if (overlap) {
-                            showAssignmentAlert(`⚠️ El Consultorio ${consultorioInput.value}, Consultorio ${cubiculoInput.value} ya está ocupado de ${String(overlap.hora_inicio).slice(0, 5)} a ${String(overlap.hora_fin).slice(0, 5)}.`);
+                            showAssignmentAlert(`⚠️ El Consultorio ${consultorioInput.value}, Cubículo ${cubiculoInput.value} ya está ocupado de ${String(overlap.hora_inicio).slice(0, 5)} a ${String(overlap.hora_fin).slice(0, 5)}.`);
                             return false;
                         }
                     } catch (error) {
