@@ -217,7 +217,11 @@
 
         <div class="page-wrapper">
             <div class="page-content container py-4">
-                {{ $slot }}
+                @isset($slot)
+                    {{ $slot }}
+                @else
+                    @yield('content')
+                @endisset
             </div>
         </div>
     </div>
