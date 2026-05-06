@@ -126,7 +126,6 @@
                   <li><a class="dropdown-item" href="{{ route('admin.users.index') }}">Usuarios</a></li>
                   <li><a class="dropdown-item" href="{{ route('admin.catalogos.carreras.index') }}">Carreras</a></li>
                   <li><a class="dropdown-item" href="{{ route('admin.catalogos.consultorios.index') }}">Consultorios</a></li>
-                  <li><a class="dropdown-item" href="{{ route('admin.catalogos.cubiculos.index') }}">Cubículos</a></li>
                   <li><a class="dropdown-item" href="{{ route('admin.catalogos.estrategias.index') }}">Estrategias</a></li>
                   @if (($currentUser?->hasRole('admin') ?? false) || $isApprovedPaps)
                     <li><hr class="dropdown-divider"></li>

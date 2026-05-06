@@ -13,9 +13,9 @@ class CatalogoCubiculoController extends CatalogoController
 
     protected string $routePrefix = 'admin.catalogos.cubiculos';
 
-    protected string $resourceName = 'Cubículo';
+    protected string $resourceName = 'Consultorio';
 
-    protected string $resourceNamePlural = 'Cubículos';
+    protected string $resourceNamePlural = 'Consultorios';
 
     protected function validatedData(Request $request, ?Model $item = null): array
     {
