@@ -767,14 +767,6 @@
                     </select>
                 </div>
 
-                <div class="col-md-2">
-                    <label class="form-label">Cubículo</label>
-                    <select class="form-select" id="expediente-asignacion-cubiculo" required>
-                        @foreach ($cubiculosActivos as $cubiculo)
-                            <option value="{{ $cubiculo->numero }}">Cubículo {{ $cubiculo->numero }}</option>
-                        @endforeach
-                    </select>
-                </div>
 
                 <div class="col-md-4">
                     <label class="form-label">Estrategia</label>
@@ -923,7 +915,7 @@
                 const startInput = document.getElementById('expediente-asignacion-hora-inicio');
                 const endInput = document.getElementById('expediente-asignacion-hora-fin');
                 const consultorioInput = document.getElementById('expediente-asignacion-consultorio');
-                const cubiculoInput = document.getElementById('expediente-asignacion-cubiculo');
+                const cubiculoInput = consultorioInput;
                 const estrategiaInput = document.getElementById('expediente-asignacion-estrategia');
                 const usuarioAtendidoInput = document.getElementById('expediente-asignacion-usuario-atendido');
                 const estrategaInput = document.getElementById('expediente-asignacion-estratega');
@@ -1050,12 +1042,10 @@
                 startInput?.addEventListener('change', checkAvailability);
                 endInput?.addEventListener('change', checkAvailability);
                 consultorioInput?.addEventListener('change', checkAvailability);
-                cubiculoInput?.addEventListener('change', checkAvailability);
                 dateInput?.addEventListener('change', syncHiddenAssignmentFields);
                 startInput?.addEventListener('change', syncHiddenAssignmentFields);
                 endInput?.addEventListener('change', syncHiddenAssignmentFields);
                 consultorioInput?.addEventListener('change', syncHiddenAssignmentFields);
-                cubiculoInput?.addEventListener('change', syncHiddenAssignmentFields);
                 estrategiaInput?.addEventListener('change', syncHiddenAssignmentFields);
                 usuarioAtendidoInput?.addEventListener('change', syncHiddenAssignmentFields);
                 estrategaInput?.addEventListener('change', syncHiddenAssignmentFields);
