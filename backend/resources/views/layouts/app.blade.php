@@ -72,6 +72,13 @@
                     ->when(! ($currentUser?->hasRole('admin') ?? false), fn ($query) => $query->where('requested_by', $currentUser?->id))
                     ->count()
                 : 0;
+            $pendingDocumentoSolicitudesCount = (($currentUser?->hasRole('admin') ?? false) || $isApprovedPaps)
+                && \Illuminate\Support\Facades\Schema::hasTable('documentos_administrativos')
+                ? \App\Models\DocumentoAdministrativo::query()
+                    ->whereNull('aprobado_en')
+                    ->count()
+                : 0;
+            $pendingHerramientasCount = $pendingConsultorioSolicitudesCount + $pendingDocumentoSolicitudesCount;
         @endphp
 
         <nav class="navbar navbar-expand-lg navbar-light bg-body border-bottom">
@@ -135,8 +142,8 @@
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle {{ request()->routeIs('admin.users.*') || request()->routeIs('admin.catalogos.*') || request()->routeIs('admin.parametros.*') || request()->routeIs('admin.consultorios.solicitudes.*') || request()->routeIs('admin.documentos.*') ? 'active fw-semibold' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         {{ __('Administración') }}
-                                        @if ($pendingConsultorioSolicitudesCount > 0)
-                                            <span class="badge rounded-pill bg-danger ms-1">{{ $pendingConsultorioSolicitudesCount }}</span>
+                                        @if ($pendingHerramientasCount > 0)
+                                            <span class="badge rounded-pill bg-danger ms-1">{{ $pendingHerramientasCount }}</span>
                                         @endif
                                     </a>
                                     <ul class="dropdown-menu">
@@ -147,6 +154,14 @@
                                         <li><a class="dropdown-item" href="{{ route('admin.documentos.index') }}">Documentos</a></li>
                                         @if (($currentUser?->hasRole('admin') ?? false) || $isApprovedPaps)
                                             <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <a class="dropdown-item d-flex justify-content-between align-items-center" href="{{ route('admin.documentos.index') }}">
+                                                    <span>Herramientas · Solicitudes documentos</span>
+                                                    @if ($pendingDocumentoSolicitudesCount > 0)
+                                                        <span class="badge rounded-pill bg-danger">{{ $pendingDocumentoSolicitudesCount }}</span>
+                                                    @endif
+                                                </a>
+                                            </li>
                                             <li>
                                                 <a class="dropdown-item d-flex justify-content-between align-items-center" href="{{ route('admin.consultorios.solicitudes.index') }}">
                                                     <span>Herramientas · Solicitudes consultorios</span>
