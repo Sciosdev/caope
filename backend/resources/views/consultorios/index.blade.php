@@ -93,14 +93,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label">Consultorio</label>
-                    <select name="cubiculo_numero" class="form-select" id="asignacion-cubiculo" required>
-                        @foreach ($cubiculosActivos as $cubiculo)
-                            <option value="{{ $cubiculo->numero }}" @selected((int) old('cubiculo_numero', (int) ($cubiculosActivos->first()->numero ?? 1)) === (int) $cubiculo->numero)>Consultorio {{ $cubiculo->numero }}</option>
-                        @endforeach
-                    </select>
-                </div>
+                <input type="hidden" name="cubiculo_numero" id="asignacion-cubiculo" value="{{ (int) old('cubiculo_numero', (int) ($cubiculosActivos->first()->numero ?? 1)) }}" required>
                 <div class="col-md-4">
                     <label class="form-label">Estrategia</label>
                     <select name="estrategia" class="form-select" required>
