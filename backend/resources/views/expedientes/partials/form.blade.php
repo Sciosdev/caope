@@ -771,7 +771,7 @@
                     <label class="form-label">Consultorio</label>
                     <select class="form-select" id="expediente-asignacion-cubiculo" required>
                         @foreach ($cubiculosActivos as $cubiculo)
-                            <option value="{{ $cubiculo->numero }}">{{ $cubiculo->nombre }}</option>
+                            <option value="{{ $cubiculo->numero }}">Consultorio {{ $cubiculo->numero }}</option>
                         @endforeach
                     </select>
                 </div>
