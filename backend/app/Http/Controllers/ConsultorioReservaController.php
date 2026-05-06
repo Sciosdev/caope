@@ -77,6 +77,33 @@ class ConsultorioReservaController extends Controller
             || ($user->hasRole('paps') && ! is_null($user->approved_at));
     }
 
+    private function applyAssignedReservationsVisibilityFilter(Request $request, Builder $query): Builder
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return $query;
+        }
+
+        if ($user->hasAnyRole(['admin', 'paps'])) {
+            return $query;
+        }
+
+        if (! $user->hasAnyRole(['coordinador', 'docente', 'alumno'])) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        $userId = $user->id;
+
+        return $query->where(function (Builder $assigned) use ($userId): void {
+            $assigned
+                ->where('usuario_atendido_id', $userId)
+                ->orWhere('estratega_id', $userId)
+                ->orWhere('supervisor_id', $userId)
+                ->orWhere('creado_por', $userId);
+        });
+    }
+
     public function index(Request $request): View
     {
         abort_unless($this->canAccessConsultorios($request), 403);
@@ -107,7 +134,9 @@ class ConsultorioReservaController extends Controller
             ->orderBy('cubiculo_numero')
             ->orderBy('hora_inicio');
 
-        $reservas = $this->applyPendingApprovalVisibilityFilter($reservasQuery)
+        $reservas = $this->applyPendingApprovalVisibilityFilter(
+            $this->applyAssignedReservationsVisibilityFilter($request, $reservasQuery)
+        )
             ->paginate(25)
             ->withQueryString();
 
@@ -119,7 +148,9 @@ class ConsultorioReservaController extends Controller
             ->orderBy('cubiculo_numero')
             ->orderBy('hora_inicio');
 
-        $ocupacionPorCubiculo = $this->applyPendingApprovalVisibilityFilter($ocupacionQuery)
+        $ocupacionPorCubiculo = $this->applyPendingApprovalVisibilityFilter(
+            $this->applyAssignedReservationsVisibilityFilter($request, $ocupacionQuery)
+        )
             ->get()
             ->groupBy('cubiculo_numero');
 
@@ -170,7 +201,9 @@ class ConsultorioReservaController extends Controller
             ->orderBy('fecha')
             ->orderBy('hora_inicio');
 
-        $reservas = $this->applyPendingApprovalVisibilityFilter($reservasQuery)
+        $reservas = $this->applyPendingApprovalVisibilityFilter(
+            $this->applyAssignedReservationsVisibilityFilter($request, $reservasQuery)
+        )
             ->get(['fecha', 'consultorio_numero', 'cubiculo_numero', 'hora_inicio', 'hora_fin', 'estrategia', 'usuario_atendido_id', 'estratega_id'])
             ->map(fn (ConsultorioReserva $reserva) => [
                 'fecha' => $reserva->fecha?->toDateString(),
