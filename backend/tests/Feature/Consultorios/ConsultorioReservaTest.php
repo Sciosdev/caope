@@ -223,6 +223,51 @@ class ConsultorioReservaTest extends TestCase
             ->assertJsonPath('reservas.0.estrategia', 'Terapia individual');
     }
 
+    public function test_coordinador_solo_ve_reservas_asignadas_en_calendario(): void
+    {
+        Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $coordinadorRole = Role::query()->firstOrCreate(['name' => 'coordinador', 'guard_name' => 'web']);
+
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $coordinador = User::factory()->create();
+        $coordinador->assignRole($coordinadorRole);
+
+        $fecha = now()->addDay()->toDateString();
+
+        ConsultorioReserva::query()->create([
+            'fecha' => $fecha,
+            'hora_inicio' => '08:00',
+            'hora_fin' => '09:00',
+            'consultorio_numero' => 5,
+            'cubiculo_numero' => 1,
+            'estrategia' => 'Asignada al coordinador',
+            'supervisor_id' => $coordinador->id,
+            'creado_por' => $admin->id,
+        ]);
+
+        ConsultorioReserva::query()->create([
+            'fecha' => $fecha,
+            'hora_inicio' => '09:00',
+            'hora_fin' => '10:00',
+            'consultorio_numero' => 5,
+            'cubiculo_numero' => 2,
+            'estrategia' => 'No asignada',
+            'creado_por' => $admin->id,
+        ]);
+
+        $response = $this->actingAs($coordinador)->getJson(route('consultorios.availability', [
+            'fecha' => $fecha,
+            'consultorio_numero' => 5,
+        ]));
+
+        $response
+            ->assertOk()
+            ->assertJsonCount(1, 'reservas')
+            ->assertJsonPath('reservas.0.estrategia', 'Asignada al coordinador');
+    }
+
 
 
 
