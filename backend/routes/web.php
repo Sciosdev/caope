@@ -86,6 +86,8 @@ Route::middleware(['auth', 'active_user'])->group(function () {
         Route::get('{documento}/download', [DocumentoAdministrativoController::class, 'download'])->name('download');
         Route::middleware('role:admin|paps')->group(function (): void {
             Route::post('/', [DocumentoAdministrativoController::class, 'store'])->name('store');
+            Route::put('{documento}', [DocumentoAdministrativoController::class, 'update'])->middleware('role:admin')->name('update');
+            Route::delete('{documento}', [DocumentoAdministrativoController::class, 'destroy'])->middleware('role:admin')->name('destroy');
             Route::post('{documento}/approve', [DocumentoAdministrativoController::class, 'approve'])->middleware('role:admin')->name('approve');
         });
     });
