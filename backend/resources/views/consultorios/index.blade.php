@@ -564,7 +564,10 @@
                     const isCurrentMonth = current.getMonth() === start.getMonth();
                     const dayOfWeek = current.getDay();
                     const isBusinessDay = dayOfWeek >= 1 && dayOfWeek <= 5;
-                    const dayClass = isBusinessDay ? 'bg-success-subtle' : 'bg-danger-subtle';
+                    const hasRecords = items.length > 0;
+                    const dayClass = hasRecords
+                        ? (isBusinessDay ? 'bg-success-subtle' : 'bg-danger-subtle')
+                        : 'bg-light';
                     const mutedClass = isCurrentMonth ? '' : 'text-muted opacity-50';
                     const selectionStyle = isSelected ? ' style="box-shadow: inset 0 0 0 2px #212529;"' : '';
                     const reservationsLabel = items.length ? `${items.length} reserva(s)` : 'Sin reservas';
@@ -616,12 +619,16 @@
                 </div>
                 <div class="d-flex flex-wrap gap-3 mt-3 small">
                     <div class="d-flex align-items-center gap-2">
+                        <span class="rounded border bg-light" style="width: 1rem; height: 1rem;"></span>
+                        <span>Sin registros</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
                         <span class="rounded border bg-success-subtle" style="width: 1rem; height: 1rem;"></span>
-                        <span>Día hábil</span>
+                        <span>Día hábil con registros</span>
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         <span class="rounded border bg-danger-subtle" style="width: 1rem; height: 1rem;"></span>
-                        <span>Día no hábil</span>
+                        <span>Día no hábil con registros</span>
                     </div>
                 </div>
             `;
