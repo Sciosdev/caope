@@ -89,7 +89,11 @@ class ConsultorioReservaController extends Controller
             return $query;
         }
 
-        if (! $user->hasAnyRole(['coordinador', 'docente', 'alumno'])) {
+        if ($user->hasRole('docente')) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if (! $user->hasAnyRole(['coordinador', 'alumno'])) {
             return $query->whereRaw('1 = 0');
         }
 
@@ -98,7 +102,6 @@ class ConsultorioReservaController extends Controller
         return $query->where(function (Builder $assigned) use ($userId): void {
             $assigned
                 ->where('usuario_atendido_id', $userId)
-                ->orWhere('estratega_id', $userId)
                 ->orWhere('supervisor_id', $userId)
                 ->orWhere('creado_por', $userId);
         });
