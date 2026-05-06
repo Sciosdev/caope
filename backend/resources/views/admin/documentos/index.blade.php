@@ -32,11 +32,14 @@
     <div class="card">
         <div class="card-body table-responsive">
             <table class="table table-striped mb-0">
+                @php($mostrarEstado = $isAdmin || $isPaps)
                 <thead>
                     <tr>
                         <th>Título</th>
                         <th>Subido por</th>
-                        <th>Estado</th>
+                        @if ($mostrarEstado)
+                            <th>Estado</th>
+                        @endif
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -45,7 +48,9 @@
                         <tr>
                             <td>{{ $documento->titulo }}</td>
                             <td>{{ $documento->subidoPor?->name ?? '—' }}</td>
-                            <td>{{ $documento->aprobado_en ? 'Autorizado' : 'Pendiente de autorización' }}</td>
+                            @if ($mostrarEstado)
+                                <td>{{ $documento->aprobado_en ? 'Autorizado' : 'Pendiente de autorización' }}</td>
+                            @endif
                             <td class="d-flex flex-wrap gap-2">
                                 <a href="{{ route('admin.documentos.download', $documento) }}" class="btn btn-sm btn-outline-primary">Descargar</a>
                                 @if ($isAdmin)
@@ -66,7 +71,7 @@
                         </tr>
                         @if ($isAdmin)
                             <tr class="collapse" id="editar-documento-{{ $documento->id }}">
-                                <td colspan="4" class="bg-light">
+                                <td colspan="{{ $mostrarEstado ? 4 : 3 }}" class="bg-light">
                                     <form action="{{ route('admin.documentos.update', $documento) }}" method="POST" enctype="multipart/form-data" class="row g-2 align-items-end">
                                         @csrf
                                         @method('PUT')
@@ -86,7 +91,7 @@
                             </tr>
                         @endif
                     @empty
-                        <tr><td colspan="4" class="text-center text-muted">Sin documentos registrados.</td></tr>
+                        <tr><td colspan="{{ $mostrarEstado ? 4 : 3 }}" class="text-center text-muted">Sin documentos registrados.</td></tr>
                     @endforelse
                 </tbody>
             </table>
