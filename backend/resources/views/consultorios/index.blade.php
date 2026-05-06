@@ -12,6 +12,7 @@
         $isAdmin = $currentUser?->hasRole('admin') ?? false;
         $isPapsAprobado = ($currentUser?->hasRole('paps') ?? false) && ! is_null($currentUser?->approved_at);
         $canManageBitacora = $isAdmin;
+        $canViewBitacora = ! ($currentUser?->hasAnyRole(['coordinador', 'docente', 'alumno']) ?? false);
     @endphp
 
     @if (session('status'))
@@ -174,6 +175,7 @@
         </div>
     </div>
 
+    @if($canViewBitacora)
     <div class="card">
         <div class="card-header d-flex flex-wrap gap-2 justify-content-between align-items-center">
             <span>Bitácora de asignaciones (alta, baja y modificación)</span>
@@ -298,6 +300,8 @@
             {{ $reservas->links('pagination::bootstrap-5') }}
         </div>
     </div>
+    @endif
+
 @push('scripts')
 <script>
     const initConsultoriosPage = () => {
