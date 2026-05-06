@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\CatalogoPadecimientoController;
 use App\Http\Controllers\Admin\CatalogoTratamientoController;
 use App\Http\Controllers\Admin\CatalogoTurnoController;
 use App\Http\Controllers\Admin\ConsultorioSolicitudController;
+use App\Http\Controllers\Admin\DocumentoAdministrativoController;
 use App\Http\Controllers\Admin\ParametrosController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AnexoController;
@@ -78,6 +79,15 @@ Route::middleware(['auth', 'active_user'])->group(function () {
     Route::prefix('admin/herramientas/consultorios')->name('admin.consultorios.solicitudes.')->middleware('role:admin|paps')->group(function (): void {
         Route::get('solicitudes', [ConsultorioSolicitudController::class, 'index'])->name('index');
         Route::post('solicitudes/{solicitud}/aprobar', [ConsultorioSolicitudController::class, 'approve'])->name('approve');
+    });
+
+    Route::prefix('admin/documentos')->name('admin.documentos.')->middleware('role:admin|coordinador|estratega|alumno|paps')->group(function (): void {
+        Route::get('/', [DocumentoAdministrativoController::class, 'index'])->name('index');
+        Route::get('{documento}/download', [DocumentoAdministrativoController::class, 'download'])->name('download');
+        Route::middleware('role:admin|paps')->group(function (): void {
+            Route::post('/', [DocumentoAdministrativoController::class, 'store'])->name('store');
+            Route::post('{documento}/approve', [DocumentoAdministrativoController::class, 'approve'])->middleware('role:admin')->name('approve');
+        });
     });
 
     Route::prefix('consultorios')->name('consultorios.')->middleware('role:admin|coordinador|alumno|docente|paps')->group(function (): void {
