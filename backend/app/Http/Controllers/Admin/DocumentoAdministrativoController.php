@@ -50,6 +50,47 @@ class DocumentoAdministrativoController extends Controller
         return back()->with('status', $isAdmin ? 'Documento agregado correctamente.' : 'Documento enviado para autorización del administrador general.');
     }
 
+    public function update(Request $request, DocumentoAdministrativo $documento): RedirectResponse
+    {
+        $data = $request->validate([
+            'titulo' => ['required', 'string', 'max:200'],
+            'archivo' => ['nullable', 'file', 'max:10240'],
+        ]);
+
+        $updates = ['titulo' => $data['titulo']];
+
+        if ($request->hasFile('archivo')) {
+            $disk = $documento->disk ?: config('filesystems.private_default', 'private');
+            if ($documento->ruta && Storage::disk($disk)->exists($documento->ruta)) {
+                Storage::disk($disk)->delete($documento->ruta);
+            }
+
+            $nuevoPath = $request->file('archivo')->store('documentos-administrativos', config('filesystems.private_default', 'private'));
+            $updates['ruta'] = $nuevoPath;
+            $updates['disk'] = config('filesystems.private_default', 'private');
+            $updates['mime_type'] = $request->file('archivo')->getClientMimeType();
+            $updates['tamano'] = $request->file('archivo')->getSize();
+            $updates['aprobado_en'] = null;
+            $updates['aprobado_por'] = null;
+        }
+
+        $documento->update($updates);
+
+        return back()->with('status', 'Documento actualizado correctamente.');
+    }
+
+    public function destroy(DocumentoAdministrativo $documento): RedirectResponse
+    {
+        $disk = $documento->disk ?: config('filesystems.private_default', 'private');
+        if ($documento->ruta && Storage::disk($disk)->exists($documento->ruta)) {
+            Storage::disk($disk)->delete($documento->ruta);
+        }
+
+        $documento->delete();
+
+        return back()->with('status', 'Documento eliminado correctamente.');
+    }
+
     public function approve(Request $request, DocumentoAdministrativo $documento): RedirectResponse
     {
         $documento->update([
@@ -68,7 +109,14 @@ class DocumentoAdministrativoController extends Controller
             abort(403);
         }
 
+        $extension = pathinfo((string) $documento->ruta, PATHINFO_EXTENSION);
+        $filename = $documento->titulo;
+
+        if ($extension !== '' && ! str_ends_with(strtolower($filename), '.'.strtolower($extension))) {
+            $filename .= '.'.$extension;
+        }
+
         return Storage::disk($documento->disk ?: config('filesystems.private_default', 'private'))
-            ->download($documento->ruta, $documento->titulo);
+            ->download($documento->ruta, $filename);
     }
 }
