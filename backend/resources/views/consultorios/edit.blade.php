@@ -26,7 +26,7 @@
                     <select name="consultorio_numero" class="form-select" required>@foreach($consultoriosActivos as $consultorio)<option value="{{ $consultorio->numero }}" @selected((int) old('consultorio_numero', $reserva->consultorio_numero)===(int) $consultorio->numero)>{{ $consultorio->nombre }}</option>@endforeach</select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">Cubículo</label>
+                    <label class="form-label">Consultorio</label>
                     <select name="cubiculo_numero" class="form-select" required>@foreach($cubiculosActivos as $cubiculo)<option value="{{ $cubiculo->numero }}" @selected((int) old('cubiculo_numero', $reserva->cubiculo_numero)===(int) $cubiculo->numero)>{{ $cubiculo->nombre }}</option>@endforeach</select>
                 </div>
                 <div class="col-md-8"><label class="form-label">Estrategia</label><select name="estrategia" class="form-select" required><option value="">Selecciona una estrategia</option>@foreach($estrategiasActivas as $estrategia)<option value="{{ $estrategia->nombre }}" @selected(old('estrategia', $reserva->estrategia)===$estrategia->nombre)>{{ $estrategia->nombre }}</option>@endforeach</select></div>

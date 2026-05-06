@@ -220,7 +220,7 @@
             @endif
 
             <div class="col-md-4">
-                <label for="resumen_clinico_cubiculo" class="form-label">Cubículo asignado</label>
+                <label for="resumen_clinico_cubiculo" class="form-label">Consultorio asignado</label>
                 <select
                     name="resumen_clinico[cubiculo]"
                     id="resumen_clinico_cubiculo"
@@ -230,12 +230,12 @@
                     <option value="">Sin asignar</option>
                     @foreach ($cubiculos as $cubiculo)
                         <option value="{{ $cubiculo->numero }}" @selected((string) old('resumen_clinico.cubiculo', data_get($expediente->resumen_clinico ?? [], 'cubiculo')) === (string) $cubiculo->numero)>
-                            Cubículo {{ $cubiculo->numero }}
+                            Consultorio {{ $cubiculo->numero }}
                         </option>
                     @endforeach
                 </select>
                 @if (! $isCreating)
-                    <div class="form-text">El cubículo solo puede asignarse durante la creación del expediente.</div>
+                    <div class="form-text">El consultorio solo puede asignarse durante la creación del expediente.</div>
                 @endif
                 @error('resumen_clinico.cubiculo')
                     <div class="invalid-feedback">{{ $message }}</div>
@@ -768,7 +768,7 @@
                 </div>
 
                 <div class="col-md-2">
-                    <label class="form-label">Cubículo</label>
+                    <label class="form-label">Consultorio</label>
                     <select class="form-select" id="expediente-asignacion-cubiculo" required>
                         @foreach ($cubiculosActivos as $cubiculo)
                             <option value="{{ $cubiculo->numero }}">{{ $cubiculo->nombre }}</option>
@@ -1024,7 +1024,7 @@
                         const overlap = findOverlap(data.reservas ?? [], startInput.value, endInput.value, cubiculoInput.value);
 
                         if (overlap) {
-                            showAssignmentAlert(`⚠️ El Consultorio ${consultorioInput.value}, Cubículo ${cubiculoInput.value} ya está ocupado de ${String(overlap.hora_inicio).slice(0, 5)} a ${String(overlap.hora_fin).slice(0, 5)}.`);
+                            showAssignmentAlert(`⚠️ El Consultorio ${consultorioInput.value}, Consultorio ${cubiculoInput.value} ya está ocupado de ${String(overlap.hora_inicio).slice(0, 5)} a ${String(overlap.hora_fin).slice(0, 5)}.`);
                             return false;
                         }
                     } catch (error) {

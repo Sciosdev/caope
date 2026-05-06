@@ -94,7 +94,7 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">Cubículo</label>
+                    <label class="form-label">Consultorio</label>
                     <select name="cubiculo_numero" class="form-select" id="asignacion-cubiculo" required>
                         @foreach ($cubiculosActivos as $cubiculo)
                             <option value="{{ $cubiculo->numero }}" @selected((int) old('cubiculo_numero', (int) ($cubiculosActivos->first()->numero ?? 1)) === (int) $cubiculo->numero)>{{ $cubiculo->nombre }}</option>
@@ -139,7 +139,7 @@
 
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <span>Calendario de ocupación por cubículo</span>
+            <span>Calendario de ocupación por consultorio</span>
             <form method="GET" class="d-flex gap-2" id="ocupacion-filtro-form">
                 <input type="month" class="form-control" name="fecha" id="ocupacion-fecha" value="{{ \Illuminate\Support\Carbon::parse($fechaFiltro)->format('Y-m') }}">
                 <select name="consultorio_numero" class="form-select" id="ocupacion-consultorio">
@@ -222,7 +222,7 @@
                         @endif
                         <th>Fecha</th>
                         <th>Horario</th>
-                        <th>Cubículo</th>
+                        <th>Consultorio</th>
                         <th>Estrategia</th>
                         <th>Estratega</th>
                         <th>Facilitador</th>
@@ -249,7 +249,7 @@
                             @endif
                             <td>{{ $reserva->fecha->format('Y-m-d') }}</td>
                             <td>{{ substr($reserva->hora_inicio, 0, 5) }} - {{ substr($reserva->hora_fin, 0, 5) }}</td>
-                            <td>Consultorio {{ $reserva->consultorio_numero }} · Cubículo {{ $reserva->cubiculo_numero }}</td>
+                            <td>Consultorio {{ $reserva->consultorio_numero }} · Consultorio {{ $reserva->cubiculo_numero }}</td>
                             <td>
                                 {{ $reserva->estrategia }}
                                 @if ($reserva->origen_expediente)
@@ -261,7 +261,7 @@
                             @if($canManageBitacora || $isPapsAprobado)
                             <td>
                                 <span class="small text-muted d-block mb-2">
-                                    {{ $reserva->origen_expediente ? 'Alta automática (asignación de cubículo desde expediente)' : 'Alta manual (asignación de cubículo)' }}
+                                    {{ $reserva->origen_expediente ? 'Alta automática (asignación de consultorio desde expediente)' : 'Alta manual (asignación de consultorio)' }}
                                 </span>
                                 @if ($isAdmin)
                                     <div class="d-flex gap-2">
@@ -411,7 +411,7 @@
                 return `
                     <tr>
                         <td class="text-nowrap">${horaInicio} - ${horaFin}</td>
-                        <td class="text-nowrap">Cubículo ${cubiculo}</td>
+                        <td class="text-nowrap">Consultorio ${cubiculo}</td>
                         <td>${estrategia}</td>
                         <td>${estratega}</td>
                         <td>${usuario}</td>
@@ -429,7 +429,7 @@
                         <thead>
                             <tr>
                                 <th>Horario</th>
-                                <th>Cubículo</th>
+                                <th>Consultorio</th>
                                 <th>Estrategia</th>
                                 <th>Estratega</th>
                                 <th>Facilitador</th>
@@ -704,7 +704,7 @@
                     return `
                         <tr>
                             <td class="small text-nowrap">${horaInicio} - ${horaFin}</td>
-                            <td class="small text-nowrap">Consultorio ${consultorio} · Cubículo ${cubiculo}</td>
+                            <td class="small text-nowrap">Consultorio ${consultorio} · Consultorio ${cubiculo}</td>
                             <td class="small">${estrategia}</td>
                             <td class="small">${estratega}</td>
                             <td class="small">${usuario}</td>
@@ -723,7 +723,7 @@
                                 <thead>
                                     <tr>
                                         <th>Horario</th>
-                                        <th>Consultorio / Cubículo</th>
+                                        <th>Consultorio / Consultorio</th>
                                         <th>Estrategia</th>
                                         <th>Estratega</th>
                                         <th>Facilitador</th>
@@ -913,7 +913,7 @@
                 const overlap = hasOverlap(data.reservas ?? [], formHoraInicio.value, formHoraFin.value, formCubiculo.value);
 
                 if (overlap) {
-                    showAlert(`⚠️ El Consultorio ${formConsultorio.value}, Cubículo ${formCubiculo.value} ya está ocupado de ${overlap.hora_inicio.slice(0, 5)} a ${overlap.hora_fin.slice(0, 5)}.`);
+                    showAlert(`⚠️ El Consultorio ${formConsultorio.value}, Consultorio ${formCubiculo.value} ya está ocupado de ${overlap.hora_inicio.slice(0, 5)} a ${overlap.hora_fin.slice(0, 5)}.`);
                 }
             } catch (error) {
                 console.error(error);
