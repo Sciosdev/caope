@@ -89,7 +89,7 @@
                 Expedientes
               </a>
             @endif
-            @if (($currentUser?->hasAnyRole(['admin', 'coordinador', 'alumno', 'docente']) ?? false) || $isApprovedPaps)
+            @if (($currentUser?->hasAnyRole(['admin', 'coordinador', 'estratega', 'alumno', 'docente']) ?? false) || $isApprovedPaps)
               <a href="{{ route('consultorios.index') }}"
                  class="text-muted small {{ request()->routeIs('consultorios.*') ? 'fw-semibold text-body' : '' }}">
                 Consultorios
@@ -98,6 +98,12 @@
                 <a href="{{ route($reportesRouteName) }}"
                    class="text-muted small {{ request()->routeIs($reportesRouteName) ? 'fw-semibold text-body' : '' }}">
                   Reportes
+                </a>
+              @endif
+              @if ($currentUser?->hasAnyRole(['coordinador', 'estratega', 'alumno']) ?? false)
+                <a href="{{ route('admin.documentos.index') }}"
+                   class="text-muted small {{ request()->routeIs('admin.documentos.*') ? 'fw-semibold text-body' : '' }}">
+                  Documentos
                 </a>
               @endif
             @endif

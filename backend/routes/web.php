@@ -108,7 +108,7 @@ Route::middleware(['auth', 'active_user'])->group(function () {
         });
     });
 
-    Route::middleware('role:admin|coordinador|docente|paps')->group(function (): void {
+    Route::middleware('role:admin|coordinador|estratega|alumno|docente|paps')->group(function (): void {
         Route::get('reportes/expedientes', [ReporteExpedienteController::class, 'index'])->name('reportes.index');
         Route::get('reportes/expedientes/download', [ReporteExpedienteController::class, 'downloadDirect'])->name('reportes.expedientes.download-direct');
         Route::post('reportes/expedientes/export', [ReporteExpedienteController::class, 'export'])->name('reportes.expedientes.export');

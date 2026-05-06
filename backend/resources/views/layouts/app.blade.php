@@ -100,7 +100,7 @@
                                     </a>
                                 </li>
                             @endif
-                            @if (($currentUser?->hasAnyRole(['admin', 'coordinador', 'alumno', 'docente']) ?? false) || $isApprovedPaps)
+                            @if (($currentUser?->hasAnyRole(['admin', 'coordinador', 'estratega', 'alumno', 'docente']) ?? false) || $isApprovedPaps)
                                 <li class="nav-item">
                                     <a class="nav-link {{ request()->routeIs('consultorios.*') ? 'active fw-semibold' : '' }}" href="{{ route('consultorios.index') }}">
                                         {{ __('Consultorios') }}
@@ -110,6 +110,13 @@
                                     <li class="nav-item">
                                         <a class="nav-link {{ request()->routeIs($reportesRouteName) ? 'active fw-semibold' : '' }}" href="{{ route($reportesRouteName) }}">
                                             {{ __('Reportes') }}
+                                        </a>
+                                    </li>
+                                @endif
+                                @if ($currentUser?->hasAnyRole(['coordinador', 'estratega', 'alumno']) ?? false)
+                                    <li class="nav-item">
+                                        <a class="nav-link {{ request()->routeIs('admin.documentos.*') ? 'active fw-semibold' : '' }}" href="{{ route('admin.documentos.index') }}">
+                                            {{ __('Documentos') }}
                                         </a>
                                     </li>
                                 @endif
