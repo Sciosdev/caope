@@ -126,7 +126,7 @@
 
                             @if (($currentUser?->hasRole('admin') ?? false) || $isApprovedPaps)
                                 <li class="nav-item dropdown">
-                                    <a class="nav-link dropdown-toggle {{ request()->routeIs('admin.users.*') || request()->routeIs('admin.catalogos.*') || request()->routeIs('admin.parametros.*') || request()->routeIs('admin.consultorios.solicitudes.*') ? 'active fw-semibold' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <a class="nav-link dropdown-toggle {{ request()->routeIs('admin.users.*') || request()->routeIs('admin.catalogos.*') || request()->routeIs('admin.parametros.*') || request()->routeIs('admin.consultorios.solicitudes.*') || request()->routeIs('admin.documentos.*') ? 'active fw-semibold' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         {{ __('Administración') }}
                                         @if ($pendingConsultorioSolicitudesCount > 0)
                                             <span class="badge rounded-pill bg-danger ms-1">{{ $pendingConsultorioSolicitudesCount }}</span>
@@ -137,6 +137,7 @@
                                         <li><a class="dropdown-item" href="{{ route('admin.catalogos.carreras.index') }}">{{ __('Carreras') }}</a></li>
                                         <li><a class="dropdown-item" href="{{ route('admin.catalogos.consultorios.index') }}">{{ __('Consultorios') }}</a></li>
                                         <li><a class="dropdown-item" href="{{ route('admin.catalogos.estrategias.index') }}">{{ __('Estrategias') }}</a></li>
+                                        <li><a class="dropdown-item" href="{{ route('admin.documentos.index') }}">Documentos</a></li>
                                         @if (($currentUser?->hasRole('admin') ?? false) || $isApprovedPaps)
                                             <li><hr class="dropdown-divider"></li>
                                             <li>
