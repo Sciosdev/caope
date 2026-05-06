@@ -97,7 +97,7 @@
                     <label class="form-label">Consultorio</label>
                     <select name="cubiculo_numero" class="form-select" id="asignacion-cubiculo" required>
                         @foreach ($cubiculosActivos as $cubiculo)
-                            <option value="{{ $cubiculo->numero }}" @selected((int) old('cubiculo_numero', (int) ($cubiculosActivos->first()->numero ?? 1)) === (int) $cubiculo->numero)>{{ $cubiculo->nombre }}</option>
+                            <option value="{{ $cubiculo->numero }}" @selected((int) old('cubiculo_numero', (int) ($cubiculosActivos->first()->numero ?? 1)) === (int) $cubiculo->numero)>Consultorio {{ $cubiculo->numero }}</option>
                         @endforeach
                     </select>
                 </div>
