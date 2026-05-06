@@ -33,13 +33,18 @@
                             {{ __('Expedientes') }}
                         </x-nav-link>
                     @endif
-                    @if (($currentUser?->hasAnyRole(['admin', 'coordinador', 'alumno', 'docente']) ?? false) || $isApprovedPaps)
-                        <x-nav-link :href="route('consultorios.index')" :active="request()->routeIs('consultorios.*')">
-                            {{ __('Consultorios') }}
-                        </x-nav-link>
-                        @if ($reportesRouteName)
-                            <x-nav-link :href="route($reportesRouteName)" :active="request()->routeIs($reportesRouteName)">
-                                {{ __('Reportes') }}
+            @if (($currentUser?->hasAnyRole(['admin', 'coordinador', 'estratega', 'alumno', 'docente']) ?? false) || $isApprovedPaps)
+                <x-nav-link :href="route('consultorios.index')" :active="request()->routeIs('consultorios.*')">
+                    {{ __('Consultorios') }}
+                </x-nav-link>
+                @if ($currentUser?->hasAnyRole(['coordinador', 'estratega', 'alumno']) ?? false)
+                    <x-nav-link :href="route('admin.documentos.index')" :active="request()->routeIs('admin.documentos.*')">
+                        {{ __('Documentos') }}
+                    </x-nav-link>
+                @endif
+                @if ($reportesRouteName)
+                    <x-nav-link :href="route($reportesRouteName)" :active="request()->routeIs($reportesRouteName)">
+                        {{ __('Reportes') }}
                             </x-nav-link>
                         @endif
                     @endif
@@ -115,10 +120,15 @@
                     {{ __('Expedientes') }}
                 </x-responsive-nav-link>
             @endif
-            @if (($currentUser?->hasAnyRole(['admin', 'coordinador', 'alumno', 'docente']) ?? false) || $isApprovedPaps)
+            @if (($currentUser?->hasAnyRole(['admin', 'coordinador', 'estratega', 'alumno', 'docente']) ?? false) || $isApprovedPaps)
                 <x-responsive-nav-link :href="route('consultorios.index')" :active="request()->routeIs('consultorios.*')">
                     {{ __('Consultorios') }}
                 </x-responsive-nav-link>
+                @if ($currentUser?->hasAnyRole(['coordinador', 'estratega', 'alumno']) ?? false)
+                    <x-responsive-nav-link :href="route('admin.documentos.index')" :active="request()->routeIs('admin.documentos.*')">
+                        {{ __('Documentos') }}
+                    </x-responsive-nav-link>
+                @endif
                 @if ($reportesRouteName)
                     <x-responsive-nav-link :href="route($reportesRouteName)" :active="request()->routeIs($reportesRouteName)">
                         {{ __('Reportes') }}
