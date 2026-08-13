@@ -467,11 +467,16 @@ class DeveloperHealthService
             }
 
             if (trim($status->output()) !== '') {
+                $requiresCleanCheckout = $this->settings->hasEncryptedSettings();
+
                 return $this->result(
                     'deployment_runtime',
                     'Motor de despliegue',
-                    'error',
-                    'El checkout contiene cambios locales en archivos versionados.'
+                    $requiresCleanCheckout ? 'error' : 'warning',
+                    $requiresCleanCheckout
+                        ? 'El checkout contiene cambios locales en archivos versionados.'
+                        : 'Pruebas contiene cambios locales versionados; se permitirá el despliegue legado.',
+                    $requiresCleanCheckout ? null : 'Producción exigirá un checkout limpio.'
                 );
             }
 
