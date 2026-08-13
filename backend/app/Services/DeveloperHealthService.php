@@ -6,6 +6,7 @@ use Illuminate\Database\Migrations\Migrator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -13,7 +14,10 @@ use Throwable;
 
 class DeveloperHealthService
 {
-    public function __construct(private Migrator $migrator) {}
+    public function __construct(
+        private Migrator $migrator,
+        private DeveloperConsoleSettings $settings,
+    ) {}
 
     /**
      * @return list<array{id: string, label: string, status: string, summary: string, details: ?string}>
@@ -31,6 +35,7 @@ class DeveloperHealthService
             $this->queue(),
             $this->scheduler(),
             $this->backup(),
+            $this->deploymentRuntime(),
             $this->githubDeployment(),
         ];
     }
@@ -116,7 +121,17 @@ class DeveloperHealthService
      */
     private function phpRuntime(): array
     {
-        $required = ['ctype', 'fileinfo', 'json', 'mbstring', 'openssl', 'pdo', 'tokenizer'];
+        if (version_compare(PHP_VERSION, '8.3.0', '<')) {
+            return $this->result(
+                'php',
+                'PHP',
+                'error',
+                'CAOPE requiere PHP 8.3 o posterior.',
+                'Versión activa: '.PHP_VERSION
+            );
+        }
+
+        $required = ['ctype', 'fileinfo', 'json', 'mbstring', 'openssl', 'pdo', 'tokenizer', 'zip'];
         $missing = array_values(array_filter($required, fn (string $extension): bool => ! extension_loaded($extension)));
 
         if ($missing !== []) {
@@ -298,7 +313,7 @@ class DeveloperHealthService
             $lastRunAt = is_string($lastRun) ? Carbon::parse($lastRun) : null;
 
             if (! $lastRunAt) {
-                return $this->result('scheduler', 'Tareas programadas', 'warning', 'Todavía no se ha registrado el heartbeat del scheduler.');
+                return $this->result('scheduler', 'Tareas programadas', 'error', 'Todavía no se ha registrado el heartbeat del scheduler.');
             }
 
             if ($lastRunAt->lt(now()->subMinutes(3))) {
@@ -361,15 +376,133 @@ class DeveloperHealthService
      */
     private function githubDeployment(): array
     {
-        $repository = trim((string) config('developer_console.github.repository'));
-        $workflow = trim((string) config('developer_console.github.workflow'));
-        $token = trim((string) config('developer_console.github.token'));
+        $repository = $this->settings->githubRepository();
+        $workflow = $this->settings->githubWorkflow();
+        $token = $this->settings->githubToken();
 
         if ($repository === '' || $workflow === '' || $token === '') {
             return $this->result('github', 'Despliegue GitHub', 'warning', 'Falta completar la configuración de GitHub Actions.');
         }
 
         return $this->result('github', 'Despliegue GitHub', 'ok', 'Las credenciales de despliegue están configuradas.', "{$repository} · {$workflow}");
+    }
+
+    /**
+     * @return array{id: string, label: string, status: string, summary: string, details: ?string}
+     */
+    private function deploymentRuntime(): array
+    {
+        $script = $this->settings->deployScript();
+        $missing = [];
+
+        if (! function_exists('proc_open')) {
+            $missing[] = 'proc_open';
+        }
+
+        if (! is_executable('/bin/bash')) {
+            $missing[] = '/bin/bash';
+        }
+
+        if (! is_executable(PHP_BINARY)) {
+            $missing[] = PHP_BINARY;
+        }
+
+        if ($script === '' || ! is_readable($script)) {
+            $missing[] = $script !== '' ? $script : 'script de despliegue';
+        }
+
+        if ($missing !== []) {
+            return $this->result(
+                'deployment_runtime',
+                'Motor de despliegue',
+                'error',
+                'El servidor no puede ejecutar despliegues autónomos.',
+                implode(', ', $missing)
+            );
+        }
+
+        try {
+            $repositoryRoot = dirname(base_path());
+            $git = fn (array $command) => Process::path($repositoryRoot)
+                ->env(['GIT_TERMINAL_PROMPT' => '0'])
+                ->timeout(5)
+                ->run($command);
+            $status = $git(['git', 'status', '--porcelain=v1', '--untracked-files=no']);
+
+            if ($status->failed()) {
+                return $this->result(
+                    'deployment_runtime',
+                    'Motor de despliegue',
+                    'error',
+                    'La instalación no es un checkout Git utilizable por el scheduler.'
+                );
+            }
+
+            $branch = $git(['git', 'symbolic-ref', '--quiet', '--short', 'HEAD']);
+            $upstream = $git(['git', 'rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}']);
+            $origin = $git(['git', 'remote', 'get-url', 'origin']);
+
+            if ($branch->failed()
+                || $upstream->failed()
+                || trim($branch->output()) !== 'main'
+                || trim($upstream->output()) !== 'origin/main') {
+                return $this->result(
+                    'deployment_runtime',
+                    'Motor de despliegue',
+                    'error',
+                    'El checkout debe permanecer en la rama main con seguimiento de origin/main.'
+                );
+            }
+
+            if ($origin->failed() || preg_match(
+                '~^(?:https://github\.com/|git@github\.com:|ssh://git@github\.com/)Sciosdev/caope(?:\.git)?/?$~i',
+                trim($origin->output())
+            ) !== 1) {
+                return $this->result(
+                    'deployment_runtime',
+                    'Motor de despliegue',
+                    'error',
+                    'El remoto origin no corresponde al repositorio oficial de CAOPE.'
+                );
+            }
+
+            if (trim($status->output()) !== '') {
+                return $this->result(
+                    'deployment_runtime',
+                    'Motor de despliegue',
+                    'error',
+                    'El checkout contiene cambios locales en archivos versionados.'
+                );
+            }
+
+            $writableTargets = [$repositoryRoot, $repositoryRoot.DIRECTORY_SEPARATOR.'.git', base_path(), storage_path()];
+            $notWritable = array_values(array_filter(
+                $writableTargets,
+                fn (string $path): bool => ! is_dir($path) || ! is_writable($path)
+            ));
+
+            if ($notWritable !== []) {
+                return $this->result(
+                    'deployment_runtime',
+                    'Motor de despliegue',
+                    'error',
+                    'El usuario del scheduler no puede escribir el checkout o el almacenamiento privado.',
+                    implode(', ', $notWritable)
+                );
+            }
+
+            return $this->result(
+                'deployment_runtime',
+                'Motor de despliegue',
+                'ok',
+                'El servidor puede ejecutar despliegues autónomos.',
+                'main · '.PHP_BINARY
+            );
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return $this->result('deployment_runtime', 'Motor de despliegue', 'error', 'No fue posible ejecutar Git desde Laravel.');
+        }
     }
 
     /**

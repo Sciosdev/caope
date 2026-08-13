@@ -2,15 +2,18 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\DeveloperConsoleSettings;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsureDeveloperConsoleAccess
 {
+    public function __construct(private DeveloperConsoleSettings $settings) {}
+
     public function handle(Request $request, Closure $next): Response
     {
-        abort_unless(config('developer_console.enabled'), 404);
+        abort_unless($this->settings->enabled(), 404);
 
         $allowedIps = config('developer_console.allowed_ips', []);
 

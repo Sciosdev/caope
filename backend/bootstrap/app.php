@@ -39,7 +39,12 @@ $app = Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->dontFlash([
+            'current_password',
+            'github_token',
+            'password',
+            'password_confirmation',
+        ]);
     })->create();
 
 $app->booted(function () use ($app): void {
@@ -74,6 +79,12 @@ $app->booted(function () use ($app): void {
         $userKey = (string) optional($request->user())->getAuthIdentifier();
 
         return Limit::perHour(3)->by('developer-deploy|'.($userKey !== '' ? $userKey : $request->ip()));
+    });
+
+    $limiter->for('developer.activation', function (Request $request) {
+        $userKey = (string) optional($request->user())->getAuthIdentifier();
+
+        return Limit::perHour(3)->by('developer-activation|'.($userKey !== '' ? $userKey : $request->ip()));
     });
 });
 

@@ -36,12 +36,14 @@ jobs:
       - name: Checkout approved ref
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref }}
+          # Pin the exact revision attached to this workflow run. This keeps
+          # GitHub's attested head SHA identical to the code tested below.
+          ref: ${{ github.sha }}
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: '8.3'
           extensions: mbstring, bcmath, intl, pcntl, sqlite3
           coverage: none
 
@@ -79,6 +81,9 @@ jobs:
             tests/Feature/Auth/AuthenticationTest.php \
             tests/Feature/Auth/PasswordConfirmationTest.php
 
+      - name: Simulate the cPanel bootstrap
+        run: bash ../scripts/tests/bootstrap-cpanel-smoke.sh
+
       - name: Validate Blade templates
         run: php artisan blade:validate
 
@@ -96,111 +101,82 @@ jobs:
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
   deploy:
-    name: Deploy to production server
+    name: Deploy to production
     runs-on: ubuntu-latest
     needs: validate
     environment:
       name: production
+      url: https://xocoyotzin.iztacala.unam.mx/caope
     env:
-      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
-      DEPLOY_PHP_BIN: ${{ secrets.DEPLOY_PHP_BIN || 'php' }}
-      DEPLOY_COMPOSER_BIN: ${{ secrets.DEPLOY_COMPOSER_BIN || 'composer' }}
-      DEPLOY_REF: ${{ inputs.ref }}
-      DEPLOY_EXPECTED_SHA: ${{ needs.validate.outputs.sha }}
+      PRODUCTION_URL: https://xocoyotzin.iztacala.unam.mx/caope
       DEPLOY_REQUEST_ID: ${{ inputs.request_id }}
-      DEPLOY_HEALTH_URL: ${{ secrets.DEPLOY_HEALTH_URL }}
+      EXPECTED_SHA: ${{ needs.validate.outputs.sha }}
+      DEPLOY_RUN_ID: ${{ github.run_id }}
+      DEPLOY_RUN_ATTEMPT: ${{ github.run_attempt }}
     steps:
-      - name: Execute controlled remote deployment
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          port: ${{ secrets.DEPLOY_PORT || 22 }}
-          command_timeout: 30m
-          script_stop: true
-          envs: DEPLOY_PATH,DEPLOY_PHP_BIN,DEPLOY_COMPOSER_BIN,DEPLOY_REF,DEPLOY_EXPECTED_SHA,DEPLOY_REQUEST_ID,DEPLOY_HEALTH_URL
-          script: |
-            set -eu
+      - name: Authorize the exact production revision
+        id: deployment_request
+        shell: bash
+        run: |
+          set -euo pipefail
 
-            if [ -z "$DEPLOY_PATH" ] || [ "$DEPLOY_PATH" = "/" ]; then
-              echo "DEPLOY_PATH is empty or unsafe."
-              exit 1
+          echo "started_at=$(date -u +%s)" >> "$GITHUB_OUTPUT"
+
+          payload="$(jq -nc \
+            --arg sha "${EXPECTED_SHA}" \
+            --arg request_id "${DEPLOY_REQUEST_ID}" \
+            --argjson run_id "${DEPLOY_RUN_ID}" \
+            --argjson run_attempt "${DEPLOY_RUN_ATTEMPT}" \
+            '{sha: $sha, request_id: $request_id, run_id: $run_id, run_attempt: $run_attempt}')"
+
+          curl \
+            --fail-with-body \
+            --silent \
+            --show-error \
+            --retry 5 \
+            --retry-all-errors \
+            --retry-delay 5 \
+            --max-time 30 \
+            --request POST \
+            --header 'Content-Type: application/json' \
+            --data "${payload}" \
+            "${PRODUCTION_URL%/}/api/deployment/prepare" \
+            > /dev/null
+
+      - name: Wait for scheduled production deployment
+        shell: bash
+        env:
+          STARTED_AT: ${{ steps.deployment_request.outputs.started_at }}
+        run: |
+          set -euo pipefail
+
+          version_url="${PRODUCTION_URL%/}/api/deployment/version"
+
+          for attempt in $(seq 1 210); do
+            response="$(curl --fail --silent --show-error --max-time 15 "${version_url}" || true)"
+            deployed_sha="$(jq -r '.sha // empty' <<< "${response}" 2>/dev/null || true)"
+            deployed_request_id="$(jq -r '.request_id // empty' <<< "${response}" 2>/dev/null || true)"
+            deployed_at="$(jq -r '.deployed_at // empty' <<< "${response}" 2>/dev/null || true)"
+            deployed_epoch="$(date -u -d "${deployed_at}" +%s 2>/dev/null || echo 0)"
+
+            if [[ "${deployed_sha}" == "${EXPECTED_SHA}" ]] \
+              && [[ "${deployed_request_id}" == "${DEPLOY_REQUEST_ID}" ]] \
+              && (( deployed_epoch >= STARTED_AT - 60 )); then
+              curl \
+                --fail \
+                --silent \
+                --show-error \
+                --retry 5 \
+                --retry-delay 3 \
+                "${PRODUCTION_URL%/}/up" \
+                > /dev/null
+              echo "Production now serves ${EXPECTED_SHA}."
+              exit 0
             fi
 
-            cd "$DEPLOY_PATH"
+            echo "Waiting for the production scheduler (${attempt}/210)..."
+            sleep 10
+          done
 
-            if [ ! -d .git ] || [ ! -f backend/artisan ]; then
-              echo "DEPLOY_PATH is not a CAOPE checkout."
-              exit 1
-            fi
-
-            LOCK_DIR="$DEPLOY_PATH/.deploy-lock"
-            if ! mkdir "$LOCK_DIR" 2>/dev/null; then
-              echo "Another deployment appears to be active."
-              exit 1
-            fi
-
-            APP_WAS_DOWN=0
-            cleanup() {
-              if [ "$APP_WAS_DOWN" -eq 1 ]; then
-                cd "$DEPLOY_PATH/backend"
-                "$DEPLOY_PHP_BIN" artisan up || true
-              fi
-              rmdir "$LOCK_DIR" 2>/dev/null || true
-            }
-            trap cleanup EXIT INT TERM
-
-            if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
-              echo "The production checkout contains tracked local changes."
-              exit 1
-            fi
-
-            git fetch --prune origin "$DEPLOY_REF"
-            REMOTE_SHA=$(git rev-parse "origin/$DEPLOY_REF")
-
-            if [ "$REMOTE_SHA" != "$DEPLOY_EXPECTED_SHA" ]; then
-              echo "The remote branch changed after validation; request a new deployment."
-              exit 1
-            fi
-
-            cd "$DEPLOY_PATH/backend"
-            "$DEPLOY_PHP_BIN" artisan backup:run --only-db --no-interaction
-            "$DEPLOY_PHP_BIN" artisan down --retry=60
-            APP_WAS_DOWN=1
-
-            cd "$DEPLOY_PATH"
-            git checkout "$DEPLOY_REF"
-            git pull --ff-only origin "$DEPLOY_REF"
-
-            DEPLOYED_SHA=$(git rev-parse HEAD)
-            if [ "$DEPLOYED_SHA" != "$DEPLOY_EXPECTED_SHA" ]; then
-              echo "The deployed revision does not match the validated revision."
-              exit 1
-            fi
-
-            cd "$DEPLOY_PATH/backend"
-            "$DEPLOY_COMPOSER_BIN" install --no-dev --prefer-dist --no-interaction --optimize-autoloader
-            "$DEPLOY_PHP_BIN" artisan migrate --force
-            "$DEPLOY_PHP_BIN" artisan optimize:clear
-            "$DEPLOY_PHP_BIN" artisan config:cache
-            "$DEPLOY_PHP_BIN" artisan view:cache
-            "$DEPLOY_PHP_BIN" artisan storage:link --force
-            "$DEPLOY_PHP_BIN" artisan queue:restart
-
-            mkdir -p storage/app/deployment
-            DEPLOYED_AT=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-            printf '{"sha":"%s","deployed_at":"%s","request_id":"%s"}\n' \
-              "$DEPLOYED_SHA" "$DEPLOYED_AT" "$DEPLOY_REQUEST_ID" \
-              > storage/app/deployment/version.json
-
-            "$DEPLOY_PHP_BIN" artisan up
-            APP_WAS_DOWN=0
-            "$DEPLOY_PHP_BIN" artisan about --only=environment
-
-            if [ -n "$DEPLOY_HEALTH_URL" ]; then
-              curl --fail --silent --show-error --retry 5 --retry-delay 3 \
-                "${DEPLOY_HEALTH_URL%/}/up" > /dev/null
-            fi
-
-            cleanup
+          echo "Production did not publish ${EXPECTED_SHA} within 35 minutes."
+          exit 1

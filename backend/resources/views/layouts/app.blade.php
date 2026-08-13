@@ -187,7 +187,12 @@
                                     <li>
                                         <a class="dropdown-item" href="{{ route('profile.edit') }}">{{ __('Mi perfil') }}</a>
                                     </li>
-                                    @if (config('developer_console.enabled') && Auth::user()->hasRole('developer'))
+                                    @php($developerSettings = app(\App\Services\DeveloperConsoleSettings::class))
+                                    @if (Auth::user()->hasRole('admin') && $developerSettings->canActivate())
+                                        <li>
+                                            <a class="dropdown-item" href="{{ route('developer.activation.show') }}">{{ __('Activar despliegues') }}</a>
+                                        </li>
+                                    @elseif ($developerSettings->enabled() && Auth::user()->hasRole('developer'))
                                         <li>
                                             <a class="dropdown-item" href="{{ route('developer.index') }}">{{ __('Consola del desarrollador') }}</a>
                                         </li>

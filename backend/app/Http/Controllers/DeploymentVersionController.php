@@ -19,6 +19,7 @@ class DeploymentVersionController extends Controller
 
         return response()->json([
             'sha' => strtolower($sha),
+            'request_id' => (string) ($marker['request_id'] ?? ''),
             'deployed_at' => (string) ($marker['deployed_at'] ?? ''),
         ])->withHeaders([
             'Cache-Control' => 'no-store, private',

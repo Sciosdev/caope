@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\DeploymentRun;
+use App\Services\DeveloperConsoleSettings;
 use App\Services\DeveloperHealthService;
 use App\Services\GitHubDeploymentService;
 use Illuminate\Http\RedirectResponse;
@@ -17,6 +18,7 @@ class DeveloperConsoleController extends Controller
     public function index(
         GitHubDeploymentService $github,
         DeveloperHealthService $health,
+        DeveloperConsoleSettings $settings,
     ): View {
         $synchronizationWarning = $github->synchronize();
 
@@ -29,13 +31,17 @@ class DeveloperConsoleController extends Controller
                 ->get(),
             'deploymentConfigurationIssues' => $github->configurationIssues(),
             'synchronizationWarning' => $synchronizationWarning,
-            'deploymentRef' => (string) config('developer_console.github.ref', 'main'),
-            'deploymentTargetLabel' => (string) config('developer_console.target_label', 'producción'),
+            'deploymentRef' => $settings->githubRef(),
+            'deploymentTargetLabel' => $settings->targetLabel(),
+            'canRotateCredentials' => $settings->hasEncryptedSettings(),
         ]);
     }
 
-    public function deploy(Request $request, GitHubDeploymentService $github): RedirectResponse
-    {
+    public function deploy(
+        Request $request,
+        GitHubDeploymentService $github,
+        DeveloperConsoleSettings $settings,
+    ): RedirectResponse {
         $request->validate([
             'confirmation' => ['required', 'in:DESPLEGAR'],
         ], [
@@ -68,7 +74,7 @@ class DeveloperConsoleController extends Controller
             $deployment = DeploymentRun::query()->create([
                 'request_id' => (string) Str::uuid(),
                 'requested_by' => $request->user()?->getAuthIdentifier(),
-                'ref' => (string) config('developer_console.github.ref', 'main'),
+                'ref' => $settings->githubRef(),
                 'status' => 'requested',
             ]);
 
@@ -87,7 +93,7 @@ class DeveloperConsoleController extends Controller
                 ]);
             }
 
-            $target = (string) config('developer_console.target_label', 'producción');
+            $target = $settings->targetLabel();
 
             return back()->with('status', "Despliegue solicitado. GitHub validará la versión antes de actualizar {$target}.");
         } finally {

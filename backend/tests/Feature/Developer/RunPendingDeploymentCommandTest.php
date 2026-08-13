@@ -21,7 +21,7 @@ class RunPendingDeploymentCommandTest extends TestCase
 
         $this->markerPath = storage_path('app/deployment/expected.json');
         $this->logPath = storage_path('logs/developer-deploy.log');
-        $this->scriptPath = storage_path('app/testing/deploy-cpanel-staging.sh');
+        $this->scriptPath = storage_path('app/testing/deploy-scheduled.sh');
         File::delete([$this->markerPath, $this->logPath, $this->scriptPath]);
         File::ensureDirectoryExists(dirname($this->scriptPath));
         File::put($this->scriptPath, "#!/bin/sh\n");
@@ -50,7 +50,33 @@ class RunPendingDeploymentCommandTest extends TestCase
         Process::fake();
 
         $this->artisan('caope:deploy-pending')
-            ->expectsOutputToContain('autorización de despliegue vencida')
+            ->expectsOutputToContain('autorización de despliegue inválida o vencida')
+            ->assertFailed();
+
+        $this->assertFileDoesNotExist($this->markerPath);
+        Process::assertNothingRan();
+    }
+
+    public function test_command_removes_an_authorization_without_a_valid_request_id(): void
+    {
+        $this->writeMarker(now()->addMinutes(10)->timestamp, '');
+        Process::fake();
+
+        $this->artisan('caope:deploy-pending')
+            ->expectsOutputToContain('autorización de despliegue inválida o vencida')
+            ->assertFailed();
+
+        $this->assertFileDoesNotExist($this->markerPath);
+        Process::assertNothingRan();
+    }
+
+    public function test_command_removes_an_authorization_without_an_exact_sha(): void
+    {
+        $this->writeMarker(now()->addMinutes(10)->timestamp, 'test-request', 'main');
+        Process::fake();
+
+        $this->artisan('caope:deploy-pending')
+            ->expectsOutputToContain('autorización de despliegue inválida o vencida')
             ->assertFailed();
 
         $this->assertFileDoesNotExist($this->markerPath);
@@ -70,6 +96,8 @@ class RunPendingDeploymentCommandTest extends TestCase
 
         Process::assertRan(fn (PendingProcess $process): bool => $process->command === ['/bin/bash', $this->scriptPath]
             && $process->path === dirname(base_path())
+            && $process->environment['CAOPE_PHP_BIN'] === PHP_BINARY
+            && $process->environment['CAOPE_REQUIRE_CLEAN_CHECKOUT'] === '0'
             && $process->environment['GIT_TERMINAL_PROMPT'] === '0'
             && $process->timeout === 1800);
 
@@ -84,12 +112,15 @@ class RunPendingDeploymentCommandTest extends TestCase
             ->assertSuccessful();
     }
 
-    private function writeMarker(int $expiresAt): void
-    {
+    private function writeMarker(
+        int $expiresAt,
+        string $requestId = 'test-request',
+        string $sha = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+    ): void {
         File::ensureDirectoryExists(dirname($this->markerPath));
         File::put($this->markerPath, json_encode([
-            'sha' => str_repeat('a', 40),
-            'request_id' => 'test-request',
+            'sha' => $sha,
+            'request_id' => $requestId,
             'expires_at' => $expiresAt,
         ], JSON_THROW_ON_ERROR));
     }

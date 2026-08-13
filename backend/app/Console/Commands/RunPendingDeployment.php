@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Services\DeveloperConsoleSettings;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
@@ -10,9 +11,9 @@ class RunPendingDeployment extends Command
 {
     protected $signature = 'caope:deploy-pending';
 
-    protected $description = 'Ejecuta una revisión de staging previamente autorizada por GitHub';
+    protected $description = 'Ejecuta una revisión previamente autorizada por GitHub';
 
-    public function handle(): int
+    public function handle(DeveloperConsoleSettings $settings): int
     {
         $markerPath = storage_path('app/deployment/expected.json');
 
@@ -21,27 +22,30 @@ class RunPendingDeployment extends Command
         }
 
         $marker = json_decode((string) File::get($markerPath), true);
-        $expiresAt = is_array($marker) ? (int) ($marker['expires_at'] ?? 0) : 0;
 
-        if ($expiresAt < now()->timestamp) {
+        if (! $this->hasValidAuthorization($marker)) {
             File::delete($markerPath);
-            $this->warn('Se eliminó una autorización de despliegue vencida o inválida.');
+            $this->warn('Se eliminó una autorización de despliegue inválida o vencida.');
 
             return self::FAILURE;
         }
 
         $repositoryRoot = dirname(base_path());
-        $defaultScriptPath = $repositoryRoot.DIRECTORY_SEPARATOR.'scripts'.DIRECTORY_SEPARATOR.'deploy-cpanel-staging.sh';
-        $scriptPath = trim((string) config('developer_console.deploy_script')) ?: $defaultScriptPath;
+        $defaultScriptPath = $repositoryRoot.DIRECTORY_SEPARATOR.'scripts'.DIRECTORY_SEPARATOR.'deploy-scheduled.sh';
+        $scriptPath = $settings->deployScript() ?: $defaultScriptPath;
 
         if (! is_file($scriptPath)) {
-            $this->error('No se encontró el script de despliegue de staging.');
+            $this->error('No se encontró el script de despliegue programado.');
 
             return self::FAILURE;
         }
 
         $result = Process::path($repositoryRoot)
-            ->env(['GIT_TERMINAL_PROMPT' => '0'])
+            ->env([
+                'CAOPE_PHP_BIN' => PHP_BINARY,
+                'CAOPE_REQUIRE_CLEAN_CHECKOUT' => $settings->hasEncryptedSettings() ? '1' : '0',
+                'GIT_TERMINAL_PROMPT' => '0',
+            ])
             ->timeout(1800)
             ->run(['/bin/bash', $scriptPath]);
 
@@ -56,6 +60,25 @@ class RunPendingDeployment extends Command
         $this->info('El despliegue programado terminó correctamente.');
 
         return self::SUCCESS;
+    }
+
+    private function hasValidAuthorization(mixed $marker): bool
+    {
+        if (! is_array($marker)) {
+            return false;
+        }
+
+        $sha = $marker['sha'] ?? null;
+        $requestId = $marker['request_id'] ?? null;
+        $expiresAt = $marker['expires_at'] ?? null;
+
+        return is_string($sha)
+            && preg_match('/^[a-f0-9]{40}$/i', $sha) === 1
+            && is_string($requestId)
+            && trim($requestId) !== ''
+            && strlen($requestId) <= 100
+            && is_int($expiresAt)
+            && $expiresAt > now()->timestamp;
     }
 
     private function appendDeploymentLog(?int $exitCode, string $output, string $errorOutput): void

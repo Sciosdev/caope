@@ -9,7 +9,7 @@ Route::get('/deployment/version', DeploymentVersionController::class)
     ->middleware('throttle:60,1')
     ->name('api.deployment.version');
 Route::post('/deployment/prepare', DeploymentPreparationController::class)
-    ->middleware('throttle:10,1')
+    ->middleware('throttle:6,1')
     ->name('api.deployment.prepare');
 
 Route::middleware(['auth'])->group(function (): void {

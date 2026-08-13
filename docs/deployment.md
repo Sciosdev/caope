@@ -1,195 +1,129 @@
-# Despliegue controlado y consola del desarrollador
+# Despliegue autónomo de CAOPE
 
-CAOPE utiliza un despliegue manual y auditado. La consola técnica solicita el
-despliegue, GitHub Actions valida la versión y el servidor sólo acepta la rama
-`main`. La aplicación web no ejecuta comandos de shell ni recibe una terminal.
+CAOPE despliega `main` desde su consola técnica sin acceso SSH entrante, tokens
+de cPanel, rutas del servidor ni secretos de producción en GitHub Actions.
 
-## Flujo
+## Instrucción para FESI
 
-1. Un usuario con rol `developer` confirma nuevamente su contraseña.
-2. La consola registra la solicitud y llama a `workflow_dispatch` de GitHub.
-3. GitHub instala dependencias, ejecuta la compuerta de pruebas de despliegue,
-   valida Blade y compila los assets.
-4. El job protegido `production` espera aprobación si el entorno de GitHub la
-   tiene configurada.
-5. GitHub se conecta por SSH, comprueba que el checkout esté limpio y que el
-   commit remoto sea exactamente el que se validó.
-6. El servidor genera un respaldo de la base de datos, activa mantenimiento,
-   actualiza el código, instala dependencias y ejecuta las migraciones.
-7. Se regeneran las cachés, se reinician las colas y se consulta `/up`.
+FESI sólo realiza estos pasos una vez:
 
-Los despliegues no ejecutan seeders y nunca usan `migrate:fresh` en producción.
+1. En su herramienta de despliegue Git, actualizar el checkout persistente de
+   `Sciosdev/caope` en la rama `main`. Deben conservar `backend/.env` y el
+   directorio `.git`; `.cpanel.yml` detecta PHP y Composer y ejecuta por sí solo
+   las dependencias, migraciones y cachés.
+2. Conservar una única ejecución de `php artisan schedule:run` cada minuto. Si
+   el scheduler ya funciona, no deben modificarlo.
 
-## Ambiente de pruebas en cPanel
+No se solicita a FESI ningún host, puerto, usuario, llave SSH, ruta, ejecutable,
+token de GitHub o token de cPanel.
 
-El ambiente `caope.ayudafesi.com` no requiere acceso SSH ni API Token de cPanel.
-GitHub Actions autoriza un SHA exacto durante 30 minutos y el scheduler de
-Laravel ejecuta `caope:deploy-pending` cada minuto. El servidor consulta
-`origin/main`, exige un avance rápido hasta el SHA autorizado y se detiene antes
-de sobrescribir cualquier cambio local que choque con la revisión.
+El checkout debe quedar en `main`, seguir a `origin/main` y ser escribible por
+el mismo usuario que ejecuta el scheduler. CAOPE comprueba estas condiciones en
+la consola y bloquea el botón si alguna falta.
 
-El script genera respaldo, activa mantenimiento, actualiza el checkout, instala
-dependencias, ejecuta migraciones, reconstruye cachés y publica un marcador de
-versión antes de volver a habilitar CAOPE. Su salida queda en
-`backend/storage/logs/developer-deploy.log`.
-Si la cuenta no ofrece Composer globalmente, descarga el instalador oficial,
-valida su firma SHA-384 y conserva `composer.phar` dentro del almacenamiento
-privado de Laravel para los siguientes despliegues.
+## Activación desde el navegador
 
-### Entorno `staging` de GitHub
+Después de que FESI confirme el último despliegue manual:
 
-Crear el entorno **staging** en Settings → Environments y guardar estos
-secretos:
+1. Iniciar sesión en producción con una cuenta activa que tenga rol `admin`.
+2. Abrir `/caope/desarrollo/activar` o elegir **Activar despliegues** en el menú
+   de la cuenta.
+3. Confirmar nuevamente la contraseña cuando CAOPE lo solicite.
+4. Crear un fine-grained personal access token de GitHub:
+   - propietario: `Sciosdev`;
+   - repositorio seleccionado: `caope`;
+   - permiso **Actions: Read and write**;
+   - **Metadata: Read** se agrega automáticamente.
+5. Pegar el token, elegir la cuenta que usará la consola y pulsar
+   **Validar y activar**.
+6. En `/caope/desarrollo`, actualizar las comprobaciones. No se debe desplegar
+   mientras exista algún indicador rojo.
 
-| Secreto | Valor o uso |
-| --- | --- |
-| `CPANEL_HEALTH_URL` | `https://caope.ayudafesi.com`. |
-| `STAGING_DEPLOY_TOKEN` | Secreto aleatorio compartido con el `.env` de pruebas. |
+CAOPE comprueba los permisos del token antes de guardarlo. El valor se cifra
+con `APP_KEY` en `backend/storage/app/developer-console/settings.enc`, nunca se
+muestra de nuevo y no se almacena en la tabla de parámetros.
 
-No se debe crear ni conservar un API Token de cPanel para este flujo. Los
-tokens creados durante una prueba de configuración deben revocarse.
+Si el token vence, se reemplaza en **Renovar token de GitHub**, dentro de la
+misma consola. Si el archivo cifrado se daña o cambia `APP_KEY`, un administrador
+puede recuperar la activación desde `/caope/desarrollo/activar` sin solicitar
+acceso al servidor.
 
-En el `.env` del ambiente de pruebas, la consola debe usar:
+## Despliegues posteriores
 
-```dotenv
-DEVELOPER_CONSOLE_TARGET_LABEL=pruebas
-DEVELOPER_CONSOLE_DEPLOY_WEBHOOK_TOKEN=secreto_aleatorio_compartido
-DEVELOPER_CONSOLE_GITHUB_WORKFLOW=deploy-staging.yml
-DEVELOPER_CONSOLE_GITHUB_REF=main
-```
+1. Integrar el cambio aprobado en `main`.
+2. Entrar a `/caope/desarrollo`.
+3. Escribir `DESPLEGAR`.
+4. Esperar a que el historial muestre **Completado** y las comprobaciones sigan
+   sin errores.
 
-`STAGING_DEPLOY_TOKEN` y `DEVELOPER_CONSOLE_DEPLOY_WEBHOOK_TOKEN` deben tener
-exactamente el mismo valor. La autorización expira en 30 minutos y el script
-de cPanel compara el commit recibido con el SHA validado antes de modificar la
-aplicación.
+El workflow:
 
-La primera actualización que incorpora el comando programado se realiza
-manualmente desde Git Version Control. Los despliegues posteriores pueden
-solicitarse desde `/desarrollo` y siempre validan que la revisión publicada
-coincida con la que GitHub aprobó.
+1. fija el commit exacto asociado a la ejecución;
+2. instala dependencias y ejecuta la compuerta de pruebas;
+3. valida Blade y los assets compilados;
+4. llama al endpoint de producción con el SHA, la solicitud auditada y el ID de
+   la ejecución;
+5. CAOPE consulta GitHub y acredita que el workflow, rama, SHA, intento, título
+   y pruebas coinciden con la solicitud local;
+6. el scheduler ejecuta el despliegue dentro del propio servidor;
+7. genera un respaldo de base de datos, activa mantenimiento, avanza `main` sólo
+   mediante fast-forward, instala Composer, ejecuta migraciones, reconstruye
+   cachés, reinicia colas y vuelve a levantar la aplicación;
+8. GitHub comprueba el SHA publicado y `/caope/up`.
 
-> **Deuda conocida:** la suite completa contiene actualmente fallos heredados
-> ajenos a este módulo. Para no bloquear todos los despliegues, la compuerta
-> ejecuta de forma obligatoria las pruebas unitarias, de autenticación, de
-> seguridad y de la consola técnica. El CI general continúa mostrando los
-> fallos restantes; cuando su línea base quede reparada, `deploy.yml` debe
-> volver a ejecutar `php artisan test` sin filtros.
+Producción rechaza el despliegue si contiene cambios locales en archivos
+versionados. Nunca ejecuta seeders, `migrate:fresh`, `reset --hard` ni comandos
+proporcionados desde el navegador.
 
-## Configuración única a cargo de FESI
+## Seguridad del callback de producción
 
-### Servidor
+El endpoint `/api/deployment/prepare` no confía en los datos enviados por el
+navegador ni en un secreto compartido. Antes de crear una autorización de 30
+minutos, exige:
 
-- PHP 8.2 o posterior, Composer, Git, `curl` y la herramienta de dump de la
-  base de datos deben estar disponibles para el usuario de despliegue.
-- El repositorio debe estar clonado en una ruta dedicada. Esa ruta debe
-  contener `.git/` y `backend/artisan`.
-- El checkout de producción debe permanecer en `main` y no debe contener
-  modificaciones locales en archivos versionados.
-- El usuario SSH debe poder escribir en el checkout, `backend/storage` y
-  `backend/bootstrap/cache`.
-- La llave SSH debe ser exclusiva para GitHub Actions. No se deben reutilizar
-  llaves personales.
-- El cron de Laravel debe ejecutar cada minuto:
+- una solicitud UUID activa y reciente registrada por `/desarrollo`;
+- el workflow `deploy.yml` exacto de `Sciosdev/caope`;
+- evento `workflow_dispatch`, rama `main` y SHA exacto;
+- número de intento y título correspondientes a la solicitud;
+- job **Validate release** terminado correctamente;
+- job **Deploy to production** actualmente en ejecución.
 
-  ```cron
-  * * * * * cd /ruta/caope/backend && /ruta/php artisan schedule:run >> /dev/null 2>&1
-  ```
+El marcador autorizado se elimina al terminar o fallar el intento. El registro
+técnico queda en `backend/storage/logs/developer-deploy.log`.
 
-Antes de habilitar despliegues, FESI debe comprobar manualmente que funciona:
+## Ambiente de pruebas existente
 
-```bash
-cd /ruta/caope/backend
-/ruta/php artisan backup:run --only-db --no-interaction
-/ruta/php artisan migrate:status
-/ruta/php artisan about --only=environment
-```
+`https://caope.ayudafesi.com` conserva temporalmente el bearer configurado en
+`DEVELOPER_CONSOLE_DEPLOY_WEBHOOK_TOKEN` para no interrumpir su workflow actual.
+El mismo script genérico detecta la raíz del repositorio y recibe el PHP que ya
+ejecuta el scheduler; no contiene rutas particulares de cPanel.
 
-### Entorno `production` de GitHub
+## Requisitos que muestra la consola
 
-Crear el entorno **production** en Settings → Environments. Se recomienda
-habilitar revisores obligatorios y restringirlo a la rama `main`.
+La consola comprueba automáticamente:
 
-Agregar estos secretos al entorno:
+- versión y extensiones de PHP;
+- base de datos y migraciones;
+- caché y almacenamiento privado;
+- assets compilados;
+- colas y scheduler;
+- respaldo reciente;
+- `/bin/bash`, `proc_open`, Git, PHP y el script de despliegue;
+- credenciales de GitHub.
 
-| Secreto | Uso |
-| --- | --- |
-| `DEPLOY_HOST` | Host o IP SSH del servidor. |
-| `DEPLOY_USER` | Usuario SSH exclusivo para despliegue. |
-| `DEPLOY_SSH_KEY` | Llave privada autorizada por FESI. |
-| `DEPLOY_PATH` | Ruta absoluta de la raíz del checkout de CAOPE. |
-| `DEPLOY_PORT` | Puerto SSH; opcional, por defecto 22. |
-| `DEPLOY_PHP_BIN` | Ruta absoluta de PHP; opcional si `php` está en PATH. |
-| `DEPLOY_COMPOSER_BIN` | Ruta absoluta de Composer; opcional si está en PATH. |
-| `DEPLOY_HEALTH_URL` | URL base pública, incluyendo el subdirectorio si existe. |
+El botón de despliegue queda deshabilitado si alguna comprobación está en rojo.
 
-`DEPLOY_PATH` nunca debe ser `/`, el home completo del usuario ni una ruta que
-contenga otros proyectos.
+## Recuperación de una falla
 
-### Variables del servidor
+El script usa un candado para impedir despliegues concurrentes. Si falla después
+de activar mantenimiento, intenta ejecutar `artisan up` antes de salir. No
+sobrescribe cambios locales ni fuerza el historial Git.
 
-Agregar al `.env` de `backend`:
+Para diagnosticar desde el navegador:
 
-```dotenv
-DEVELOPER_CONSOLE_ENABLED=true
-DEVELOPER_CONSOLE_ALLOWED_IPS=
-DEVELOPER_CONSOLE_PASSWORD_TIMEOUT=900
-DEVELOPER_CONSOLE_GITHUB_API_URL=https://api.github.com
-DEVELOPER_CONSOLE_GITHUB_REPOSITORY=Sciosdev/caope
-DEVELOPER_CONSOLE_GITHUB_WORKFLOW=deploy.yml
-DEVELOPER_CONSOLE_GITHUB_REF=main
-DEVELOPER_CONSOLE_GITHUB_TOKEN=github_pat_REEMPLAZAR
-```
-
-El token debe ser fine-grained, estar limitado únicamente a `Sciosdev/caope`
-y contar con **Metadata: Read** y **Actions: Read and write**. No necesita
-permisos para modificar código. Debe guardarse exclusivamente en `.env`,
-rotarse periódicamente y revocarse si se sospecha una exposición.
-
-`DEVELOPER_CONSOLE_ALLOWED_IPS` acepta direcciones exactas separadas por coma.
-Cuando se deja vacío, cualquier IP puede entrar, pero todavía se exige usuario,
-rol técnico y confirmación reciente de contraseña.
-
-Después de editar `.env`:
-
-```bash
-cd /ruta/caope/backend
-/ruta/php artisan migrate --force
-/ruta/php artisan config:cache
-```
-
-### Conceder acceso técnico
-
-El rol `developer` no aparece en la administración de usuarios y no puede
-asignarse desde el navegador. FESI debe ejecutarlo una sola vez sobre un usuario
-existente y activo:
-
-```bash
-/ruta/php artisan caope:developer-access desarrollador@ejemplo.com
-```
-
-Para retirarlo:
-
-```bash
-/ruta/php artisan caope:developer-access desarrollador@ejemplo.com --revoke
-```
-
-## Comprobaciones mostradas
-
-La consola revisa PHP y sus extensiones, base de datos, migraciones, caché,
-almacenamiento privado, manifiesto de assets, colas, scheduler, respaldos y la
-configuración de GitHub. Las pruebas de caché y almacenamiento escriben un valor
-temporal y lo eliminan inmediatamente.
-
-El heartbeat del scheduler puede tardar hasta tres minutos en aparecer como
-correcto después de configurar el cron.
-
-## Recuperación
-
-Si CAOPE no responde, el workflow se puede iniciar directamente desde la
-pestaña Actions de GitHub. La consola es una interfaz conveniente, no el único
-mecanismo de recuperación.
-
-El workflow siempre intenta sacar Laravel del modo mantenimiento al terminar,
-incluso cuando falla. No realiza rollback automático de migraciones. Ante una
-falla posterior a una migración se debe conservar el respaldo y seguir
-[`restore-runbook.md`](restore-runbook.md).
+1. abrir `/caope/desarrollo`;
+2. revisar la comprobación roja;
+3. abrir **Ver en GitHub** en el historial;
+4. si la actualización alcanzó al servidor, consultar
+   `backend/storage/logs/developer-deploy.log` mediante el mecanismo de registros
+   que FESI ya proporcione.
