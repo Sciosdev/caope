@@ -20,6 +20,54 @@ despliegue, GitHub Actions valida la versión y el servidor sólo acepta la rama
 
 Los despliegues no ejecutan seeders y nunca usan `migrate:fresh` en producción.
 
+## Ambiente de pruebas en cPanel
+
+El ambiente `caope.ayudafesi.com` no requiere acceso SSH. GitHub Actions usa
+la API UAPI de cPanel para actualizar el repositorio administrado y solicitar
+la tarea definida en `.cpanel.yml`. El script de despliegue genera respaldo,
+activa mantenimiento, instala dependencias, ejecuta migraciones, reconstruye
+cachés y publica un marcador de versión antes de volver a habilitar CAOPE.
+Si la cuenta no ofrece Composer globalmente, descarga el instalador oficial,
+valida su firma SHA-384 y conserva `composer.phar` dentro del almacenamiento
+privado de Laravel para los siguientes despliegues.
+
+### Entorno `staging` de GitHub
+
+Crear el entorno **staging** en Settings → Environments y guardar estos
+secretos:
+
+| Secreto | Valor o uso |
+| --- | --- |
+| `CPANEL_HOST` | `caope.ayudafesi.com`, sin protocolo ni puerto. |
+| `CPANEL_USERNAME` | Usuario de la cuenta cPanel. |
+| `CPANEL_API_TOKEN` | Token creado exclusivamente para este despliegue. |
+| `CPANEL_REPOSITORY_ROOT` | Ruta absoluta del repositorio administrado por cPanel. |
+| `CPANEL_HEALTH_URL` | `https://caope.ayudafesi.com`. |
+| `STAGING_DEPLOY_TOKEN` | Secreto aleatorio compartido con el `.env` de pruebas. |
+
+El token de cPanel se guarda únicamente como secreto del entorno `staging`;
+no debe agregarse al `.env`, al repositorio ni enviarse por chat. Se recomienda
+asignarle fecha de expiración y revocarlo cuando deje de usarse.
+
+En el `.env` del ambiente de pruebas, la consola debe usar:
+
+```dotenv
+DEVELOPER_CONSOLE_TARGET_LABEL=pruebas
+DEVELOPER_CONSOLE_DEPLOY_WEBHOOK_TOKEN=secreto_aleatorio_compartido
+DEVELOPER_CONSOLE_GITHUB_WORKFLOW=deploy-staging.yml
+DEVELOPER_CONSOLE_GITHUB_REF=main
+```
+
+`STAGING_DEPLOY_TOKEN` y `DEVELOPER_CONSOLE_DEPLOY_WEBHOOK_TOKEN` deben tener
+exactamente el mismo valor. La autorización expira en 30 minutos y el script
+de cPanel compara el commit recibido con el SHA validado antes de modificar la
+aplicación.
+
+La primera actualización que incorpora `.cpanel.yml` se realiza manualmente
+desde Git Version Control. Los despliegues posteriores pueden solicitarse desde
+`/desarrollo` y siempre validan que la revisión publicada coincida con la que
+GitHub aprobó.
+
 > **Deuda conocida:** la suite completa contiene actualmente fallos heredados
 > ajenos a este módulo. Para no bloquear todos los despliegues, la compuerta
 > ejecuta de forma obligatoria las pruebas unitarias, de autenticación, de

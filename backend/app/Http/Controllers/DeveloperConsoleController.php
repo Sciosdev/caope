@@ -30,6 +30,7 @@ class DeveloperConsoleController extends Controller
             'deploymentConfigurationIssues' => $github->configurationIssues(),
             'synchronizationWarning' => $synchronizationWarning,
             'deploymentRef' => (string) config('developer_console.github.ref', 'main'),
+            'deploymentTargetLabel' => (string) config('developer_console.target_label', 'producción'),
         ]);
     }
 
@@ -86,7 +87,9 @@ class DeveloperConsoleController extends Controller
                 ]);
             }
 
-            return back()->with('status', 'Despliegue solicitado. GitHub validará la versión antes de actualizar producción.');
+            $target = (string) config('developer_console.target_label', 'producción');
+
+            return back()->with('status', "Despliegue solicitado. GitHub validará la versión antes de actualizar {$target}.");
         } finally {
             $lock->release();
         }

@@ -72,7 +72,7 @@
         <div class="card border-danger">
             <div class="card-header bg-danger-subtle d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <div>
-                    <h5 class="mb-1">Desplegar producción</h5>
+                    <h5 class="mb-1">Desplegar {{ $deploymentTargetLabel }}</h5>
                     <p class="text-muted small mb-0">Rama fija: <code>{{ $deploymentRef }}</code></p>
                 </div>
                 @if ($activeDeployment)
@@ -81,7 +81,7 @@
             </div>
             <div class="card-body">
                 <p>
-                    GitHub ejecutará las pruebas, generará un respaldo y actualizará el servidor mediante el workflow protegido.
+                    GitHub ejecutará las pruebas, generará un respaldo y actualizará {{ $deploymentTargetLabel }} mediante el workflow protegido.
                     Esta pantalla no ejecuta comandos arbitrarios en el servidor.
                 </p>
 

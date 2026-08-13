@@ -31,6 +31,7 @@ class DeveloperConsoleTest extends TestCase
         config([
             'developer_console.enabled' => true,
             'developer_console.allowed_ips' => [],
+            'developer_console.target_label' => 'pruebas',
             'developer_console.github.repository' => 'Sciosdev/caope',
             'developer_console.github.workflow' => 'deploy.yml',
             'developer_console.github.ref' => 'main',
@@ -93,7 +94,7 @@ class DeveloperConsoleTest extends TestCase
         $response->assertOk();
         $response->assertSee('Consola del desarrollador');
         $response->assertSee('Base de datos');
-        $response->assertSee('Desplegar producción');
+        $response->assertSee('Desplegar pruebas');
     }
 
     public function test_developer_can_dispatch_audited_deployment(): void

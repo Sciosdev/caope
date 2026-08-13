@@ -10,6 +10,10 @@ return [
 
     'password_timeout' => max(60, (int) env('DEVELOPER_CONSOLE_PASSWORD_TIMEOUT', 900)),
 
+    'target_label' => (string) env('DEVELOPER_CONSOLE_TARGET_LABEL', 'producción'),
+
+    'deploy_webhook_token' => (string) env('DEVELOPER_CONSOLE_DEPLOY_WEBHOOK_TOKEN', ''),
+
     'github' => [
         'api_url' => rtrim((string) env('DEVELOPER_CONSOLE_GITHUB_API_URL', 'https://api.github.com'), '/'),
         'repository' => (string) env('DEVELOPER_CONSOLE_GITHUB_REPOSITORY', 'Sciosdev/caope'),
