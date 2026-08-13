@@ -27,6 +27,9 @@ la API UAPI de cPanel para actualizar el repositorio administrado y solicitar
 la tarea definida en `.cpanel.yml`. El script de despliegue genera respaldo,
 activa mantenimiento, instala dependencias, ejecuta migraciones, reconstruye
 cachés y publica un marcador de versión antes de volver a habilitar CAOPE.
+Si la cuenta no ofrece Composer globalmente, descarga el instalador oficial,
+valida su firma SHA-384 y conserva `composer.phar` dentro del almacenamiento
+privado de Laravel para los siguientes despliegues.
 
 ### Entorno `staging` de GitHub
 

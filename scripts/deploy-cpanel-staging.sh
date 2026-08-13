@@ -7,10 +7,15 @@ APPLICATION_ROOT="${REPOSITORY_ROOT}/backend"
 PHP_BIN="/usr/local/bin/ea-php83"
 LOCK_DIRECTORY="${REPOSITORY_ROOT}/.deploy-lock"
 EXPECTED_MARKER_PATH="${APPLICATION_ROOT}/storage/app/deployment/expected.json"
+COMPOSER_TOOLS_DIRECTORY="${APPLICATION_ROOT}/storage/app/tools"
+COMPOSER_INSTALLER_PATH="${COMPOSER_TOOLS_DIRECTORY}/composer-setup.php"
+LOCAL_COMPOSER_PATH="${COMPOSER_TOOLS_DIRECTORY}/composer.phar"
 APP_WAS_DOWN=0
 LOCK_ACQUIRED=0
 
 cleanup() {
+    rm -f "${COMPOSER_INSTALLER_PATH}"
+
     if [[ "${APP_WAS_DOWN}" -eq 1 ]]; then
         cd "${APPLICATION_ROOT}"
         "${PHP_BIN}" artisan up || true
@@ -67,7 +72,7 @@ if [[ "${CURRENT_SHA}" != "${EXPECTED_SHA}" ]]; then
 fi
 
 COMPOSER_BIN=""
-for candidate in /usr/local/bin/composer /opt/cpanel/composer/bin/composer; do
+for candidate in /usr/local/bin/composer /opt/cpanel/composer/bin/composer "${LOCAL_COMPOSER_PATH}"; do
     if [[ -f "${candidate}" ]]; then
         COMPOSER_BIN="${candidate}"
         break
@@ -75,8 +80,55 @@ for candidate in /usr/local/bin/composer /opt/cpanel/composer/bin/composer; do
 done
 
 if [[ -z "${COMPOSER_BIN}" ]]; then
-    echo "Composer no esta instalado en una ruta compatible de cPanel."
-    exit 1
+    echo "Composer no esta instalado globalmente; se preparara una copia privada verificada."
+    mkdir -p "${COMPOSER_TOOLS_DIRECTORY}"
+
+    # The PHP snippets are intentionally single-quoted so Bash cannot expand them.
+    # shellcheck disable=SC2016
+    EXPECTED_COMPOSER_CHECKSUM="$("${PHP_BIN}" -r '
+        $checksum = @file_get_contents("https://composer.github.io/installer.sig");
+
+        if ($checksum === false) {
+            fwrite(STDERR, "No fue posible descargar la firma oficial de Composer.\n");
+            exit(1);
+        }
+
+        echo trim($checksum);
+    ')"
+
+    # shellcheck disable=SC2016
+    "${PHP_BIN}" -r '
+        $installer = @file_get_contents("https://getcomposer.org/installer");
+
+        if ($installer === false || file_put_contents($argv[1], $installer) === false) {
+            fwrite(STDERR, "No fue posible descargar el instalador oficial de Composer.\n");
+            exit(1);
+        }
+    ' "${COMPOSER_INSTALLER_PATH}"
+
+    # shellcheck disable=SC2016
+    ACTUAL_COMPOSER_CHECKSUM="$("${PHP_BIN}" -r '
+        echo hash_file("sha384", $argv[1]);
+    ' "${COMPOSER_INSTALLER_PATH}")"
+
+    if [[ "${EXPECTED_COMPOSER_CHECKSUM}" != "${ACTUAL_COMPOSER_CHECKSUM}" ]]; then
+        echo "La firma del instalador de Composer no coincide."
+        exit 1
+    fi
+
+    "${PHP_BIN}" "${COMPOSER_INSTALLER_PATH}" \
+        --install-dir="${COMPOSER_TOOLS_DIRECTORY}" \
+        --filename=composer.phar \
+        --quiet \
+        --2
+    rm -f "${COMPOSER_INSTALLER_PATH}"
+
+    if [[ ! -f "${LOCAL_COMPOSER_PATH}" ]]; then
+        echo "Composer no pudo instalarse en el almacenamiento privado."
+        exit 1
+    fi
+
+    COMPOSER_BIN="${LOCAL_COMPOSER_PATH}"
 fi
 
 cd "${APPLICATION_ROOT}"
