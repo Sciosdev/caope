@@ -215,6 +215,34 @@ fi
 "${PHP_BIN}" artisan view:cache
 "${PHP_BIN}" artisan storage:link --force
 "${PHP_BIN}" artisan queue:restart
+
+DEPLOYED_SHA="$(git -C "${REPOSITORY_ROOT}" rev-parse HEAD 2>/dev/null || true)"
+[[ "${DEPLOYED_SHA}" =~ ^[a-f0-9]{40}$ ]] || \
+    fail 'No fue posible identificar la revisión Git instalada por cPanel.'
+
+VERSION_MARKER_PATH="${APPLICATION_ROOT}/storage/app/deployment/version.json"
+DEPLOYED_AT="$("${PHP_BIN}" -r 'echo gmdate("Y-m-d\\TH:i:s\\Z");')"
+mkdir -p -- "$(dirname -- "${VERSION_MARKER_PATH}")"
+
+# shellcheck disable=SC2016
+"${PHP_BIN}" -r '
+    $payload = json_encode([
+        "sha" => strtolower($argv[2]),
+        "deployed_at" => $argv[3],
+        "request_id" => "cpanel-bootstrap",
+    ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES).PHP_EOL;
+    $temporaryPath = $argv[1].".tmp.".getmypid();
+
+    if (file_put_contents($temporaryPath, $payload, LOCK_EX) === false
+        || ! rename($temporaryPath, $argv[1])) {
+        @unlink($temporaryPath);
+        fwrite(STDERR, "No fue posible publicar el marcador de versión.\n");
+        exit(1);
+    }
+
+    @chmod($argv[1], 0600);
+' "${VERSION_MARKER_PATH}" "${DEPLOYED_SHA}" "${DEPLOYED_AT}"
+
 "${PHP_BIN}" artisan up
 APP_WAS_DOWN=0
 

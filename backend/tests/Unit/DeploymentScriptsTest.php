@@ -55,6 +55,8 @@ class DeploymentScriptsTest extends TestCase
             'artisan view:cache',
             'artisan storage:link --force',
             'artisan queue:restart',
+            '"request_id" => "cpanel-bootstrap"',
+            'git -C "${REPOSITORY_ROOT}" rev-parse HEAD',
             'artisan up',
         ] as $requiredStep) {
             $this->assertStringContainsString($requiredStep, $script);
