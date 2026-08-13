@@ -1,37 +1,206 @@
 name: Deploy
+run-name: Deploy production ${{ inputs.ref || 'main' }} [${{ inputs.request_id || 'manual' }}]
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
       ref:
-        description: 'Branch, tag or commit to deploy'
-        required: false
+        description: 'Rama aprobada para producción'
+        required: true
         default: main
+        type: choice
+        options:
+          - main
+      request_id:
+        description: 'Identificador de auditoría generado por CAOPE'
+        required: false
+        default: manual
 
 permissions:
   contents: read
 
+concurrency:
+  group: caope-production
+  cancel-in-progress: false
+
 jobs:
+  validate:
+    name: Validate release
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.revision.outputs.sha }}
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout approved ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, bcmath, intl, pcntl, sqlite3
+          coverage: none
+
+      - name: Install Composer dependencies
+        uses: ramsey/composer-install@v3
+        with:
+          working-directory: backend
+          composer-options: '--no-progress --no-interaction --prefer-dist'
+
+      - name: Prepare test environment
+        run: |
+          cp .env.testing .env
+          touch database/database.sqlite
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      # The repository currently has legacy feature failures outside the deploy
+      # path. Keep this gate strict and deterministic until that baseline is
+      # repaired, instead of making every production request impossible.
+      - name: Run deployment test gate
+        run: |
+          php artisan test --testsuite=Unit
+          php artisan test \
+            tests/Feature/Developer \
+            tests/Feature/Admin/UserManagementTest.php \
+            tests/Feature/Smoke/SecuritySmokeTest.php \
+            tests/Feature/Auth/AuthenticationTest.php \
+            tests/Feature/Auth/PasswordConfirmationTest.php
+
+      - name: Validate Blade templates
+        run: php artisan blade:validate
+
+      - name: Compile Blade templates
+        run: php artisan view:cache
+
+      - name: Build frontend assets
+        run: npm run build
+
+      - name: Verify compiled assets are committed
+        run: git diff --exit-code -- public/assets/build
+
+      - name: Record validated revision
+        id: revision
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
   deploy:
     name: Deploy to production server
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    needs: validate
+    environment:
+      name: production
     env:
-      DEPLOY_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || 'main' }}
+      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+      DEPLOY_PHP_BIN: ${{ secrets.DEPLOY_PHP_BIN || 'php' }}
+      DEPLOY_COMPOSER_BIN: ${{ secrets.DEPLOY_COMPOSER_BIN || 'composer' }}
+      DEPLOY_REF: ${{ inputs.ref }}
+      DEPLOY_EXPECTED_SHA: ${{ needs.validate.outputs.sha }}
+      DEPLOY_REQUEST_ID: ${{ inputs.request_id }}
+      DEPLOY_HEALTH_URL: ${{ secrets.DEPLOY_HEALTH_URL }}
     steps:
-      - name: Execute remote deployment commands
+      - name: Execute controlled remote deployment
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 30m
+          script_stop: true
+          envs: DEPLOY_PATH,DEPLOY_PHP_BIN,DEPLOY_COMPOSER_BIN,DEPLOY_REF,DEPLOY_EXPECTED_SHA,DEPLOY_REQUEST_ID,DEPLOY_HEALTH_URL
           script: |
-            cd "${{ secrets.DEPLOY_PATH }}"
-            git fetch origin $DEPLOY_REF
-            git checkout $DEPLOY_REF
-            git pull origin $DEPLOY_REF
-            ${{ secrets.DEPLOY_POST_COMMANDS }}
+            set -eu
+
+            if [ -z "$DEPLOY_PATH" ] || [ "$DEPLOY_PATH" = "/" ]; then
+              echo "DEPLOY_PATH is empty or unsafe."
+              exit 1
+            fi
+
+            cd "$DEPLOY_PATH"
+
+            if [ ! -d .git ] || [ ! -f backend/artisan ]; then
+              echo "DEPLOY_PATH is not a CAOPE checkout."
+              exit 1
+            fi
+
+            LOCK_DIR="$DEPLOY_PATH/.deploy-lock"
+            if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+              echo "Another deployment appears to be active."
+              exit 1
+            fi
+
+            APP_WAS_DOWN=0
+            cleanup() {
+              if [ "$APP_WAS_DOWN" -eq 1 ]; then
+                cd "$DEPLOY_PATH/backend"
+                "$DEPLOY_PHP_BIN" artisan up || true
+              fi
+              rmdir "$LOCK_DIR" 2>/dev/null || true
+            }
+            trap cleanup EXIT INT TERM
+
+            if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+              echo "The production checkout contains tracked local changes."
+              exit 1
+            fi
+
+            git fetch --prune origin "$DEPLOY_REF"
+            REMOTE_SHA=$(git rev-parse "origin/$DEPLOY_REF")
+
+            if [ "$REMOTE_SHA" != "$DEPLOY_EXPECTED_SHA" ]; then
+              echo "The remote branch changed after validation; request a new deployment."
+              exit 1
+            fi
+
+            cd "$DEPLOY_PATH/backend"
+            "$DEPLOY_PHP_BIN" artisan backup:run --only-db --no-interaction
+            "$DEPLOY_PHP_BIN" artisan down --retry=60
+            APP_WAS_DOWN=1
+
+            cd "$DEPLOY_PATH"
+            git checkout "$DEPLOY_REF"
+            git pull --ff-only origin "$DEPLOY_REF"
+
+            DEPLOYED_SHA=$(git rev-parse HEAD)
+            if [ "$DEPLOYED_SHA" != "$DEPLOY_EXPECTED_SHA" ]; then
+              echo "The deployed revision does not match the validated revision."
+              exit 1
+            fi
+
+            cd "$DEPLOY_PATH/backend"
+            "$DEPLOY_COMPOSER_BIN" install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+            "$DEPLOY_PHP_BIN" artisan migrate --force
+            "$DEPLOY_PHP_BIN" artisan optimize:clear
+            "$DEPLOY_PHP_BIN" artisan config:cache
+            "$DEPLOY_PHP_BIN" artisan view:cache
+            "$DEPLOY_PHP_BIN" artisan storage:link --force
+            "$DEPLOY_PHP_BIN" artisan queue:restart
+
+            mkdir -p storage/app/deployment
+            DEPLOYED_AT=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+            printf '{"sha":"%s","deployed_at":"%s","request_id":"%s"}\n' \
+              "$DEPLOYED_SHA" "$DEPLOYED_AT" "$DEPLOY_REQUEST_ID" \
+              > storage/app/deployment/version.json
+
+            "$DEPLOY_PHP_BIN" artisan up
+            APP_WAS_DOWN=0
+            "$DEPLOY_PHP_BIN" artisan about --only=environment
+
+            if [ -n "$DEPLOY_HEALTH_URL" ]; then
+              curl --fail --silent --show-error --retry 5 --retry-delay 3 \
+                "${DEPLOY_HEALTH_URL%/}/up" > /dev/null
+            fi
+
+            cleanup

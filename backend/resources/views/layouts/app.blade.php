@@ -187,6 +187,11 @@
                                     <li>
                                         <a class="dropdown-item" href="{{ route('profile.edit') }}">{{ __('Mi perfil') }}</a>
                                     </li>
+                                    @if (config('developer_console.enabled') && Auth::user()->hasRole('developer'))
+                                        <li>
+                                            <a class="dropdown-item" href="{{ route('developer.index') }}">{{ __('Consola del desarrollador') }}</a>
+                                        </li>
+                                    @endif
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
                                         <form method="POST" action="{{ route('logout') }}">

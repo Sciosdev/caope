@@ -1,71 +1,147 @@
-# Deployment and GitHub Actions secrets
+# Despliegue controlado y consola del desarrollador
 
-This project ships with two GitHub Actions workflows:
+CAOPE utiliza un despliegue manual y auditado. La consola técnica solicita el
+despliegue, GitHub Actions valida la versión y el servidor sólo acepta la rama
+`main`. La aplicación web no ejecuta comandos de shell ni recibe una terminal.
 
-- `ci.yml` validates the Laravel backend, lints Blade templates, and optionally builds the Vite assets.
-- `deploy.yml` connects to the production server over SSH (cPanel compatible) and performs a `git pull` so the remote files stay in sync with `main`.
+## Flujo
 
-To keep both workflows functional you must configure a few secrets and prepare the destination server. This document summarises the requirements and the exact steps to follow.
+1. Un usuario con rol `developer` confirma nuevamente su contraseña.
+2. La consola registra la solicitud y llama a `workflow_dispatch` de GitHub.
+3. GitHub instala dependencias, ejecuta la compuerta de pruebas de despliegue,
+   valida Blade y compila los assets.
+4. El job protegido `production` espera aprobación si el entorno de GitHub la
+   tiene configurada.
+5. GitHub se conecta por SSH, comprueba que el checkout esté limpio y que el
+   commit remoto sea exactamente el que se validó.
+6. El servidor genera un respaldo de la base de datos, activa mantenimiento,
+   actualiza el código, instala dependencias y ejecuta las migraciones.
+7. Se regeneran las cachés, se reinician las colas y se consulta `/up`.
 
-## Required GitHub secrets
+Los despliegues no ejecutan seeders y nunca usan `migrate:fresh` en producción.
 
-Create the following secrets from **Settings → Secrets and variables → Actions** in your GitHub repository:
+> **Deuda conocida:** la suite completa contiene actualmente fallos heredados
+> ajenos a este módulo. Para no bloquear todos los despliegues, la compuerta
+> ejecuta de forma obligatoria las pruebas unitarias, de autenticación, de
+> seguridad y de la consola técnica. El CI general continúa mostrando los
+> fallos restantes; cuando su línea base quede reparada, `deploy.yml` debe
+> volver a ejecutar `php artisan test` sin filtros.
 
-| Secret | Description |
+## Configuración única a cargo de FESI
+
+### Servidor
+
+- PHP 8.2 o posterior, Composer, Git, `curl` y la herramienta de dump de la
+  base de datos deben estar disponibles para el usuario de despliegue.
+- El repositorio debe estar clonado en una ruta dedicada. Esa ruta debe
+  contener `.git/` y `backend/artisan`.
+- El checkout de producción debe permanecer en `main` y no debe contener
+  modificaciones locales en archivos versionados.
+- El usuario SSH debe poder escribir en el checkout, `backend/storage` y
+  `backend/bootstrap/cache`.
+- La llave SSH debe ser exclusiva para GitHub Actions. No se deben reutilizar
+  llaves personales.
+- El cron de Laravel debe ejecutar cada minuto:
+
+  ```cron
+  * * * * * cd /ruta/caope/backend && /ruta/php artisan schedule:run >> /dev/null 2>&1
+  ```
+
+Antes de habilitar despliegues, FESI debe comprobar manualmente que funciona:
+
+```bash
+cd /ruta/caope/backend
+/ruta/php artisan backup:run --only-db --no-interaction
+/ruta/php artisan migrate:status
+/ruta/php artisan about --only=environment
+```
+
+### Entorno `production` de GitHub
+
+Crear el entorno **production** en Settings → Environments. Se recomienda
+habilitar revisores obligatorios y restringirlo a la rama `main`.
+
+Agregar estos secretos al entorno:
+
+| Secreto | Uso |
 | --- | --- |
-| `DEPLOY_HOST` | Public hostname or IP address of the server that hosts the application. |
-| `DEPLOY_USER` | SSH user with permissions to run `git pull` and manage the Laravel project (often the cPanel user). |
-| `DEPLOY_SSH_KEY` | Private SSH key (in PEM format) that authenticates the workflow. Store only the private key here. |
-| `DEPLOY_PATH` | Absolute path of the project on the server (e.g. `/home/cpaneluser/domains/example.com/app`). |
-| `DEPLOY_PORT` *(optional)* | Custom SSH port. Omit the secret to use the default port `22`. |
-| `DEPLOY_POST_COMMANDS` *(optional)* | Additional commands to run after `git pull` (e.g. `composer install --no-dev && php artisan migrate --force`). |
+| `DEPLOY_HOST` | Host o IP SSH del servidor. |
+| `DEPLOY_USER` | Usuario SSH exclusivo para despliegue. |
+| `DEPLOY_SSH_KEY` | Llave privada autorizada por FESI. |
+| `DEPLOY_PATH` | Ruta absoluta de la raíz del checkout de CAOPE. |
+| `DEPLOY_PORT` | Puerto SSH; opcional, por defecto 22. |
+| `DEPLOY_PHP_BIN` | Ruta absoluta de PHP; opcional si `php` está en PATH. |
+| `DEPLOY_COMPOSER_BIN` | Ruta absoluta de Composer; opcional si está en PATH. |
+| `DEPLOY_HEALTH_URL` | URL base pública, incluyendo el subdirectorio si existe. |
 
-The deployment workflow also honours the `ref` input when triggered manually. This allows you to deploy a feature branch or a tag by providing the exact ref name through the **Run workflow** dialog.
+`DEPLOY_PATH` nunca debe ser `/`, el home completo del usuario ni una ruta que
+contenga otros proyectos.
 
-## Generating and uploading SSH keys
+### Variables del servidor
 
-1. Generate a dedicated key pair for GitHub Actions from your local machine (do **not** reuse personal keys):
+Agregar al `.env` de `backend`:
 
-   ```bash
-   ssh-keygen -t ed25519 -C "deploy@caope" -f ./caope_actions
-   ```
+```dotenv
+DEVELOPER_CONSOLE_ENABLED=true
+DEVELOPER_CONSOLE_ALLOWED_IPS=
+DEVELOPER_CONSOLE_PASSWORD_TIMEOUT=900
+DEVELOPER_CONSOLE_GITHUB_API_URL=https://api.github.com
+DEVELOPER_CONSOLE_GITHUB_REPOSITORY=Sciosdev/caope
+DEVELOPER_CONSOLE_GITHUB_WORKFLOW=deploy.yml
+DEVELOPER_CONSOLE_GITHUB_REF=main
+DEVELOPER_CONSOLE_GITHUB_TOKEN=github_pat_REEMPLAZAR
+```
 
-2. Add the **public** key (`caope_actions.pub`) to the server:
-   - For cPanel, use **SSH Access → Manage SSH Keys → Import Key** and authorise it.
-   - On a standard Linux server, append the public key to the `~/.ssh/authorized_keys` file of the deployment user.
+El token debe ser fine-grained, estar limitado únicamente a `Sciosdev/caope`
+y contar con **Metadata: Read** y **Actions: Read and write**. No necesita
+permisos para modificar código. Debe guardarse exclusivamente en `.env`,
+rotarse periódicamente y revocarse si se sospecha una exposición.
 
-3. Add the **private** key to the `DEPLOY_SSH_KEY` secret, including the `-----BEGIN/END OPENSSH PRIVATE KEY-----` delimiters.
+`DEVELOPER_CONSOLE_ALLOWED_IPS` acepta direcciones exactas separadas por coma.
+Cuando se deja vacío, cualquier IP puede entrar, pero todavía se exige usuario,
+rol técnico y confirmación reciente de contraseña.
 
-4. (Optional) Restrict the key on the server side to limit the commands it may run, or disable password logins for extra security.
+Después de editar `.env`:
 
-## Server requirements
+```bash
+cd /ruta/caope/backend
+/ruta/php artisan migrate --force
+/ruta/php artisan config:cache
+```
 
-- Git must be installed and configured to access the same repository as GitHub Actions (HTTPS or SSH).
-- The deployment user needs permissions to read and write within `DEPLOY_PATH`, including storage directories and the `.git` folder.
-- PHP and Composer should already be available on the server if you run post-deployment commands such as database migrations.
-- Ensure the `.env` on the server contains production-ready values (database, cache, queues, mail, etc.). The workflows never overwrite `.env`.
+### Conceder acceso técnico
 
-### Database preparation after deploys
+El rol `developer` no aparece en la administración de usuarios y no puede
+asignarse desde el navegador. FESI debe ejecutarlo una sola vez sobre un usuario
+existente y activo:
 
-- Provision an empty database before the first deploy. The project seeds mandatory lookup data (catálogos, usuario de ejemplo, etc.) through `php artisan migrate --seed`.
-- Add `php artisan migrate --seed --force` to the `DEPLOY_POST_COMMANDS` secret (or run it manually) so every deploy keeps the schema in sync and refreshes the baseline catalog data when new seeders are shipped.
-- For destructive refreshes in staging you can trigger `php artisan migrate:fresh --seed --force`; avoid this command in production because it drops all tables.
+```bash
+/ruta/php artisan caope:developer-access desarrollador@ejemplo.com
+```
 
-## Running the workflows
+Para retirarlo:
 
-- **Continuous Integration (`ci.yml`)** runs automatically on every pull request and push to `main`. It installs Composer dependencies, runs `php artisan test --testsuite=Feature`, enforces Pint formatting, validates Blade templates with `php artisan blade:validate`, and builds Vite assets when `backend/package.json` is present.
-- **Deployment (`deploy.yml`)** runs automatically on pushes to `main` and can be triggered manually. It performs an SSH login with the configured secrets, checks out the requested ref, pulls the latest code, and optionally executes your custom post-deploy commands.
+```bash
+/ruta/php artisan caope:developer-access desarrollador@ejemplo.com --revoke
+```
 
-With the secrets configured and the server prepared, deployments become a one-click action while the CI workflow keeps code quality under control.
+## Comprobaciones mostradas
 
-## Operational security
+La consola revisa PHP y sus extensiones, base de datos, migraciones, caché,
+almacenamiento privado, manifiesto de assets, colas, scheduler, respaldos y la
+configuración de GitHub. Las pruebas de caché y almacenamiento escriben un valor
+temporal y lo eliminan inmediatamente.
 
-Operational hardening is as important as the mechanics of the deploy. Adopt the following practices and review them during every quarterly security audit:
+El heartbeat del scheduler puede tardar hasta tres minutos en aparecer como
+correcto después de configurar el cron.
 
-- **Access controls** – Limit who can trigger `deploy.yml`, require multi-factor authentication for GitHub administrators, and keep SSH keys rotated as documented in [`docs/security-checklist.md`](security-checklist.md).
-- **Environment hygiene** – Periodically prune unused environment variables and secrets in GitHub Actions, the hosting panel, and cloud services. Cross-reference the inventory maintained in the security checklist before removing values.
-- **Infrastructure monitoring** – Enable host-based firewalls, patch the OS monthly, and monitor CPU, memory, and disk usage for anomalies. Investigate alerts immediately and log incidents in the restore runbook.
-- **Backup readiness** – Confirm that database backups are succeeding and restorable. Practice the workflow described in [`docs/restore-runbook.md`](restore-runbook.md) twice per year and record the outcome.
-- **Incident response** – Maintain an on-call rota and escalation matrix. During incidents involving data integrity, defer deploys until the restore process concludes and update both the deployment documentation and the security checklist with lessons learned.
+## Recuperación
 
-For a holistic view of the security posture, pair this section with the OWASP-aligned checklist in [`docs/security-checklist.md`](security-checklist.md) and the recovery procedures in [`docs/restore-runbook.md`](restore-runbook.md).
+Si CAOPE no responde, el workflow se puede iniciar directamente desde la
+pestaña Actions de GitHub. La consola es una interfaz conveniente, no el único
+mecanismo de recuperación.
+
+El workflow siempre intenta sacar Laravel del modo mantenimiento al terminar,
+incluso cuando falla. No realiza rollback automático de migraciones. Ante una
+falla posterior a una migración se debe conservar el respaldo y seguir
+[`restore-runbook.md`](restore-runbook.md).

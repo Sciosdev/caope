@@ -9,8 +9,9 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Redirect;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Role;
 
@@ -25,6 +26,7 @@ class UserController extends Controller
     {
         $users = User::query()
             ->with('roles')
+            ->whereDoesntHave('roles', fn ($query) => $query->where('name', 'developer'))
             ->orderBy('name')
             ->paginate(15);
 
@@ -48,7 +50,7 @@ class UserController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'roles' => ['required', 'array', 'min:1'],
-            'roles.*' => ['string', 'exists:roles,name'],
+            'roles.*' => ['string', Rule::in(array_keys($this->availableRoles()))],
             'carrera' => ['nullable', 'string', 'max:100'],
             'turno' => ['nullable', 'string', 'max:100'],
             'is_active' => ['nullable', 'boolean'],
@@ -67,6 +69,8 @@ class UserController extends Controller
 
     public function edit(User $user): RedirectResponse|View
     {
+        abort_if($user->hasRole('developer'), 403);
+
         if ($response = $this->preventSelfModification($user)) {
             return $response;
         }
@@ -80,6 +84,8 @@ class UserController extends Controller
 
     public function update(Request $request, User $user): RedirectResponse
     {
+        abort_if($user->hasRole('developer'), 403);
+
         if ($response = $this->preventSelfModification($user)) {
             return $response;
         }
@@ -93,10 +99,10 @@ class UserController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,'.$user->id],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'roles' => ['required', 'array', 'min:1'],
-            'roles.*' => ['string', 'exists:roles,name'],
+            'roles.*' => ['string', Rule::in(array_keys($this->availableRoles()))],
             'carrera' => ['nullable', 'string', 'max:100'],
             'turno' => ['nullable', 'string', 'max:100'],
             'is_active' => ['nullable', 'boolean'],
@@ -123,9 +129,10 @@ class UserController extends Controller
         return Redirect::route('admin.users.index')->with('status', __('Usuario actualizado correctamente.'));
     }
 
-
     public function approve(User $user): RedirectResponse
     {
+        abort_if($user->hasRole('developer'), 403);
+
         if (! $user->approved_at) {
             $user->update([
                 'approved_at' => Carbon::now(),
@@ -138,6 +145,8 @@ class UserController extends Controller
 
     public function toggleActive(Request $request, User $user): RedirectResponse
     {
+        abort_if($user->hasRole('developer'), 403);
+
         if ($response = $this->preventSelfModification($user)) {
             return $response;
         }
@@ -158,6 +167,8 @@ class UserController extends Controller
 
     public function destroy(User $user): RedirectResponse
     {
+        abort_if($user->hasRole('developer'), 403);
+
         if ($response = $this->preventSelfModification($user)) {
             return $response;
         }
@@ -180,7 +191,11 @@ class UserController extends Controller
             'guard_name' => 'web',
         ]);
 
-        return Role::query()->orderBy('name')->pluck('name', 'name')->all();
+        return Role::query()
+            ->where('name', '!=', 'developer')
+            ->orderBy('name')
+            ->pluck('name', 'name')
+            ->all();
     }
 
     private function preventSelfModification(User $user): ?RedirectResponse
