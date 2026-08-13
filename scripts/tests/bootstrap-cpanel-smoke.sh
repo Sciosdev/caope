@@ -47,6 +47,12 @@ set -Eeuo pipefail
 if [[ "${1:-}" == '-r' ]]; then
     if [[ "${2:-}" == *'echo PHP_VERSION'* ]]; then
         echo '8.3.99'
+    elif [[ "${2:-}" == *'gmdate'* ]]; then
+        echo '2026-08-13T21:50:00Z'
+    elif [[ "${2:-}" == *'cpanel-bootstrap'* ]]; then
+        mkdir -p -- "$(dirname -- "${3}")"
+        printf '{"sha":"%s","deployed_at":"%s","request_id":"cpanel-bootstrap"}\n' \
+            "${4}" "${5}" > "${3}"
     fi
     exit 0
 fi
@@ -71,9 +77,15 @@ cat > "${FIXTURE_ROOT}/bin/composer" <<'FAKE_COMPOSER'
 exit 0
 FAKE_COMPOSER
 
+cat > "${FIXTURE_ROOT}/bin/git" <<'FAKE_GIT'
+#!/usr/bin/env bash
+echo 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+FAKE_GIT
+
 chmod +x \
     "${FIXTURE_ROOT}/bin/ea-php83" \
-    "${FIXTURE_ROOT}/bin/composer"
+    "${FIXTURE_ROOT}/bin/composer" \
+    "${FIXTURE_ROOT}/bin/git"
 
 run_bootstrap() {
     : > "${TEST_LOG}"
@@ -92,6 +104,10 @@ assert_contains 'composer:install --no-dev' "${TEST_LOG}"
 assert_contains 'composer:check-platform-reqs --no-dev' "${TEST_LOG}"
 assert_contains 'artisan:migrate --force' "${TEST_LOG}"
 assert_contains 'artisan:up' "${TEST_LOG}"
+assert_contains '"sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' \
+    "${FIXTURE_ROOT}/backend/storage/app/deployment/version.json"
+assert_contains '"request_id":"cpanel-bootstrap"' \
+    "${FIXTURE_ROOT}/backend/storage/app/deployment/version.json"
 
 if grep -F -- 'backup:run' "${TEST_LOG}" >/dev/null; then
     fail 'La primera instalación no debe intentar un respaldo con Laravel aún incompleto.'
