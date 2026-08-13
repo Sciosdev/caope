@@ -43,6 +43,7 @@ class DeploymentVersionTest extends TestCase
             ->assertHeader('Cache-Control', 'no-store, private')
             ->assertExactJson([
                 'sha' => str_repeat('a', 40),
+                'request_id' => 'internal-value',
                 'deployed_at' => '2026-08-13T07:30:00Z',
             ]);
     }

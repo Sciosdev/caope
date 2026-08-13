@@ -76,6 +76,9 @@ jobs:
             tests/Feature/Auth/AuthenticationTest.php \
             tests/Feature/Auth/PasswordConfirmationTest.php
 
+      - name: Simulate the cPanel bootstrap
+        run: bash ../scripts/tests/bootstrap-cpanel-smoke.sh
+
       - name: Validate and compile Blade templates
         run: |
           php artisan blade:validate

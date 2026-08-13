@@ -14,7 +14,7 @@
             'error' => ['alert-danger', 'Se detectaron errores'],
         ][$overallStatus];
         $activeDeployment = $deployments->first(fn ($deployment) => $deployment->isActive());
-        $deployDisabled = $deploymentConfigurationIssues !== [] || $activeDeployment !== null;
+        $deployDisabled = $deploymentConfigurationIssues !== [] || $activeDeployment !== null || $errorCount > 0;
     @endphp
 
     <div class="d-flex flex-column gap-4">
@@ -32,6 +32,10 @@
 
         @if ($errors->has('deployment'))
             <div class="alert alert-danger mb-0">{{ $errors->first('deployment') }}</div>
+        @endif
+
+        @if ($errors->has('credentials'))
+            <div class="alert alert-danger mb-0">{{ $errors->first('credentials') }}</div>
         @endif
 
         @if ($synchronizationWarning)
@@ -180,5 +184,36 @@
                 </div>
             </div>
         </div>
+
+        @if ($canRotateCredentials)
+            <details class="card">
+                <summary class="card-header fw-semibold">Renovar token de GitHub</summary>
+                <div class="card-body">
+                    <p class="text-muted">
+                        Usa esta opción sólo cuando el token haya vencido o vaya a revocarse. El token anterior no se muestra.
+                    </p>
+                    <form method="POST" action="{{ route('developer.credentials.rotate') }}" class="row g-3 align-items-end" autocomplete="off">
+                        @csrf
+                        <div class="col-md-8">
+                            <label for="github_token" class="form-label">Token nuevo</label>
+                            <input
+                                id="github_token"
+                                name="github_token"
+                                type="password"
+                                class="form-control @error('github_token') is-invalid @enderror"
+                                autocomplete="new-password"
+                                required
+                            >
+                            @error('github_token')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="col-md-4 d-grid">
+                            <button type="submit" class="btn btn-outline-primary">Validar y reemplazar</button>
+                        </div>
+                    </form>
+                </div>
+            </details>
+        @endif
     </div>
 </x-app-layout>

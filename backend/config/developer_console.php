@@ -12,11 +12,16 @@ return [
 
     'target_label' => (string) env('DEVELOPER_CONSOLE_TARGET_LABEL', 'producción'),
 
+    'settings_path' => (string) env(
+        'DEVELOPER_CONSOLE_SETTINGS_PATH',
+        storage_path('app/developer-console/settings.enc')
+    ),
+
     'deploy_webhook_token' => (string) env('DEVELOPER_CONSOLE_DEPLOY_WEBHOOK_TOKEN', ''),
 
     'deploy_script' => (string) env(
         'DEVELOPER_CONSOLE_DEPLOY_SCRIPT',
-        dirname(base_path()).DIRECTORY_SEPARATOR.'scripts'.DIRECTORY_SEPARATOR.'deploy-cpanel-staging.sh'
+        dirname(base_path()).DIRECTORY_SEPARATOR.'scripts'.DIRECTORY_SEPARATOR.'deploy-scheduled.sh'
     ),
 
     'github' => [

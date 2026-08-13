@@ -18,6 +18,7 @@ use App\Http\Controllers\ConsentimientoRequeridoController;
 use App\Http\Controllers\ConsentimientoUploadController;
 use App\Http\Controllers\ConsultorioReservaController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DeveloperConsoleActivationController;
 use App\Http\Controllers\DeveloperConsoleController;
 use App\Http\Controllers\ExpedienteController;
 use App\Http\Controllers\ProfileController;
@@ -41,15 +42,25 @@ Route::middleware(['auth', 'active_user'])->group(function () {
     Route::get('/dashboard/metricas', [DashboardController::class, 'metrics'])->name('dashboard.metrics');
     Route::get('/dashboard/alertas', [DashboardController::class, 'alerts'])->name('dashboard.alerts');
 
-    Route::prefix('desarrollo')
-        ->name('developer.')
-        ->middleware(['developer.console', 'role:developer', 'developer.reauth'])
-        ->group(function (): void {
+    Route::prefix('desarrollo')->name('developer.')->group(function (): void {
+        Route::middleware(['role:admin', 'developer.reauth'])->group(function (): void {
+            Route::get('/activar', [DeveloperConsoleActivationController::class, 'show'])
+                ->name('activation.show');
+            Route::post('/activar', [DeveloperConsoleActivationController::class, 'store'])
+                ->middleware('throttle:developer.activation')
+                ->name('activation.store');
+        });
+
+        Route::middleware(['developer.console', 'role:developer', 'developer.reauth'])->group(function (): void {
             Route::get('/', [DeveloperConsoleController::class, 'index'])->name('index');
             Route::post('/deploy', [DeveloperConsoleController::class, 'deploy'])
                 ->middleware('throttle:developer.deploy')
                 ->name('deploy');
+            Route::post('/credenciales', [DeveloperConsoleActivationController::class, 'rotate'])
+                ->middleware('throttle:developer.activation')
+                ->name('credentials.rotate');
         });
+    });
     Route::post('expedientes/{expediente}/estado', [ExpedienteController::class, 'changeState'])
         ->name('expedientes.change-state');
 

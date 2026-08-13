@@ -1,4 +1,4 @@
 ---
 deployment:
   tasks:
-    - /bin/bash scripts/deploy-cpanel-staging.sh
+    - /bin/bash scripts/bootstrap-cpanel.sh
