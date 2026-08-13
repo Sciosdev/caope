@@ -170,9 +170,17 @@ jobs:
             --data-urlencode "branch=${DEPLOY_REF}" \
             "https://${CPANEL_HOST}:2083/execute/VersionControl/update")"
 
-          echo "${response}" | jq -e '.result.status == 1' > /dev/null || {
+          echo "${response}" | jq -e '(.result.status | tostring) == "1"' > /dev/null || {
             echo "cPanel could not update the staging repository."
-            echo "${response}" | jq '{errors: .result.errors, warnings: .result.warnings}'
+            echo "${response}" | jq '{
+              api_version: .apiversion,
+              module: .module,
+              function: .func,
+              status: .result.status,
+              errors: .result.errors,
+              messages: .result.messages,
+              warnings: .result.warnings
+            }'
             exit 1
           }
 
@@ -194,9 +202,17 @@ jobs:
             --data-urlencode "repository_root=${CPANEL_REPOSITORY_ROOT}" \
             "https://${CPANEL_HOST}:2083/execute/VersionControlDeployment/create")"
 
-          echo "${response}" | jq -e '.result.status == 1' > /dev/null || {
+          echo "${response}" | jq -e '(.result.status | tostring) == "1"' > /dev/null || {
             echo "cPanel rejected the staging deployment task."
-            echo "${response}" | jq '{errors: .result.errors, warnings: .result.warnings}'
+            echo "${response}" | jq '{
+              api_version: .apiversion,
+              module: .module,
+              function: .func,
+              status: .result.status,
+              errors: .result.errors,
+              messages: .result.messages,
+              warnings: .result.warnings
+            }'
             exit 1
           }
 
