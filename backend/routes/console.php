@@ -11,6 +11,11 @@ Artisan::command('inspire', function () {
 
 Schedule::command('backup:run')->dailyAt('02:00');
 
+Schedule::command('caope:deploy-pending')
+    ->name('caope-deploy-pending')
+    ->everyMinute()
+    ->withoutOverlapping(30);
+
 Schedule::call(function (): void {
     Cache::put('system.scheduler.last_run', now()->toIso8601String(), now()->addDay());
 })

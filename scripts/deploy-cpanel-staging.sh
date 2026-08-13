@@ -64,10 +64,24 @@ EXPECTED_SHA="$("${PHP_BIN}" -r '
 
     echo strtolower($sha);
 ' "${EXPECTED_MARKER_PATH}")"
+CURRENT_BRANCH="$(git -C "${REPOSITORY_ROOT}" symbolic-ref --quiet --short HEAD || true)"
 CURRENT_SHA="$(git -C "${REPOSITORY_ROOT}" rev-parse HEAD)"
 
-if [[ "${CURRENT_SHA}" != "${EXPECTED_SHA}" ]]; then
-    echo "El commit de cPanel no coincide con la revisión validada por GitHub."
+if [[ "${CURRENT_BRANCH}" != "main" ]]; then
+    echo "El checkout de cPanel debe permanecer en la rama main."
+    exit 1
+fi
+
+GIT_TERMINAL_PROMPT=0 git -C "${REPOSITORY_ROOT}" fetch --no-tags origin main
+REMOTE_SHA="$(git -C "${REPOSITORY_ROOT}" rev-parse refs/remotes/origin/main)"
+
+if [[ "${REMOTE_SHA}" != "${EXPECTED_SHA}" ]]; then
+    echo "origin/main no coincide con la revisión validada por GitHub."
+    exit 1
+fi
+
+if ! git -C "${REPOSITORY_ROOT}" merge-base --is-ancestor "${CURRENT_SHA}" "${EXPECTED_SHA}"; then
+    echo "El checkout de cPanel no puede avanzar de forma lineal hasta la revisión validada."
     exit 1
 fi
 
@@ -136,6 +150,16 @@ cd "${APPLICATION_ROOT}"
 "${PHP_BIN}" artisan down --retry=60
 APP_WAS_DOWN=1
 
+cd "${REPOSITORY_ROOT}"
+GIT_MERGE_AUTOEDIT=no git merge --ff-only refs/remotes/origin/main
+CURRENT_SHA="$(git rev-parse HEAD)"
+
+if [[ "${CURRENT_SHA}" != "${EXPECTED_SHA}" ]]; then
+    echo "El checkout no terminó en la revisión validada por GitHub."
+    exit 1
+fi
+
+cd "${APPLICATION_ROOT}"
 "${PHP_BIN}" "${COMPOSER_BIN}" install \
     --no-dev \
     --prefer-dist \

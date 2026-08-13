@@ -14,6 +14,11 @@ return [
 
     'deploy_webhook_token' => (string) env('DEVELOPER_CONSOLE_DEPLOY_WEBHOOK_TOKEN', ''),
 
+    'deploy_script' => (string) env(
+        'DEVELOPER_CONSOLE_DEPLOY_SCRIPT',
+        dirname(base_path()).DIRECTORY_SEPARATOR.'scripts'.DIRECTORY_SEPARATOR.'deploy-cpanel-staging.sh'
+    ),
+
     'github' => [
         'api_url' => rtrim((string) env('DEVELOPER_CONSOLE_GITHUB_API_URL', 'https://api.github.com'), '/'),
         'repository' => (string) env('DEVELOPER_CONSOLE_GITHUB_REPOSITORY', 'Sciosdev/caope'),

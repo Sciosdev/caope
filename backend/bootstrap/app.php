@@ -2,6 +2,7 @@
 
 use App\Console\Commands\CheckExpedienteSchema;
 use App\Console\Commands\ManageDeveloperAccess;
+use App\Console\Commands\RunPendingDeployment;
 use App\Http\Middleware\EnsureDeveloperConsoleAccess;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\RequireRecentDeveloperPassword;
@@ -25,6 +26,7 @@ $app = Application::configure(basePath: dirname(__DIR__))
     ->withCommands([
         CheckExpedienteSchema::class,
         ManageDeveloperAccess::class,
+        RunPendingDeployment::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
