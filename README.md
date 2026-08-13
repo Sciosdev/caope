@@ -112,3 +112,4 @@ Revisa la documentación en `docs/` para más detalles:
 - [Blueprint funcional](docs/blueprint.md)
 - [Flujo de ramas y estrategias de merge](docs/branching.md)
 - [Guía de commits y Pull Requests](docs/contributing.md)
+- [Despliegue controlado y consola del desarrollador](docs/deployment.md)

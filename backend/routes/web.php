@@ -1,9 +1,9 @@
 <?php
 
 use App\Http\Controllers\Admin\CatalogoCarreraController;
+use App\Http\Controllers\Admin\CatalogoConsultorioController;
 use App\Http\Controllers\Admin\CatalogoCubiculoController;
 use App\Http\Controllers\Admin\CatalogoEstrategiaController;
-use App\Http\Controllers\Admin\CatalogoConsultorioController;
 use App\Http\Controllers\Admin\CatalogoPadecimientoController;
 use App\Http\Controllers\Admin\CatalogoTratamientoController;
 use App\Http\Controllers\Admin\CatalogoTurnoController;
@@ -18,6 +18,7 @@ use App\Http\Controllers\ConsentimientoRequeridoController;
 use App\Http\Controllers\ConsentimientoUploadController;
 use App\Http\Controllers\ConsultorioReservaController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DeveloperConsoleController;
 use App\Http\Controllers\ExpedienteController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReporteExpedienteController;
@@ -39,6 +40,16 @@ Route::middleware(['auth', 'active_user'])->group(function () {
     Route::get('/dashboard/pendientes', [DashboardController::class, 'pending'])->name('dashboard.pending');
     Route::get('/dashboard/metricas', [DashboardController::class, 'metrics'])->name('dashboard.metrics');
     Route::get('/dashboard/alertas', [DashboardController::class, 'alerts'])->name('dashboard.alerts');
+
+    Route::prefix('desarrollo')
+        ->name('developer.')
+        ->middleware(['developer.console', 'role:developer', 'developer.reauth'])
+        ->group(function (): void {
+            Route::get('/', [DeveloperConsoleController::class, 'index'])->name('index');
+            Route::post('/deploy', [DeveloperConsoleController::class, 'deploy'])
+                ->middleware('throttle:developer.deploy')
+                ->name('deploy');
+        });
     Route::post('expedientes/{expediente}/estado', [ExpedienteController::class, 'changeState'])
         ->name('expedientes.change-state');
 

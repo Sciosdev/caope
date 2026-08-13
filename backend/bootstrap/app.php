@@ -1,6 +1,10 @@
 <?php
 
 use App\Console\Commands\CheckExpedienteSchema;
+use App\Console\Commands\ManageDeveloperAccess;
+use App\Http\Middleware\EnsureDeveloperConsoleAccess;
+use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\RequireRecentDeveloperPassword;
 use Illuminate\Cache\RateLimiter as CacheRateLimiter;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Application;
@@ -9,7 +13,6 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
-use App\Http\Middleware\EnsureUserIsActive;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
 
 $app = Application::configure(basePath: dirname(__DIR__))
@@ -21,6 +24,7 @@ $app = Application::configure(basePath: dirname(__DIR__))
     )
     ->withCommands([
         CheckExpedienteSchema::class,
+        ManageDeveloperAccess::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
@@ -28,6 +32,8 @@ $app = Application::configure(basePath: dirname(__DIR__))
             'role' => RoleMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
             'active_user' => EnsureUserIsActive::class,
+            'developer.console' => EnsureDeveloperConsoleAccess::class,
+            'developer.reauth' => RequireRecentDeveloperPassword::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
@@ -60,6 +66,12 @@ $app->booted(function () use ($app): void {
         $identifier = $userKey !== '' ? $userKey : $request->ip();
 
         return Limit::perMinutes(10, 8)->by('anexos|'.$identifier);
+    });
+
+    $limiter->for('developer.deploy', function (Request $request) {
+        $userKey = (string) optional($request->user())->getAuthIdentifier();
+
+        return Limit::perHour(3)->by('developer-deploy|'.($userKey !== '' ? $userKey : $request->ip()));
     });
 });
 

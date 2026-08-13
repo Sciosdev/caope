@@ -62,7 +62,6 @@ class UserManagementTest extends TestCase
         $response->assertSee('tutor', false);
     }
 
-
     public function test_create_form_displays_paps_role_even_if_missing_in_roles_table(): void
     {
         $this->seedRoles();
@@ -110,6 +109,57 @@ class UserManagementTest extends TestCase
 
         $created = User::where('email', 'nuevo@example.com')->firstOrFail();
         $this->assertTrue($created->hasRole('tutor'));
+    }
+
+    public function test_developer_role_cannot_be_assigned_from_user_management(): void
+    {
+        $this->seedRoles();
+        Role::create(['name' => 'developer']);
+
+        $admin = User::factory()->create();
+        $admin->syncRoles(['admin']);
+
+        $this->actingAs($admin);
+
+        $form = $this->get(route('admin.users.create'));
+        $form->assertOk();
+        $form->assertDontSee('value="developer"', false);
+
+        $response = $this->post(route('admin.users.store'), [
+            'name' => 'Usuario técnico',
+            'email' => 'tecnico@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'roles' => ['developer'],
+        ]);
+
+        $response->assertSessionHasErrors('roles.0');
+        $this->assertDatabaseMissing('users', ['email' => 'tecnico@example.com']);
+    }
+
+    public function test_developer_accounts_are_hidden_and_cannot_be_modified_from_user_management(): void
+    {
+        $this->seedRoles();
+        Role::create(['name' => 'developer']);
+
+        $admin = User::factory()->create();
+        $admin->syncRoles(['admin']);
+
+        $developer = User::factory()->create([
+            'name' => 'Cuenta técnica protegida',
+            'email' => 'developer@example.com',
+        ]);
+        $developer->syncRoles(['developer']);
+
+        $this->actingAs($admin);
+
+        $this->get(route('admin.users.index'))
+            ->assertOk()
+            ->assertDontSee('Cuenta técnica protegida');
+
+        $this->get(route('admin.users.edit', $developer))->assertForbidden();
+        $this->delete(route('admin.users.destroy', $developer))->assertForbidden();
+        $this->assertDatabaseHas('users', ['id' => $developer->id]);
     }
 
     public function test_admin_can_update_user_information_and_roles(): void
