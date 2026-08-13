@@ -74,6 +74,16 @@ class DeploymentScriptsTest extends TestCase
     }
 
     #[Test]
+    public function legacy_staging_script_is_a_compatibility_alias(): void
+    {
+        $script = $this->read('scripts/deploy-cpanel-staging.sh');
+
+        $this->assertStringContainsString('exec /bin/bash "${SCRIPT_DIRECTORY}/deploy-scheduled.sh"', $script);
+        $this->assertStringNotContainsString('git fetch', $script);
+        $this->assertStringNotContainsString('composer install', $script);
+    }
+
+    #[Test]
     public function deployment_scripts_validate_composer_candidates_in_fallback_order(): void
     {
         foreach ([

@@ -97,6 +97,10 @@ técnico queda en `backend/storage/logs/developer-deploy.log`.
 `DEVELOPER_CONSOLE_DEPLOY_WEBHOOK_TOKEN` para no interrumpir su workflow actual.
 El mismo script genérico detecta la raíz del repositorio y recibe el PHP que ya
 ejecuta el scheduler; no contiene rutas particulares de cPanel.
+El nombre anterior `scripts/deploy-cpanel-staging.sh` se conserva como alias para
+que una ruta privada ya guardada en `.env` continúe funcionando sin editarla.
+Los cambios versionados existentes se muestran como advertencia en pruebas, pero
+siguen siendo un error bloqueante en la activación segura de producción.
 
 ## Requisitos que muestra la consola
 
