@@ -22,11 +22,16 @@ Los despliegues no ejecutan seeders y nunca usan `migrate:fresh` en producción.
 
 ## Ambiente de pruebas en cPanel
 
-El ambiente `caope.ayudafesi.com` no requiere acceso SSH. GitHub Actions usa
-la API UAPI de cPanel para actualizar el repositorio administrado y solicitar
-la tarea definida en `.cpanel.yml`. El script de despliegue genera respaldo,
-activa mantenimiento, instala dependencias, ejecuta migraciones, reconstruye
-cachés y publica un marcador de versión antes de volver a habilitar CAOPE.
+El ambiente `caope.ayudafesi.com` no requiere acceso SSH ni API Token de cPanel.
+GitHub Actions autoriza un SHA exacto durante 30 minutos y el scheduler de
+Laravel ejecuta `caope:deploy-pending` cada minuto. El servidor consulta
+`origin/main`, exige un avance rápido hasta el SHA autorizado y se detiene antes
+de sobrescribir cualquier cambio local que choque con la revisión.
+
+El script genera respaldo, activa mantenimiento, actualiza el checkout, instala
+dependencias, ejecuta migraciones, reconstruye cachés y publica un marcador de
+versión antes de volver a habilitar CAOPE. Su salida queda en
+`backend/storage/logs/developer-deploy.log`.
 Si la cuenta no ofrece Composer globalmente, descarga el instalador oficial,
 valida su firma SHA-384 y conserva `composer.phar` dentro del almacenamiento
 privado de Laravel para los siguientes despliegues.
@@ -38,16 +43,11 @@ secretos:
 
 | Secreto | Valor o uso |
 | --- | --- |
-| `CPANEL_HOST` | `caope.ayudafesi.com`, sin protocolo ni puerto. |
-| `CPANEL_USERNAME` | Usuario de la cuenta cPanel. |
-| `CPANEL_API_TOKEN` | Token creado exclusivamente para este despliegue. |
-| `CPANEL_REPOSITORY_ROOT` | Ruta absoluta del repositorio administrado por cPanel. |
 | `CPANEL_HEALTH_URL` | `https://caope.ayudafesi.com`. |
 | `STAGING_DEPLOY_TOKEN` | Secreto aleatorio compartido con el `.env` de pruebas. |
 
-El token de cPanel se guarda únicamente como secreto del entorno `staging`;
-no debe agregarse al `.env`, al repositorio ni enviarse por chat. Se recomienda
-asignarle fecha de expiración y revocarlo cuando deje de usarse.
+No se debe crear ni conservar un API Token de cPanel para este flujo. Los
+tokens creados durante una prueba de configuración deben revocarse.
 
 En el `.env` del ambiente de pruebas, la consola debe usar:
 
@@ -63,10 +63,10 @@ exactamente el mismo valor. La autorización expira en 30 minutos y el script
 de cPanel compara el commit recibido con el SHA validado antes de modificar la
 aplicación.
 
-La primera actualización que incorpora `.cpanel.yml` se realiza manualmente
-desde Git Version Control. Los despliegues posteriores pueden solicitarse desde
-`/desarrollo` y siempre validan que la revisión publicada coincida con la que
-GitHub aprobó.
+La primera actualización que incorpora el comando programado se realiza
+manualmente desde Git Version Control. Los despliegues posteriores pueden
+solicitarse desde `/desarrollo` y siempre validan que la revisión publicada
+coincida con la que GitHub aprobó.
 
 > **Deuda conocida:** la suite completa contiene actualmente fallos heredados
 > ajenos a este módulo. Para no bloquear todos los despliegues, la compuerta

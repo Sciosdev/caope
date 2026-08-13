@@ -99,43 +99,30 @@ jobs:
       name: staging
       url: https://caope.ayudafesi.com
     env:
-      CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
-      CPANEL_USERNAME: ${{ secrets.CPANEL_USERNAME }}
-      CPANEL_API_TOKEN: ${{ secrets.CPANEL_API_TOKEN }}
-      CPANEL_REPOSITORY_ROOT: ${{ secrets.CPANEL_REPOSITORY_ROOT }}
       CPANEL_HEALTH_URL: ${{ secrets.CPANEL_HEALTH_URL }}
       STAGING_DEPLOY_TOKEN: ${{ secrets.STAGING_DEPLOY_TOKEN }}
-      DEPLOY_REF: ${{ inputs.ref }}
       DEPLOY_REQUEST_ID: ${{ inputs.request_id }}
       EXPECTED_SHA: ${{ needs.validate.outputs.sha }}
     steps:
-      - name: Validate cPanel configuration
+      - name: Validate staging configuration
         shell: bash
         run: |
           set -euo pipefail
 
-          for variable in \
-            CPANEL_HOST \
-            CPANEL_USERNAME \
-            CPANEL_API_TOKEN \
-            CPANEL_REPOSITORY_ROOT \
-            CPANEL_HEALTH_URL \
-            STAGING_DEPLOY_TOKEN; do
+          for variable in CPANEL_HEALTH_URL STAGING_DEPLOY_TOKEN; do
             if [[ -z "${!variable:-}" ]]; then
               echo "Missing required staging secret: ${variable}"
               exit 1
             fi
           done
 
-          if [[ "${CPANEL_REPOSITORY_ROOT}" != /home2/* ]]; then
-            echo 'CPANEL_REPOSITORY_ROOT is outside the expected staging account.'
-            exit 1
-          fi
-
       - name: Authorize the exact staging revision
+        id: deployment_request
         shell: bash
         run: |
           set -euo pipefail
+
+          echo "started_at=$(date -u +%s)" >> "$GITHUB_OUTPUT"
 
           payload="$(jq -nc \
             --arg sha "${EXPECTED_SHA}" \
@@ -154,78 +141,16 @@ jobs:
             "${CPANEL_HEALTH_URL%/}/api/deployment/prepare" \
             > /dev/null
 
-      - name: Update cPanel repository from GitHub
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          response="$(curl \
-            --fail-with-body \
-            --silent \
-            --show-error \
-            --max-time 90 \
-            --get \
-            --header "Authorization: cpanel ${CPANEL_USERNAME}:${CPANEL_API_TOKEN}" \
-            --data-urlencode "repository_root=${CPANEL_REPOSITORY_ROOT}" \
-            --data-urlencode "branch=${DEPLOY_REF}" \
-            "https://${CPANEL_HOST}:2083/execute/VersionControl/update")"
-
-          echo "${response}" | jq -e '(.result.status | tostring) == "1"' > /dev/null || {
-            echo "cPanel could not update the staging repository."
-            echo "${response}" | jq '{
-              api_version: .apiversion,
-              module: .module,
-              function: .func,
-              status: .result.status,
-              errors: .result.errors,
-              messages: .result.messages,
-              warnings: .result.warnings
-            }'
-            exit 1
-          }
-
-      - name: Start cPanel deployment task
-        id: cpanel_deploy
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          echo "started_at=$(date -u +%s)" >> "$GITHUB_OUTPUT"
-
-          response="$(curl \
-            --fail-with-body \
-            --silent \
-            --show-error \
-            --max-time 90 \
-            --get \
-            --header "Authorization: cpanel ${CPANEL_USERNAME}:${CPANEL_API_TOKEN}" \
-            --data-urlencode "repository_root=${CPANEL_REPOSITORY_ROOT}" \
-            "https://${CPANEL_HOST}:2083/execute/VersionControlDeployment/create")"
-
-          echo "${response}" | jq -e '(.result.status | tostring) == "1"' > /dev/null || {
-            echo "cPanel rejected the staging deployment task."
-            echo "${response}" | jq '{
-              api_version: .apiversion,
-              module: .module,
-              function: .func,
-              status: .result.status,
-              errors: .result.errors,
-              messages: .result.messages,
-              warnings: .result.warnings
-            }'
-            exit 1
-          }
-
-      - name: Wait for deployed revision
+      - name: Wait for scheduled deployment
         shell: bash
         env:
-          STARTED_AT: ${{ steps.cpanel_deploy.outputs.started_at }}
+          STARTED_AT: ${{ steps.deployment_request.outputs.started_at }}
         run: |
           set -euo pipefail
 
           version_url="${CPANEL_HEALTH_URL%/}/api/deployment/version"
 
-          for attempt in $(seq 1 90); do
+          for attempt in $(seq 1 120); do
             response="$(curl --fail --silent --show-error --max-time 15 "${version_url}" || true)"
             deployed_sha="$(jq -r '.sha // empty' <<< "${response}" 2>/dev/null || true)"
             deployed_at="$(jq -r '.deployed_at // empty' <<< "${response}" 2>/dev/null || true)"
@@ -245,9 +170,9 @@ jobs:
               exit 0
             fi
 
-            echo "Waiting for cPanel deployment (${attempt}/90)..."
+            echo "Waiting for the cPanel scheduler (${attempt}/120)..."
             sleep 10
           done
 
-          echo "Staging did not publish ${EXPECTED_SHA} within 15 minutes."
+          echo "Staging did not publish ${EXPECTED_SHA} within 20 minutes."
           exit 1
