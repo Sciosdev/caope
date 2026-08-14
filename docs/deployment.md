@@ -128,6 +128,15 @@ minutos, exige:
 El marcador autorizado se elimina al terminar o fallar el intento. El registro
 técnico queda en `backend/storage/logs/developer-deploy.log`.
 
+## Protección y retención de respaldos
+
+El scheduler genera el respaldo cifrado a las 02:00, aplica la política de
+retención a las 03:00 y verifica su salud a las 04:00. El archivo conserva la
+base de datos y los documentos clínicos privados, pero excluye `.env`, la caché
+de configuración, logs, credenciales del desarrollador, exportaciones
+temporales y respaldos anteriores. Las notificaciones por correo permanecen
+desactivadas salvo que se configure `BACKUP_NOTIFICATION_EMAIL`.
+
 ## Ambiente de pruebas existente
 
 `https://caope.ayudafesi.com` conserva temporalmente el bearer configurado en
