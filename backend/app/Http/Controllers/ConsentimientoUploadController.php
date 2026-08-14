@@ -4,11 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Consentimiento;
 use App\Models\Expediente;
-use App\Models\Parametro;
+use App\Support\Uploads\ConsentimientoUploadOptions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\HeaderUtils;
 
 class ConsentimientoUploadController extends Controller
 {
@@ -22,7 +23,7 @@ class ConsentimientoUploadController extends Controller
             abort(404);
         }
 
-        return Storage::disk($disk)->response($consentimiento->archivo_path);
+        return $this->protectedInlineResponse($disk, $consentimiento->archivo_path);
     }
 
     public function store(Request $request, Consentimiento $consentimiento): RedirectResponse
@@ -31,8 +32,8 @@ class ConsentimientoUploadController extends Controller
 
         $errorBag = sprintf('consentimientoUpload-%s', $consentimiento->id);
 
-        $mimes = (string) Parametro::obtener('uploads.consentimientos.mimes', 'pdf,jpg,jpeg');
-        $max = (int) Parametro::obtener('uploads.consentimientos.max', 5120);
+        $mimes = ConsentimientoUploadOptions::allowedExtensionsString();
+        $max = ConsentimientoUploadOptions::maxKilobytes();
 
         $validated = $request->validateWithBag($errorBag, [
             'archivo' => ['required', 'file', 'mimes:'.$mimes, 'max:'.$max],
@@ -80,15 +81,15 @@ class ConsentimientoUploadController extends Controller
             abort(404);
         }
 
-        return Storage::disk($disk)->response($path);
+        return $this->protectedInlineResponse($disk, $path);
     }
 
     public function storeObservaciones(Request $request, Expediente $expediente): RedirectResponse
     {
         $this->authorize('update', $expediente);
 
-        $mimes = (string) Parametro::obtener('uploads.consentimientos.mimes', 'pdf,jpg,jpeg');
-        $max = (int) Parametro::obtener('uploads.consentimientos.max', 5120);
+        $mimes = ConsentimientoUploadOptions::allowedExtensionsString();
+        $max = ConsentimientoUploadOptions::maxKilobytes();
 
         $validated = $request->validate([
             'observaciones' => ['nullable', 'string', 'max:5000'],
@@ -134,5 +135,20 @@ class ConsentimientoUploadController extends Controller
         return redirect()
             ->route('expedientes.show', ['expediente' => $expediente, 'tab' => 'consentimientos'])
             ->with('status', 'Observaciones del expediente actualizadas correctamente.');
+    }
+
+    private function protectedInlineResponse(string $disk, string $path)
+    {
+        $storage = Storage::disk($disk);
+        $mime = (string) ($storage->mimeType($path) ?: 'application/octet-stream');
+        $name = basename($path);
+        $inline = in_array($mime, ['application/pdf', 'image/jpeg', 'image/png'], true);
+
+        return $storage->response($path, $name, [
+            'Content-Type' => $mime,
+            'Content-Disposition' => HeaderUtils::makeDisposition($inline ? 'inline' : 'attachment', $name),
+            'Content-Security-Policy' => "sandbox; default-src 'none'",
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 }

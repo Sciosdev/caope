@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -50,6 +51,40 @@ class AnexoPrivacyTest extends TestCase
         $response->assertJsonMissingPath('ruta')->assertJsonMissingPath('disk');
         Storage::disk('private')->assertExists($anexo->ruta);
         Storage::disk('public')->assertMissing($anexo->ruta);
+    }
+
+    public function test_legacy_active_content_is_forced_to_download_with_sandbox_headers(): void
+    {
+        $facilitador = User::factory()->create();
+        $facilitador->assignRole('alumno');
+        $expediente = Expediente::factory()->create([
+            'creado_por' => $facilitador->id,
+            'estado' => 'abierto',
+        ]);
+        $path = 'expedientes/'.$expediente->id.'/anexos/legado.html';
+        Storage::disk('private')->put($path, '<script>alert(document.cookie)</script>');
+        $anexo = Anexo::query()->create([
+            'expediente_id' => $expediente->id,
+            'tipo' => 'text/html',
+            'titulo' => 'Archivo legado',
+            'ruta' => $path,
+            'disk' => 'private',
+            'es_privado' => true,
+            'tamano' => 39,
+            'subido_por' => $facilitador->id,
+        ]);
+        $url = URL::temporarySignedRoute(
+            'expedientes.anexos.preview',
+            now()->addMinute(),
+            [$expediente, $anexo],
+        );
+
+        $this->actingAs($facilitador)
+            ->get($url)
+            ->assertOk()
+            ->assertHeader('Content-Security-Policy', "sandbox; default-src 'none'")
+            ->assertHeader('X-Content-Type-Options', 'nosniff')
+            ->assertHeader('Content-Disposition', 'attachment; filename="Archivo legado.html"');
     }
 
     public function test_migration_replaces_partial_private_copy_and_removes_public_original(): void

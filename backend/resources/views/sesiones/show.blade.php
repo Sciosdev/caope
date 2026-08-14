@@ -76,7 +76,7 @@
             <div class="mt-4">
                 <h6 class="mb-2">Notas de la sesión</h6>
                 <div class="bg-light border rounded p-3 small trix-content">
-                    {!! $sesion->nota !!}
+                    {!! app(\App\Support\Html\SesionNoteSanitizer::class)->sanitize((string) $sesion->nota) !!}
                 </div>
             </div>
 

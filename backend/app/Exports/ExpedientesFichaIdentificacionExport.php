@@ -2,13 +2,12 @@
 
 namespace App\Exports;
 
+use App\Exports\Concerns\BindsSpreadsheetValuesSafely;
 use App\Models\Expediente;
 use Illuminate\Database\Eloquent\Builder;
 use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
-use PhpOffice\PhpSpreadsheet\Cell\Cell;
-use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
 
 /**
@@ -16,6 +15,8 @@ use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
  */
 class ExpedientesFichaIdentificacionExport extends DefaultValueBinder implements FromQuery, WithHeadings, WithMapping
 {
+    use BindsSpreadsheetValuesSafely;
+
     /**
      * @param  Builder<Expediente>  $query
      */
@@ -77,16 +78,5 @@ class ExpedientesFichaIdentificacionExport extends DefaultValueBinder implements
             $expediente->telefono_principal,
             optional($expediente->fecha_inicio_real)->format('Y-m-d'),
         ];
-    }
-
-    public function bindValue(Cell $cell, $value): bool
-    {
-        if (in_array($cell->getColumn(), ['A', 'R'], true)) {
-            $cell->setValueExplicit((string) $value, DataType::TYPE_STRING);
-
-            return true;
-        }
-
-        return parent::bindValue($cell, $value);
     }
 }

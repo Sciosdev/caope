@@ -2,12 +2,24 @@
 
 namespace App\Http\Requests;
 
+use App\Support\Html\SesionNoteSanitizer;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\Rule;
 
 class StoreSesionRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $nota = $this->input('nota');
+
+        if (is_string($nota)) {
+            $this->merge([
+                'nota' => app(SesionNoteSanitizer::class)->sanitize($nota),
+            ]);
+        }
+    }
+
     public function authorize(): bool
     {
         return true;
@@ -24,15 +36,15 @@ class StoreSesionRequest extends FormRequest
             'hora_atencion' => ['nullable', 'date_format:H:i'],
             'referencia_externa' => ['nullable', 'string', 'max:120'],
             'estrategia' => ['nullable', 'string', 'max:255', Rule::exists('catalogo_estrategias', 'nombre')->where('activo', true)],
-            'nota' => ['required', 'string'],
+            'nota' => ['required', 'string', 'max:20000'],
             'interconsulta' => ['nullable', 'string', 'max:120'],
             'especialidad_referida' => ['nullable', 'string', 'max:120'],
             'motivo_referencia' => ['nullable', 'string', 'max:1000'],
             'nombre_facilitador' => ['nullable', 'string', 'max:120'],
             'autorizacion_estratega' => ['nullable', 'string', 'max:120'],
             'clinica' => ['nullable', 'string', 'max:120'],
-            'adjuntos' => ['nullable', 'array'],
-            'adjuntos.*' => ['file', 'max:10240'],
+            'adjuntos' => ['nullable', 'array', 'max:5'],
+            'adjuntos.*' => ['file', 'mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx,txt,csv', 'max:10240'],
         ];
     }
 

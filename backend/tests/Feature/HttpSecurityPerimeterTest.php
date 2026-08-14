@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -93,6 +94,19 @@ class HttpSecurityPerimeterTest extends TestCase
             'Content-Security-Policy',
             config('security.headers.content_security_policy'),
         );
+    }
+
+    public function test_a_controller_can_set_a_stricter_content_security_policy(): void
+    {
+        Route::get('/strict-content', fn () => response('protected')->header(
+            'Content-Security-Policy',
+            "sandbox; default-src 'none'",
+        ));
+
+        $this->get('https://caope.ayudafesi.com/strict-content')
+            ->assertOk()
+            ->assertHeader('Content-Security-Policy', "sandbox; default-src 'none'")
+            ->assertHeader('X-Content-Type-Options', 'nosniff');
     }
 
     public function test_hsts_is_not_added_to_plain_http_responses(): void
