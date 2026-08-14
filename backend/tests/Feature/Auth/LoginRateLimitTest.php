@@ -113,4 +113,20 @@ class LoginRateLimitTest extends TestCase
         ])->assertStatus(302)
             ->assertSessionHasErrors('email');
     }
+
+    public function test_login_has_an_aggregate_ip_limit_across_different_emails(): void
+    {
+        for ($attempt = 0; $attempt < 30; $attempt++) {
+            $this->from(route('login'))->post('/login', [
+                'email' => 'candidate-'.$attempt.'@example.com',
+                'password' => 'incorrect-password',
+            ])->assertStatus(302)
+                ->assertSessionHasErrors('email');
+        }
+
+        $this->from(route('login'))->post('/login', [
+            'email' => 'candidate-final@example.com',
+            'password' => 'incorrect-password',
+        ])->assertStatus(429);
+    }
 }

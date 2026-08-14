@@ -30,6 +30,22 @@ class PasswordResetTest extends TestCase
         Notification::assertSentTo($user, ResetPassword::class);
     }
 
+    public function test_password_reset_response_does_not_reveal_if_account_exists(): void
+    {
+        Notification::fake();
+
+        $user = User::factory()->create();
+        $expectedMessage = 'Si el correo está registrado, enviaremos las instrucciones para restablecer la contraseña.';
+
+        $this->post('/forgot-password', ['email' => $user->email])
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('status', $expectedMessage);
+
+        $this->post('/forgot-password', ['email' => 'missing@example.com'])
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('status', $expectedMessage);
+    }
+
     public function test_reset_password_screen_can_be_rendered(): void
     {
         Notification::fake();

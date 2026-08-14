@@ -16,6 +16,8 @@ FESI realiza estos pasos, en este orden, durante la primera instalación segura:
    APP_URL=https://xocoyotzin.iztacala.unam.mx/caope
    APP_KEY=<clave nueva y exclusiva de 32 bytes>
    APP_PREVIOUS_KEYS=
+   SESSION_DRIVER=database
+   SESSION_ENCRYPT=true
    SESSION_SECURE_COOKIE=true
    BACKUP_ARCHIVE_PASSWORD=<secreto aleatorio independiente de 32 o más caracteres>
    ```
@@ -140,7 +142,7 @@ siguen siendo un error bloqueante en la activación segura de producción.
 Durante la transición, pruebas usa el perfil `staging`: permite
 `APP_ENV=staging` con una advertencia, pero exige igualmente depuración
 desactivada, `APP_URL=https://caope.ayudafesi.com`, una `APP_KEY` nueva,
-`APP_PREVIOUS_KEYS` vacío, cookie segura y contraseña de respaldo. Estos valores
+`APP_PREVIOUS_KEYS` vacío, sesiones cifradas en base de datos, cookie segura y contraseña de respaldo. Estos valores
 se agregan a `backend/.env` antes de la actualización que instala este bloque.
 La ausencia de cualquiera deshabilita el botón y bloquea la solicitud antes de
 registrar o enviar un despliegue; la auditoría nunca muestra el valor

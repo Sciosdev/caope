@@ -301,7 +301,7 @@ class NotificationDispatchTest extends TestCase
         $this->assertFalse($notification->shouldSend($tutor, 'database'));
 
         $expediente->update(['tutor_id' => $tutor->id]);
-        $tutor->update(['is_active' => false]);
+        $tutor->forceFill(['is_active' => false])->save();
 
         $this->assertSame([], $notification->via($tutor));
         $this->assertFalse($notification->shouldSend($tutor, 'mail'));
@@ -340,7 +340,7 @@ class NotificationDispatchTest extends TestCase
         }
 
         $expediente->update(['creado_por' => $facilitador->id]);
-        $facilitador->update(['is_active' => false]);
+        $facilitador->forceFill(['is_active' => false])->save();
 
         foreach ($notifications as $notification) {
             $this->assertSame([], $notification->via($facilitador));

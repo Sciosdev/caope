@@ -76,7 +76,7 @@ class DocumentoAdministrativoAccessTest extends TestCase
 
         Storage::disk('private')->assertExists($documento->ruta);
 
-        $paps->update(['approved_at' => now()]);
+        $paps->forceFill(['approved_at' => now()])->save();
 
         $this->get(route('admin.documentos.index'))->assertOk();
         $this->get(route('admin.documentos.download', $documento))->assertOk();

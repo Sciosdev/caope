@@ -74,15 +74,18 @@ Route::middleware(['auth', 'active_user'])->group(function () {
     Route::post('expedientes/{expediente}/estado', [ExpedienteController::class, 'changeState'])
         ->name('expedientes.change-state');
 
-    Route::prefix('admin/usuarios')->name('admin.users.')->middleware(['role:admin|paps', 'approved_paps:admin'])->group(function (): void {
+    Route::prefix('admin/usuarios')->name('admin.users.')->middleware(['role:admin|paps', 'approved_paps:admin', 'password.confirm'])->group(function (): void {
         Route::get('/', [UserController::class, 'index'])->name('index');
         Route::get('crear', [UserController::class, 'create'])->name('create');
-        Route::post('/', [UserController::class, 'store'])->name('store');
         Route::get('{user}/editar', [UserController::class, 'edit'])->name('edit');
-        Route::put('{user}', [UserController::class, 'update'])->name('update');
-        Route::patch('{user}/acceso', [UserController::class, 'toggleActive'])->name('toggle-active');
-        Route::patch('{user}/aprobar', [UserController::class, 'approve'])->name('approve');
-        Route::delete('{user}', [UserController::class, 'destroy'])->name('destroy');
+
+        Route::middleware('throttle:auth-sensitive')->group(function (): void {
+            Route::post('/', [UserController::class, 'store'])->name('store');
+            Route::put('{user}', [UserController::class, 'update'])->name('update');
+            Route::patch('{user}/acceso', [UserController::class, 'toggleActive'])->name('toggle-active');
+            Route::patch('{user}/aprobar', [UserController::class, 'approve'])->name('approve');
+            Route::delete('{user}', [UserController::class, 'destroy'])->name('destroy');
+        });
     });
 
     Route::prefix('admin/catalogos')->name('admin.catalogos.')->middleware(['role:admin|paps', 'approved_paps:admin'])->group(function (): void {
@@ -212,8 +215,12 @@ Route::middleware(['auth', 'active_user'])->group(function () {
     });
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::patch('/profile', [ProfileController::class, 'update'])
+        ->middleware('throttle:auth-sensitive')
+        ->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])
+        ->middleware('throttle:auth-sensitive')
+        ->name('profile.destroy');
 });
 
 require __DIR__.'/auth.php';
