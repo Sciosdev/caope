@@ -14,6 +14,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Illuminate\Testing\Fluent\AssertableJson;
 use Mockery;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -608,7 +609,13 @@ class ExpedienteCreateTest extends TestCase
             'apertura' => Carbon::now()->toDateString(),
             'carrera' => $carrera->nombre,
             'turno' => $turno->nombre,
+            'client_context' => ['marker' => 'sensitive-client-context-marker'],
         ];
+
+        $doesNotContainSensitivePayload = fn ($context): bool => ! Str::contains(
+            json_encode($context),
+            ['CA-2025-0500', 'Paciente con error', 'sensitive-client-context-marker']
+        );
 
         $response = $this->actingAs($admin)
             ->from(route('expedientes.create'))
@@ -623,15 +630,18 @@ class ExpedienteCreateTest extends TestCase
 
         Log::shouldHaveReceived('info')->with(
             'Received request to create expediente',
-            Mockery::on(fn ($context) => ($context['user_id'] ?? null) === $admin->id)
+            Mockery::on(fn ($context) => ($context['user_id'] ?? null) === $admin->id
+                && $doesNotContainSensitivePayload($context))
         )->once();
         Log::shouldHaveReceived('debug')->with(
             'Validated expediente data for creation',
-            Mockery::on(fn ($context) => ($context['validated_keys'] ?? []) !== [])
+            Mockery::on(fn ($context) => ($context['validated_keys'] ?? []) !== []
+                && $doesNotContainSensitivePayload($context))
         )->once();
         Log::shouldHaveReceived('error')->with(
             'Expediente creation aborted due to missing columns',
-            Mockery::on(fn ($context) => ($context['missing_columns'] ?? null) !== null)
+            Mockery::on(fn ($context) => ($context['missing_columns'] ?? null) !== null
+                && $doesNotContainSensitivePayload($context))
         )->once();
     }
 

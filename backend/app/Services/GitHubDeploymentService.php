@@ -98,7 +98,6 @@ class GitHubDeploymentService
             Log::error('GitHub rejected a deployment dispatch.', [
                 'deployment_id' => $deployment->getKey(),
                 'status' => $response->status(),
-                'response' => mb_substr($response->body(), 0, 1000),
             ]);
 
             throw new RuntimeException('GitHub no aceptó la solicitud de despliegue.');
@@ -120,7 +119,6 @@ class GitHubDeploymentService
             if (! $response->successful()) {
                 Log::warning('Unable to synchronize GitHub deployment runs.', [
                     'status' => $response->status(),
-                    'response' => mb_substr($response->body(), 0, 1000),
                 ]);
 
                 return 'GitHub no permitió actualizar el estado de los despliegues.';

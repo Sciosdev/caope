@@ -9,6 +9,7 @@ use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class AuthEventSubscriberTest extends TestCase
@@ -55,8 +56,7 @@ class AuthEventSubscriberTest extends TestCase
 
         Log::shouldHaveReceived('info')
             ->once()
-            ->withArgs(fn (string $message, array $context): bool =>
-                $message === 'El usuario cerró sesión.'
+            ->withArgs(fn (string $message, array $context): bool => $message === 'El usuario cerró sesión.'
                 && $context['user_id'] === $user->getKey()
                 && $context['guard'] === 'web'
             );
@@ -64,7 +64,7 @@ class AuthEventSubscriberTest extends TestCase
         $this->assertDatabaseCount('timeline_eventos', 0);
     }
 
-    public function test_failed_event_logs_without_password(): void
+    public function test_failed_event_logs_without_credentials(): void
     {
         Log::spy();
 
@@ -77,10 +77,11 @@ class AuthEventSubscriberTest extends TestCase
 
         Log::shouldHaveReceived('info')
             ->once()
-            ->withArgs(fn (string $message, array $context): bool =>
-                $message === 'Intento de autenticación fallido.'
+            ->withArgs(fn (string $message, array $context): bool => $message === 'Intento de autenticación fallido.'
                 && $context['guard'] === 'web'
-                && ! array_key_exists('password', $context['credentials'])
+                && ! array_key_exists('credentials', $context)
+                && ! Str::contains(json_encode($context), 'example@example.com')
+                && ! Str::contains(json_encode($context), 'secret')
             );
     }
 }

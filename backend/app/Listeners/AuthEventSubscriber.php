@@ -7,15 +7,13 @@ use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Contracts\Events\Dispatcher;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Log;
 
 class AuthEventSubscriber
 {
     public function __construct(
         protected AuthEventTimelineRecorder $timelineRecorder
-    ) {
-    }
+    ) {}
 
     public function onLogin(Login $event): void
     {
@@ -44,12 +42,9 @@ class AuthEventSubscriber
 
     public function onFailed(Failed $event): void
     {
-        $sanitized = Arr::except($event->credentials, ['password', 'password_confirmation']);
-
         $context = $this->buildContext([
             'guard' => $event->guard,
             'user_id' => $event->user?->getAuthIdentifier(),
-            'credentials' => $sanitized,
         ]);
 
         Log::info('Intento de autenticación fallido.', $context);
