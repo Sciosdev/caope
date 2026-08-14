@@ -23,12 +23,12 @@ class ComentarioApiTest extends TestCase
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        Role::create(['name' => 'alumno']);
-        Role::create(['name' => 'docente']);
-        Role::create(['name' => 'admin']);
+        Role::firstOrCreate(['name' => 'alumno']);
+        Role::firstOrCreate(['name' => 'docente']);
+        Role::firstOrCreate(['name' => 'admin']);
 
-        Permission::create(['name' => 'expedientes.manage']);
-        Permission::create(['name' => 'expedientes.view']);
+        Permission::firstOrCreate(['name' => 'expedientes.manage']);
+        Permission::firstOrCreate(['name' => 'expedientes.view']);
     }
 
     public function test_usuario_puede_crear_comentario_en_expediente(): void

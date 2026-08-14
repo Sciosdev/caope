@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\URL;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -26,7 +27,7 @@ class DeveloperConsoleTest extends TestCase
     {
         parent::setUp();
 
-        Role::query()->create(['name' => 'developer', 'guard_name' => 'web']);
+        Role::query()->firstOrCreate(['name' => 'developer', 'guard_name' => 'web']);
 
         config([
             'developer_console.enabled' => true,
@@ -36,7 +37,21 @@ class DeveloperConsoleTest extends TestCase
             'developer_console.github.workflow' => 'deploy.yml',
             'developer_console.github.ref' => 'main',
             'developer_console.github.token' => 'test-token',
+            'app.env' => 'staging',
+            'app.debug' => false,
+            'app.key' => 'base64:'.base64_encode(random_bytes(32)),
+            'app.url' => 'https://caope.ayudafesi.com',
+            'security.trusted_hosts' => ['caope.ayudafesi.com'],
+            'session.secure' => true,
+            'backup.backup.password' => 'testing-backup-password-32-characters',
         ]);
+        $this->withServerVariables([
+            'HTTP_HOST' => 'caope.ayudafesi.com',
+            'HTTPS' => 'on',
+            'SERVER_PORT' => 443,
+        ]);
+        URL::forceRootUrl('https://caope.ayudafesi.com');
+        URL::forceScheme('https');
 
         Http::fake(function (ClientRequest $request) {
             if (str_contains($request->url(), '/actions/workflows/deploy.yml/runs')) {
@@ -137,6 +152,22 @@ class DeveloperConsoleTest extends TestCase
 
         $response->assertSessionHasErrors('confirmation');
         $this->assertDatabaseCount('deployment_runs', 0);
+    }
+
+    public function test_unsafe_configuration_blocks_dispatch_before_recording_a_deployment(): void
+    {
+        config(['backup.backup.password' => null]);
+        $developer = $this->developer();
+
+        $response = $this->actingAs($developer)
+            ->withSession($this->confirmedPasswordSession())
+            ->post(route('developer.deploy'), [
+                'confirmation' => 'DESPLEGAR',
+            ]);
+
+        $response->assertSessionHasErrors('deployment');
+        $this->assertDatabaseCount('deployment_runs', 0);
+        Http::assertNothingSent();
     }
 
     public function test_failed_dispatch_is_kept_in_audit_history(): void

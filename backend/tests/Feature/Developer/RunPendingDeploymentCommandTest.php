@@ -25,7 +25,10 @@ class RunPendingDeploymentCommandTest extends TestCase
         File::delete([$this->markerPath, $this->logPath, $this->scriptPath]);
         File::ensureDirectoryExists(dirname($this->scriptPath));
         File::put($this->scriptPath, "#!/bin/sh\n");
-        config(['developer_console.deploy_script' => $this->scriptPath]);
+        config([
+            'app.env' => 'staging',
+            'developer_console.deploy_script' => $this->scriptPath,
+        ]);
     }
 
     protected function tearDown(): void
@@ -98,6 +101,7 @@ class RunPendingDeploymentCommandTest extends TestCase
             && $process->path === dirname(base_path())
             && $process->environment['CAOPE_PHP_BIN'] === PHP_BINARY
             && $process->environment['CAOPE_REQUIRE_CLEAN_CHECKOUT'] === '0'
+            && $process->environment['CAOPE_SECURITY_PROFILE'] === 'staging'
             && $process->environment['GIT_TERMINAL_PROMPT'] === '0'
             && $process->timeout === 1800);
 
@@ -110,6 +114,18 @@ class RunPendingDeploymentCommandTest extends TestCase
         $this->artisan('schedule:list')
             ->expectsOutputToContain('caope:deploy-pending')
             ->assertSuccessful();
+    }
+
+    public function test_production_never_downgrades_when_encrypted_console_settings_are_absent(): void
+    {
+        config(['app.env' => 'production']);
+        $this->writeMarker(now()->addMinutes(10)->timestamp);
+        Process::fake(['*' => Process::result(output: 'LISTO')]);
+
+        $this->artisan('caope:deploy-pending')->assertSuccessful();
+
+        Process::assertRan(fn (PendingProcess $process): bool => $process->environment['CAOPE_REQUIRE_CLEAN_CHECKOUT'] === '1'
+            && $process->environment['CAOPE_SECURITY_PROFILE'] === 'production');
     }
 
     private function writeMarker(

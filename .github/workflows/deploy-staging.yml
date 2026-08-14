@@ -38,11 +38,15 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
 
+      - name: Reject tracked runtime secrets and populated databases
+        working-directory: ${{ github.workspace }}
+        run: bash scripts/check-repository-hygiene.sh
+
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: mbstring, bcmath, intl, pcntl, sqlite3
+          extensions: mbstring, bcmath, intl, pcntl, sqlite3, zip
           coverage: none
 
       - name: Install Composer dependencies
@@ -75,6 +79,7 @@ jobs:
             tests/Feature/Smoke/SecuritySmokeTest.php \
             tests/Feature/Auth/AuthenticationTest.php \
             tests/Feature/Auth/PasswordConfirmationTest.php
+          composer test:security-baseline
           composer test:access-control
 
       - name: Simulate the cPanel bootstrap

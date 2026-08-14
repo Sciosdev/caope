@@ -56,6 +56,12 @@ trap 'exit 143' TERM
 
 PHP_BIN="$(resolve_executable "${CAOPE_PHP_BIN:-php}")" || \
     fail 'No se encontró un ejecutable de PHP disponible para el despliegue.'
+SECURITY_PROFILE="${CAOPE_SECURITY_PROFILE:-auto}"
+
+[[ "${SECURITY_PROFILE}" == 'production' \
+    || "${SECURITY_PROFILE}" == 'staging' \
+    || "${SECURITY_PROFILE}" == 'auto' ]] || \
+    fail 'El perfil de seguridad del despliegue no es válido.'
 
 command -v git >/dev/null 2>&1 || fail 'Git no está disponible para el despliegue.'
 
@@ -103,6 +109,13 @@ if [[ "${CAOPE_REQUIRE_CLEAN_CHECKOUT:-0}" == '1' ]] \
     && [[ -n "$(git -C "${REPOSITORY_ROOT}" status --porcelain --untracked-files=no)" ]]; then
     fail 'Producción contiene cambios locales en archivos versionados.'
 fi
+
+cd -- "${APPLICATION_ROOT}"
+APP_CONFIG_CACHE=/dev/null "${PHP_BIN}" artisan caope:security-audit \
+    --profile="${SECURITY_PROFILE}" \
+    --no-interaction
+
+cd -- "${REPOSITORY_ROOT}"
 
 GIT_TERMINAL_PROMPT=0 git -C "${REPOSITORY_ROOT}" fetch --no-tags origin main
 REMOTE_SHA="$(git -C "${REPOSITORY_ROOT}" rev-parse refs/remotes/origin/main)"
@@ -182,7 +195,7 @@ else
 fi
 
 cd -- "${APPLICATION_ROOT}"
-"${PHP_BIN}" artisan backup:run --only-db --no-interaction
+APP_CONFIG_CACHE=/dev/null "${PHP_BIN}" artisan backup:run --only-db --no-interaction
 "${PHP_BIN}" artisan down --retry=60
 APP_WAS_DOWN=1
 

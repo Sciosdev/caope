@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Services\DeveloperConsoleSettings;
+use App\Services\ProductionSecurityAudit;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
@@ -13,8 +14,10 @@ class RunPendingDeployment extends Command
 
     protected $description = 'Ejecuta una revisión previamente autorizada por GitHub';
 
-    public function handle(DeveloperConsoleSettings $settings): int
-    {
+    public function handle(
+        DeveloperConsoleSettings $settings,
+        ProductionSecurityAudit $securityAudit,
+    ): int {
         $markerPath = storage_path('app/deployment/expected.json');
 
         if (! is_readable($markerPath)) {
@@ -40,10 +43,14 @@ class RunPendingDeployment extends Command
             return self::FAILURE;
         }
 
+        $securityProfile = $securityAudit->profileForCurrentEnvironment();
+        $isProduction = $securityProfile === ProductionSecurityAudit::PROFILE_PRODUCTION;
+
         $result = Process::path($repositoryRoot)
             ->env([
                 'CAOPE_PHP_BIN' => PHP_BINARY,
-                'CAOPE_REQUIRE_CLEAN_CHECKOUT' => $settings->hasEncryptedSettings() ? '1' : '0',
+                'CAOPE_REQUIRE_CLEAN_CHECKOUT' => $isProduction ? '1' : '0',
+                'CAOPE_SECURITY_PROFILE' => $securityProfile,
                 'GIT_TERMINAL_PROMPT' => '0',
             ])
             ->timeout(1800)

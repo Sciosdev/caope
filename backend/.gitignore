@@ -1,8 +1,10 @@
 *.log
+error_log
+composer.phar
 .DS_Store
-.env
-.env.backup
-.env.production
+.env*
+!.env.example
+!.env.testing
 .phpactor.json
 .phpunit.result.cache
 /.fleet

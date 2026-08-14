@@ -26,7 +26,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: mbstring, bcmath, intl, pcntl, sqlite3
+          extensions: mbstring, bcmath, intl, pcntl, sqlite3, zip
           coverage: none
 
       - name: Install Composer dependencies
@@ -85,18 +85,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Verify SQLite database placeholder
-        run: |
-          if [ ! -f database/database.sqlite ]; then
-            echo "::error::database/database.sqlite is missing. Create it and commit it so queue and cache drivers work in CI."
-            exit 1
-          fi
+      - name: Reject tracked runtime secrets and populated databases
+        working-directory: ${{ github.workspace }}
+        shell: bash
+        run: bash scripts/check-repository-hygiene.sh
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: mbstring, bcmath, intl, pcntl, sqlite3
+          extensions: mbstring, bcmath, intl, pcntl, sqlite3, zip
           coverage: none
 
       - name: Install Composer dependencies
@@ -108,7 +106,9 @@ jobs:
       - name: Prepare application
         run: |
           cp .env.testing .env
-          touch database/database.sqlite
+          mkdir -p database
+          : > database/database.sqlite
+          test ! -s database/database.sqlite
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -129,6 +129,7 @@ jobs:
             tests/Feature/Smoke/SecuritySmokeTest.php \
             tests/Feature/Auth/AuthenticationTest.php \
             tests/Feature/Auth/PasswordConfirmationTest.php
+          composer test:security-baseline
           composer test:access-control
 
       - name: Run complete legacy suite (diagnostic)

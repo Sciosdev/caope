@@ -114,7 +114,7 @@ class UserManagementTest extends TestCase
     public function test_developer_role_cannot_be_assigned_from_user_management(): void
     {
         $this->seedRoles();
-        Role::create(['name' => 'developer']);
+        Role::firstOrCreate(['name' => 'developer']);
 
         $admin = User::factory()->create();
         $admin->syncRoles(['admin']);
@@ -140,7 +140,7 @@ class UserManagementTest extends TestCase
     public function test_developer_accounts_are_hidden_and_cannot_be_modified_from_user_management(): void
     {
         $this->seedRoles();
-        Role::create(['name' => 'developer']);
+        Role::firstOrCreate(['name' => 'developer']);
 
         $admin = User::factory()->create();
         $admin->syncRoles(['admin']);
@@ -198,8 +198,8 @@ class UserManagementTest extends TestCase
         $this->app->setLocale('en');
 
         $this->seedRoles();
-        Role::create(['name' => 'paps']);
-        Role::create(['name' => 'developer']);
+        Role::firstOrCreate(['name' => 'paps']);
+        Role::firstOrCreate(['name' => 'developer']);
 
         $paps = User::factory()->create(['approved_at' => now()]);
         $paps->syncRoles(['paps']);
@@ -224,7 +224,7 @@ class UserManagementTest extends TestCase
     public function test_paps_cannot_manage_an_admin_through_direct_urls(): void
     {
         $this->seedRoles();
-        Role::create(['name' => 'paps']);
+        Role::firstOrCreate(['name' => 'paps']);
 
         $paps = User::factory()->create(['approved_at' => now()]);
         $paps->syncRoles(['paps']);
@@ -260,7 +260,7 @@ class UserManagementTest extends TestCase
         $this->app->setLocale('en');
 
         $this->seedRoles();
-        Role::create(['name' => 'paps']);
+        Role::firstOrCreate(['name' => 'paps']);
 
         $actor = User::factory()->create(['approved_at' => now()]);
         $actor->syncRoles(['paps']);
@@ -326,7 +326,7 @@ class UserManagementTest extends TestCase
     public function test_unapproved_paps_is_forbidden_and_cannot_approve_itself(): void
     {
         $this->seedRoles();
-        Role::create(['name' => 'paps']);
+        Role::firstOrCreate(['name' => 'paps']);
 
         $paps = User::factory()->create([
             'approved_at' => null,
@@ -346,8 +346,8 @@ class UserManagementTest extends TestCase
     public function test_paps_cannot_assign_protected_roles_with_forged_payloads(): void
     {
         $this->seedRoles();
-        Role::create(['name' => 'paps']);
-        Role::create(['name' => 'developer']);
+        Role::firstOrCreate(['name' => 'paps']);
+        Role::firstOrCreate(['name' => 'developer']);
 
         $paps = User::factory()->create(['approved_at' => now()]);
         $paps->syncRoles(['paps']);
@@ -386,8 +386,8 @@ class UserManagementTest extends TestCase
         $this->app->setLocale('en');
 
         $this->seedRoles();
-        Role::create(['name' => 'paps']);
-        Role::create(['name' => 'alumno']);
+        Role::firstOrCreate(['name' => 'paps']);
+        Role::firstOrCreate(['name' => 'alumno']);
 
         $paps = User::factory()->create(['approved_at' => now()]);
         $paps->syncRoles(['paps']);
@@ -430,9 +430,9 @@ class UserManagementTest extends TestCase
         $this->app->setLocale('en');
 
         $this->seedRoles();
-        Role::create(['name' => 'paps']);
-        Role::create(['name' => 'alumno']);
-        Role::create(['name' => 'developer']);
+        Role::firstOrCreate(['name' => 'paps']);
+        Role::firstOrCreate(['name' => 'alumno']);
+        Role::firstOrCreate(['name' => 'developer']);
 
         $paps = User::factory()->create(['approved_at' => now()]);
         $paps->syncRoles(['paps']);
@@ -535,8 +535,8 @@ class UserManagementTest extends TestCase
 
     private function seedRoles(): void
     {
-        Role::create(['name' => 'admin']);
-        Role::create(['name' => 'tutor']);
+        Role::firstOrCreate(['name' => 'admin']);
+        Role::firstOrCreate(['name' => 'tutor']);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }

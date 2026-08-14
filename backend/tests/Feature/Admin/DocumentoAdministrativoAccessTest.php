@@ -20,7 +20,7 @@ class DocumentoAdministrativoAccessTest extends TestCase
         parent::setUp();
 
         foreach (['admin', 'coordinador', 'estratega', 'alumno', 'paps'] as $role) {
-            Role::query()->create(['name' => $role, 'guard_name' => 'web']);
+            Role::query()->firstOrCreate(['name' => $role, 'guard_name' => 'web']);
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -65,12 +65,16 @@ class DocumentoAdministrativoAccessTest extends TestCase
         $paps = User::factory()->create(['approved_at' => null]);
         $paps->syncRoles(['paps']);
 
+        Storage::disk('private')->assertExists($documento->ruta);
+
         $this->actingAs($paps)
             ->get(route('admin.documentos.index'))
             ->assertForbidden();
 
         $this->get(route('admin.documentos.download', $documento))
             ->assertForbidden();
+
+        Storage::disk('private')->assertExists($documento->ruta);
 
         $paps->update(['approved_at' => now()]);
 
