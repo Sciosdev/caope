@@ -43,7 +43,9 @@ class DeploymentScriptsTest extends TestCase
 
         foreach ([
             'version_compare(PHP_VERSION, "8.3.0", "<")',
-            '"ctype", "fileinfo", "json", "mbstring", "openssl", "pdo", "tokenizer", "zip"',
+            'REQUIRED_PHP_EXTENSIONS=(ctype fileinfo json mbstring openssl pdo tokenizer zip)',
+            'if ! PHP_MODULES="$("${PHP_BIN}" -m 2>/dev/null)"; then',
+            "fail 'PHP no pudo enumerar las extensiones disponibles.'",
             'https://composer.github.io/installer.sig',
             'hash_equals($expected, $actual)',
             'backup:run --only-db --no-interaction',

@@ -57,6 +57,24 @@ if [[ "${1:-}" == '-r' ]]; then
     exit 0
 fi
 
+if [[ "${1:-}" == '-m' ]]; then
+    if [[ "${CAOPE_TEST_MODULE_FAILURE:-0}" == '1' ]]; then
+        exit 70
+    fi
+
+    printf '%s\n' \
+        '[PHP Modules]' \
+        'ctype' \
+        'fileinfo' \
+        'json' \
+        'mbstring' \
+        'openssl' \
+        'PDO' \
+        'tokenizer' \
+        'zip'
+    exit 0
+fi
+
 if [[ "${1:-}" == "${CAOPE_TEST_ROOT}/bin/composer" ]]; then
     shift
     printf 'composer:%s\n' "$*" >> "${CAOPE_TEST_LOG}"
@@ -130,5 +148,17 @@ if (( backup_line >= down_line || down_line >= install_line )); then
 fi
 
 [[ ! -e "${FIXTURE_ROOT}/.deploy-lock" ]] || fail 'El bloqueo no se liberó.'
+
+if PATH="${FIXTURE_ROOT}/bin:/usr/bin:/bin" \
+    CAOPE_TEST_ROOT="${FIXTURE_ROOT}" \
+    CAOPE_TEST_LOG="${TEST_LOG}" \
+    CAOPE_TEST_MODULE_FAILURE=1 \
+        /bin/bash "${FIXTURE_ROOT}/scripts/bootstrap-cpanel.sh" \
+        > "${FIXTURE_ROOT}/extension-failure.log" 2>&1; then
+    fail 'El bootstrap debe fallar cuando PHP no puede enumerar sus extensiones.'
+fi
+
+assert_contains 'ERROR: PHP no pudo enumerar las extensiones disponibles.' \
+    "${FIXTURE_ROOT}/extension-failure.log"
 
 echo 'Bootstrap cPanel smoke test: OK'

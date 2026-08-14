@@ -127,17 +127,27 @@ SECURITY_PROFILE="${CAOPE_SECURITY_PROFILE:-auto}"
     || "${SECURITY_PROFILE}" == 'auto' ]] || \
     fail 'El perfil de seguridad del despliegue no es válido.'
 
-# shellcheck disable=SC2016
-MISSING_PHP_EXTENSIONS="$("${PHP_BIN}" -r '
-    $required = ["ctype", "fileinfo", "json", "mbstring", "openssl", "pdo", "tokenizer", "zip"];
-    echo implode(", ", array_values(array_filter(
-        $required,
-        static fn (string $extension): bool => ! extension_loaded($extension)
-    )));
-')"
+echo 'Validando extensiones PHP requeridas.'
 
-[[ -z "${MISSING_PHP_EXTENSIONS}" ]] || \
-    fail "PHP no tiene las extensiones requeridas: ${MISSING_PHP_EXTENSIONS}."
+if ! PHP_MODULES="$("${PHP_BIN}" -m 2>/dev/null)"; then
+    fail 'PHP no pudo enumerar las extensiones disponibles.'
+fi
+
+REQUIRED_PHP_EXTENSIONS=(ctype fileinfo json mbstring openssl pdo tokenizer zip)
+MISSING_PHP_EXTENSIONS=()
+
+for required_extension in "${REQUIRED_PHP_EXTENSIONS[@]}"; do
+    if ! grep -Fxiq -- "${required_extension}" <<< "${PHP_MODULES}"; then
+        MISSING_PHP_EXTENSIONS+=("${required_extension}")
+    fi
+done
+
+if (( ${#MISSING_PHP_EXTENSIONS[@]} > 0 )); then
+    missing_extensions="$(IFS=,; echo "${MISSING_PHP_EXTENSIONS[*]}")"
+    fail "PHP no tiene las extensiones requeridas: ${missing_extensions}."
+fi
+
+echo 'Extensiones PHP requeridas disponibles.'
 
 if ! mkdir -- "${LOCK_DIRECTORY}" 2>/dev/null; then
     fail 'Ya existe otro despliegue de CAOPE en curso.'
