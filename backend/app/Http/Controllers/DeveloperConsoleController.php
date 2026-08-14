@@ -6,6 +6,7 @@ use App\Models\DeploymentRun;
 use App\Services\DeveloperConsoleSettings;
 use App\Services\DeveloperHealthService;
 use App\Services\GitHubDeploymentService;
+use App\Services\ProductionSecurityAudit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -41,12 +42,24 @@ class DeveloperConsoleController extends Controller
         Request $request,
         GitHubDeploymentService $github,
         DeveloperConsoleSettings $settings,
+        ProductionSecurityAudit $securityAudit,
     ): RedirectResponse {
         $request->validate([
             'confirmation' => ['required', 'in:DESPLEGAR'],
         ], [
             'confirmation.in' => 'Escribe DESPLEGAR para confirmar la operación.',
         ]);
+
+        $securityProfile = $securityAudit->profileForCurrentEnvironment();
+        $securityErrors = $securityAudit->errors($securityProfile);
+
+        if ($securityErrors !== []) {
+            $labels = implode(', ', array_column($securityErrors, 'label'));
+
+            return back()->withErrors([
+                'deployment' => "No se solicitó el despliegue porque falló la configuración segura: {$labels}.",
+            ]);
+        }
 
         $lock = Cache::lock('developer-console:deployment-dispatch', 15);
 

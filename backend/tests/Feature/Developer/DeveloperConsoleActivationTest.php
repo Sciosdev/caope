@@ -31,7 +31,7 @@ class DeveloperConsoleActivationTest extends TestCase
             'developer_console.github.token' => '',
         ]);
 
-        Role::query()->create(['name' => 'admin', 'guard_name' => 'web']);
+        Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
     }
 
     protected function tearDown(): void

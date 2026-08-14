@@ -156,11 +156,11 @@ class CatalogoManagementTest extends TestCase
     private function seedRoles(): void
     {
         if (Role::query()->where('name', 'admin')->doesntExist()) {
-            Role::create(['name' => 'admin']);
+            Role::firstOrCreate(['name' => 'admin']);
         }
 
         if (Role::query()->where('name', 'tutor')->doesntExist()) {
-            Role::create(['name' => 'tutor']);
+            Role::firstOrCreate(['name' => 'tutor']);
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();

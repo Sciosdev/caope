@@ -21,7 +21,7 @@ class ExpedienteChangeStateTest extends TestCase
         parent::setUp();
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
-        Permission::create(['name' => 'expedientes.manage']);
+        Permission::firstOrCreate(['name' => 'expedientes.manage']);
     }
 
     public function test_no_se_puede_cerrar_sin_sesion_validada(): void

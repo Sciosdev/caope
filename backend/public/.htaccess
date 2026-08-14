@@ -5,6 +5,16 @@
 
     RewriteEngine On
 
+    # Force the two supported public hosts to HTTPS without reflecting an
+    # arbitrary Host header. REQUEST_URI preserves FESI's /caope prefix.
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP_HOST} ^caope\.ayudafesi\.com(?::[0-9]+)?$ [NC]
+    RewriteRule ^ https://caope.ayudafesi.com%{REQUEST_URI} [R=308,L,NE]
+
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP_HOST} ^xocoyotzin\.iztacala\.unam\.mx(?::[0-9]+)?$ [NC]
+    RewriteRule ^ https://xocoyotzin.iztacala.unam.mx%{REQUEST_URI} [R=308,L,NE]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

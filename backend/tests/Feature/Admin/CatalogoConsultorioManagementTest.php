@@ -130,7 +130,7 @@ class CatalogoConsultorioManagementTest extends TestCase
     private function createAdmin(): User
     {
         if (Role::query()->where('name', 'admin')->doesntExist()) {
-            Role::create(['name' => 'admin']);
+            Role::firstOrCreate(['name' => 'admin']);
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();

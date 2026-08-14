@@ -25,9 +25,9 @@ class SesionRevisionTest extends TestCase
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        Role::create(['name' => 'alumno']);
-        Role::create(['name' => 'docente']);
-        Permission::create(['name' => 'expedientes.manage']);
+        Role::firstOrCreate(['name' => 'alumno']);
+        Role::firstOrCreate(['name' => 'docente']);
+        Permission::firstOrCreate(['name' => 'expedientes.manage']);
     }
 
     public function test_registrar_sesion_crea_evento_en_timeline(): void

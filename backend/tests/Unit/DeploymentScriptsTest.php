@@ -111,6 +111,25 @@ class DeploymentScriptsTest extends TestCase
         }
     }
 
+    #[Test]
+    public function apache_forces_supported_hosts_to_https_without_reflecting_the_host_header(): void
+    {
+        $configuration = $this->read('backend/public/.htaccess');
+
+        $this->assertStringContainsString(
+            'https://caope.ayudafesi.com%{REQUEST_URI}',
+            $configuration,
+        );
+        $this->assertStringContainsString(
+            'https://xocoyotzin.iztacala.unam.mx%{REQUEST_URI}',
+            $configuration,
+        );
+        $this->assertStringContainsString('caope\.ayudafesi\.com(?::[0-9]+)?$', $configuration);
+        $this->assertStringContainsString('xocoyotzin\.iztacala\.unam\.mx(?::[0-9]+)?$', $configuration);
+        $this->assertStringNotContainsString('HTTP:X-Forwarded-Proto', $configuration);
+        $this->assertStringNotContainsString('https://%{HTTP_HOST}', $configuration);
+    }
+
     private function read(string $relativePath): string
     {
         $contents = file_get_contents($this->repositoryRoot.DIRECTORY_SEPARATOR.$relativePath);

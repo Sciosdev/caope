@@ -3,19 +3,54 @@
 CAOPE despliega `main` desde su consola técnica sin acceso SSH entrante, tokens
 de cPanel, rutas del servidor ni secretos de producción en GitHub Actions.
 
-## Instrucción para FESI
+## Instrucción única para FESI
 
-FESI sólo realiza estos pasos una vez:
+FESI realiza estos pasos, en este orden, durante la primera instalación segura:
 
-1. En su herramienta de despliegue Git, actualizar el checkout persistente de
-   `Sciosdev/caope` en la rama `main`. Deben conservar `backend/.env` y el
-   directorio `.git`; `.cpanel.yml` detecta PHP y Composer y ejecuta por sí solo
-   las dependencias, migraciones y cachés.
-2. Conservar una única ejecución de `php artisan schedule:run` cada minuto. Si
+1. **Antes de actualizar Git**, conservar `backend/.env` y revisar localmente
+   estas variables, sin compartir sus valores:
+
+   ```ini
+   APP_ENV=production
+   APP_DEBUG=false
+   APP_URL=https://xocoyotzin.iztacala.unam.mx/caope
+   APP_KEY=<clave nueva y exclusiva de 32 bytes>
+   APP_PREVIOUS_KEYS=
+   SESSION_SECURE_COOKIE=true
+   BACKUP_ARCHIVE_PASSWORD=<secreto aleatorio independiente de 32 o más caracteres>
+   ```
+
+   `TRUSTED_HOSTS` puede omitirse para usar la lista segura incluida. Si ya
+   existe, sólo puede contener `caope.ayudafesi.com` y
+   `xocoyotzin.iztacala.unam.mx`. La nueva `APP_KEY` y la contraseña de respaldo
+   deben generarse fuera del repositorio y guardarse en el gestor de secretos de
+   FESI. No se debe copiar una clave de `.env.testing`, commits o documentación.
+2. En la herramienta de despliegue Git, actualizar el checkout persistente de
+   `Sciosdev/caope` en `main`. Deben conservar `backend/.env` y `.git`;
+   `.cpanel.yml` detecta PHP y Composer y ejecuta dependencias, respaldo,
+   migraciones y cachés.
+3. Conservar una única ejecución de `php artisan schedule:run` cada minuto. Si
    el scheduler ya funciona, no deben modificarlo.
 
-No se solicita a FESI ningún host, puerto, usuario, llave SSH, ruta, ejecutable,
-token de GitHub o token de cPanel.
+No se solicita a FESI que comparta host, puerto, usuario, llave SSH, rutas,
+ejecutables, `APP_KEY`, contraseñas ni tokens de GitHub/cPanel.
+
+Rotar `APP_KEY` cierra las sesiones existentes y hace necesario recuperar la
+activación de `/caope/desarrollo`; no borra expedientes ni archivos clínicos.
+
+`php artisan caope:security-audit --profile=production` comprueba esas
+condiciones sin imprimir sus valores. Los scripts ejecutan la misma auditoría
+antes de crear el respaldo y antes de activar mantenimiento. En despliegues
+posteriores, un fallo ocurre antes de `git fetch` y no modifica la aplicación.
+En el primer despliegue de cPanel, el checkout ya fue actualizado antes de que
+`.cpanel.yml` se ejecute: si la auditoría falla, no se toca la base de datos ni
+se activa mantenimiento; se corrige `backend/.env` y se vuelve a pulsar
+**Deploy HEAD Commit** para completar cachés y migraciones.
+
+Los scripts usan `--profile=auto` si no reciben una selección explícita: sólo
+adoptan el perfil transitorio de pruebas cuando `APP_ENV` es exactamente
+`staging`; cualquier otro valor se audita como producción. El scheduler envía
+el perfil de forma explícita según la modalidad activada en la consola.
 
 El checkout debe quedar en `main`, seguir a `origin/main` y ser escribible por
 el mismo usuario que ejecuta el scheduler. CAOPE comprueba estas condiciones en
@@ -101,6 +136,15 @@ El nombre anterior `scripts/deploy-cpanel-staging.sh` se conserva como alias par
 que una ruta privada ya guardada en `.env` continúe funcionando sin editarla.
 Los cambios versionados existentes se muestran como advertencia en pruebas, pero
 siguen siendo un error bloqueante en la activación segura de producción.
+
+Durante la transición, pruebas usa el perfil `staging`: permite
+`APP_ENV=staging` con una advertencia, pero exige igualmente depuración
+desactivada, `APP_URL=https://caope.ayudafesi.com`, una `APP_KEY` nueva,
+`APP_PREVIOUS_KEYS` vacío, cookie segura y contraseña de respaldo. Estos valores
+se agregan a `backend/.env` antes de la actualización que instala este bloque.
+La ausencia de cualquiera deshabilita el botón y bloquea la solicitud antes de
+registrar o enviar un despliegue; la auditoría nunca muestra el valor
+configurado.
 
 ## Requisitos que muestra la consola
 

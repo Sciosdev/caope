@@ -2,6 +2,38 @@
 /backend/node_modules/
 /backend/public/storage
 /backend/public/build
-/backend/.env
-/.DS_Store
-/_template/**   # si el zip pesa, puedes ignorar el demo completo aquí
+
+# Runtime environment files. Only the two reviewed backend templates may be
+# versioned; every real environment file must remain outside Git.
+.env
+.env.*
+*.env
+*.env.*
+!/backend/.env.example
+!/backend/.env.testing
+
+# Runtime logs and cPanel-generated files.
+*.log
+error_log
+composer.phar
+
+# Local databases, dumps, credentials and private-key material.
+*.sqlite*
+*.db
+*.dump
+*.sql
+*.sql.gz
+*.bak
+*.backup
+*.pem
+*.key
+*.p12
+*.pfx
+auth.json
+.netrc
+.npmrc
+id_rsa
+id_ed25519
+
+.DS_Store
+/_template/

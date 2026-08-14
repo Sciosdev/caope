@@ -120,6 +120,13 @@ done
 [[ -n "${PHP_BIN}" ]] || fail 'No se encontró PHP CLI 8.3 o posterior.'
 echo "PHP ${PHP_VERSION} detectado en ${PHP_BIN}."
 
+SECURITY_PROFILE="${CAOPE_SECURITY_PROFILE:-auto}"
+
+[[ "${SECURITY_PROFILE}" == 'production' \
+    || "${SECURITY_PROFILE}" == 'staging' \
+    || "${SECURITY_PROFILE}" == 'auto' ]] || \
+    fail 'El perfil de seguridad del despliegue no es válido.'
+
 # shellcheck disable=SC2016
 MISSING_PHP_EXTENSIONS="$("${PHP_BIN}" -r '
     $required = ["ctype", "fileinfo", "json", "mbstring", "openssl", "pdo", "tokenizer", "zip"];
@@ -187,8 +194,11 @@ fi
 cd -- "${APPLICATION_ROOT}"
 
 if [[ -f vendor/autoload.php ]]; then
+    APP_CONFIG_CACHE=/dev/null "${PHP_BIN}" artisan caope:security-audit \
+        --profile="${SECURITY_PROFILE}" \
+        --no-interaction
     echo 'Instalación existente detectada; se creará un respaldo de la base de datos.'
-    "${PHP_BIN}" artisan backup:run --only-db --no-interaction
+    APP_CONFIG_CACHE=/dev/null "${PHP_BIN}" artisan backup:run --only-db --no-interaction
     "${PHP_BIN}" artisan down --retry=60
     APP_WAS_DOWN=1
 else
@@ -205,6 +215,9 @@ fi
 "${COMPOSER_COMMAND[@]}" check-platform-reqs --no-dev
 
 if [[ "${APP_WAS_DOWN}" -eq 0 ]]; then
+    APP_CONFIG_CACHE=/dev/null "${PHP_BIN}" artisan caope:security-audit \
+        --profile="${SECURITY_PROFILE}" \
+        --no-interaction
     "${PHP_BIN}" artisan down --retry=60
     APP_WAS_DOWN=1
 fi

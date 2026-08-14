@@ -1,10 +1,13 @@
 <?php
 
+use App\Console\Commands\AuditProductionConfiguration;
 use App\Console\Commands\CheckExpedienteSchema;
 use App\Console\Commands\ManageDeveloperAccess;
 use App\Console\Commands\RunPendingDeployment;
+use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\EnsureDeveloperConsoleAccess;
 use App\Http\Middleware\EnsurePapsIsApproved;
+use App\Http\Middleware\EnsureTrustedHost;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\RequireRecentDeveloperPassword;
 use Illuminate\Cache\RateLimiter as CacheRateLimiter;
@@ -25,11 +28,15 @@ $app = Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withCommands([
+        AuditProductionConfiguration::class,
         CheckExpedienteSchema::class,
         ManageDeveloperAccess::class,
         RunPendingDeployment::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->prepend(EnsureTrustedHost::class);
+        $middleware->append(AddSecurityHeaders::class);
+
         $middleware->alias([
             'permission' => PermissionMiddleware::class,
             'role' => RoleMiddleware::class,

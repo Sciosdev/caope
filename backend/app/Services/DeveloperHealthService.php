@@ -17,6 +17,7 @@ class DeveloperHealthService
     public function __construct(
         private Migrator $migrator,
         private DeveloperConsoleSettings $settings,
+        private ProductionSecurityAudit $securityAudit,
     ) {}
 
     /**
@@ -24,8 +25,11 @@ class DeveloperHealthService
      */
     public function run(): array
     {
+        $securityProfile = $this->securityAudit->profileForCurrentEnvironment();
+
         return [
             $this->deployedVersion(),
+            ...$this->securityAudit->run($securityProfile),
             $this->phpRuntime(),
             $this->database(),
             $this->migrations(),

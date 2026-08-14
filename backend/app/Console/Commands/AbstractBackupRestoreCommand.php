@@ -2,10 +2,13 @@
 
 namespace App\Console\Commands;
 
+use FilesystemIterator;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 use RuntimeException;
 use Spatie\Backup\BackupDestination\Backup;
 use Spatie\Backup\BackupDestination\BackupDestinationFactory;
@@ -13,9 +16,6 @@ use Spatie\Backup\Config\Config;
 use Spatie\TemporaryDirectory\TemporaryDirectory;
 use Throwable;
 use ZipArchive;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
-use FilesystemIterator;
 
 abstract class AbstractBackupRestoreCommand extends Command
 {
@@ -35,49 +35,70 @@ abstract class AbstractBackupRestoreCommand extends Command
      */
     protected function extractBackup(Backup $backup): array
     {
-        $temporaryDirectory = (new TemporaryDirectory())->create();
-        $zipPath = $temporaryDirectory->path('backup.zip');
-
-        $stream = $backup->stream();
-        $destination = fopen($zipPath, 'w+b');
-
-        if ($destination === false) {
-            throw new RuntimeException('Unable to create temporary archive.');
-        }
+        $temporaryDirectory = $this->createTemporaryDirectory();
 
         try {
-            stream_copy_to_stream($stream, $destination);
-        } finally {
-            if (is_resource($stream)) {
-                fclose($stream);
+            $zipPath = $temporaryDirectory->path('backup.zip');
+            $stream = $backup->stream();
+            $destination = fopen($zipPath, 'w+b');
+
+            if ($destination === false) {
+                if (is_resource($stream)) {
+                    fclose($stream);
+                }
+
+                throw new RuntimeException('Unable to create temporary archive.');
             }
 
-            fclose($destination);
-        }
+            try {
+                stream_copy_to_stream($stream, $destination);
+            } finally {
+                if (is_resource($stream)) {
+                    fclose($stream);
+                }
 
-        $extractedPath = $temporaryDirectory->path('extracted');
-        if (! is_dir($extractedPath) && ! mkdir($extractedPath, 0755, true) && ! is_dir($extractedPath)) {
-            throw new RuntimeException('Unable to prepare extraction directory.');
-        }
-
-        $zip = new ZipArchive();
-        if ($zip->open($zipPath) !== true) {
-            throw new RuntimeException('Unable to open the backup archive.');
-        }
-
-        try {
-            if (! $zip->extractTo($extractedPath)) {
-                throw new RuntimeException('Unable to extract the backup archive.');
+                fclose($destination);
             }
-        } finally {
-            $zip->close();
-        }
 
-        return [
-            'directory' => $temporaryDirectory,
-            'extracted' => $extractedPath,
-            'zip' => $zipPath,
-        ];
+            $extractedPath = $temporaryDirectory->path('extracted');
+            if (! is_dir($extractedPath) && ! mkdir($extractedPath, 0755, true) && ! is_dir($extractedPath)) {
+                throw new RuntimeException('Unable to prepare extraction directory.');
+            }
+
+            $zip = new ZipArchive;
+            if ($zip->open($zipPath) !== true) {
+                throw new RuntimeException('Unable to open the backup archive.');
+            }
+
+            try {
+                $password = config('backup.backup.password');
+
+                if (is_string($password) && $password !== '' && ! $zip->setPassword($password)) {
+                    throw new RuntimeException('Unable to configure backup archive decryption.');
+                }
+
+                if (! $zip->extractTo($extractedPath)) {
+                    throw new RuntimeException('Unable to extract the backup archive.');
+                }
+            } finally {
+                $zip->close();
+            }
+
+            return [
+                'directory' => $temporaryDirectory,
+                'extracted' => $extractedPath,
+                'zip' => $zipPath,
+            ];
+        } catch (Throwable $exception) {
+            $temporaryDirectory->delete();
+
+            throw $exception;
+        }
+    }
+
+    protected function createTemporaryDirectory(): TemporaryDirectory
+    {
+        return (new TemporaryDirectory)->create();
     }
 
     protected function locateDumpFile(string $directory, callable $filter): ?string
