@@ -3,7 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Expediente;
-use Illuminate\Contracts\Queue\ShouldQueue;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -15,25 +15,27 @@ use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
 /**
  * @implements FromQuery<Expediente>
  */
-class ExpedientesExport extends DefaultValueBinder implements FromQuery, WithHeadings, WithMapping, ShouldQueue
+class ExpedientesExport extends DefaultValueBinder implements FromQuery, WithHeadings, WithMapping
 {
     /**
      * @param  array<string, mixed>  $filters
      */
-    public function __construct(private readonly array $filters)
-    {
-    }
+    public function __construct(
+        private readonly array $filters,
+        private readonly int $userId,
+        private readonly ?array $allowedExpedienteIds = null,
+    ) {}
 
     public function headings(): array
     {
         return [
             'No. de control',
-            'Consultante',
+            'Alumno',
             'Estado',
             'Fecha de apertura',
             'Estratega',
             'Coordinador',
-            'Capturado por',
+            'Facilitador',
         ];
     }
 
@@ -57,7 +59,16 @@ class ExpedientesExport extends DefaultValueBinder implements FromQuery, WithHea
 
     public function query(): Builder
     {
-        $query = Expediente::query()->orderByDesc('apertura');
+        $user = User::query()->find($this->userId);
+        $query = Expediente::query()
+            ->visibleTo($user)
+            ->orderByDesc('apertura');
+
+        if ($this->allowedExpedienteIds !== null) {
+            $this->allowedExpedienteIds === []
+                ? $query->whereRaw('1 = 0')
+                : $query->whereKey($this->allowedExpedienteIds);
+        }
 
         return $this->applyFilters($query, $this->filters);
     }

@@ -20,11 +20,11 @@ class CheckExpedienteSchema extends Command
      *
      * @var string
      */
-    protected $description = 'Detecta columnas faltantes en la tabla de expedientes que impiden a los alumnos guardar sus expedientes.';
+    protected $description = 'Detecta columnas faltantes en la tabla de expedientes que impiden a los facilitadores guardar sus expedientes.';
 
     public function handle(): int
     {
-        $table = (new Expediente())->getTable();
+        $table = (new Expediente)->getTable();
 
         $optionalColumns = [
             'antecedentes_familiares',
@@ -44,7 +44,7 @@ class CheckExpedienteSchema extends Command
             ->values();
 
         if ($missingColumns->isEmpty()) {
-            $this->info('La tabla de expedientes contiene todas las columnas requeridas para el perfil Alumno.');
+            $this->info('La tabla de expedientes contiene todas las columnas requeridas para el perfil Facilitador.');
 
             return self::SUCCESS;
         }

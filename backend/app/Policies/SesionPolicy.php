@@ -13,17 +13,24 @@ class SesionPolicy
 
     public function view(User $user, Sesion $sesion): bool
     {
-        if ($this->isAdmin($user) || $this->canManage($user)) {
+        if ($user->hasGlobalExpedienteAccess()) {
             return true;
         }
 
         $expediente = $sesion->expediente;
 
+        if ($expediente && $user->isCoordinatorOf($expediente)) {
+            return true;
+        }
+
         if ($this->isTutor($user, $expediente)) {
             return true;
         }
 
-        if ($user->hasRole('alumno') && $sesion->realizada_por === $user->id) {
+        if ($user->hasRole('alumno')
+            && $expediente
+            && $user->isFacilitatorOf($expediente)
+            && (int) $sesion->realizada_por === (int) $user->id) {
             return true;
         }
 
@@ -32,7 +39,11 @@ class SesionPolicy
 
     public function create(User $user, Expediente $expediente): bool
     {
-        if ($this->isAdmin($user) || $this->canManage($user)) {
+        if ($user->hasGlobalExpedienteAccess()) {
+            return true;
+        }
+
+        if ($user->isCoordinatorOf($expediente)) {
             return true;
         }
 
@@ -40,18 +51,22 @@ class SesionPolicy
             return true;
         }
 
-        return $user->hasRole('alumno')
-            && $expediente->creado_por === $user->id
+        return $user->isFacilitatorOf($expediente)
             && $expediente->estado !== 'cerrado';
     }
 
     public function update(User $user, Sesion $sesion): bool
     {
         if ($sesion->status_revision === 'validada') {
-            return $this->isAdmin($user) || $this->canManage($user);
+            return $user->hasGlobalExpedienteAccess()
+                || ($sesion->expediente && $user->isCoordinatorOf($sesion->expediente));
         }
 
-        if ($this->isAdmin($user) || $this->canManage($user)) {
+        if ($user->hasGlobalExpedienteAccess()) {
+            return true;
+        }
+
+        if ($sesion->expediente && $user->isCoordinatorOf($sesion->expediente)) {
             return true;
         }
 
@@ -60,7 +75,9 @@ class SesionPolicy
         }
 
         return $user->hasRole('alumno')
-            && $sesion->realizada_por === $user->id
+            && $sesion->expediente
+            && $user->isFacilitatorOf($sesion->expediente)
+            && (int) $sesion->realizada_por === (int) $user->id
             && $sesion->status_revision !== 'validada';
     }
 
@@ -70,7 +87,10 @@ class SesionPolicy
             return true;
         }
 
-        if ($user->hasRole('alumno') && $sesion->realizada_por === $user->id) {
+        if ($user->hasRole('alumno')
+            && $sesion->expediente
+            && $user->isFacilitatorOf($sesion->expediente)
+            && (int) $sesion->realizada_por === (int) $user->id) {
             return $sesion->status_revision === 'pendiente';
         }
 
@@ -79,7 +99,11 @@ class SesionPolicy
 
     public function validate(User $user, Sesion $sesion): bool
     {
-        if ($this->isAdmin($user) || $this->canManage($user)) {
+        if ($user->hasGlobalExpedienteAccess()) {
+            return true;
+        }
+
+        if ($sesion->expediente && $user->isCoordinatorOf($sesion->expediente)) {
             return true;
         }
 
@@ -88,7 +112,11 @@ class SesionPolicy
 
     public function observe(User $user, Sesion $sesion): bool
     {
-        if ($this->isAdmin($user) || $this->canManage($user)) {
+        if ($user->hasGlobalExpedienteAccess()) {
+            return true;
+        }
+
+        if ($sesion->expediente && $user->isCoordinatorOf($sesion->expediente)) {
             return true;
         }
 
@@ -97,16 +125,12 @@ class SesionPolicy
 
     private function isAdmin(User $user): bool
     {
-        return $user->hasAnyRole(['admin', 'paps']);
-    }
-
-    private function canManage(User $user): bool
-    {
-        return $user->can('expedientes.manage');
+        return $user->hasRole('admin') || $user->isApprovedPaps();
     }
 
     private function isTutor(User $user, ?Expediente $expediente): bool
     {
-        return $expediente !== null && $expediente->tutor_id === $user->id;
+        return $expediente !== null
+            && $user->isTutorOf($expediente);
     }
 }

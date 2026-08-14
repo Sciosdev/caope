@@ -6,6 +6,7 @@ use App\Models\CatalogoCarrera;
 use App\Models\CatalogoTratamiento;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class ConsentimientoRequeridoControllerTest extends TestCase
@@ -14,7 +15,7 @@ class ConsentimientoRequeridoControllerTest extends TestCase
 
     public function test_usuario_puede_ver_matriz_de_tratamientos_requeridos(): void
     {
-        $usuario = User::factory()->create();
+        $usuario = $this->admin();
 
         $carrera = CatalogoCarrera::create([
             'nombre' => 'Arquitectura',
@@ -37,7 +38,7 @@ class ConsentimientoRequeridoControllerTest extends TestCase
 
     public function test_usuario_puede_actualizar_tratamientos_requeridos(): void
     {
-        $usuario = User::factory()->create();
+        $usuario = $this->admin();
 
         $carrera = CatalogoCarrera::create([
             'nombre' => 'Ingeniería Biomédica',
@@ -77,7 +78,7 @@ class ConsentimientoRequeridoControllerTest extends TestCase
 
     public function test_actualizar_tratamientos_permite_limpiar_selecciones(): void
     {
-        $usuario = User::factory()->create();
+        $usuario = $this->admin();
 
         $carrera = CatalogoCarrera::create([
             'nombre' => 'Psicología',
@@ -102,5 +103,27 @@ class ConsentimientoRequeridoControllerTest extends TestCase
         ]);
 
         $this->assertSame(0, $carrera->fresh()->tratamientos()->count());
+    }
+
+    public function test_usuario_operativo_no_puede_administrar_tratamientos_requeridos(): void
+    {
+        $usuario = User::factory()->create();
+
+        $this->actingAs($usuario)
+            ->get(route('consentimientos.requeridos.index'))
+            ->assertForbidden();
+
+        $this->put(route('consentimientos.requeridos.update'), ['requeridos' => []])
+            ->assertForbidden();
+    }
+
+    private function admin(): User
+    {
+        Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        return $admin;
     }
 }

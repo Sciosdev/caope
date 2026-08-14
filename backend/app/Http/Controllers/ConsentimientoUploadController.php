@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Expediente;
 use App\Models\Consentimiento;
+use App\Models\Expediente;
 use App\Models\Parametro;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -118,12 +118,18 @@ class ConsentimientoUploadController extends Controller
             $path = $file->storeAs($directory, $filename, $disk);
         }
 
-        $expediente->forceFill([
-            'consentimientos_observaciones' => $validated['observaciones'],
+        $updates = [
+            'consentimientos_observaciones' => $validated['observaciones'] ?? null,
             'consentimientos_observaciones_path' => $path,
-            'tutor_id' => $validated['tutor_id'] ?? null,
-            'contacto_emergencia_nombre' => $validated['contacto_emergencia_nombre'] ?: null,
-        ])->save();
+            'contacto_emergencia_nombre' => ($validated['contacto_emergencia_nombre'] ?? null) ?: null,
+        ];
+
+        $user = $request->user();
+        if ($user?->hasGlobalExpedienteAccess() || $user?->isCoordinatorOf($expediente)) {
+            $updates['tutor_id'] = $validated['tutor_id'] ?? null;
+        }
+
+        $expediente->forceFill($updates)->save();
 
         return redirect()
             ->route('expedientes.show', ['expediente' => $expediente, 'tab' => 'consentimientos'])

@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Storage;
 
 class SesionAdjunto extends Model
 {
@@ -17,7 +16,7 @@ class SesionAdjunto extends Model
 
     protected $appends = ['url'];
 
-    protected $hidden = ['ruta'];
+    protected $hidden = ['ruta', 'disk'];
 
     public function sesion(): BelongsTo
     {
@@ -31,6 +30,10 @@ class SesionAdjunto extends Model
 
     public function getUrlAttribute(): string
     {
-        return Storage::disk('public')->url($this->ruta);
+        return route('expedientes.sesiones.adjuntos.download', [
+            $this->sesion?->expediente_id,
+            $this->sesion_id,
+            $this->getKey(),
+        ]);
     }
 }

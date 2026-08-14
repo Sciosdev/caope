@@ -135,7 +135,7 @@
                                 <div class="card h-100 border-warning">
                                     <div class="card-body">
                                         <h6 class="card-title text-warning">Marcar como observada</h6>
-                                        <p class="card-text small text-muted">Registra observaciones para que el alumno atienda los cambios necesarios.</p>
+                                        <p class="card-text small text-muted">Registra observaciones para que el facilitador atienda los cambios necesarios.</p>
                                         <form action="{{ route('expedientes.sesiones.observe', [$expediente, $sesion]) }}" method="post" class="d-flex flex-column gap-2">
                                             @csrf
                                             <input type="hidden" name="form_action" value="observe">

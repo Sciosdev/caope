@@ -19,9 +19,7 @@ class ComentarioController extends Controller
         'sesion' => Sesion::class,
     ];
 
-    public function __construct(private TimelineLogger $timelineLogger)
-    {
-    }
+    public function __construct(private TimelineLogger $timelineLogger) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -68,6 +66,7 @@ class ComentarioController extends Controller
             'comentario_id' => $comentario->id,
             'comentable_type' => $comentario->comentable_type,
             'comentable_id' => $comentario->comentable_id,
+            'sesion_id' => $comentable instanceof Sesion ? $comentable->getKey() : null,
         ]);
 
         return response()->json([
@@ -107,6 +106,7 @@ class ComentarioController extends Controller
             'comentario_id' => $comentario->id,
             'comentable_type' => $comentario->comentable_type,
             'comentable_id' => $comentario->comentable_id,
+            'sesion_id' => $comentario->comentable instanceof Sesion ? $comentario->comentable->getKey() : null,
         ]);
 
         return response()->json([
@@ -126,6 +126,7 @@ class ComentarioController extends Controller
             'comentario_id' => $comentario->id,
             'comentable_type' => $comentario->comentable_type,
             'comentable_id' => $comentario->comentable_id,
+            'sesion_id' => $comentario->comentable instanceof Sesion ? $comentario->comentable->getKey() : null,
         ];
 
         $comentario->delete();

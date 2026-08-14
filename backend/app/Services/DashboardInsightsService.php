@@ -18,12 +18,13 @@ class DashboardInsightsService
     /**
      * Obtiene el conteo de expedientes agrupados por estado conocido.
      */
-    public function getExpedienteCountsByState(): array
+    public function getExpedienteCountsByState(User $user): array
     {
-        return $this->remember('dashboard.metrics.counts', function () {
+        return $this->rememberForUser($user, "dashboard.metrics.counts.user_{$user->getKey()}", function () use ($user) {
             $states = ['abierto', 'revision', 'cerrado'];
 
             $counts = Expediente::query()
+                ->visibleTo($user)
                 ->select('estado')
                 ->selectRaw('COUNT(*) as total')
                 ->groupBy('estado')
@@ -40,10 +41,11 @@ class DashboardInsightsService
     /**
      * Calcula el tiempo promedio que tardan en validarse las sesiones.
      */
-    public function getAverageValidationTime(): array
+    public function getAverageValidationTime(User $user): array
     {
-        return $this->remember('dashboard.metrics.average_validation', function () {
+        return $this->rememberForUser($user, "dashboard.metrics.average_validation.user_{$user->getKey()}", function () use ($user) {
             $durations = Sesion::query()
+                ->visibleTo($user)
                 ->where('status_revision', 'validada')
                 ->whereNotNull('validada_por')
                 ->get(['created_at', 'updated_at'])
@@ -88,29 +90,30 @@ class DashboardInsightsService
     /**
      * Obtiene los expedientes que no han tenido actividad en los últimos N días.
      */
-    public function getStalledExpedientes(?int $days = null, ?User $user = null): Collection
+    public function getStalledExpedientes(User $user, ?int $days = null): Collection
     {
         $days = $this->resolveDays($days);
-        $cacheKey = sprintf('dashboard.alerts.days_%d.user_%s', $days, $user?->getKey() ?? 'all');
+        $cacheKey = sprintf('dashboard.alerts.days_%d.user_%s', $days, $user->getKey());
 
-        return $this->remember($cacheKey, function () use ($days, $user) {
+        return $this->rememberForUser($user, $cacheKey, function () use ($days, $user) {
             $threshold = Carbon::now()->subDays($days);
             $now = Carbon::now();
 
             $expedientes = Expediente::query()
+                ->visibleTo($user)
                 ->with(['tutor:id,name', 'coordinador:id,name'])
-                ->withAggregate('timelineEventos as ultima_bitacora', 'created_at')
-                ->withAggregate('sesiones as ultima_sesion', 'updated_at')
+                ->withAggregate([
+                    'timelineEventos as ultima_bitacora' => fn ($query) => $query->visibleTo($user),
+                ], 'created_at')
+                ->withAggregate([
+                    'sesiones as ultima_sesion' => fn ($query) => $query->visibleTo($user),
+                ], 'updated_at')
                 ->whereIn('estado', ['abierto', 'revision'])
                 ->get();
 
             $alerts = [];
 
             foreach ($expedientes as $expediente) {
-                if ($user !== null && $user->cannot('view', $expediente)) {
-                    continue;
-                }
-
                 $lastActivity = $this->resolveLastActivity($expediente);
 
                 if ($lastActivity instanceof Carbon && $lastActivity->greaterThan($threshold)) {
@@ -219,5 +222,15 @@ class DashboardInsightsService
 
         return Cache::remember($key, $ttl, $callback);
     }
-}
 
+    private function rememberForUser(User $user, string $key, callable $callback): mixed
+    {
+        // Un cambio de asignación debe revocar la información de inmediato.
+        // Las vistas globales sí pueden aprovechar la caché compartida por usuario.
+        if (! $user->hasGlobalExpedienteAccess()) {
+            return $callback();
+        }
+
+        return $this->remember($key, $callback);
+    }
+}

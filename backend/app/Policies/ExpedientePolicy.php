@@ -17,41 +17,30 @@ class ExpedientePolicy
 
     public function view(User $user, Expediente $expediente): bool
     {
-        if ($this->isAdmin($user) || $this->canManage($user)) {
+        if ($user->hasGlobalExpedienteAccess()) {
             return true;
         }
 
-        if ($user->hasRole('docente') && $expediente->tutor_id === $user->id) {
-            return true;
-        }
-
-        if ($user->hasRole('alumno') && $expediente->creado_por === $user->id) {
-            return true;
-        }
-
-        return false;
+        return $user->isAssignedToExpediente($expediente);
     }
 
     public function create(User $user): bool
     {
-        return $this->isAdmin($user) || $user->hasRole('alumno') || $user->hasRole('paps');
+        return $this->isAdmin($user) || $user->hasRole('alumno');
     }
 
     public function update(User $user, Expediente $expediente): bool
     {
-        if ($this->isAdmin($user) || $this->canManage($user)) {
+        if ($user->hasGlobalExpedienteAccess()) {
             return true;
         }
 
-        if ($user->hasRole('docente') && $expediente->tutor_id === $user->id) {
-            return $expediente->estado !== 'cerrado';
+        if ($user->isCoordinatorOf($expediente)) {
+            return true;
         }
 
-        if ($user->hasRole('alumno') && $expediente->creado_por === $user->id) {
-            return $expediente->estado !== 'cerrado';
-        }
-
-        return false;
+        return $user->isAssignedToExpediente($expediente)
+            && $expediente->estado !== 'cerrado';
     }
 
     public function delete(User $user, Expediente $expediente): bool
@@ -61,15 +50,12 @@ class ExpedientePolicy
 
     public function changeState(User $user, Expediente $expediente): bool
     {
-        if ($this->isAdmin($user) || $this->canManage($user)) {
+        if ($user->hasGlobalExpedienteAccess()) {
             return true;
         }
 
-        if ($user->hasRole('docente') && $expediente->tutor_id === $user->id) {
-            return true;
-        }
-
-        return false;
+        return $user->isCoordinatorOf($expediente)
+            || $user->isTutorOf($expediente);
     }
 
     public function viewFullName(User $user, Expediente $expediente): bool
@@ -79,11 +65,6 @@ class ExpedientePolicy
 
     private function isAdmin(User $user): bool
     {
-        return $user->hasAnyRole(['admin', 'paps']);
-    }
-
-    private function canManage(User $user): bool
-    {
-        return $user->can('expedientes.manage');
+        return $user->hasRole('admin') || $user->isApprovedPaps();
     }
 }

@@ -6,6 +6,7 @@ use App\Exports\TimelineEventosExport;
 use App\Jobs\FinalizeQueuedExport;
 use App\Models\Expediente;
 use App\Models\TimelineEvento;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -35,17 +36,23 @@ class TimelineEventoExportController extends Controller
         $path = sprintf('exports/timeline_%s.%s', $token, $format);
 
         $userId = (int) $request->user()->id;
-        $export = new TimelineEventosExport($expediente->getKey());
-
-        $total = TimelineEvento::query()
+        $eventIds = TimelineEvento::query()
+            ->visibleTo($request->user())
             ->where('expediente_id', $expediente->getKey())
-            ->count();
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+        $export = new TimelineEventosExport($userId, $expediente->getKey(), $eventIds);
+
+        $total = count($eventIds);
 
         $cachePayload = [
             'path' => $path,
             'filename' => $filename,
             'user_id' => $userId,
             'expediente_id' => $expediente->getKey(),
+            'event_ids' => $eventIds,
         ];
 
         if ($total > self::QUEUE_THRESHOLD) {
@@ -55,7 +62,10 @@ class TimelineEventoExportController extends Controller
 
             Excel::queue($export, $path, 'local', $writerType)
                 ->chain([
-                    new FinalizeQueuedExport($token, $path, $filename, $userId, ['expediente_id' => $expediente->getKey()]),
+                    new FinalizeQueuedExport($token, $path, $filename, $userId, [
+                        'expediente_id' => $expediente->getKey(),
+                        'event_ids' => $eventIds,
+                    ]),
                 ]);
 
             return response()->json([
@@ -82,9 +92,16 @@ class TimelineEventoExportController extends Controller
 
     public function status(Request $request, Expediente $expediente, string $token): JsonResponse
     {
+        $this->authorize('view', $expediente);
+
         $data = Cache::get($token);
 
         if (! $data || ($data['user_id'] ?? null) !== $request->user()->id || ($data['expediente_id'] ?? null) !== $expediente->getKey()) {
+            abort(404);
+        }
+
+        if (! $this->exportStillAuthorized($request->user(), $expediente, $data)) {
+            $this->forgetExport($token, $data);
             abort(404);
         }
 
@@ -102,6 +119,8 @@ class TimelineEventoExportController extends Controller
 
     public function download(Request $request, Expediente $expediente, string $token): BinaryFileResponse
     {
+        $this->authorize('view', $expediente);
+
         $data = Cache::get($token);
 
         if (! $data
@@ -109,6 +128,11 @@ class TimelineEventoExportController extends Controller
             || ($data['expediente_id'] ?? null) !== $expediente->getKey()
             || ($data['status'] ?? null) !== 'ready'
         ) {
+            abort(404);
+        }
+
+        if (! $this->exportStillAuthorized($request->user(), $expediente, $data)) {
+            $this->forgetExport($token, $data);
             abort(404);
         }
 
@@ -123,5 +147,45 @@ class TimelineEventoExportController extends Controller
             Storage::disk('local')->path($data['path']),
             $data['filename']
         )->deleteFileAfterSend(true);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function exportStillAuthorized(User $user, Expediente $expediente, array $data): bool
+    {
+        if (! array_key_exists('event_ids', $data) || ! is_array($data['event_ids'])) {
+            return false;
+        }
+
+        $expectedIds = collect($data['event_ids'])
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($expectedIds->isEmpty()) {
+            return true;
+        }
+
+        return TimelineEvento::query()
+            ->visibleTo($user)
+            ->where('expediente_id', $expediente->getKey())
+            ->whereKey($expectedIds->all())
+            ->count() === $expectedIds->count();
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function forgetExport(string $token, array $data): void
+    {
+        $path = $data['path'] ?? null;
+
+        if (is_string($path) && Storage::disk('local')->exists($path)) {
+            Storage::disk('local')->delete($path);
+        }
+
+        Cache::forget($token);
     }
 }

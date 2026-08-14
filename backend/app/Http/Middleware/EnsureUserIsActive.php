@@ -15,8 +15,17 @@ class EnsureUserIsActive
 
         if ($user && ! $user->is_active) {
             Auth::logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
+
+            if ($request->hasSession()) {
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+            }
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Tu cuenta está deshabilitada.',
+                ], 403);
+            }
 
             return redirect()->route('login')->withErrors([
                 'email' => 'Tu cuenta está deshabilitada. Solicita activación al administrador.',

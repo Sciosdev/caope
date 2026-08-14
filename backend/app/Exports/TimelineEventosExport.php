@@ -3,7 +3,7 @@
 namespace App\Exports;
 
 use App\Models\TimelineEvento;
-use Illuminate\Contracts\Queue\ShouldQueue;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -13,18 +13,20 @@ use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
 /**
  * @implements FromQuery<TimelineEvento>
  */
-class TimelineEventosExport extends DefaultValueBinder implements FromQuery, WithHeadings, WithMapping, ShouldQueue
+class TimelineEventosExport extends DefaultValueBinder implements FromQuery, WithHeadings, WithMapping
 {
-    public function __construct(private readonly ?int $expedienteId = null)
-    {
-    }
+    public function __construct(
+        private readonly int $userId,
+        private readonly ?int $expedienteId = null,
+        private readonly ?array $allowedEventIds = null,
+    ) {}
 
     public function headings(): array
     {
         return [
             __('Fecha y hora'),
             __('No. de control'),
-            __('Consultante'),
+            __('Alumno'),
             __('Evento'),
             __('Actor'),
             __('Detalles'),
@@ -55,12 +57,21 @@ class TimelineEventosExport extends DefaultValueBinder implements FromQuery, Wit
 
     public function query(): Builder
     {
+        $user = User::query()->find($this->userId);
+
         $query = TimelineEvento::query()
+            ->visibleTo($user)
             ->with(['expediente', 'actor'])
             ->orderByDesc('created_at');
 
         if ($this->expedienteId !== null) {
             $query->where('expediente_id', $this->expedienteId);
+        }
+
+        if ($this->allowedEventIds !== null) {
+            $this->allowedEventIds === []
+                ? $query->whereRaw('1 = 0')
+                : $query->whereKey($this->allowedEventIds);
         }
 
         return $query;

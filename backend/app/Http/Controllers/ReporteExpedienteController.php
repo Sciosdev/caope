@@ -23,19 +23,25 @@ class ReporteExpedienteController extends Controller
     public function index(Request $request): View
     {
         $filters = $this->validateFilters($request);
+        $user = $request->user();
 
-        $expedientes = $this->baseQuery($filters)
+        $expedientes = $this->baseQuery($filters, $user)
             ->with(['tutor', 'coordinador', 'creadoPor'])
             ->orderByDesc('apertura')
             ->paginate(15)
             ->withQueryString();
 
+        $visible = Expediente::query()->visibleTo($user);
+        $tutorIds = (clone $visible)->whereNotNull('tutor_id')->distinct()->pluck('tutor_id');
+        $coordinadorIds = (clone $visible)->whereNotNull('coordinador_id')->distinct()->pluck('coordinador_id');
+        $creadorIds = (clone $visible)->whereNotNull('creado_por')->distinct()->pluck('creado_por');
+
         return view('reportes.expedientes.index', [
             'expedientes' => $expedientes,
             'filters' => $filters,
-            'tutores' => User::role('docente')->orderBy('name')->get(),
-            'coordinadores' => User::role('coordinador')->orderBy('name')->get(),
-            'creadores' => User::orderBy('name')->get(),
+            'tutores' => User::query()->whereIn('id', $tutorIds)->orderBy('name')->get(),
+            'coordinadores' => User::query()->whereIn('id', $coordinadorIds)->orderBy('name')->get(),
+            'creadores' => User::query()->whereIn('id', $creadorIds)->orderBy('name')->get(),
         ]);
     }
 
@@ -53,8 +59,12 @@ class ReporteExpedienteController extends Controller
         $writerType = $format === 'csv' ? ExcelWriter::CSV : ExcelWriter::XLSX;
 
         $userId = (int) $request->user()->id;
-
-        $export = new ExpedientesExport($filters);
+        $expedienteIds = $this->baseQuery($filters, $request->user())
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+        $export = new ExpedientesExport($filters, $userId, $expedienteIds);
         Excel::store($export, $path, 'local', $writerType);
 
         Cache::put($token, [
@@ -62,12 +72,13 @@ class ReporteExpedienteController extends Controller
             'path' => $path,
             'filename' => $filename,
             'user_id' => $userId,
+            'expediente_ids' => $expedienteIds,
         ], now()->addMinutes(10));
 
         return response()->json([
             'status' => 'ready',
             'token' => $token,
-            'download_url' => route('reportes.expedientes.download', $token, false),
+            'download_url' => route('reportes.expedientes.download', $token),
             'message' => __('El archivo se generó correctamente.'),
         ]);
     }
@@ -82,8 +93,18 @@ class ReporteExpedienteController extends Controller
 
         $filename = sprintf('reporte_expedientes_%s.%s', now()->format('Ymd_His'), $format);
         $writerType = $format === 'csv' ? ExcelWriter::CSV : ExcelWriter::XLSX;
+        $user = $request->user();
+        $expedienteIds = $this->baseQuery($filters, $user)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
 
-        return Excel::download(new ExpedientesExport($filters), $filename, $writerType);
+        return Excel::download(
+            new ExpedientesExport($filters, (int) $user->id, $expedienteIds),
+            $filename,
+            $writerType
+        );
     }
 
     public function status(Request $request, string $token): JsonResponse
@@ -91,6 +112,11 @@ class ReporteExpedienteController extends Controller
         $data = Cache::get($token);
 
         if (! $data || ($data['user_id'] ?? null) !== $request->user()->id) {
+            abort(404);
+        }
+
+        if (! $this->exportStillAuthorized($request->user(), $data)) {
+            $this->forgetExport($token, $data);
             abort(404);
         }
 
@@ -102,7 +128,7 @@ class ReporteExpedienteController extends Controller
 
         return response()->json([
             'status' => 'ready',
-            'download_url' => route('reportes.expedientes.download', $token, false),
+            'download_url' => route('reportes.expedientes.download', $token),
         ]);
     }
 
@@ -111,6 +137,11 @@ class ReporteExpedienteController extends Controller
         $data = Cache::get($token);
 
         if (! $data || ($data['user_id'] ?? null) !== $request->user()->id || ($data['status'] ?? null) !== 'ready') {
+            abort(404);
+        }
+
+        if (! $this->exportStillAuthorized($request->user(), $data)) {
+            $this->forgetExport($token, $data);
             abort(404);
         }
 
@@ -128,7 +159,6 @@ class ReporteExpedienteController extends Controller
     }
 
     /**
-     * @param  Request  $request
      * @return array<string, mixed>
      */
     private function validateFilters(Request $request): array
@@ -156,14 +186,54 @@ class ReporteExpedienteController extends Controller
      * @param  array<string, mixed>  $filters
      * @return Builder<Expediente>
      */
-    private function baseQuery(array $filters): Builder
+    private function baseQuery(array $filters, User $user): Builder
     {
         return Expediente::query()
+            ->visibleTo($user)
             ->when($filters['estado'] ?? null, fn (Builder $q, string $estado): Builder => $q->where('estado', $estado))
             ->when($filters['desde'] ?? null, fn (Builder $q, string $desde): Builder => $q->whereDate('apertura', '>=', $desde))
             ->when($filters['hasta'] ?? null, fn (Builder $q, string $hasta): Builder => $q->whereDate('apertura', '<=', $hasta))
             ->when($filters['tutor_id'] ?? null, fn (Builder $q, int $tutorId): Builder => $q->where('tutor_id', $tutorId))
             ->when($filters['coordinador_id'] ?? null, fn (Builder $q, int $coordinadorId): Builder => $q->where('coordinador_id', $coordinadorId))
             ->when($filters['creado_por'] ?? null, fn (Builder $q, int $creadoPor): Builder => $q->where('creado_por', $creadoPor));
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function exportStillAuthorized(User $user, array $data): bool
+    {
+        if (! array_key_exists('expediente_ids', $data) || ! is_array($data['expediente_ids'])) {
+            return false;
+        }
+
+        $expectedIds = collect($data['expediente_ids'] ?? [])
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($expectedIds->isEmpty()) {
+            return true;
+        }
+
+        return Expediente::query()
+            ->visibleTo($user)
+            ->whereKey($expectedIds->all())
+            ->count() === $expectedIds->count();
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function forgetExport(string $token, array $data): void
+    {
+        $path = $data['path'] ?? null;
+
+        if (is_string($path) && Storage::disk('local')->exists($path)) {
+            Storage::disk('local')->delete($path);
+        }
+
+        Cache::forget($token);
     }
 }

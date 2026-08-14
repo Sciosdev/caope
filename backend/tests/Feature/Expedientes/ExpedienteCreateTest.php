@@ -37,8 +37,7 @@ class ExpedienteCreateTest extends TestCase
         CatalogoTurno::flushCache();
     }
 
-
-    public function test_formulario_muestra_consultante_nueva_asignacion_y_no_control_autogenerado(): void
+    public function test_formulario_muestra_alumno_facilitador_nueva_asignacion_y_no_control_autogenerado(): void
     {
         $admin = User::factory()->create();
         $admin->assignRole('admin');
@@ -52,8 +51,8 @@ class ExpedienteCreateTest extends TestCase
         $response = $this->actingAs($admin)->get(route('expedientes.create'));
 
         $response->assertOk();
-        $response->assertSee('Consultante');
-        $response->assertSee('Facilitador (Alumno responsable)');
+        $response->assertSee('Alumno');
+        $response->assertSee('Facilitador responsable');
         $response->assertSee($admin->name);
         $response->assertDontSee('Hoja de urgencia');
         $response->assertSee('Nueva asignación');
@@ -72,9 +71,83 @@ class ExpedienteCreateTest extends TestCase
         $response->assertDontSee('Hoja de urgencia');
     }
 
+    public function test_alumno_cannot_create_an_expediente_already_closed(): void
+    {
+        $alumno = User::factory()->create();
+        $alumno->assignRole('alumno');
+
+        $carrera = CatalogoCarrera::create([
+            'nombre' => 'Psicología',
+            'activo' => true,
+        ]);
+        $turno = CatalogoTurno::create([
+            'nombre' => 'Matutino',
+            'activo' => true,
+        ]);
+        CatalogoCarrera::flushCache();
+        CatalogoTurno::flushCache();
+
+        $this->actingAs($alumno)
+            ->post(route('expedientes.store'), [
+                'no_control' => 'CA-2026-7101',
+                'paciente' => 'Alumno en expediente nuevo',
+                'apertura' => now()->toDateString(),
+                'carrera' => $carrera->nombre,
+                'turno' => $turno->nombre,
+                'estado' => 'cerrado',
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('expedientes', [
+            'no_control' => 'CA-2026-7101',
+            'creado_por' => $alumno->id,
+            'estado' => 'abierto',
+        ]);
+    }
+
+    public function test_multi_role_alumno_cannot_self_assign_privileged_relationships_on_creation(): void
+    {
+        $carrera = CatalogoCarrera::create([
+            'nombre' => 'Trabajo Social',
+            'activo' => true,
+        ]);
+        $turno = CatalogoTurno::create([
+            'nombre' => 'Vespertino',
+            'activo' => true,
+        ]);
+        CatalogoCarrera::flushCache();
+        CatalogoTurno::flushCache();
+
+        foreach (['coordinador', 'docente'] as $index => $privilegedRole) {
+            $user = User::factory()->create();
+            $user->assignRole(['alumno', $privilegedRole]);
+            $noControl = sprintf('CA-2026-72%02d', $index + 1);
+
+            $this->actingAs($user)
+                ->post(route('expedientes.store'), [
+                    'no_control' => $noControl,
+                    'paciente' => 'Intento de autoasignación',
+                    'apertura' => now()->toDateString(),
+                    'carrera' => $carrera->nombre,
+                    'turno' => $turno->nombre,
+                    'tutor_id' => $user->id,
+                    'coordinador_id' => $user->id,
+                ])
+                ->assertSessionHasNoErrors()
+                ->assertRedirect();
+
+            $expediente = Expediente::query()->where('no_control', $noControl)->firstOrFail();
+
+            $this->assertSame($user->id, $expediente->creado_por);
+            $this->assertNull($expediente->tutor_id);
+            $this->assertNull($expediente->coordinador_id);
+        }
+    }
+
     public function test_formulario_para_paps_muestra_hoja_urgencia_y_asignacion_pero_oculta_facilitador(): void
     {
-        $paps = User::factory()->create();
+        $paps = User::factory()->create(['approved_at' => now()]);
         $paps->assignRole('paps');
 
         $response = $this->actingAs($paps)->get(route('expedientes.create'));
@@ -82,7 +155,7 @@ class ExpedienteCreateTest extends TestCase
         $response->assertOk();
         $response->assertSee('Hoja de urgencia');
         $response->assertSee('Nueva asignación');
-        $response->assertDontSee('Facilitador (Alumno responsable)');
+        $response->assertDontSee('Facilitador responsable');
     }
 
     public function test_admin_crea_expediente_registra_timeline_y_redirige(): void
@@ -99,7 +172,10 @@ class ExpedienteCreateTest extends TestCase
             'nombre' => 'Matutino',
             'activo' => true,
         ]);
-        CatalogoCubiculo::query()->create(['numero' => 1, 'activo' => true]);
+        CatalogoCubiculo::query()->updateOrCreate(
+            ['numero' => 1],
+            ['nombre' => 'Cubículo 1', 'activo' => true]
+        );
 
         CatalogoCarrera::flushCache();
         CatalogoTurno::flushCache();
@@ -164,7 +240,7 @@ class ExpedienteCreateTest extends TestCase
 
     public function test_paps_crea_expediente_sin_facilitador_y_con_registro_urgencia_vinculado(): void
     {
-        $paps = User::factory()->create();
+        $paps = User::factory()->create(['approved_at' => now()]);
         $paps->assignRole('paps');
 
         $tutor = User::factory()->create();
@@ -182,7 +258,10 @@ class ExpedienteCreateTest extends TestCase
             'activo' => true,
         ]);
 
-        CatalogoCubiculo::query()->create(['numero' => 1, 'activo' => true]);
+        CatalogoCubiculo::query()->updateOrCreate(
+            ['numero' => 1],
+            ['nombre' => 'Cubículo 1', 'activo' => true]
+        );
 
         CatalogoCarrera::flushCache();
         CatalogoTurno::flushCache();
@@ -208,8 +287,8 @@ class ExpedienteCreateTest extends TestCase
         $expediente = Expediente::where('no_control', $payload['no_control'])->first();
         $this->assertNotNull($expediente);
 
-        $this->assertNull($expediente->tutor_id);
-        $this->assertNull($expediente->coordinador_id);
+        $this->assertSame($tutor->id, $expediente->tutor_id);
+        $this->assertSame($coordinador->id, $expediente->coordinador_id);
         $this->assertNull(data_get($expediente->resumen_clinico, 'facilitador'));
         $this->assertSame(1, data_get($expediente->resumen_clinico, 'cubiculo'));
 
@@ -220,7 +299,7 @@ class ExpedienteCreateTest extends TestCase
 
     public function test_paps_puede_guardar_expediente_y_genera_solicitud_pendiente_para_aprobar_consultorio(): void
     {
-        $paps = User::factory()->create();
+        $paps = User::factory()->create(['approved_at' => now()]);
         $paps->assignRole('paps');
 
         $carrera = CatalogoCarrera::create([
@@ -231,9 +310,17 @@ class ExpedienteCreateTest extends TestCase
             'nombre' => 'Matutino',
             'activo' => true,
         ]);
-        CatalogoConsultorio::query()->create(['numero' => 1, 'nombre' => 'Consultorio 1', 'activo' => true]);
-        CatalogoCubiculo::query()->create(['numero' => 1, 'nombre' => 'Cubículo 1', 'activo' => true]);
-        CatalogoEstrategia::query()->create(['nombre' => 'Intervención breve', 'activo' => true]);
+        CatalogoConsultorio::query()->updateOrCreate(
+            ['numero' => 1],
+            ['nombre' => 'Consultorio 1', 'activo' => true]
+        );
+        CatalogoCubiculo::query()->updateOrCreate(
+            ['numero' => 1],
+            ['nombre' => 'Cubículo 1', 'activo' => true]
+        );
+        CatalogoEstrategia::query()->firstOrCreate([
+            'nombre' => 'Intervención breve',
+        ], ['activo' => true]);
 
         CatalogoCarrera::flushCache();
         CatalogoTurno::flushCache();
@@ -271,8 +358,8 @@ class ExpedienteCreateTest extends TestCase
         ]);
         $this->assertDatabaseHas('consultorio_reservas', [
             'fecha' => Carbon::now()->toDateString(),
-            'hora_inicio' => '07:00:00',
-            'hora_fin' => '08:00:00',
+            'hora_inicio' => '07:00',
+            'hora_fin' => '08:00',
             'consultorio_numero' => 1,
             'cubiculo_numero' => 1,
             'estrategia' => 'Intervención breve',
@@ -449,7 +536,7 @@ class ExpedienteCreateTest extends TestCase
         $this->assertSame(array_keys($defaultsSystems), array_keys($expediente->aparatos_sistemas));
         $this->assertNull($expediente->aparatos_sistemas['digestivo']);
         $this->assertSame('Sin alteraciones respiratorias', $expediente->aparatos_sistemas['respiratorio']);
-        $this->assertNull($expediente->aparatos_sistemas['nervioso']);
+        $this->assertArrayNotHasKey('nervioso', $expediente->aparatos_sistemas);
         $this->assertNull($expediente->plan_accion);
     }
 

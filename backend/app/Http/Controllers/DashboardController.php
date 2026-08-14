@@ -5,20 +5,20 @@ namespace App\Http\Controllers;
 use App\Models\Expediente;
 use App\Models\Sesion;
 use App\Models\User;
-use App\Services\DashboardInsightsService;
 use App\Notifications\ExpedienteClosureAttemptNotification;
 use App\Notifications\SesionObservedNotification;
+use App\Notifications\SesionValidatedNotification;
+use App\Services\DashboardInsightsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function __construct(private DashboardInsightsService $insights)
-    {
-    }
+    public function __construct(private DashboardInsightsService $insights) {}
 
     public function index(Request $request): View
     {
@@ -42,8 +42,9 @@ class DashboardController extends Controller
 
     public function metrics(Request $request): JsonResponse
     {
-        $stateCounts = $this->insights->getExpedienteCountsByState();
-        $averageValidation = $this->insights->getAverageValidationTime();
+        $user = $request->user();
+        $stateCounts = $this->insights->getExpedienteCountsByState($user);
+        $averageValidation = $this->insights->getAverageValidationTime($user);
 
         return response()->json([
             'expedientes' => [
@@ -64,7 +65,7 @@ class DashboardController extends Controller
         $thresholdDays = $this->insights->getStalledThresholdDays($requestedDays);
 
         $alerts = $this->insights
-            ->getStalledExpedientes($thresholdDays)
+            ->getStalledExpedientes($request->user(), $thresholdDays)
             ->map(function (array $alert) {
                 $alert['url'] = route('expedientes.show', $alert['id']);
 
@@ -86,11 +87,8 @@ class DashboardController extends Controller
 
         $query = Sesion::query()
             ->with(['expediente:id,no_control,paciente'])
-            ->where('status_revision', 'pendiente');
-
-        if (! $user->can('expedientes.manage')) {
-            $query->whereHas('expediente', fn ($q) => $q->where('tutor_id', $user->id));
-        }
+            ->where('status_revision', 'pendiente')
+            ->whereHas('expediente', fn ($q) => $q->validatableBy($user));
 
         $total = (clone $query)->count();
 
@@ -123,10 +121,7 @@ class DashboardController extends Controller
 
     private function observedCard(User $user): ?array
     {
-        $notifications = $user
-            ->unreadNotifications()
-            ->where('type', SesionObservedNotification::class)
-            ->orderByDesc('created_at');
+        $notifications = $this->visibleUnreadNotifications($user, SesionObservedNotification::class);
 
         $total = $notifications->count();
 
@@ -147,8 +142,7 @@ class DashboardController extends Controller
         }
 
         $items = $notifications
-            ->limit(5)
-            ->get()
+            ->take(5)
             ->map(function ($notification) {
                 $data = $notification->data;
                 $expedienteId = Arr::get($data, 'expediente_id');
@@ -180,10 +174,7 @@ class DashboardController extends Controller
 
     private function closureAttemptsCard(User $user): ?array
     {
-        $notifications = $user
-            ->unreadNotifications()
-            ->where('type', ExpedienteClosureAttemptNotification::class)
-            ->orderByDesc('created_at');
+        $notifications = $this->visibleUnreadNotifications($user, ExpedienteClosureAttemptNotification::class);
 
         $total = $notifications->count();
 
@@ -204,8 +195,7 @@ class DashboardController extends Controller
         }
 
         $items = $notifications
-            ->limit(5)
-            ->get()
+            ->take(5)
             ->map(function ($notification) {
                 $data = $notification->data;
                 $expedienteId = Arr::get($data, 'expediente_id');
@@ -244,6 +234,58 @@ class DashboardController extends Controller
         ])->first(fn ($routeName) => \Route::has($routeName));
 
         return $routeName ? route($routeName) : null;
+    }
+
+    private function visibleUnreadNotifications(User $user, string $notificationType): Collection
+    {
+        $notifications = $user
+            ->unreadNotifications()
+            ->where('type', $notificationType)
+            ->orderByDesc('created_at')
+            ->get();
+
+        $candidateIds = $notifications
+            ->map(fn ($notification) => (int) Arr::get($notification->data, 'expediente_id'))
+            ->filter()
+            ->unique();
+
+        if ($candidateIds->isEmpty()) {
+            return collect();
+        }
+
+        $visibleIds = Expediente::query()
+            ->visibleTo($user)
+            ->whereKey($candidateIds)
+            ->pluck('id')
+            ->mapWithKeys(fn ($id) => [(int) $id => true]);
+
+        $visibleSessionIds = null;
+
+        if (in_array($notificationType, [
+            SesionObservedNotification::class,
+            SesionValidatedNotification::class,
+        ], true)) {
+            $candidateSessionIds = $notifications
+                ->map(fn ($notification) => (int) Arr::get($notification->data, 'sesion_id'))
+                ->filter()
+                ->unique();
+
+            $visibleSessionIds = Sesion::query()
+                ->visibleTo($user)
+                ->whereKey($candidateSessionIds)
+                ->pluck('id')
+                ->mapWithKeys(fn ($id) => [(int) $id => true]);
+        }
+
+        return $notifications
+            ->filter(function ($notification) use ($visibleIds, $visibleSessionIds): bool {
+                if (! $visibleIds->has((int) Arr::get($notification->data, 'expediente_id'))) {
+                    return false;
+                }
+
+                return $visibleSessionIds === null
+                    || $visibleSessionIds->has((int) Arr::get($notification->data, 'sesion_id'));
+            });
     }
 
     private function resolveObservedNotificationUrl(mixed $expedienteId, mixed $sesionId): ?string

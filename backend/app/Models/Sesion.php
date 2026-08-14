@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Casts\SafeDate;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -37,6 +38,53 @@ class Sesion extends Model
     protected $casts = [
         'fecha' => SafeDate::class,
     ];
+
+    /**
+     * Limita sesiones a las que el usuario puede consultar individualmente.
+     *
+     * @param  Builder<Sesion>  $query
+     * @return Builder<Sesion>
+     */
+    public function scopeVisibleTo(Builder $query, ?User $user): Builder
+    {
+        if ($user === null) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if ($user->hasGlobalExpedienteAccess()) {
+            return $query;
+        }
+
+        return $query->where(function (Builder $visible) use ($user): void {
+            $hasSessionAccess = false;
+
+            if ($user->hasRole('coordinador')) {
+                $visible->orWhereHas('expediente', fn (Builder $expedientes) => $expedientes
+                    ->where('coordinador_id', $user->getKey()));
+                $hasSessionAccess = true;
+            }
+
+            if ($user->hasAnyRole(['docente', 'estratega'])) {
+                $visible->orWhereHas('expediente', fn (Builder $expedientes) => $expedientes
+                    ->where('tutor_id', $user->getKey()));
+                $hasSessionAccess = true;
+            }
+
+            if ($user->hasRole('alumno')) {
+                $visible->orWhere(function (Builder $ownSessions) use ($user): void {
+                    $ownSessions
+                        ->where('realizada_por', $user->getKey())
+                        ->whereHas('expediente', fn (Builder $expedientes) => $expedientes
+                            ->where('creado_por', $user->getKey()));
+                });
+                $hasSessionAccess = true;
+            }
+
+            if (! $hasSessionAccess) {
+                $visible->whereRaw('1 = 0');
+            }
+        });
+    }
 
     public function expediente(): BelongsTo
     {

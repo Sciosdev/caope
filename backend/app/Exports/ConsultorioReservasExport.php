@@ -3,9 +3,10 @@
 namespace App\Exports;
 
 use App\Models\ConsultorioReserva;
-use Illuminate\Support\Facades\Schema;
+use App\Models\User;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Schema;
 use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -14,8 +15,10 @@ use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
 /**
  * @implements FromQuery<ConsultorioReserva>
  */
-class ConsultorioReservasExport extends DefaultValueBinder implements FromQuery, WithHeadings, WithMapping, ShouldQueue
+class ConsultorioReservasExport extends DefaultValueBinder implements FromQuery, ShouldQueue, WithHeadings, WithMapping
 {
+    public function __construct(private readonly int $userId) {}
+
     public function headings(): array
     {
         return [
@@ -23,7 +26,7 @@ class ConsultorioReservasExport extends DefaultValueBinder implements FromQuery,
             'Hora inicio',
             'Hora fin',
             'Consultorio',
-            'Consultorio',
+            'Cubículo',
             'Estrategia',
             'Estratega',
             'Facilitador',
@@ -57,7 +60,10 @@ class ConsultorioReservasExport extends DefaultValueBinder implements FromQuery,
 
     public function query(): Builder
     {
+        $user = User::query()->find($this->userId);
+
         $query = ConsultorioReserva::query()
+            ->visibleTo($user)
             ->with(['usuarioAtendido:id,name', 'estratega:id,name', 'supervisor:id,name', 'creadoPor:id,name'])
             ->orderByDesc('fecha')
             ->orderByDesc('hora_inicio');

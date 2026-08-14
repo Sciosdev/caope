@@ -8,6 +8,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Gate;
 
 class ExpedienteClosedNotification extends Notification implements ShouldQueue
 {
@@ -16,20 +17,24 @@ class ExpedienteClosedNotification extends Notification implements ShouldQueue
     public function __construct(
         private readonly Expediente $expediente,
         private readonly ?User $actor,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<int, string>
      */
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        return $this->canReceive($notifiable) ? ['mail', 'database'] : [];
+    }
+
+    public function shouldSend(object $notifiable, string $channel): bool
+    {
+        return $this->canReceive($notifiable);
     }
 
     public function toMail(object $notifiable): MailMessage
     {
-        return (new MailMessage())
+        return (new MailMessage)
             ->subject('Expediente cerrado')
             ->view('emails.expediente-closed', [
                 'expediente' => $this->expediente,
@@ -54,5 +59,15 @@ class ExpedienteClosedNotification extends Notification implements ShouldQueue
                 $this->expediente->paciente,
             ),
         ];
+    }
+
+    private function canReceive(object $notifiable): bool
+    {
+        $expediente = $this->expediente->fresh();
+
+        return $notifiable instanceof User
+            && $notifiable->is_active
+            && $expediente instanceof Expediente
+            && Gate::forUser($notifiable)->allows('view', $expediente);
     }
 }

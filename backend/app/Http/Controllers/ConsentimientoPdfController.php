@@ -38,7 +38,7 @@ class ConsentimientoPdfController extends Controller
     {
         $this->authorize('view', $expediente);
 
-        $expediente->loadMissing(['alumno', 'tutor', 'coordinador']);
+        $expediente->loadMissing(['facilitador', 'tutor', 'coordinador']);
         $consentimientos = $expediente
             ->consentimientos()
             ->orderByDesc('requerido')
@@ -192,13 +192,13 @@ class ConsentimientoPdfController extends Controller
             return null;
         }
 
-        $httpsUrl = 'https://' . $logoConfigurado;
+        $httpsUrl = 'https://'.$logoConfigurado;
 
         if (filter_var($httpsUrl, FILTER_VALIDATE_URL)) {
             return $httpsUrl;
         }
 
-        $httpUrl = 'http://' . $logoConfigurado;
+        $httpUrl = 'http://'.$logoConfigurado;
 
         return filter_var($httpUrl, FILTER_VALIDATE_URL) ? $httpUrl : null;
     }
@@ -230,13 +230,13 @@ class ConsentimientoPdfController extends Controller
                 ];
             }
 
-            $storagePath = storage_path('app/public/' . $candidate);
+            $storagePath = storage_path('app/public/'.$candidate);
 
             if (is_file($storagePath)) {
                 $dataUri = $this->resolveLogoDataUri($storagePath);
                 $assetPath = str_starts_with($candidate, 'storage/')
                     ? $candidate
-                    : 'storage/' . $candidate;
+                    : 'storage/'.$candidate;
 
                 return [
                     'logoPath' => $storagePath,

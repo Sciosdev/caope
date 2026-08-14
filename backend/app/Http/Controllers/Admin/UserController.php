@@ -17,16 +17,37 @@ use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
+    private const PAPS_MANAGEABLE_ROLES = ['alumno', 'docente', 'coordinador', 'estratega', 'tutor'];
+
     public function __construct()
     {
         $this->middleware('role:admin|paps');
+        $this->middleware(function (Request $request, $next) {
+            $actor = $request->user();
+
+            abort_if(
+                $actor?->hasRole('paps')
+                    && ! $actor->hasRole('admin')
+                    && ! $actor->isApprovedPaps(),
+                403
+            );
+
+            return $next($request);
+        });
     }
 
     public function index(): View
     {
         $users = User::query()
             ->with('roles')
-            ->whereDoesntHave('roles', fn ($query) => $query->where('name', 'developer'))
+            ->when(
+                $this->isRestrictedPaps(),
+                fn ($query) => $query->whereDoesntHave(
+                    'roles',
+                    fn ($roles) => $roles->whereNotIn('name', self::PAPS_MANAGEABLE_ROLES)
+                ),
+                fn ($query) => $query->whereDoesntHave('roles', fn ($roles) => $roles->where('name', 'developer'))
+            )
             ->orderBy('name')
             ->paginate(15);
 
@@ -69,7 +90,7 @@ class UserController extends Controller
 
     public function edit(User $user): RedirectResponse|View
     {
-        abort_if($user->hasRole('developer'), 403);
+        $this->ensureCanManage($user);
 
         if ($response = $this->preventSelfModification($user)) {
             return $response;
@@ -84,7 +105,7 @@ class UserController extends Controller
 
     public function update(Request $request, User $user): RedirectResponse
     {
-        abort_if($user->hasRole('developer'), 403);
+        $this->ensureCanManage($user);
 
         if ($response = $this->preventSelfModification($user)) {
             return $response;
@@ -131,7 +152,7 @@ class UserController extends Controller
 
     public function approve(User $user): RedirectResponse
     {
-        abort_if($user->hasRole('developer'), 403);
+        $this->ensureCanManage($user);
 
         if (! $user->approved_at) {
             $user->update([
@@ -145,7 +166,7 @@ class UserController extends Controller
 
     public function toggleActive(Request $request, User $user): RedirectResponse
     {
-        abort_if($user->hasRole('developer'), 403);
+        $this->ensureCanManage($user);
 
         if ($response = $this->preventSelfModification($user)) {
             return $response;
@@ -167,7 +188,7 @@ class UserController extends Controller
 
     public function destroy(User $user): RedirectResponse
     {
-        abort_if($user->hasRole('developer'), 403);
+        $this->ensureCanManage($user);
 
         if ($response = $this->preventSelfModification($user)) {
             return $response;
@@ -192,10 +213,34 @@ class UserController extends Controller
         ]);
 
         return Role::query()
-            ->where('name', '!=', 'developer')
+            ->when(
+                $this->isRestrictedPaps(),
+                fn ($query) => $query->whereIn('name', self::PAPS_MANAGEABLE_ROLES),
+                fn ($query) => $query->where('name', '!=', 'developer')
+            )
             ->orderBy('name')
             ->pluck('name', 'name')
+            ->map(fn (string $role) => $role === 'alumno' ? 'Facilitador' : $role)
             ->all();
+    }
+
+    private function ensureCanManage(User $user): void
+    {
+        abort_if($user->hasRole('developer'), 403);
+
+        if ($this->isRestrictedPaps()) {
+            abort_if(
+                $user->roles()->whereNotIn('name', self::PAPS_MANAGEABLE_ROLES)->exists(),
+                403
+            );
+        }
+    }
+
+    private function isRestrictedPaps(): bool
+    {
+        $actor = auth()->user();
+
+        return ($actor?->hasRole('paps') ?? false) && ! ($actor?->hasRole('admin') ?? false);
     }
 
     private function preventSelfModification(User $user): ?RedirectResponse

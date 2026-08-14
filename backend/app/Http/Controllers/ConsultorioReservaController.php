@@ -5,23 +5,23 @@ namespace App\Http\Controllers;
 use App\Exports\ConsultorioReservasExport;
 use App\Http\Requests\StoreConsultorioReservaRequest;
 use App\Http\Requests\UpdateConsultorioReservaRequest;
-use App\Models\CatalogoCubiculo;
 use App\Models\CatalogoConsultorio;
+use App\Models\CatalogoCubiculo;
 use App\Models\CatalogoEstrategia;
 use App\Models\ConsultorioReserva;
 use App\Models\ConsultorioReservaSolicitud;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Arr;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Carbon;
 use Illuminate\View\View;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ConsultorioReservaController extends Controller
 {
@@ -62,7 +62,7 @@ class ConsultorioReservaController extends Controller
             return false;
         }
 
-        return $user->hasRole('paps') && ! is_null($user->approved_at);
+        return $user->isApprovedPaps();
     }
 
     private function canAccessConsultorios(Request $request): bool
@@ -73,38 +73,13 @@ class ConsultorioReservaController extends Controller
             return false;
         }
 
-        return $user->hasAnyRole(['admin', 'coordinador', 'alumno', 'docente'])
-            || ($user->hasRole('paps') && ! is_null($user->approved_at));
+        return $user->hasAnyRole(['admin', 'coordinador', 'estratega', 'alumno', 'docente'])
+            || $user->isApprovedPaps();
     }
 
     private function applyAssignedReservationsVisibilityFilter(Request $request, Builder $query): Builder
     {
-        $user = $request->user();
-
-        if (! $user) {
-            return $query;
-        }
-
-        if ($user->hasAnyRole(['admin', 'paps'])) {
-            return $query;
-        }
-
-        if ($user->hasRole('docente')) {
-            return $query->whereRaw('1 = 0');
-        }
-
-        if (! $user->hasAnyRole(['coordinador', 'alumno'])) {
-            return $query->whereRaw('1 = 0');
-        }
-
-        $userId = $user->id;
-
-        return $query->where(function (Builder $assigned) use ($userId): void {
-            $assigned
-                ->where('usuario_atendido_id', $userId)
-                ->orWhere('supervisor_id', $userId)
-                ->orWhere('creado_por', $userId);
-        });
+        return $query->visibleTo($request->user());
     }
 
     public function index(Request $request): View
@@ -120,12 +95,53 @@ class ConsultorioReservaController extends Controller
         $bitacoraFechaSeleccionada = $bitacoraFechaBase->toDateString();
         $bitacoraInicio = ($bitacoraModo === 'mes' ? $bitacoraFechaBase->copy()->startOfMonth() : $bitacoraFechaBase->copy()->startOfWeek(Carbon::MONDAY))->toDateString();
         $bitacoraFin = ($bitacoraModo === 'mes' ? $bitacoraFechaBase->copy()->endOfMonth() : $bitacoraFechaBase->copy()->endOfWeek(Carbon::SUNDAY))->toDateString();
+        $user = $request->user();
+        $hasGlobalVisibility = $user->hasRole('admin') || $user->isApprovedPaps();
+        $visibleReservationsForCatalogs = $this->applyPendingApprovalVisibilityFilter(
+            $this->applyAssignedReservationsVisibilityFilter($request, ConsultorioReserva::query())
+        );
+
         $consultoriosActivos = CatalogoConsultorio::activos();
+        if (! $hasGlobalVisibility) {
+            $assignedConsultorios = (clone $visibleReservationsForCatalogs)
+                ->select('consultorio_numero')
+                ->distinct()
+                ->pluck('consultorio_numero')
+                ->map(fn ($numero) => (int) $numero);
+
+            $consultoriosActivos = $consultoriosActivos
+                ->whereIn('numero', $assignedConsultorios)
+                ->values();
+        }
+
+        $consultorioSolicitado = $request->filled('consultorio_numero')
+            ? (int) $request->integer('consultorio_numero')
+            : null;
+        $consultorioSeleccionado = $consultorioSolicitado !== null
+            && $consultoriosActivos->contains(fn (CatalogoConsultorio $consultorio) => $consultorio->numero === $consultorioSolicitado)
+                ? $consultorioSolicitado
+                : $consultoriosActivos->first()?->numero;
+
         $cubiculosActivos = CatalogoCubiculo::activos();
+        if (! $hasGlobalVisibility) {
+            $assignedCubiculos = $consultorioSeleccionado === null
+                ? collect()
+                : (clone $visibleReservationsForCatalogs)
+                    ->where('consultorio_numero', $consultorioSeleccionado)
+                    ->select('cubiculo_numero')
+                    ->distinct()
+                    ->pluck('cubiculo_numero')
+                    ->map(fn ($numero) => (int) $numero);
+
+            $cubiculosActivos = $cubiculosActivos
+                ->whereIn('numero', $assignedCubiculos)
+                ->values();
+        }
+
         $cubiculosDisponibles = $cubiculosActivos->pluck('numero')->map(fn ($numero) => (int) $numero)->values();
-        $defaultCubiculo = (int) ($cubiculosDisponibles->first() ?? 1);
-        $consultorioSeleccionado = (int) $request->integer('consultorio_numero', (int) ($consultoriosActivos->first()->numero ?? 1));
-        $cubiculoSolicitado = (int) $request->integer('cubiculo_numero', $defaultCubiculo);
+        $cubiculoSolicitado = $request->filled('cubiculo_numero')
+            ? (int) $request->integer('cubiculo_numero')
+            : null;
         $cubiculoSeleccionado = $request->filled('cubiculo_numero') && $cubiculosDisponibles->contains($cubiculoSolicitado)
             ? $cubiculoSolicitado
             : null;
@@ -146,7 +162,11 @@ class ConsultorioReservaController extends Controller
         $ocupacionQuery = ConsultorioReserva::query()
             ->with(['usuarioAtendido', 'estratega', 'supervisor'])
             ->whereDate('fecha', $fechaFiltro)
-            ->where('consultorio_numero', $consultorioSeleccionado)
+            ->when(
+                $consultorioSeleccionado !== null,
+                fn (Builder $query) => $query->where('consultorio_numero', $consultorioSeleccionado),
+                fn (Builder $query) => $query->whereRaw('1 = 0')
+            )
             ->when($cubiculoSeleccionado, fn ($query) => $query->where('cubiculo_numero', $cubiculoSeleccionado))
             ->orderBy('cubiculo_numero')
             ->orderBy('hora_inicio');
@@ -236,7 +256,7 @@ class ConsultorioReservaController extends Controller
 
         $filename = sprintf('bitacora_reservas_%s.xlsx', Date::now()->format('Ymd_His'));
 
-        return Excel::download(new ConsultorioReservasExport, $filename);
+        return Excel::download(new ConsultorioReservasExport($request->user()->getKey()), $filename);
     }
 
     public function edit(Request $request, ConsultorioReserva $reserva): View
@@ -312,7 +332,6 @@ class ConsultorioReservaController extends Controller
 
         return redirect()->route('consultorios.index')->with('status', 'Reserva eliminada correctamente.');
     }
-
 
     public function requestUpdate(UpdateConsultorioReservaRequest $request, ConsultorioReserva $reserva): RedirectResponse
     {

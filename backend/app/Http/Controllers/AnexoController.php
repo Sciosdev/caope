@@ -15,9 +15,7 @@ use Illuminate\Support\Str;
 
 class AnexoController extends Controller
 {
-    public function __construct(private TimelineLogger $timelineLogger)
-    {
-    }
+    public function __construct(private TimelineLogger $timelineLogger) {}
 
     public function store(StoreAnexoRequest $request, Expediente $expediente): JsonResponse|RedirectResponse
     {
@@ -27,10 +25,8 @@ class AnexoController extends Controller
             return $this->respondWithError($request, 'No se recibió un archivo válido.', 422);
         }
 
-        $isPrivado = $request->boolean('es_privado', true);
         $privateDisk = config('filesystems.private_default', 'private');
-        $publicDisk = config('filesystems.default', 'public');
-        $disk = $isPrivado ? $privateDisk : $publicDisk;
+        $disk = $privateDisk;
         $directory = sprintf('expedientes/%s/anexos', $expediente->getKey());
         $originalExtension = strtolower((string) $file->getClientOriginalExtension());
         $extension = $originalExtension !== '' ? $originalExtension : 'bin';
@@ -46,7 +42,7 @@ class AnexoController extends Controller
             'tipo' => $tipo,
             'ruta' => $storedPath,
             'disk' => $disk,
-            'es_privado' => $isPrivado,
+            'es_privado' => true,
             'tamano' => $file->getSize() ?? 0,
             'subido_por' => $request->user()->id,
         ]);

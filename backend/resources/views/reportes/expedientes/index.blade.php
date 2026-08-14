@@ -60,7 +60,7 @@
             </select>
         </div>
         <div class="col-md-3">
-            <label class="form-label text-muted small" for="filtro-creador">{{ __('Capturado por') }}</label>
+            <label class="form-label text-muted small" for="filtro-creador">{{ __('Facilitador') }}</label>
             <select class="form-select" id="filtro-creador" name="creado_por">
                 <option value="">{{ __('Todos') }}</option>
                 @foreach ($creadores as $creador)
@@ -78,12 +78,12 @@
             <thead>
                 <tr>
                     <th>{{ __('No. de control') }}</th>
-                    <th>{{ __('Consultante') }}</th>
+                    <th>{{ __('Alumno') }}</th>
                     <th>{{ __('Estado') }}</th>
                     <th>{{ __('Apertura') }}</th>
                     <th>{{ __('Estratega') }}</th>
                     <th>{{ __('Coordinador') }}</th>
-                    <th>{{ __('Capturado por') }}</th>
+                    <th>{{ __('Facilitador') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -137,7 +137,7 @@
 
             const downloadButtons = document.querySelectorAll('[data-download-format]');
             const form = document.getElementById('report-filters-form');
-            const downloadUrl = @json(route('reportes.expedientes.download-direct', [], false));
+            const downloadUrl = @json(route('reportes.expedientes.download-direct'));
 
             downloadButtons.forEach((button) => {
                 button.addEventListener('click', (event) => {

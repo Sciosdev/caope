@@ -1,7 +1,7 @@
 @php
     $timelineCustomLabels = [
         'no_control' => 'Número de control',
-        'paciente' => 'Consultante',
+        'paciente' => 'Alumno',
         'apertura' => 'Fecha de apertura',
         'dsm_tr' => 'Posibles Diagnósticos',
     ];

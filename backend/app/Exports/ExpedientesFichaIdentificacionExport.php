@@ -19,9 +19,7 @@ class ExpedientesFichaIdentificacionExport extends DefaultValueBinder implements
     /**
      * @param  Builder<Expediente>  $query
      */
-    public function __construct(private readonly Builder $query)
-    {
-    }
+    public function __construct(private readonly Builder $query) {}
 
     public function query(): Builder
     {
@@ -32,7 +30,7 @@ class ExpedientesFichaIdentificacionExport extends DefaultValueBinder implements
     {
         return [
             'No. de control',
-            'Consultante',
+            'Alumno',
             'Estado',
             'Apertura',
             'Carrera',

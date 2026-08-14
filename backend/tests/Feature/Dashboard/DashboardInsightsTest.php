@@ -7,21 +7,33 @@ use App\Models\Sesion;
 use App\Models\TimelineEvento;
 use App\Models\User;
 use Carbon\CarbonInterval;
+use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 class DashboardInsightsTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config(['cache.default' => 'array']);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $this->seed(RoleSeeder::class);
+    }
+
     public function test_metrics_endpoint_returns_counts_and_average_validation_time(): void
     {
         Carbon::setTestNow(Carbon::parse('2025-01-15 12:00:00'));
 
         $user = User::factory()->create();
+        $user->assignRole('admin');
         $this->actingAs($user);
 
         $abiertos = Expediente::factory()->count(2)->create(['estado' => 'abierto']);
@@ -82,6 +94,7 @@ class DashboardInsightsTest extends TestCase
         Carbon::setTestNow(Carbon::parse('2025-02-01 09:00:00'));
 
         $user = User::factory()->create();
+        $user->assignRole('admin');
         $this->actingAs($user);
 
         $activo = Expediente::factory()->create([
@@ -156,6 +169,7 @@ class DashboardInsightsTest extends TestCase
         Carbon::setTestNow(Carbon::parse('2025-03-10 10:00:00'));
 
         $user = User::factory()->create();
+        $user->assignRole('admin');
         $this->actingAs($user);
 
         $expediente = Expediente::factory()->create([
@@ -192,6 +206,7 @@ class DashboardInsightsTest extends TestCase
         config(['dashboard.cache_ttl' => 300]);
 
         $user = User::factory()->create();
+        $user->assignRole('admin');
         $this->actingAs($user);
 
         Expediente::factory()->create(['estado' => 'abierto']);
@@ -215,5 +230,90 @@ class DashboardInsightsTest extends TestCase
         $this->assertSame(2, $refreshed->json('expedientes.total'));
         $this->assertSame(1, $refreshed->json('expedientes.por_estado.revision'));
     }
-}
 
+    public function test_facilitator_metrics_and_alerts_only_include_assigned_expedientes(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-08-13 12:00:00'));
+
+        $facilitador = User::factory()->create();
+        $facilitador->assignRole('alumno');
+        $ajeno = User::factory()->create();
+
+        $asignado = Expediente::factory()->create([
+            'estado' => 'abierto',
+            'creado_por' => $facilitador->id,
+            'created_at' => Carbon::now()->subDays(60),
+            'updated_at' => Carbon::now()->subDays(30),
+        ]);
+        $fueraDeAlcance = Expediente::factory()->create([
+            'estado' => 'revision',
+            'creado_por' => $ajeno->id,
+            'created_at' => Carbon::now()->subDays(60),
+            'updated_at' => Carbon::now()->subDays(35),
+        ]);
+
+        Sesion::factory()->create([
+            'expediente_id' => $asignado->id,
+            'realizada_por' => $facilitador->id,
+            'status_revision' => 'validada',
+            'validada_por' => $ajeno->id,
+            'created_at' => Carbon::now()->subDays(25),
+            'updated_at' => Carbon::now()->subDays(20),
+        ]);
+        Sesion::factory()->create([
+            'expediente_id' => $asignado->id,
+            'realizada_por' => $ajeno->id,
+            'status_revision' => 'validada',
+            'validada_por' => $ajeno->id,
+            'created_at' => Carbon::now()->subDays(15),
+            'updated_at' => Carbon::now()->subDays(5),
+        ]);
+        Sesion::factory()->create([
+            'expediente_id' => $fueraDeAlcance->id,
+            'status_revision' => 'validada',
+            'validada_por' => $ajeno->id,
+            'created_at' => Carbon::now()->subDays(30),
+            'updated_at' => Carbon::now()->subDays(25),
+        ]);
+
+        $metrics = $this->actingAs($facilitador)->getJson(route('dashboard.metrics'));
+
+        $metrics->assertOk();
+        $metrics->assertJsonPath('expedientes.total', 1);
+        $metrics->assertJsonPath('expedientes.por_estado.abierto', 1);
+        $metrics->assertJsonPath('expedientes.por_estado.revision', 0);
+        $metrics->assertJsonPath('sesiones.tiempo_promedio_validacion.count', 1);
+
+        $alerts = $this->actingAs($facilitador)->getJson(route('dashboard.alerts'));
+
+        $alerts->assertOk();
+        $alerts->assertJsonCount(1, 'alerts');
+        $alerts->assertJsonPath('alerts.0.id', $asignado->id);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_reassignment_is_reflected_immediately_for_restricted_metrics(): void
+    {
+        config(['dashboard.cache_ttl' => 300]);
+
+        $facilitador = User::factory()->create();
+        $facilitador->assignRole('alumno');
+        $nuevoFacilitador = User::factory()->create();
+
+        $expediente = Expediente::factory()->create([
+            'estado' => 'abierto',
+            'creado_por' => $facilitador->id,
+        ]);
+
+        $this->actingAs($facilitador)
+            ->getJson(route('dashboard.metrics'))
+            ->assertJsonPath('expedientes.total', 1);
+
+        $expediente->update(['creado_por' => $nuevoFacilitador->id]);
+
+        $this->actingAs($facilitador)
+            ->getJson(route('dashboard.metrics'))
+            ->assertJsonPath('expedientes.total', 0);
+    }
+}
