@@ -43,7 +43,6 @@ class DashboardPendingsTest extends TestCase
         $tutor->assignRole('docente');
 
         $creador = User::factory()->create();
-        $actor = User::factory()->create();
 
         $expediente = Expediente::factory()->create([
             'estado' => 'revision',
@@ -61,8 +60,8 @@ class DashboardPendingsTest extends TestCase
             'fecha' => Carbon::parse('2024-01-05'),
         ]);
 
-        $tutor->notify(new SesionObservedNotification($observada, $actor, 'Faltan anexos firmados.'));
-        $tutor->notify(new ExpedienteClosureAttemptNotification($expediente, $actor, ['Sesiones pendientes de validar.']));
+        $tutor->notify(new SesionObservedNotification($observada));
+        $tutor->notify(new ExpedienteClosureAttemptNotification($expediente));
 
         $response = $this->actingAs($tutor)->getJson(route('dashboard.pending'));
 
@@ -123,7 +122,6 @@ class DashboardPendingsTest extends TestCase
         $student->assignRole('alumno');
 
         $tutor = User::factory()->create();
-        $actor = User::factory()->create();
 
         $expediente = Expediente::factory()->create([
             'estado' => 'revision',
@@ -137,7 +135,7 @@ class DashboardPendingsTest extends TestCase
             'fecha' => Carbon::parse('2024-02-01'),
         ]);
 
-        $student->notify(new SesionObservedNotification($sesion, $actor, 'Revisar bitácora.'));
+        $student->notify(new SesionObservedNotification($sesion));
 
         $response = $this->actingAs($student)->getJson(route('dashboard.pending'));
 
@@ -181,7 +179,6 @@ class DashboardPendingsTest extends TestCase
         $facilitador = User::factory()->create();
         $facilitador->assignRole('alumno');
         $nuevoFacilitador = User::factory()->create();
-        $actor = User::factory()->create();
 
         $expediente = Expediente::factory()->create([
             'creado_por' => $facilitador->id,
@@ -191,7 +188,7 @@ class DashboardPendingsTest extends TestCase
             'realizada_por' => $facilitador->id,
         ]);
 
-        $facilitador->notify(new SesionObservedNotification($sesion, $actor, 'Información ya no asignada.'));
+        $facilitador->notify(new SesionObservedNotification($sesion));
         $expediente->update(['creado_por' => $nuevoFacilitador->id]);
 
         $response = $this->actingAs($facilitador)->getJson(route('dashboard.pending'));
@@ -208,7 +205,6 @@ class DashboardPendingsTest extends TestCase
         $facilitador = User::factory()->create();
         $facilitador->assignRole('alumno');
         $otherUser = User::factory()->create();
-        $actor = User::factory()->create();
 
         $expediente = Expediente::factory()->create([
             'creado_por' => $facilitador->id,
@@ -218,7 +214,7 @@ class DashboardPendingsTest extends TestCase
             'realizada_por' => $facilitador->id,
         ]);
 
-        $facilitador->notify(new SesionObservedNotification($sesion, $actor, 'Autoría ya no asignada.'));
+        $facilitador->notify(new SesionObservedNotification($sesion));
         $sesion->update(['realizada_por' => $otherUser->id]);
 
         $response = $this->actingAs($facilitador)->getJson(route('dashboard.pending'));

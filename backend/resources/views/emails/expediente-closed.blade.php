@@ -1,11 +1,12 @@
-@php($actorName = $actor?->name ?? 'el sistema')
 <p style="font-family: Arial, sans-serif; font-size: 14px;">
-    Hola {{ $destinatario?->name ?? 'equipo' }},
+    Hola,
 </p>
 <p style="font-family: Arial, sans-serif; font-size: 14px;">
-    El expediente <strong>{{ $expediente->no_control }}</strong> correspondiente a
-    <strong>{{ $expediente->paciente }}</strong> fue cerrado por {{ $actorName }}.
+    Un expediente vinculado a tu cuenta fue cerrado.
 </p>
 <p style="font-family: Arial, sans-serif; font-size: 14px;">
-    Gracias por completar el proceso y mantener la información al día.
+    Por seguridad, el nombre del alumno y el número de control no se incluyen en el correo.
+</p>
+<p style="font-family: Arial, sans-serif; font-size: 14px;">
+    <a href="{{ $actionUrl }}">Abrir CAOPE</a>
 </p>

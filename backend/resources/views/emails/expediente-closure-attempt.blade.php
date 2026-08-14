@@ -1,16 +1,12 @@
-@php($actorName = $actor?->name ?? 'el sistema')
 <p style="font-family: Arial, sans-serif; font-size: 14px;">
-    Hola {{ $destinatario?->name ?? 'equipo' }},
+    Hola,
 </p>
 <p style="font-family: Arial, sans-serif; font-size: 14px;">
-    El expediente <strong>{{ $expediente->no_control }}</strong> no pudo cerrarse porque se detectaron las siguientes observaciones
-    durante la revisión realizada por {{ $actorName }}:
+    Un expediente vinculado a tu cuenta no pudo cerrarse y requiere revisión.
 </p>
-<ul style="font-family: Arial, sans-serif; font-size: 14px;">
-    @foreach($errores as $mensaje)
-        <li>{{ $mensaje }}</li>
-    @endforeach
-</ul>
 <p style="font-family: Arial, sans-serif; font-size: 14px;">
-    Te sugerimos atender los puntos anteriores y volver a intentar el cierre una vez solventados.
+    Por seguridad, los motivos y datos clínicos no se incluyen en el correo. Inicia sesión en CAOPE para consultarlos.
+</p>
+<p style="font-family: Arial, sans-serif; font-size: 14px;">
+    <a href="{{ $actionUrl }}">Abrir CAOPE</a>
 </p>

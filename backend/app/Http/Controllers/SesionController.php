@@ -185,7 +185,7 @@ class SesionController extends Controller
         ]);
 
         $this->sesionRecipients($sesion)
-            ->each(fn (User $user) => $user->notify(new SesionObservedNotification($sesion, $request->user(), $request->observation())));
+            ->each(fn (User $user) => $user->notify(new SesionObservedNotification($sesion)));
 
         return redirect()
             ->route('expedientes.sesiones.show', [$expediente, $sesion])
@@ -218,7 +218,7 @@ class SesionController extends Controller
         ]);
 
         $this->sesionRecipients($sesion)
-            ->each(fn (User $user) => $user->notify(new SesionValidatedNotification($sesion, $request->user(), $request->observation())));
+            ->each(fn (User $user) => $user->notify(new SesionValidatedNotification($sesion)));
 
         return redirect()
             ->route('expedientes.sesiones.show', [$expediente, $sesion])
