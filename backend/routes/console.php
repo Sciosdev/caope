@@ -24,6 +24,11 @@ Schedule::command('backup:monitor')
     ->dailyAt('04:00')
     ->withoutOverlapping(30);
 
+Schedule::command('caope:purge-sensitive-data')
+    ->name('purge-sensitive-runtime-data')
+    ->dailyAt('01:30')
+    ->withoutOverlapping(30);
+
 Schedule::command('caope:deploy-pending')
     ->name('caope-deploy-pending')
     ->everyMinute()

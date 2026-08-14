@@ -34,8 +34,8 @@ class SafeDate implements CastsAttributes
             Log::warning('Failed to parse date attribute', [
                 'model' => $model::class,
                 'attribute' => $key,
-                'value' => $value,
-                'message' => $exception->getMessage(),
+                'value_type' => get_debug_type($value),
+                'exception' => $exception::class,
             ]);
 
             return null;
@@ -62,8 +62,8 @@ class SafeDate implements CastsAttributes
             Log::warning('Failed to cast date attribute on set', [
                 'model' => $model::class,
                 'attribute' => $key,
-                'value' => $value,
-                'message' => $exception->getMessage(),
+                'value_type' => get_debug_type($value),
+                'exception' => $exception::class,
             ]);
 
             return null;

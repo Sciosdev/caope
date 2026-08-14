@@ -44,6 +44,7 @@ return [
                     storage_path('app/developer-console'),
                     storage_path('app/deployment'),
                     storage_path('app/tools'),
+                    storage_path('app/exports'),
                     storage_path('app/private/exports'),
                     storage_path('app/private/'.$backupName),
                     storage_path('app/private/backup-restore-tests'),

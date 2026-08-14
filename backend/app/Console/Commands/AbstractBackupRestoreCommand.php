@@ -146,14 +146,6 @@ abstract class AbstractBackupRestoreCommand extends Command
             $payload
         );
 
-        $logDirectory = storage_path('logs');
-        if (! is_dir($logDirectory)) {
-            mkdir($logDirectory, 0755, true);
-        }
-
-        $logFile = $logDirectory.'/backup-restore-tests.log';
-        file_put_contents($logFile, json_encode($payload, JSON_UNESCAPED_SLASHES).PHP_EOL, FILE_APPEND);
-
         try {
             $disk = Storage::disk($this->artifactDiskName());
             $disk->makeDirectory('backup-restore-tests');
@@ -170,7 +162,7 @@ abstract class AbstractBackupRestoreCommand extends Command
             Log::warning('Unable to persist backup restore artefact.', [
                 'type' => $type,
                 'status' => $status,
-                'error' => $exception->getMessage(),
+                'exception' => $exception::class,
             ]);
         }
     }

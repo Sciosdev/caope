@@ -109,7 +109,7 @@ class TestMysqlBackupRestoreCommand extends AbstractBackupRestoreCommand
                     $this->logResult('mysql', 'skipped', [
                         'backup' => $backup->path(),
                         'reason' => 'connection_failed',
-                        'error' => $exception->getMessage(),
+                        'exception' => $exception::class,
                     ]);
 
                     $this->components->warn('Skipping MySQL restore test because the database connection is not available.');
@@ -150,10 +150,10 @@ class TestMysqlBackupRestoreCommand extends AbstractBackupRestoreCommand
             $this->logResult('mysql', 'failed', [
                 'backup' => $backup?->path(),
                 'database' => $databaseName,
-                'error' => $exception->getMessage(),
+                'exception' => $exception::class,
             ]);
 
-            $this->components->error($exception->getMessage());
+            $this->components->error('MySQL backup restore test failed.');
 
             return self::FAILURE;
         } finally {
@@ -232,6 +232,7 @@ class TestMysqlBackupRestoreCommand extends AbstractBackupRestoreCommand
 
             if (str_starts_with(strtoupper($trimmed), 'DELIMITER ')) {
                 $delimiter = trim(substr($trimmed, 9));
+
                 continue;
             }
 

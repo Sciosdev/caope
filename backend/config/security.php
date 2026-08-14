@@ -25,6 +25,17 @@ return [
     'trusted_host_profiles' => $hostProfiles,
     'trusted_hosts' => $trustedHosts,
 
+    'retention' => [
+        'exports_hours' => (int) env('SECURITY_EXPORT_RETENTION_HOURS', 2),
+        'backup_restore_artifacts_days' => (int) env('SECURITY_BACKUP_RESTORE_ARTIFACT_RETENTION_DAYS', 30),
+        'read_notifications_days' => (int) env('SECURITY_READ_NOTIFICATION_RETENTION_DAYS', 30),
+        'all_notifications_days' => (int) env('SECURITY_NOTIFICATION_RETENTION_DAYS', 90),
+        'password_reset_hours' => (int) env('SECURITY_PASSWORD_RESET_RETENTION_HOURS', 2),
+        'failed_jobs_days' => (int) env('SECURITY_FAILED_JOB_RETENTION_DAYS', 7),
+        'job_batches_days' => (int) env('SECURITY_JOB_BATCH_RETENTION_DAYS', 7),
+        'session_grace_minutes' => (int) env('SECURITY_SESSION_GRACE_MINUTES', 1440),
+    ],
+
     // SHA-256 fingerprints of application keys that were previously published
     // in this repository. The key values themselves must never be restored.
     'compromised_app_key_hashes' => [

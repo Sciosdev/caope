@@ -83,10 +83,10 @@ class TestSqliteBackupRestoreCommand extends AbstractBackupRestoreCommand
         } catch (Throwable $exception) {
             $this->logResult('sqlite', 'failed', [
                 'backup' => $backup->path(),
-                'error' => $exception->getMessage(),
+                'exception' => $exception::class,
             ]);
 
-            $this->components->error($exception->getMessage());
+            $this->components->error('SQLite backup restore test failed.');
 
             return self::FAILURE;
         } finally {

@@ -204,8 +204,8 @@ class DashboardInsightsService
             Log::warning('Failed to parse dashboard aggregate date', [
                 'expediente_id' => $expediente->getKey(),
                 'attribute' => $attribute,
-                'value' => $value,
-                'message' => $exception->getMessage(),
+                'value_type' => get_debug_type($value),
+                'exception' => $exception::class,
             ]);
 
             return null;

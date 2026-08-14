@@ -25,6 +25,7 @@ class BackupDataSecurityTest extends TestCase
         $this->assertContains(storage_path('app/deployment'), $exclusions);
         $this->assertContains(storage_path('app/tools'), $exclusions);
         $this->assertContains(storage_path('app/private/exports'), $exclusions);
+        $this->assertContains(storage_path('app/exports'), $exclusions);
         $this->assertSame(base_path(), config('backup.backup.source.files.relative_path'));
         $this->assertSame([$privateDisk], config('backup.backup.destination.disks'));
         $this->assertSame([$privateDisk], config('backup.monitor_backups.0.disks'));

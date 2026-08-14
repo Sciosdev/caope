@@ -225,12 +225,12 @@ class ExpedienteController extends Controller
 
     public function store(StoreExpedienteRequest $request): JsonResponse|RedirectResponse
     {
-        $clientContext = $request->input('client_context', []);
+        $auditId = (string) Str::uuid();
         Log::info('Received request to create expediente', [
+            'audit_id' => $auditId,
             'user_id' => $request->user()?->id,
             'expects_json' => $request->expectsJson(),
-            'payload_keys' => array_keys($request->all()),
-            'client_context' => $clientContext,
+            'payload_key_count' => count($request->all()),
         ]);
 
         $data = $request->validatedExpedienteData();
@@ -247,6 +247,7 @@ class ExpedienteController extends Controller
         }
 
         Log::debug('Validated expediente data for creation', [
+            'audit_id' => $auditId,
             'user_id' => $request->user()?->id,
             'validated_keys' => array_keys($data),
         ]);
@@ -270,6 +271,7 @@ class ExpedienteController extends Controller
 
         if (! empty($missingColumns)) {
             Log::error('Expediente creation aborted due to missing columns', [
+                'audit_id' => $auditId,
                 'user_id' => $request->user()?->id,
                 'missing_columns' => $missingColumns,
             ]);
@@ -290,8 +292,8 @@ class ExpedienteController extends Controller
 
         try {
             Log::info('Attempting to create expediente', [
+                'audit_id' => $auditId,
                 'user_id' => $request->user()?->id,
-                'no_control' => $data['no_control'] ?? null,
             ]);
             $expediente = DB::transaction(function () use ($request, $data, $consultorioReservaData): Expediente {
                 $expediente = Expediente::create($data);
@@ -307,15 +309,12 @@ class ExpedienteController extends Controller
             throw $exception;
         } catch (QueryException $exception) {
             Log::error('Failed to create expediente', [
+                'audit_id' => $auditId,
                 'user_id' => $request->user()?->id,
-                'no_control' => $data['no_control'] ?? null,
                 'code' => $exception->getCode(),
                 'sql_state' => $exception->errorInfo[0] ?? null,
-                'sql' => $exception->getSql(),
-                'bindings' => $exception->getBindings(),
-                'message' => $exception->getMessage(),
+                'exception' => $exception::class,
             ]);
-            report($exception);
 
             return $this->respondWithSaveError(
                 $request,
@@ -329,9 +328,9 @@ class ExpedienteController extends Controller
         }
 
         Log::info('Expediente created successfully', [
+            'audit_id' => $auditId,
             'user_id' => $request->user()?->id,
             'expediente_id' => $expediente->id,
-            'no_control' => $expediente->no_control,
         ]);
 
         $this->logTimelineEvent($expediente, 'expediente.creado', $request->user(), [
@@ -513,6 +512,7 @@ class ExpedienteController extends Controller
 
     public function update(UpdateExpedienteRequest $request, Expediente $expediente): JsonResponse|RedirectResponse
     {
+        $auditId = (string) Str::uuid();
         $data = $request->validatedExpedienteData();
         $data = $this->applyPapsRestrictions($request, $data, $expediente);
         unset($data['estado']);
@@ -531,6 +531,7 @@ class ExpedienteController extends Controller
 
         if (! empty($missingColumns)) {
             Log::error('Expediente update aborted due to missing columns', [
+                'audit_id' => $auditId,
                 'user_id' => $request->user()?->id,
                 'expediente_id' => $expediente->id,
                 'missing_columns' => $missingColumns,
@@ -579,13 +580,13 @@ class ExpedienteController extends Controller
             );
         } catch (QueryException $exception) {
             Log::error('Failed to update expediente', [
+                'audit_id' => $auditId,
                 'user_id' => $request->user()?->id,
                 'expediente_id' => $expediente->id,
                 'code' => $exception->getCode(),
                 'sql_state' => $exception->errorInfo[0] ?? null,
-                'message' => $exception->getMessage(),
+                'exception' => $exception::class,
             ]);
-            report($exception);
 
             return $this->respondWithSaveError(
                 $request,
@@ -889,7 +890,14 @@ class ExpedienteController extends Controller
         try {
             $this->timelineLogger->log($expediente, $event, $actor, $payload);
         } catch (QueryException $exception) {
-            report($exception);
+            Log::warning('Failed to persist expediente timeline event', [
+                'expediente_id' => $expediente->getKey(),
+                'actor_id' => $actor?->getAuthIdentifier(),
+                'event' => $event,
+                'code' => $exception->getCode(),
+                'sql_state' => $exception->errorInfo[0] ?? null,
+                'exception' => $exception::class,
+            ]);
         }
     }
 
