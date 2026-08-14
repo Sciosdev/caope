@@ -1,5 +1,12 @@
 <?php
 
+$backupNotificationEmail = env('BACKUP_NOTIFICATION_EMAIL');
+$backupNotificationChannels = is_string($backupNotificationEmail) && trim($backupNotificationEmail) !== ''
+    ? ['mail']
+    : [];
+$backupDisk = env('FILESYSTEM_DISK_PRIVATE', 'private');
+$backupName = env('APP_NAME', 'laravel-backup');
+
 return [
 
     'backup' => [
@@ -7,7 +14,7 @@ return [
          * The name of this application. You can use this name to monitor
          * the backups.
          */
-        'name' => env('APP_NAME', 'laravel-backup'),
+        'name' => $backupName,
 
         'source' => [
             'files' => [
@@ -24,9 +31,21 @@ return [
                  * Directories used by the backup process will automatically be excluded.
                  */
                 'exclude' => [
+                    base_path('.env*'),
+                    base_path('*.log'),
+                    base_path('error_log'),
+                    base_path('.git'),
+                    base_path('bootstrap/cache'),
                     base_path('vendor'),
                     base_path('node_modules'),
                     base_path('tests'),
+                    storage_path('logs'),
+                    storage_path('framework'),
+                    storage_path('app/developer-console'),
+                    storage_path('app/deployment'),
+                    storage_path('app/tools'),
+                    storage_path('app/private/exports'),
+                    storage_path('app/private/'.$backupName),
                     storage_path('app/private/backup-restore-tests'),
                     storage_path('app/backup-temp'),
                 ],
@@ -46,7 +65,7 @@ return [
                  * Set to `null` to include complete absolute path
                  * Example: base_path()
                  */
-                'relative_path' => null,
+                'relative_path' => base_path(),
             ],
 
             /*
@@ -154,7 +173,7 @@ return [
              * The disk names on which the backups will be stored.
              */
             'disks' => [
-                env('FILESYSTEM_DISK_PRIVATE', 'private'),
+                $backupDisk,
             ],
         ],
 
@@ -199,12 +218,12 @@ return [
      */
     'notifications' => [
         'notifications' => [
-            \Spatie\Backup\Notifications\Notifications\BackupHasFailedNotification::class => ['mail'],
-            \Spatie\Backup\Notifications\Notifications\UnhealthyBackupWasFoundNotification::class => ['mail'],
-            \Spatie\Backup\Notifications\Notifications\CleanupHasFailedNotification::class => ['mail'],
-            \Spatie\Backup\Notifications\Notifications\BackupWasSuccessfulNotification::class => ['mail'],
-            \Spatie\Backup\Notifications\Notifications\HealthyBackupWasFoundNotification::class => ['mail'],
-            \Spatie\Backup\Notifications\Notifications\CleanupWasSuccessfulNotification::class => ['mail'],
+            \Spatie\Backup\Notifications\Notifications\BackupHasFailedNotification::class => $backupNotificationChannels,
+            \Spatie\Backup\Notifications\Notifications\UnhealthyBackupWasFoundNotification::class => $backupNotificationChannels,
+            \Spatie\Backup\Notifications\Notifications\CleanupHasFailedNotification::class => $backupNotificationChannels,
+            \Spatie\Backup\Notifications\Notifications\BackupWasSuccessfulNotification::class => $backupNotificationChannels,
+            \Spatie\Backup\Notifications\Notifications\HealthyBackupWasFoundNotification::class => $backupNotificationChannels,
+            \Spatie\Backup\Notifications\Notifications\CleanupWasSuccessfulNotification::class => $backupNotificationChannels,
         ],
 
         /*
@@ -214,7 +233,7 @@ return [
         'notifiable' => \Spatie\Backup\Notifications\Notifiable::class,
 
         'mail' => [
-            'to' => 'your@example.com',
+            'to' => $backupNotificationEmail ?: env('MAIL_FROM_ADDRESS', 'hello@example.com'),
 
             'from' => [
                 'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
@@ -257,8 +276,8 @@ return [
      */
     'monitor_backups' => [
         [
-            'name' => env('APP_NAME', 'laravel-backup'),
-            'disks' => ['local'],
+            'name' => $backupName,
+            'disks' => [$backupDisk],
             'health_checks' => [
                 \Spatie\Backup\Tasks\Monitor\HealthChecks\MaximumAgeInDays::class => 1,
                 \Spatie\Backup\Tasks\Monitor\HealthChecks\MaximumStorageInMegabytes::class => 5000,
