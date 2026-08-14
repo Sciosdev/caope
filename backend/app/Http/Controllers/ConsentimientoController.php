@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Consentimiento;
 use App\Models\Expediente;
-use App\Models\Parametro;
+use App\Support\Uploads\ConsentimientoUploadOptions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -17,8 +17,8 @@ class ConsentimientoController extends Controller
     {
         $this->authorize('update', $expediente);
 
-        $mimes = (string) Parametro::obtener('uploads.consentimientos.mimes', 'pdf,jpg,jpeg');
-        $max = (int) Parametro::obtener('uploads.consentimientos.max', 5120);
+        $mimes = ConsentimientoUploadOptions::allowedExtensionsString();
+        $max = ConsentimientoUploadOptions::maxKilobytes();
 
         $validated = $request->validate([
             'tipo' => ['required', 'string', 'max:120'],
@@ -29,7 +29,7 @@ class ConsentimientoController extends Controller
             'contacto_emergencia_nombre' => ['nullable', 'string', 'max:150'],
         ]);
 
-        $consentimiento = new Consentimiento();
+        $consentimiento = new Consentimiento;
         $consentimiento->expediente()->associate($expediente);
 
         $this->updateExpedienteTestigo($expediente, $validated);
@@ -50,8 +50,8 @@ class ConsentimientoController extends Controller
 
         $errorBag = sprintf('consentimientoEdit-%s', $consentimiento->id);
 
-        $mimes = (string) Parametro::obtener('uploads.consentimientos.mimes', 'pdf,jpg,jpeg');
-        $max = (int) Parametro::obtener('uploads.consentimientos.max', 5120);
+        $mimes = ConsentimientoUploadOptions::allowedExtensionsString();
+        $max = ConsentimientoUploadOptions::maxKilobytes();
 
         $validated = $request->validateWithBag($errorBag, [
             'tipo' => ['required', 'string', 'max:120'],

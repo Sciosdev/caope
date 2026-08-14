@@ -46,6 +46,9 @@ class ConsentimientoArchivoTest extends TestCase
         $response = $this->actingAs($usuario)->get(route('consentimientos.archivo', $consentimiento));
 
         $response->assertOk();
+        $response->assertHeader('X-Content-Type-Options', 'nosniff');
+        $response->assertHeader('Content-Security-Policy', "sandbox; default-src 'none'");
+        $response->assertHeader('Content-Disposition', 'inline; filename=consentimiento.pdf');
     }
 
     public function test_usuario_no_autorizado_no_puede_ver_archivo_de_consentimiento(): void

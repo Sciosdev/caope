@@ -2,6 +2,7 @@
 
 namespace App\Exports;
 
+use App\Exports\Concerns\BindsSpreadsheetValuesSafely;
 use App\Models\ConsultorioReserva;
 use App\Models\User;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -17,6 +18,8 @@ use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
  */
 class ConsultorioReservasExport extends DefaultValueBinder implements FromQuery, ShouldQueue, WithHeadings, WithMapping
 {
+    use BindsSpreadsheetValuesSafely;
+
     public function __construct(private readonly int $userId) {}
 
     public function headings(): array

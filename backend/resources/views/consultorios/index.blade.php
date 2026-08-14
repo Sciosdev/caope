@@ -334,6 +334,13 @@
         const weekDayLabels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
         let groupedByDateCache = {};
         let selectedCalendarDay = null;
+        const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;',
+        })[character]);
         const dayDetailModal = dayDetailModalElement && window.bootstrap?.Modal
             ? new window.bootstrap.Modal(dayDetailModalElement)
             : null;
@@ -355,7 +362,7 @@
 
             diaSeleccionadoLabel.innerHTML = `
                 <div class="fecha-label">Día seleccionado</div>
-                <div class="fecha-valor text-capitalize">${formattedDate}</div>
+                <div class="fecha-valor text-capitalize">${escapeHtml(formattedDate)}</div>
             `;
         };
 
@@ -398,13 +405,13 @@
             }
 
             const detailRows = sortedItems.map((item) => {
-                const horaInicio = (item.hora_inicio ?? '').slice(0, 5);
-                const horaFin = (item.hora_fin ?? '').slice(0, 5);
-                const consultorio = item.consultorio_numero ?? '—';
-                const cubiculo = item.cubiculo_numero ?? '—';
-                const estrategia = item.estrategia ?? '—';
-                const estratega = item.estratega_nombre ?? '—';
-                const usuario = item.usuario_atendido_nombre ?? '—';
+                const horaInicio = escapeHtml((item.hora_inicio ?? '').slice(0, 5));
+                const horaFin = escapeHtml((item.hora_fin ?? '').slice(0, 5));
+                const consultorio = escapeHtml(item.consultorio_numero ?? '—');
+                const cubiculo = escapeHtml(item.cubiculo_numero ?? '—');
+                const estrategia = escapeHtml(item.estrategia ?? '—');
+                const estratega = escapeHtml(item.estratega_nombre ?? '—');
+                const usuario = escapeHtml(item.usuario_atendido_nombre ?? '—');
 
                 return `
                     <tr>
@@ -598,7 +605,7 @@
 
             calendarioContainer.innerHTML = `
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="mb-0 text-capitalize">Calendario de ${monthTitle}</h6>
+                    <h6 class="mb-0 text-capitalize">Calendario de ${escapeHtml(monthTitle)}</h6>
                     <small class="text-muted">Haz clic en cualquier día para ver su detalle.</small>
                 </div>
                 <div class="row g-3">
@@ -691,13 +698,13 @@
                 }
 
                 const rows = registros.map((item) => {
-                    const horaInicio = (item.hora_inicio ?? '').slice(0, 5);
-                    const horaFin = (item.hora_fin ?? '').slice(0, 5);
-                    const consultorio = item.consultorio_numero ?? '—';
-                    const cubiculo = item.cubiculo_numero ?? '—';
-                    const estrategia = item.estrategia ?? '—';
-                    const estratega = item.estratega_nombre ?? '—';
-                    const usuario = item.usuario_atendido_nombre ?? '—';
+                    const horaInicio = escapeHtml((item.hora_inicio ?? '').slice(0, 5));
+                    const horaFin = escapeHtml((item.hora_fin ?? '').slice(0, 5));
+                    const consultorio = escapeHtml(item.consultorio_numero ?? '—');
+                    const cubiculo = escapeHtml(item.cubiculo_numero ?? '—');
+                    const estrategia = escapeHtml(item.estrategia ?? '—');
+                    const estratega = escapeHtml(item.estratega_nombre ?? '—');
+                    const usuario = escapeHtml(item.usuario_atendido_nombre ?? '—');
 
                     return `
                         <tr>
@@ -742,7 +749,7 @@
 
                 return `
                     <div class="border rounded p-3 h-100">
-                        <div class="fw-semibold mb-3">${fecha}</div>
+                        <div class="fw-semibold mb-3">${escapeHtml(fecha)}</div>
                         ${renderSection('Registros encontrados', mostrados, 'text-bg-primary')}
                     </div>
                 `;
@@ -754,7 +761,7 @@
 
             bitacoraContainer.innerHTML = `
                 <div class="alert alert-light border d-flex justify-content-between align-items-center" role="status">
-                    <span>Total de registros encontrados en ${labelPeriodo}:</span>
+                    <span>Total de registros encontrados en ${escapeHtml(labelPeriodo)}:</span>
                     <strong>${totalRegistros}</strong>
                 </div>
                 ${dayBlocks.trim()

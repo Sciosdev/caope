@@ -20,10 +20,12 @@ class AddSecurityHeaders
     {
         $response = $next($request);
 
-        $response->headers->set(
-            'Content-Security-Policy',
-            (string) config('security.headers.content_security_policy', self::CONTENT_SECURITY_POLICY),
-        );
+        if (! $response->headers->has('Content-Security-Policy')) {
+            $response->headers->set(
+                'Content-Security-Policy',
+                (string) config('security.headers.content_security_policy', self::CONTENT_SECURITY_POLICY),
+            );
+        }
         $response->headers->set(
             'Permissions-Policy',
             (string) config('security.headers.permissions_policy', self::PERMISSIONS_POLICY),

@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Parametro;
+use App\Support\Uploads\AnexoUploadOptions;
+use App\Support\Uploads\ConsentimientoUploadOptions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -49,6 +51,34 @@ class ParametrosController extends Controller
      */
     private function rulesFor(Parametro $parametro): array
     {
+        if ($parametro->clave === 'uploads.anexos.mimes') {
+            return [
+                'required',
+                'string',
+                'max:255',
+                fn (string $attribute, mixed $value, \Closure $fail) => AnexoUploadOptions::isSafeConfiguration((string) $value)
+                        ?: $fail('Los formatos de anexos incluyen un tipo no permitido.'),
+            ];
+        }
+
+        if ($parametro->clave === 'uploads.consentimientos.mimes') {
+            return [
+                'required',
+                'string',
+                'max:100',
+                fn (string $attribute, mixed $value, \Closure $fail) => ConsentimientoUploadOptions::isSafeConfiguration((string) $value)
+                        ?: $fail('Los consentimientos sólo permiten PDF, JPG, JPEG y PNG.'),
+            ];
+        }
+
+        if ($parametro->clave === 'uploads.anexos.max') {
+            return ['required', 'integer', 'between:1,51200'];
+        }
+
+        if ($parametro->clave === 'uploads.consentimientos.max') {
+            return ['required', 'integer', 'between:1,5120'];
+        }
+
         return match ($parametro->tipo) {
             Parametro::TYPE_INTEGER => ['required', 'integer'],
             default => ['required', 'string'],

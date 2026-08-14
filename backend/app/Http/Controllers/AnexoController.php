@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\HeaderUtils;
 
 class AnexoController extends Controller
 {
@@ -146,7 +147,9 @@ class AnexoController extends Controller
 
         $downloadName = $this->buildDownloadName($anexo);
 
-        return Storage::disk($disk)->download($anexo->ruta, $downloadName);
+        return Storage::disk($disk)->download($anexo->ruta, $downloadName, [
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     public function preview(Request $request, Expediente $expediente, Anexo $anexo)
@@ -164,9 +167,13 @@ class AnexoController extends Controller
         $downloadName = $this->buildDownloadName($anexo);
         $mimeType = $this->resolveMimeType($anexo, $disk);
 
+        $inline = in_array($mimeType, ['application/pdf', 'image/jpeg', 'image/png'], true);
+
         return Storage::disk($disk)->response($anexo->ruta, $downloadName, [
             'Content-Type' => $mimeType,
-            'Content-Disposition' => 'inline; filename="'.$downloadName.'"',
+            'Content-Disposition' => HeaderUtils::makeDisposition($inline ? 'inline' : 'attachment', $downloadName),
+            'Content-Security-Policy' => "sandbox; default-src 'none'",
+            'X-Content-Type-Options' => 'nosniff',
         ]);
     }
 

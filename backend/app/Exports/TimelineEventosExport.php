@@ -2,6 +2,7 @@
 
 namespace App\Exports;
 
+use App\Exports\Concerns\BindsSpreadsheetValuesSafely;
 use App\Models\TimelineEvento;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,6 +16,8 @@ use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
  */
 class TimelineEventosExport extends DefaultValueBinder implements FromQuery, WithHeadings, WithMapping
 {
+    use BindsSpreadsheetValuesSafely;
+
     public function __construct(
         private readonly int $userId,
         private readonly ?int $expedienteId = null,

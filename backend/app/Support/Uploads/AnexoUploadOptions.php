@@ -7,6 +7,7 @@ use App\Models\Parametro;
 class AnexoUploadOptions
 {
     private const DEFAULT_MIMES = 'pdf,jpg,jpeg,png,doc,docx,xls,xlsx,ppt,pptx,txt,csv';
+
     private const DEFAULT_MAX_KB = 51200;
 
     /**
@@ -35,12 +36,27 @@ class AnexoUploadOptions
     {
         $rawExtensions = (string) Parametro::obtener('uploads.anexos.mimes', self::DEFAULT_MIMES);
 
-        return collect(explode(',', $rawExtensions))
+        $allowed = collect(explode(',', $rawExtensions))
+            ->map(fn ($extension) => strtolower(ltrim(trim($extension), '.')))
+            ->filter(fn (string $extension): bool => array_key_exists($extension, self::MIME_BY_EXTENSION))
+            ->unique()
+            ->values();
+
+        return $allowed->isEmpty()
+            ? explode(',', self::DEFAULT_MIMES)
+            : $allowed->all();
+    }
+
+    public static function isSafeConfiguration(string $extensions): bool
+    {
+        $configured = collect(explode(',', $extensions))
             ->map(fn ($extension) => strtolower(ltrim(trim($extension), '.')))
             ->filter()
             ->unique()
-            ->values()
-            ->all();
+            ->values();
+
+        return $configured->isNotEmpty()
+            && $configured->every(fn (string $extension): bool => array_key_exists($extension, self::MIME_BY_EXTENSION));
     }
 
     public static function allowedExtensionsString(): string
@@ -52,7 +68,7 @@ class AnexoUploadOptions
     {
         $max = (int) Parametro::obtener('uploads.anexos.max', self::DEFAULT_MAX_KB);
 
-        return max($max, 0);
+        return min(max($max, 1), self::DEFAULT_MAX_KB);
     }
 
     /**

@@ -6,7 +6,6 @@ use App\Models\Expediente;
 use App\Models\Parametro;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 
 class ConsentimientoPdfController extends Controller
@@ -79,7 +78,7 @@ class ConsentimientoPdfController extends Controller
 
         $mime = (string) ($storage->mimeType($path) ?: '');
 
-        if (! str_starts_with($mime, 'image/')) {
+        if (! in_array($mime, ['image/jpeg', 'image/png'], true)) {
             return ['dataUri' => '', 'nombre' => basename($path)];
         }
 
@@ -102,22 +101,6 @@ class ConsentimientoPdfController extends Controller
             'assets/images/consentimientos/escudo-unam.png',
         );
         $logoConfigurado = trim($logoConfigurado);
-
-        $logoUrl = $this->normalizeLogoUrl($logoConfigurado);
-
-        if ($logoUrl !== null) {
-            $remoteDataUri = $this->resolveRemoteLogoDataUri($logoUrl);
-
-            if ($remoteDataUri === '') {
-                return $this->resolveLocalDefaultLogo();
-            }
-
-            return [
-                'logoPath' => '',
-                'logoDataUri' => $remoteDataUri,
-                'logoSrc' => $remoteDataUri !== '' ? $remoteDataUri : $logoUrl,
-            ];
-        }
 
         return $this->resolveLocalLogoSources($logoConfigurado);
     }
@@ -150,57 +133,11 @@ class ConsentimientoPdfController extends Controller
 
         $mime = mime_content_type($logoPath) ?: 'image/png';
 
-        if (! str_starts_with($mime, 'image/')) {
+        if (! in_array($mime, ['image/jpeg', 'image/png'], true)) {
             return '';
         }
 
         return sprintf('data:%s;base64,%s', $mime, base64_encode($contents));
-    }
-
-    private function resolveRemoteLogoDataUri(string $url): string
-    {
-        try {
-            $response = Http::timeout(5)->get($url);
-        } catch (\Throwable $exception) {
-            return '';
-        }
-
-        if (! $response->successful()) {
-            return '';
-        }
-
-        $mime = $response->header('Content-Type') ?: 'image/png';
-
-        return sprintf('data:%s;base64,%s', $mime, base64_encode($response->body()));
-    }
-
-    private function normalizeLogoUrl(string $logoConfigurado): ?string
-    {
-        if ($logoConfigurado === '') {
-            return null;
-        }
-
-        if (filter_var($logoConfigurado, FILTER_VALIDATE_URL)) {
-            return $logoConfigurado;
-        }
-
-        if (str_contains($logoConfigurado, '://')) {
-            return null;
-        }
-
-        if (! preg_match('/^[\\w.-]+(?::\\d+)?\\//', $logoConfigurado)) {
-            return null;
-        }
-
-        $httpsUrl = 'https://'.$logoConfigurado;
-
-        if (filter_var($httpsUrl, FILTER_VALIDATE_URL)) {
-            return $httpsUrl;
-        }
-
-        $httpUrl = 'http://'.$logoConfigurado;
-
-        return filter_var($httpUrl, FILTER_VALIDATE_URL) ? $httpUrl : null;
     }
 
     private function resolveLocalLogoSources(string $logoConfigurado): array
@@ -211,37 +148,21 @@ class ConsentimientoPdfController extends Controller
             return $this->resolveLocalDefaultLogo();
         }
 
-        $candidates = [$logoConfigurado];
+        $allowedRoot = realpath(public_path('assets/images/consentimientos'));
+        $resolvedPath = realpath(public_path($logoConfigurado));
 
-        if (str_starts_with($logoConfigurado, 'storage/')) {
-            $candidates[] = ltrim(substr($logoConfigurado, strlen('storage/')), '/');
-        }
+        if (is_string($allowedRoot)
+            && is_string($resolvedPath)
+            && is_file($resolvedPath)
+            && ($resolvedPath === $allowedRoot
+                || str_starts_with($resolvedPath, $allowedRoot.DIRECTORY_SEPARATOR))) {
+            $dataUri = $this->resolveLogoDataUri($resolvedPath);
 
-        foreach ($candidates as $candidate) {
-            $publicPath = public_path($candidate);
-
-            if (is_file($publicPath)) {
-                $dataUri = $this->resolveLogoDataUri($publicPath);
-
+            if ($dataUri !== '') {
                 return [
-                    'logoPath' => $publicPath,
+                    'logoPath' => $resolvedPath,
                     'logoDataUri' => $dataUri,
-                    'logoSrc' => $dataUri !== '' ? $dataUri : asset($candidate),
-                ];
-            }
-
-            $storagePath = storage_path('app/public/'.$candidate);
-
-            if (is_file($storagePath)) {
-                $dataUri = $this->resolveLogoDataUri($storagePath);
-                $assetPath = str_starts_with($candidate, 'storage/')
-                    ? $candidate
-                    : 'storage/'.$candidate;
-
-                return [
-                    'logoPath' => $storagePath,
-                    'logoDataUri' => $dataUri,
-                    'logoSrc' => $dataUri !== '' ? $dataUri : asset($assetPath),
+                    'logoSrc' => $dataUri,
                 ];
             }
         }

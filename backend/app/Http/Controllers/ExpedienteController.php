@@ -14,7 +14,6 @@ use App\Models\CatalogoTurno;
 use App\Models\ConsultorioReserva;
 use App\Models\ConsultorioReservaSolicitud;
 use App\Models\Expediente;
-use App\Models\Parametro;
 use App\Models\User;
 use App\Notifications\ExpedienteClosedNotification;
 use App\Notifications\ExpedienteClosureAttemptNotification;
@@ -22,6 +21,7 @@ use App\Notifications\TutorAssignedNotification;
 use App\Services\ExpedienteStateValidator;
 use App\Services\TimelineLogger;
 use App\Support\Uploads\AnexoUploadOptions;
+use App\Support\Uploads\ConsentimientoUploadOptions;
 use Carbon\Carbon;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\QueryException;
@@ -444,8 +444,8 @@ class ExpedienteController extends Controller
         $anexosAcceptedTypes = AnexoUploadOptions::acceptedTypesString();
         $anexosExtensions = AnexoUploadOptions::allowedExtensions();
         $anexosMax = AnexoUploadOptions::maxKilobytes();
-        $consentimientoMimes = (string) Parametro::obtener('uploads.consentimientos.mimes', 'pdf,jpg,jpeg');
-        $consentimientoMax = (int) Parametro::obtener('uploads.consentimientos.max', 5120);
+        $consentimientoMimes = ConsentimientoUploadOptions::allowedExtensionsString();
+        $consentimientoMax = ConsentimientoUploadOptions::maxKilobytes();
         $canChangeAssignments = $request->user()->hasGlobalExpedienteAccess()
             || $request->user()->isCoordinatorOf($expediente);
         $profesores = $canChangeAssignments

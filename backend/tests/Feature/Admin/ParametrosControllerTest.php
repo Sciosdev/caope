@@ -59,6 +59,61 @@ class ParametrosControllerTest extends TestCase
         Artisan::shouldHaveReceived('call')->with('config:clear');
     }
 
+    public function test_admin_cannot_enable_active_web_content_for_uploads(): void
+    {
+        $user = $this->createAdminUser();
+        $anexos = Parametro::factory()->create([
+            'clave' => 'uploads.anexos.mimes',
+            'valor' => 'pdf,jpg',
+            'tipo' => Parametro::TYPE_STRING,
+        ]);
+        $consentimientos = Parametro::factory()->create([
+            'clave' => 'uploads.consentimientos.mimes',
+            'valor' => 'pdf,png',
+            'tipo' => Parametro::TYPE_STRING,
+        ]);
+
+        $this->actingAs($user)
+            ->from(route('admin.parametros.index'))
+            ->put(route('admin.parametros.update', $anexos), ['valor' => 'pdf,svg,html'])
+            ->assertRedirect(route('admin.parametros.index'))
+            ->assertSessionHasErrorsIn('parametro-'.$anexos->id, 'valor');
+
+        $this->actingAs($user)
+            ->from(route('admin.parametros.index'))
+            ->put(route('admin.parametros.update', $consentimientos), ['valor' => 'pdf,svg'])
+            ->assertRedirect(route('admin.parametros.index'))
+            ->assertSessionHasErrorsIn('parametro-'.$consentimientos->id, 'valor');
+
+        $this->assertSame('pdf,jpg', $anexos->fresh()->getRawOriginal('valor'));
+        $this->assertSame('pdf,png', $consentimientos->fresh()->getRawOriginal('valor'));
+    }
+
+    public function test_admin_cannot_raise_upload_limits_above_the_server_caps(): void
+    {
+        $user = $this->createAdminUser();
+        $anexos = Parametro::factory()->create([
+            'clave' => 'uploads.anexos.max',
+            'valor' => '51200',
+            'tipo' => Parametro::TYPE_INTEGER,
+        ]);
+        $consentimientos = Parametro::factory()->create([
+            'clave' => 'uploads.consentimientos.max',
+            'valor' => '5120',
+            'tipo' => Parametro::TYPE_INTEGER,
+        ]);
+
+        $this->actingAs($user)
+            ->put(route('admin.parametros.update', $anexos), ['valor' => 51201])
+            ->assertSessionHasErrorsIn('parametro-'.$anexos->id, 'valor');
+        $this->actingAs($user)
+            ->put(route('admin.parametros.update', $consentimientos), ['valor' => 5121])
+            ->assertSessionHasErrorsIn('parametro-'.$consentimientos->id, 'valor');
+
+        $this->assertSame(51200, $anexos->fresh()->valor);
+        $this->assertSame(5120, $consentimientos->fresh()->valor);
+    }
+
     private function createAdminUser(): User
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
