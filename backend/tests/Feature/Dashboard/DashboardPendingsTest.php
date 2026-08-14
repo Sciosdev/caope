@@ -67,29 +67,25 @@ class DashboardPendingsTest extends TestCase
         $response = $this->actingAs($tutor)->getJson(route('dashboard.pending'));
 
         $response->assertOk();
-        $response->assertJson(fn (AssertableJson $json) =>
-            $json->has('cards', 3)
-                ->has('cards.0', fn (AssertableJson $card) =>
-                    $card->where('id', 'validaciones')
-                        ->where('count', 1)
-                        ->has('items', 1)
-                        ->etc()
-                )
-                ->has('cards.1', fn (AssertableJson $card) =>
-                    $card->where('id', 'observados')
-                        ->where('count', 1)
-                        ->etc()
-                )
-                ->has('cards.2', fn (AssertableJson $card) =>
-                    $card->where('id', 'intentos_cierre')
-                        ->where('count', 1)
-                        ->etc()
-                )
+        $response->assertJson(fn (AssertableJson $json) => $json->has('cards', 3)
+            ->has('cards.0', fn (AssertableJson $card) => $card->where('id', 'validaciones')
+                ->where('count', 1)
+                ->has('items', 1)
                 ->etc()
+            )
+            ->has('cards.1', fn (AssertableJson $card) => $card->where('id', 'observados')
+                ->where('count', 1)
+                ->etc()
+            )
+            ->has('cards.2', fn (AssertableJson $card) => $card->where('id', 'intentos_cierre')
+                ->where('count', 1)
+                ->etc()
+            )
+            ->etc()
         );
     }
 
-    public function test_observed_notification_falls_back_to_expediente_when_session_is_missing(): void
+    public function test_observed_notification_is_hidden_when_session_is_missing(): void
     {
         $student = User::factory()->create();
         $student->assignRole('alumno');
@@ -117,7 +113,8 @@ class DashboardPendingsTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonPath('cards.0.id', 'observados');
-        $response->assertJsonPath('cards.0.items.0.url', route('expedientes.show', $expediente));
+        $response->assertJsonPath('cards.0.count', 0);
+        $response->assertJsonCount(0, 'cards.0.items');
     }
 
     public function test_student_sees_observed_card_when_notified(): void
@@ -148,5 +145,89 @@ class DashboardPendingsTest extends TestCase
         $response->assertJsonCount(1, 'cards');
         $response->assertJsonPath('cards.0.id', 'observados');
         $response->assertJsonPath('cards.0.count', 1);
+    }
+
+    public function test_coordinator_only_receives_validations_from_assigned_expedientes(): void
+    {
+        $coordinador = User::factory()->create();
+        $coordinador->assignRole('coordinador');
+        $otroCoordinador = User::factory()->create();
+
+        $asignado = Expediente::factory()->create([
+            'coordinador_id' => $coordinador->id,
+        ]);
+        $ajeno = Expediente::factory()->create([
+            'coordinador_id' => $otroCoordinador->id,
+        ]);
+
+        $sesionAsignada = Sesion::factory()->for($asignado)->create([
+            'status_revision' => 'pendiente',
+        ]);
+        $sesionAjena = Sesion::factory()->for($ajeno)->create([
+            'status_revision' => 'pendiente',
+        ]);
+
+        $response = $this->actingAs($coordinador)->getJson(route('dashboard.pending'));
+
+        $response->assertOk();
+        $response->assertJsonPath('cards.0.id', 'validaciones');
+        $response->assertJsonPath('cards.0.count', 1);
+        $response->assertJsonPath('cards.0.items.0.id', $sesionAsignada->id);
+        $response->assertJsonMissing(['id' => $sesionAjena->id]);
+    }
+
+    public function test_reassignment_hides_stale_notifications_from_facilitator(): void
+    {
+        $facilitador = User::factory()->create();
+        $facilitador->assignRole('alumno');
+        $nuevoFacilitador = User::factory()->create();
+        $actor = User::factory()->create();
+
+        $expediente = Expediente::factory()->create([
+            'creado_por' => $facilitador->id,
+        ]);
+        $sesion = Sesion::factory()->for($expediente)->create([
+            'status_revision' => 'observada',
+            'realizada_por' => $facilitador->id,
+        ]);
+
+        $facilitador->notify(new SesionObservedNotification($sesion, $actor, 'Información ya no asignada.'));
+        $expediente->update(['creado_por' => $nuevoFacilitador->id]);
+
+        $response = $this->actingAs($facilitador)->getJson(route('dashboard.pending'));
+
+        $response->assertOk();
+        $response->assertJsonPath('cards.0.id', 'observados');
+        $response->assertJsonPath('cards.0.count', 0);
+        $response->assertJsonCount(0, 'cards.0.items');
+        $response->assertJsonMissing(['primary' => 'Información ya no asignada.']);
+    }
+
+    public function test_session_author_change_hides_stale_notification_without_reassigning_expediente(): void
+    {
+        $facilitador = User::factory()->create();
+        $facilitador->assignRole('alumno');
+        $otherUser = User::factory()->create();
+        $actor = User::factory()->create();
+
+        $expediente = Expediente::factory()->create([
+            'creado_por' => $facilitador->id,
+        ]);
+        $sesion = Sesion::factory()->for($expediente)->create([
+            'status_revision' => 'observada',
+            'realizada_por' => $facilitador->id,
+        ]);
+
+        $facilitador->notify(new SesionObservedNotification($sesion, $actor, 'Autoría ya no asignada.'));
+        $sesion->update(['realizada_por' => $otherUser->id]);
+
+        $response = $this->actingAs($facilitador)->getJson(route('dashboard.pending'));
+
+        $response->assertOk();
+        $response->assertJsonPath('cards.0.id', 'observados');
+        $response->assertJsonPath('cards.0.count', 0);
+        $response->assertJsonCount(0, 'cards.0.items');
+        $response->assertJsonMissing(['primary' => 'Autoría ya no asignada.']);
+        $this->assertSame($facilitador->id, $expediente->fresh()->creado_por);
     }
 }

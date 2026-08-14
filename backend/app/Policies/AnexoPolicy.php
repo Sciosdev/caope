@@ -13,56 +13,43 @@ class AnexoPolicy
 
     public function view(User $user, Anexo $anexo): bool
     {
-        if ($this->isAdmin($user) || $this->canManage($user)) {
+        if ($user->hasGlobalExpedienteAccess()) {
             return true;
         }
 
         $expediente = $anexo->expediente;
 
-        if ($user->hasRole('docente') && $expediente && $expediente->tutor_id === $user->id) {
+        if ($expediente && $user->isAssignedToExpediente($expediente)) {
             return true;
         }
 
-        if ($user->hasRole('alumno') && $expediente && $expediente->creado_por === $user->id) {
-            return true;
-        }
-
-        return $user->id === $anexo->subido_por;
+        return false;
     }
 
     public function create(User $user, Expediente $expediente): bool
     {
-        if ($this->isAdmin($user) || $this->canManage($user)) {
+        if ($user->hasGlobalExpedienteAccess()) {
             return true;
         }
 
-        if ($user->hasRole('docente') && $expediente->tutor_id === $user->id) {
-            return true;
-        }
-
-        return $user->hasRole('alumno') && $expediente->creado_por === $user->id;
+        return $user->isAssignedToExpediente($expediente);
     }
 
     public function delete(User $user, Anexo $anexo): bool
     {
-        if ($this->isAdmin($user) || $this->canManage($user)) {
+        if ($user->hasGlobalExpedienteAccess()) {
             return true;
         }
 
-        if ($user->hasRole('docente') && $anexo->expediente && $anexo->expediente->tutor_id === $user->id) {
-            return true;
+        $expediente = $anexo->expediente;
+
+        if (! $expediente || ! $user->isAssignedToExpediente($expediente)) {
+            return false;
         }
 
-        return $user->id === $anexo->subido_por;
-    }
-
-    private function isAdmin(User $user): bool
-    {
-        return $user->hasAnyRole(['admin', 'paps']);
-    }
-
-    private function canManage(User $user): bool
-    {
-        return $user->can('expedientes.manage');
+        return $user->isCoordinatorOf($expediente)
+            || $user->isTutorOf($expediente)
+            || ($user->isFacilitatorOf($expediente)
+                && (int) $user->id === (int) $anexo->subido_por);
     }
 }

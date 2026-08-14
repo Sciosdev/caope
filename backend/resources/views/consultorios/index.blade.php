@@ -88,12 +88,14 @@
                 <div class="col-md-2">
                     <label class="form-label">Consultorio</label>
                     <select name="consultorio_numero" class="form-select" id="asignacion-consultorio" required>
-                        @foreach ($consultoriosActivos as $consultorio)
-                            <option value="{{ $consultorio->numero }}" @selected((int) old('consultorio_numero', (int) ($consultoriosActivos->first()->numero ?? 1)) === (int) $consultorio->numero)>{{ $consultorio->nombre }}</option>
-                        @endforeach
+                        @forelse ($consultoriosActivos as $consultorio)
+                            <option value="{{ $consultorio->numero }}" @selected((int) old('consultorio_numero', (int) ($consultoriosActivos->first()?->numero ?? 0)) === (int) $consultorio->numero)>{{ $consultorio->nombre }}</option>
+                        @empty
+                            <option value="">Sin consultorios disponibles</option>
+                        @endforelse
                     </select>
                 </div>
-                <input type="hidden" name="cubiculo_numero" id="asignacion-cubiculo" value="{{ (int) old('cubiculo_numero', (int) ($cubiculosActivos->first()->numero ?? 1)) }}" required>
+                <input type="hidden" name="cubiculo_numero" id="asignacion-cubiculo" value="{{ old('cubiculo_numero', $cubiculosActivos->first()?->numero) }}" required>
                 <div class="col-md-4">
                     <label class="form-label">Estrategia</label>
                     <select name="estrategia" class="form-select" required>
@@ -136,9 +138,11 @@
             <form method="GET" class="d-flex gap-2" id="ocupacion-filtro-form">
                 <input type="month" class="form-control" name="fecha" id="ocupacion-fecha" value="{{ \Illuminate\Support\Carbon::parse($fechaFiltro)->format('Y-m') }}">
                 <select name="consultorio_numero" class="form-select" id="ocupacion-consultorio">
-                    @foreach ($consultoriosActivos as $consultorio)
+                    @forelse ($consultoriosActivos as $consultorio)
                         <option value="{{ $consultorio->numero }}" @selected($consultorioSeleccionado === (int) $consultorio->numero)>{{ $consultorio->nombre }}</option>
-                    @endforeach
+                    @empty
+                        <option value="">Sin consultorios asignados</option>
+                    @endforelse
                 </select>
                 <button class="btn btn-outline-secondary" type="submit" id="ocupacion-ver-btn">Ver mes</button>
             </form>
@@ -250,7 +254,7 @@
                                 @endif
                             </td>
                             <td>{{ $reserva->estratega?->name ?? '—' }}</td>
-                            <td>{{ $reserva->creadoPor?->name ?? '—' }}</td>
+                            <td>{{ $reserva->usuarioAtendido?->name ?? '—' }}</td>
                             @if($canManageBitacora || $isPapsAprobado)
                             <td>
                                 <span class="small text-muted d-block mb-2">
@@ -396,6 +400,7 @@
             const detailRows = sortedItems.map((item) => {
                 const horaInicio = (item.hora_inicio ?? '').slice(0, 5);
                 const horaFin = (item.hora_fin ?? '').slice(0, 5);
+                const consultorio = item.consultorio_numero ?? '—';
                 const cubiculo = item.cubiculo_numero ?? '—';
                 const estrategia = item.estrategia ?? '—';
                 const estratega = item.estratega_nombre ?? '—';
@@ -404,7 +409,7 @@
                 return `
                     <tr>
                         <td class="text-nowrap">${horaInicio} - ${horaFin}</td>
-                        <td class="text-nowrap">Consultorio ${cubiculo}</td>
+                        <td class="text-nowrap">Consultorio ${consultorio} · Cubículo ${cubiculo}</td>
                         <td>${estrategia}</td>
                         <td>${estratega}</td>
                         <td>${usuario}</td>
@@ -422,7 +427,7 @@
                         <thead>
                             <tr>
                                 <th>Horario</th>
-                                <th>Consultorio</th>
+                                <th>Consultorio / Cubículo</th>
                                 <th>Estrategia</th>
                                 <th>Estratega</th>
                                 <th>Facilitador</th>

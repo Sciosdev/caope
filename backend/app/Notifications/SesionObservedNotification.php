@@ -8,6 +8,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Gate;
 
 class SesionObservedNotification extends Notification implements ShouldQueue
 {
@@ -17,20 +18,24 @@ class SesionObservedNotification extends Notification implements ShouldQueue
         private readonly Sesion $sesion,
         private readonly ?User $actor,
         private readonly string $observaciones,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<int, string>
      */
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        return $this->canReceive($notifiable) ? ['mail', 'database'] : [];
+    }
+
+    public function shouldSend(object $notifiable, string $channel): bool
+    {
+        return $this->canReceive($notifiable);
     }
 
     public function toMail(object $notifiable): MailMessage
     {
-        return (new MailMessage())
+        return (new MailMessage)
             ->subject('Sesión con observaciones')
             ->view('emails.sesion-observed', [
                 'sesion' => $this->sesion,
@@ -59,5 +64,15 @@ class SesionObservedNotification extends Notification implements ShouldQueue
                 $this->sesion->id,
             ),
         ];
+    }
+
+    private function canReceive(object $notifiable): bool
+    {
+        $sesion = $this->sesion->fresh('expediente');
+
+        return $notifiable instanceof User
+            && $notifiable->is_active
+            && $sesion instanceof Sesion
+            && Gate::forUser($notifiable)->allows('view', $sesion);
     }
 }

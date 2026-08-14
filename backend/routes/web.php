@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\DocumentoAdministrativoController;
 use App\Http\Controllers\Admin\ParametrosController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AnexoController;
+use App\Http\Controllers\ComentarioController;
 use App\Http\Controllers\ConsentimientoController;
 use App\Http\Controllers\ConsentimientoPdfController;
 use App\Http\Controllers\ConsentimientoRequeridoController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\DeveloperConsoleController;
 use App\Http\Controllers\ExpedienteController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReporteExpedienteController;
+use App\Http\Controllers\SesionAdjuntoController;
 use App\Http\Controllers\SesionController;
 use App\Http\Controllers\TimelineEventoExportController;
 use Illuminate\Support\Facades\Auth;
@@ -37,6 +39,14 @@ Route::get('/', function () {
 })->name('home');
 
 Route::middleware(['auth', 'active_user'])->group(function () {
+    Route::prefix('api')->group(function (): void {
+        Route::get('comentarios', [ComentarioController::class, 'index'])->name('api.comentarios.index');
+        Route::post('comentarios', [ComentarioController::class, 'store'])->name('api.comentarios.store');
+        Route::get('comentarios/{comentario}', [ComentarioController::class, 'show'])->name('api.comentarios.show');
+        Route::put('comentarios/{comentario}', [ComentarioController::class, 'update'])->name('api.comentarios.update');
+        Route::delete('comentarios/{comentario}', [ComentarioController::class, 'destroy'])->name('api.comentarios.destroy');
+    });
+
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/pendientes', [DashboardController::class, 'pending'])->name('dashboard.pending');
     Route::get('/dashboard/metricas', [DashboardController::class, 'metrics'])->name('dashboard.metrics');
@@ -64,7 +74,7 @@ Route::middleware(['auth', 'active_user'])->group(function () {
     Route::post('expedientes/{expediente}/estado', [ExpedienteController::class, 'changeState'])
         ->name('expedientes.change-state');
 
-    Route::prefix('admin/usuarios')->name('admin.users.')->middleware('role:admin|paps')->group(function (): void {
+    Route::prefix('admin/usuarios')->name('admin.users.')->middleware(['role:admin|paps', 'approved_paps:admin'])->group(function (): void {
         Route::get('/', [UserController::class, 'index'])->name('index');
         Route::get('crear', [UserController::class, 'create'])->name('create');
         Route::post('/', [UserController::class, 'store'])->name('store');
@@ -75,7 +85,7 @@ Route::middleware(['auth', 'active_user'])->group(function () {
         Route::delete('{user}', [UserController::class, 'destroy'])->name('destroy');
     });
 
-    Route::prefix('admin/catalogos')->name('admin.catalogos.')->middleware('role:admin|paps')->group(function (): void {
+    Route::prefix('admin/catalogos')->name('admin.catalogos.')->middleware(['role:admin|paps', 'approved_paps:admin'])->group(function (): void {
         Route::resource('carreras', CatalogoCarreraController::class)->except('show');
         Route::patch('carreras/{carrera}/estado', [CatalogoCarreraController::class, 'toggleActive'])->name('carreras.toggle-active');
         Route::delete('carreras/{carrera}/eliminar', [CatalogoCarreraController::class, 'forceDestroy'])->name('carreras.force-destroy');
@@ -93,17 +103,17 @@ Route::middleware(['auth', 'active_user'])->group(function () {
         Route::resource('turnos', CatalogoTurnoController::class)->except('show');
     });
 
-    Route::prefix('admin/parametros')->name('admin.parametros.')->middleware('role:admin|paps')->group(function (): void {
+    Route::prefix('admin/parametros')->name('admin.parametros.')->middleware(['role:admin|paps', 'approved_paps:admin'])->group(function (): void {
         Route::get('/', [ParametrosController::class, 'index'])->name('index');
         Route::put('{parametro}', [ParametrosController::class, 'update'])->name('update');
     });
 
-    Route::prefix('admin/herramientas/consultorios')->name('admin.consultorios.solicitudes.')->middleware('role:admin|paps')->group(function (): void {
+    Route::prefix('admin/herramientas/consultorios')->name('admin.consultorios.solicitudes.')->middleware(['role:admin|paps', 'approved_paps:admin'])->group(function (): void {
         Route::get('solicitudes', [ConsultorioSolicitudController::class, 'index'])->name('index');
         Route::post('solicitudes/{solicitud}/aprobar', [ConsultorioSolicitudController::class, 'approve'])->name('approve');
     });
 
-    Route::prefix('admin/documentos')->name('admin.documentos.')->middleware('role:admin|coordinador|estratega|alumno|paps')->group(function (): void {
+    Route::prefix('admin/documentos')->name('admin.documentos.')->middleware(['role:admin|coordinador|estratega|paps', 'approved_paps:admin,coordinador,estratega'])->group(function (): void {
         Route::get('/', [DocumentoAdministrativoController::class, 'index'])->name('index');
         Route::get('{documento}/download', [DocumentoAdministrativoController::class, 'download'])->name('download');
         Route::middleware('role:admin|paps')->group(function (): void {
@@ -114,7 +124,7 @@ Route::middleware(['auth', 'active_user'])->group(function () {
         });
     });
 
-    Route::prefix('consultorios')->name('consultorios.')->middleware('role:admin|coordinador|alumno|docente|paps')->group(function (): void {
+    Route::prefix('consultorios')->name('consultorios.')->middleware(['role:admin|coordinador|estratega|alumno|docente|paps', 'approved_paps:admin,coordinador,estratega,alumno,docente'])->group(function (): void {
         Route::get('/', [ConsultorioReservaController::class, 'index'])->name('index');
         Route::get('/availability', [ConsultorioReservaController::class, 'availability'])->name('availability');
         Route::get('/export/xlsx', [ConsultorioReservaController::class, 'export'])->name('export');
@@ -130,7 +140,7 @@ Route::middleware(['auth', 'active_user'])->group(function () {
         });
     });
 
-    Route::middleware('role:admin|coordinador|estratega|alumno|docente|paps')->group(function (): void {
+    Route::middleware(['role:admin|coordinador|estratega|alumno|docente|paps', 'approved_paps:admin,coordinador,estratega,alumno,docente'])->group(function (): void {
         Route::get('reportes/expedientes', [ReporteExpedienteController::class, 'index'])->name('reportes.index');
         Route::get('reportes/expedientes/download', [ReporteExpedienteController::class, 'downloadDirect'])->name('reportes.expedientes.download-direct');
         Route::post('reportes/expedientes/export', [ReporteExpedienteController::class, 'export'])->name('reportes.expedientes.export');
@@ -184,6 +194,8 @@ Route::middleware(['auth', 'active_user'])->group(function () {
         ->name('expedientes.sesiones.observe');
     Route::post('expedientes/{expediente}/sesiones/{sesion}/validate', [SesionController::class, 'validateSesion'])
         ->name('expedientes.sesiones.validate');
+    Route::get('expedientes/{expediente}/sesiones/{sesion}/adjuntos/{adjunto}', SesionAdjuntoController::class)
+        ->name('expedientes.sesiones.adjuntos.download');
     Route::get('expedientes/export/ficha-identificacion/xlsx', [ExpedienteController::class, 'exportFichaIdentificacion'])
         ->name('expedientes.export.ficha-identificacion');
 
@@ -192,10 +204,12 @@ Route::middleware(['auth', 'active_user'])->group(function () {
         ->parameters(['sesiones' => 'sesion'])
         ->middleware('auth');
 
-    Route::get('consentimientos/requeridos', [ConsentimientoRequeridoController::class, 'index'])
-        ->name('consentimientos.requeridos.index');
-    Route::put('consentimientos/requeridos', [ConsentimientoRequeridoController::class, 'update'])
-        ->name('consentimientos.requeridos.update');
+    Route::middleware(['role:admin|paps', 'approved_paps:admin'])->group(function (): void {
+        Route::get('consentimientos/requeridos', [ConsentimientoRequeridoController::class, 'index'])
+            ->name('consentimientos.requeridos.index');
+        Route::put('consentimientos/requeridos', [ConsentimientoRequeridoController::class, 'update'])
+            ->name('consentimientos.requeridos.update');
+    });
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

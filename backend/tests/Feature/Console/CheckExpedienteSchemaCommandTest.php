@@ -15,7 +15,7 @@ class CheckExpedienteSchemaCommandTest extends TestCase
     public function test_command_reports_success_when_columns_present(): void
     {
         $this->artisan('expedientes:check-schema')
-            ->expectsOutput('La tabla de expedientes contiene todas las columnas requeridas para el perfil Alumno.')
+            ->expectsOutput('La tabla de expedientes contiene todas las columnas requeridas para el perfil Facilitador.')
             ->assertExitCode(SymfonyCommand::SUCCESS);
     }
 

@@ -4,13 +4,14 @@ namespace App\Models;
 
 use App\Casts\SafeDate;
 use App\Services\Masking\NameMasker;
-use Illuminate\Support\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Carbon;
 
 class Expediente extends Model
 {
@@ -253,6 +254,98 @@ class Expediente extends Model
     public function alumno(): BelongsTo
     {
         return $this->belongsTo(User::class, 'creado_por');
+    }
+
+    /**
+     * Usuario que facilita la captura y seguimiento del expediente.
+     *
+     * alumno() se conserva como alias temporal para no romper integraciones
+     * existentes; el alumno atendido se almacena en el campo paciente.
+     */
+    public function facilitador(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'creado_por');
+    }
+
+    /**
+     * Limita la consulta al alcance funcional del usuario.
+     *
+     * @param  Builder<Expediente>  $query
+     * @return Builder<Expediente>
+     */
+    public function scopeVisibleTo(Builder $query, ?User $user): Builder
+    {
+        if ($user === null) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if ($user->hasGlobalExpedienteAccess()) {
+            return $query;
+        }
+
+        $roles = $user->getRoleNames();
+
+        return $query->where(function (Builder $visible) use ($roles, $user): void {
+            $hasAssignment = false;
+
+            if ($roles->contains('alumno')) {
+                $visible->orWhere('creado_por', $user->getKey());
+                $hasAssignment = true;
+            }
+
+            if ($roles->intersect(['docente', 'estratega'])->isNotEmpty()) {
+                $visible->orWhere('tutor_id', $user->getKey());
+                $hasAssignment = true;
+            }
+
+            if ($roles->contains('coordinador')) {
+                $visible->orWhere('coordinador_id', $user->getKey());
+                $hasAssignment = true;
+            }
+
+            if (! $hasAssignment) {
+                $visible->whereRaw('1 = 0');
+            }
+        });
+    }
+
+    /**
+     * Limita una consulta a los expedientes donde el usuario puede validar.
+     *
+     * A diferencia de visibleTo(), cada rol se acopla a su columna de
+     * asignación para que una cuenta con varios roles no herede facultades de
+     * coordinación por estar vinculada solo como facilitador.
+     *
+     * @param  Builder<Expediente>  $query
+     * @return Builder<Expediente>
+     */
+    public function scopeValidatableBy(Builder $query, ?User $user): Builder
+    {
+        if ($user === null) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if ($user->hasGlobalExpedienteAccess()) {
+            return $query;
+        }
+
+        return $query->where(function (Builder $validatable) use ($user): void {
+            $hasValidationAssignment = false;
+
+            if ($user->hasRole('coordinador')) {
+                $validatable->orWhere('coordinador_id', $user->getKey());
+                $hasValidationAssignment = true;
+            }
+
+            if ($user->hasAnyRole(['docente', 'estratega'])) {
+                $validatable->orWhere('tutor_id', $user->getKey());
+                $hasValidationAssignment = true;
+            }
+
+            if (! $hasValidationAssignment) {
+                $validatable->whereRaw('1 = 0');
+            }
+        });
     }
 
     public function tutor(): BelongsTo

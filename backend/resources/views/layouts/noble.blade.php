@@ -107,7 +107,7 @@
                   Reportes
                 </a>
               @endif
-              @if ($currentUser?->hasAnyRole(['coordinador', 'estratega', 'alumno']) ?? false)
+              @if ($currentUser?->hasAnyRole(['coordinador', 'estratega']) ?? false)
                 <a href="{{ route('admin.documentos.index') }}"
                    class="text-muted small {{ request()->routeIs('admin.documentos.*') ? 'fw-semibold text-body' : '' }}">
                   Documentos

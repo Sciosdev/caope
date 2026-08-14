@@ -12,36 +12,33 @@ class ConsentimientoPolicy
 
     public function view(User $user, Consentimiento $consentimiento): bool
     {
-        if ($this->isAdmin($user) || $this->canManage($user)) {
+        if ($user->hasGlobalExpedienteAccess()) {
             return true;
         }
 
         $expediente = $consentimiento->expediente;
 
-        if ($user->hasRole('docente') && $expediente && $expediente->tutor_id === $user->id) {
-            return true;
-        }
-
-        return $user->hasRole('alumno') && $expediente && $expediente->creado_por === $user->id;
+        return $expediente !== null && $user->isAssignedToExpediente($expediente);
     }
 
     public function update(User $user, Consentimiento $consentimiento): bool
     {
-        if ($this->isAdmin($user) || $this->canManage($user)) {
+        if ($user->hasGlobalExpedienteAccess()) {
             return true;
         }
 
         $expediente = $consentimiento->expediente;
 
-        if (! $expediente || $expediente->estado === 'cerrado') {
+        if (! $expediente) {
             return false;
         }
 
-        if ($user->hasRole('docente') && $expediente && $expediente->tutor_id === $user->id) {
+        if ($user->isCoordinatorOf($expediente)) {
             return true;
         }
 
-        return $user->hasRole('alumno') && $expediente && $expediente->creado_por === $user->id;
+        return $expediente->estado !== 'cerrado'
+            && $user->isAssignedToExpediente($expediente);
     }
 
     public function upload(User $user, Consentimiento $consentimiento): bool
@@ -52,15 +49,5 @@ class ConsentimientoPolicy
     public function delete(User $user, Consentimiento $consentimiento): bool
     {
         return $this->update($user, $consentimiento);
-    }
-
-    private function isAdmin(User $user): bool
-    {
-        return $user->hasAnyRole(['admin', 'paps']);
-    }
-
-    private function canManage(User $user): bool
-    {
-        return $user->can('expedientes.manage');
     }
 }

@@ -331,7 +331,7 @@
         <table class="meta">
             <tr>
                 <td>
-                    <span class="label">Paciente:</span>
+                    <span class="label">Alumno:</span>
                     <span class="line">{{ $expediente->paciente ?? '—' }}</span>
                 </td>
                 <td>
@@ -387,7 +387,7 @@
             así como las molestias o riesgos posibles y los beneficios que se pueden esperar.
         </p>
         <p class="paragraph">
-            Se me enteró que estos tratamientos serán realizados por estudiantes en formación, bajo la supervisión de sus
+            Se me enteró que estos tratamientos serán realizados por facilitadores en formación, bajo la supervisión de sus
             profesores así como el costo que representa este tratamiento.
         </p>
         <p class="paragraph">
@@ -407,9 +407,9 @@
                 <td>
                     <div class="signature">
                         <div class="document-preview"></div>
-                        <div class="info">{{ $expediente->alumno?->name ?? '—' }}</div>
+                        <div class="info">{{ $expediente->facilitador?->name ?? '—' }}</div>
                         <div class="line"></div>
-                        <small>Nombre, grupo y firma del alumno responsable</small>
+                        <small>Nombre, grupo y firma del facilitador responsable</small>
                     </div>
                 </td>
                 <td>
@@ -433,7 +433,7 @@
                         <div class="document-preview"></div>
                         <div class="info">{{ $expediente->paciente ?? '—' }}</div>
                         <div class="line"></div>
-                        <small>Nombre y firma del paciente o su representante</small>
+                        <small>Nombre y firma del alumno o su representante</small>
                     </div>
                 </td>
                 <td>
@@ -441,7 +441,7 @@
                         <div class="document-preview"></div>
                         <div class="info">{{ $expediente->contacto_emergencia_nombre ?? '—' }}</div>
                         <div class="line"></div>
-                        <small>Nombre y firma de un testigo por el paciente</small>
+                        <small>Nombre y firma de un testigo por el alumno</small>
                     </div>
                 </td>
             </tr>

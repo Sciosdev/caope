@@ -23,7 +23,7 @@
     <form class="row g-3 mb-4" method="get">
         <div class="col-md-3">
             <label class="form-label text-muted small" for="filtro-q">Buscar</label>
-            <input id="filtro-q" name="q" value="{{ $q }}" class="form-control" placeholder="Número de control o paciente">
+            <input id="filtro-q" name="q" value="{{ $q }}" class="form-control" placeholder="Número de control o alumno">
         </div>
         <div class="col-md-2">
             <label class="form-label text-muted small" for="filtro-estado">Estado</label>
@@ -70,8 +70,8 @@
             <thead>
                 <tr>
                     <th>No. de Control</th>
-                    <th>Consultante</th>
                     <th>Alumno</th>
+                    <th>Facilitador</th>
                     <th>Estado</th>
                     <th>Apertura</th>
                     <th>Carrera</th>

@@ -104,7 +104,6 @@ class ExpedienteNameMaskingTest extends TestCase
         $this->assertSame($alumno->name, optional($expedientes->first()->creadoPor)->name);
     }
 
-
     public function test_paps_can_view_expedientes_index_without_expedientes_view_permission(): void
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -114,7 +113,7 @@ class ExpedienteNameMaskingTest extends TestCase
             'guard_name' => 'web',
         ]);
 
-        $paps = User::factory()->create();
+        $paps = User::factory()->create(['approved_at' => now()]);
         $paps->assignRole('paps');
 
         Expediente::factory()->create([

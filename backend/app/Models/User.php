@@ -12,7 +12,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles;
+    use HasFactory, HasRoles, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -67,6 +67,57 @@ class User extends Authenticatable
     public function expedientesCoordinados(): HasMany
     {
         return $this->hasMany(Expediente::class, 'coordinador_id');
+    }
+
+    /**
+     * Indica si el usuario puede consultar todos los expedientes del centro.
+     *
+     * Coordinador conserva el permiso de gestión para actuar sobre sus
+     * asignaciones, pero ese permiso no debe ampliar su alcance a todo el
+     * centro. Admin, PAPS y permisos de gestión personalizados conservan el
+     * alcance global.
+     */
+    public function hasGlobalExpedienteAccess(): bool
+    {
+        if ($this->hasRole('admin')) {
+            return true;
+        }
+
+        if ($this->hasRole('paps')) {
+            return $this->isApprovedPaps();
+        }
+
+        return $this->can('expedientes.manage') && ! $this->hasRole('coordinador');
+    }
+
+    public function isApprovedPaps(): bool
+    {
+        return $this->hasRole('paps') && $this->approved_at !== null;
+    }
+
+    public function isFacilitatorOf(Expediente $expediente): bool
+    {
+        return $this->hasRole('alumno')
+            && (int) $expediente->creado_por === (int) $this->getKey();
+    }
+
+    public function isTutorOf(Expediente $expediente): bool
+    {
+        return $this->hasAnyRole(['docente', 'estratega'])
+            && (int) $expediente->tutor_id === (int) $this->getKey();
+    }
+
+    public function isCoordinatorOf(Expediente $expediente): bool
+    {
+        return $this->hasRole('coordinador')
+            && (int) $expediente->coordinador_id === (int) $this->getKey();
+    }
+
+    public function isAssignedToExpediente(Expediente $expediente): bool
+    {
+        return $this->isFacilitatorOf($expediente)
+            || $this->isTutorOf($expediente)
+            || $this->isCoordinatorOf($expediente);
     }
 
     public function timelineEventos(): HasMany

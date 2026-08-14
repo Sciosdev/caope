@@ -28,7 +28,7 @@ class ExpedienteIndexTest extends TestCase
         $admin = User::factory()->create();
         $admin->assignRole('admin');
 
-        $paps = User::factory()->create();
+        $paps = User::factory()->create(['approved_at' => now()]);
         $paps->assignRole('paps');
 
         $expedienteUno = Expediente::factory()->create([

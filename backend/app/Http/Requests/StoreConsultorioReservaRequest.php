@@ -4,8 +4,8 @@ namespace App\Http\Requests;
 
 use App\Models\ConsultorioReserva;
 use Carbon\Carbon;
-use Illuminate\Support\Collection;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 
 class StoreConsultorioReservaRequest extends FormRequest
@@ -47,7 +47,7 @@ class StoreConsultorioReservaRequest extends FormRequest
             return true;
         }
 
-        if (! $user->hasRole('paps')) {
+        if (! $user->isApprovedPaps()) {
             return false;
         }
 

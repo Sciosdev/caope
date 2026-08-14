@@ -26,8 +26,9 @@
 
 @php($alertaActiva = filled(old('alerta_ingreso', $expediente->alerta_ingreso ?? null)))
 @php($isCreating = ! isset($expediente) || ! $expediente->exists)
-@php($isPaps = auth()->user()?->hasRole('paps'))
-@php($showNuevaAsignacion = auth()->user()?->hasAnyRole(['paps', 'admin', 'alumno']))
+@php($isPaps = auth()->user()?->isApprovedPaps())
+@php($canChangeAssignments = $isCreating || auth()->user()?->hasGlobalExpedienteAccess() || auth()->user()?->isCoordinatorOf($expediente))
+@php($showNuevaAsignacion = auth()->user()?->hasAnyRole(['admin', 'alumno']) || auth()->user()?->isApprovedPaps())
 
 <div class="card border shadow-none mb-4">
     <div class="card-body">
@@ -57,7 +58,7 @@
             </div>
 
             <div class="col-md-4">
-                <label for="paciente" class="form-label">Consultante</label>
+                <label for="paciente" class="form-label">Alumno</label>
                 <input
                     type="text"
                     name="paciente"
@@ -168,6 +169,7 @@
                     id="tutor_id"
                     class="form-select js-select2 @error('tutor_id') is-invalid @enderror"
                     data-placeholder="Sin asignar"
+                    @disabled(! $canChangeAssignments)
                 >
                     <option value="">Sin asignar</option>
                     @foreach ($tutores as $tutor)
@@ -188,6 +190,7 @@
                     id="coordinador_id"
                     class="form-select js-select2 @error('coordinador_id') is-invalid @enderror"
                     data-placeholder="Sin asignar"
+                    @disabled(! $canChangeAssignments)
                 >
                     <option value="">Sin asignar</option>
                     @foreach ($coordinadores as $coordinador)
@@ -203,7 +206,7 @@
 
             @if (! $isPaps)
                 <div class="col-md-4">
-                    <label for="resumen_clinico_facilitador" class="form-label">Facilitador (Alumno responsable)</label>
+                    <label for="resumen_clinico_facilitador" class="form-label">Facilitador responsable</label>
                     <input
                         type="text"
                         name="resumen_clinico[facilitador]"
@@ -307,7 +310,7 @@
         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
             <div>
                 <p class="text-muted text-uppercase small mb-1">Identidad</p>
-                <h6 class="mb-0">Datos del Consultante</h6>
+                <h6 class="mb-0">Datos del Alumno</h6>
             </div>
         </div>
 

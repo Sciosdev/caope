@@ -21,7 +21,7 @@ class UpdateConsultorioReservaRequest extends FormRequest
             return true;
         }
 
-        return $user->hasRole('paps') && ! is_null($user->approved_at);
+        return $user->isApprovedPaps();
     }
 
     public function rules(): array

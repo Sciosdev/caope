@@ -30,14 +30,14 @@
                     </x-nav-link>
                     @if ($showExpedientesLink)
                         <x-nav-link :href="route('expedientes.index')" :active="request()->routeIs('expedientes.*')">
-                            {{ __('Expedientes') }}
+                            Expedientes
                         </x-nav-link>
                     @endif
             @if (($currentUser?->hasAnyRole(['admin', 'coordinador', 'estratega', 'alumno', 'docente']) ?? false) || $isApprovedPaps)
                 <x-nav-link :href="route('consultorios.index')" :active="request()->routeIs('consultorios.*')">
                     {{ __('Consultorios') }}
                 </x-nav-link>
-                @if ($currentUser?->hasAnyRole(['coordinador', 'estratega', 'alumno']) ?? false)
+                @if ($currentUser?->hasAnyRole(['coordinador', 'estratega']) ?? false)
                     <x-nav-link :href="route('admin.documentos.index')" :active="request()->routeIs('admin.documentos.*')">
                         {{ __('Documentos') }}
                     </x-nav-link>
@@ -117,14 +117,14 @@
             </x-responsive-nav-link>
             @if ($showExpedientesLink)
                 <x-responsive-nav-link :href="route('expedientes.index')" :active="request()->routeIs('expedientes.*')">
-                    {{ __('Expedientes') }}
+                    Expedientes
                 </x-responsive-nav-link>
             @endif
             @if (($currentUser?->hasAnyRole(['admin', 'coordinador', 'estratega', 'alumno', 'docente']) ?? false) || $isApprovedPaps)
                 <x-responsive-nav-link :href="route('consultorios.index')" :active="request()->routeIs('consultorios.*')">
                     {{ __('Consultorios') }}
                 </x-responsive-nav-link>
-                @if ($currentUser?->hasAnyRole(['coordinador', 'estratega', 'alumno']) ?? false)
+                @if ($currentUser?->hasAnyRole(['coordinador', 'estratega']) ?? false)
                     <x-responsive-nav-link :href="route('admin.documentos.index')" :active="request()->routeIs('admin.documentos.*')">
                         {{ __('Documentos') }}
                     </x-responsive-nav-link>

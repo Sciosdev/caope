@@ -5,9 +5,9 @@ namespace Tests\Feature\Consentimientos;
 use App\Models\Consentimiento;
 use App\Models\Expediente;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\Sequence;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
-use Illuminate\Database\Eloquent\Factories\Sequence;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -75,9 +75,14 @@ class ConsentimientoPdfControllerTest extends TestCase
 
     public function test_plantilla_pdf_muestra_datos_del_consentimiento(): void
     {
+        $facilitador = User::factory()->create([
+            'name' => 'Facilitador Demo',
+        ]);
+
         $expediente = Expediente::factory()->create([
             'no_control' => 'CA-2024-0002',
             'paciente' => 'María López',
+            'creado_por' => $facilitador->id,
         ]);
 
         $consentimientos = Consentimiento::factory()
@@ -90,7 +95,7 @@ class ConsentimientoPdfControllerTest extends TestCase
             ->create();
 
         $html = view('consentimientos.pdf', [
-            'expediente' => $expediente->fresh(['tutor', 'coordinador']),
+            'expediente' => $expediente->fresh(['facilitador', 'tutor', 'coordinador']),
             'consentimientos' => $consentimientos,
             'fechaEmision' => Carbon::parse('2024-03-15 10:00'),
             'logoPath' => public_path('assets/images/others/logo-placeholder.png'),
@@ -99,6 +104,8 @@ class ConsentimientoPdfControllerTest extends TestCase
         ])->render();
 
         $this->assertStringContainsString('María López', $html);
+        $this->assertStringContainsString('Facilitador Demo', $html);
+        $this->assertStringContainsString('firma del facilitador responsable', $html);
         $this->assertStringContainsString('CA-2024-0002', $html);
         $this->assertStringContainsString('15/03/2024', $html);
         $this->assertStringContainsString('Limpieza dental', $html);

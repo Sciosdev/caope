@@ -4,6 +4,7 @@ use App\Console\Commands\CheckExpedienteSchema;
 use App\Console\Commands\ManageDeveloperAccess;
 use App\Console\Commands\RunPendingDeployment;
 use App\Http\Middleware\EnsureDeveloperConsoleAccess;
+use App\Http\Middleware\EnsurePapsIsApproved;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\RequireRecentDeveloperPassword;
 use Illuminate\Cache\RateLimiter as CacheRateLimiter;
@@ -34,6 +35,7 @@ $app = Application::configure(basePath: dirname(__DIR__))
             'role' => RoleMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
             'active_user' => EnsureUserIsActive::class,
+            'approved_paps' => EnsurePapsIsApproved::class,
             'developer.console' => EnsureDeveloperConsoleAccess::class,
             'developer.reauth' => RequireRecentDeveloperPassword::class,
         ]);

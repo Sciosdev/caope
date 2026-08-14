@@ -34,6 +34,7 @@ class RoleSeeder extends Seeder
             'admin' => $permissions,
             'coordinador' => ['expedientes.view', 'expedientes.manage', 'reportes.view', 'sesiones.validate'],
             'docente' => ['expedientes.view', 'sesiones.validate'],
+            'estratega' => ['expedientes.view', 'sesiones.validate'],
             'alumno' => ['expedientes.view'],
             'paps' => $permissions,
             'developer' => [],

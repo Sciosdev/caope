@@ -30,7 +30,13 @@ class ComentarioPolicy
 
     public function update(User $user, Comentario $comentario): bool
     {
-        if ($this->isAdminOrManager($user)) {
+        $comentable = $comentario->comentable;
+
+        if (! $comentable instanceof Model || ! $this->canInteractWithComentable($user, $comentable)) {
+            return false;
+        }
+
+        if ($this->isManager($user, $comentable)) {
             return true;
         }
 
@@ -39,7 +45,13 @@ class ComentarioPolicy
 
     public function delete(User $user, Comentario $comentario): bool
     {
-        if ($this->isAdminOrManager($user)) {
+        $comentable = $comentario->comentable;
+
+        if (! $comentable instanceof Model || ! $this->canInteractWithComentable($user, $comentable)) {
+            return false;
+        }
+
+        if ($this->isManager($user, $comentable)) {
             return true;
         }
 
@@ -51,12 +63,16 @@ class ComentarioPolicy
         return Gate::forUser($user)->check('view', $comentable);
     }
 
-    private function isAdminOrManager(User $user): bool
+    private function isManager(User $user, Model $comentable): bool
     {
-        if ($user->hasAnyRole(['admin', 'paps'])) {
+        if ($user->hasGlobalExpedienteAccess()) {
             return true;
         }
 
-        return $user->can('expedientes.manage');
+        $expediente = $comentable instanceof \App\Models\Expediente
+            ? $comentable
+            : ($comentable instanceof \App\Models\Sesion ? $comentable->expediente : null);
+
+        return $expediente !== null && $user->isCoordinatorOf($expediente);
     }
 }

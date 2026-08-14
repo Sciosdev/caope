@@ -14,7 +14,7 @@
         <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-center">
             <div>
                 <h4 class="mb-1">Tratamientos requeridos por carrera</h4>
-                <p class="text-muted mb-0">Selecciona qué tratamientos deben adjuntar los estudiantes de cada carrera al
+                <p class="text-muted mb-0">Selecciona qué tratamientos deben adjuntar los facilitadores de cada carrera al
                     momento de generar su consentimiento.</p>
             </div>
 

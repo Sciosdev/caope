@@ -19,20 +19,20 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class SesionController extends Controller
 {
-    public function __construct(private TimelineLogger $timelineLogger)
-    {
-    }
+    public function __construct(private TimelineLogger $timelineLogger) {}
 
     public function index(Request $request, Expediente $expediente): View
     {
         $this->authorize('view', $expediente);
 
         $sesiones = $expediente->sesiones()
+            ->visibleTo($request->user())
             ->with(['realizadaPor', 'validadaPor'])
             ->orderByDesc('fecha')
             ->paginate(10)
@@ -48,7 +48,7 @@ class SesionController extends Controller
     {
         $this->authorize('create', [Sesion::class, $expediente]);
 
-        $expediente->loadMissing('alumno');
+        $expediente->loadMissing('facilitador');
 
         $sesion = new Sesion([
             'fecha' => Carbon::today(),
@@ -101,6 +101,7 @@ class SesionController extends Controller
         $sesion->load(['realizadaPor', 'validadaPor', 'expediente', 'adjuntos.subidoPor']);
 
         $historialRevision = $expediente->timelineEventos()
+            ->visibleTo(request()->user())
             ->where('payload->sesion_id', $sesion->id)
             ->with('actor')
             ->orderByDesc('created_at')
@@ -255,7 +256,7 @@ class SesionController extends Controller
                 ->whereIn('id', $adjuntosEliminar)
                 ->get()
                 ->each(function ($adjunto): void {
-                    Storage::disk('public')->delete($adjunto->ruta);
+                    Storage::disk($adjunto->disk ?: 'public')->delete($adjunto->ruta);
                     $adjunto->delete();
                 });
         }
@@ -263,11 +264,13 @@ class SesionController extends Controller
         Collection::make($adjuntos)
             ->filter(fn ($file) => $file instanceof UploadedFile)
             ->each(function (UploadedFile $file) use ($sesion, $userId): void {
-                $path = $file->store("sesiones/{$sesion->id}", 'public');
+                $disk = config('filesystems.private_default', 'private');
+                $path = $file->store("sesiones/{$sesion->id}", $disk);
 
                 $sesion->adjuntos()->create([
                     'nombre_original' => $file->getClientOriginalName(),
                     'ruta' => $path,
+                    'disk' => $disk,
                     'mime_type' => $file->getClientMimeType(),
                     'tamano' => $file->getSize(),
                     'subido_por' => $userId,
@@ -280,7 +283,7 @@ class SesionController extends Controller
         $sesion->loadMissing('adjuntos');
 
         $sesion->adjuntos->each(function ($adjunto): void {
-            Storage::disk('public')->delete($adjunto->ruta);
+            Storage::disk($adjunto->disk ?: 'public')->delete($adjunto->ruta);
         });
 
         $sesion->adjuntos()->delete();
@@ -302,6 +305,8 @@ class SesionController extends Controller
             $expediente?->coordinador,
         ])->filter()
             ->unique(fn (User $user) => $user->id)
+            ->filter(fn (User $user) => $user->is_active
+                && Gate::forUser($user)->allows('view', $sesion))
             ->values();
     }
 }

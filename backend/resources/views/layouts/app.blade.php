@@ -103,7 +103,7 @@
                             @if ($showExpedientesLink)
                                 <li class="nav-item">
                                     <a class="nav-link {{ request()->routeIs('expedientes.*') ? 'active fw-semibold' : '' }}" href="{{ route('expedientes.index') }}">
-                                        {{ __('Expedientes') }}
+                                        Expedientes
                                     </a>
                                 </li>
                             @endif
@@ -120,7 +120,7 @@
                                         </a>
                                     </li>
                                 @endif
-                                @if ($currentUser?->hasAnyRole(['coordinador', 'estratega', 'alumno']) ?? false)
+                                @if ($currentUser?->hasAnyRole(['coordinador', 'estratega']) ?? false)
                                     <li class="nav-item">
                                         <a class="nav-link {{ request()->routeIs('admin.documentos.*') ? 'active fw-semibold' : '' }}" href="{{ route('admin.documentos.index') }}">
                                             {{ __('Documentos') }}

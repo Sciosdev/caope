@@ -57,7 +57,7 @@
                 <span class="fw-semibold">{{ $expediente->coordinador?->name ?? 'Sin asignar' }}</span>
             </div>
             <div class="col-md-4">
-                <span class="text-muted small d-block">Registrado por</span>
+                <span class="text-muted small d-block">Facilitador</span>
                 <span class="fw-semibold">{{ $expediente->creadoPor?->name ?? 'Desconocido' }}</span>
             </div>
         </div>
@@ -131,7 +131,7 @@
                         <dt class="col-sm-3">Número de control</dt>
                         <dd class="col-sm-9">{{ $expediente->no_control }}</dd>
 
-                        <dt class="col-sm-3">Consultante</dt>
+                        <dt class="col-sm-3">Alumno</dt>
                         <dd class="col-sm-9">{{ $expediente->paciente }}</dd>
 
                         <dt class="col-sm-3">Estratega</dt>
@@ -473,7 +473,7 @@
                             <span class="fw-semibold">{{ $expediente->no_control }}</span>
                         </div>
                         <div class="col-md-4">
-                            <span class="text-muted small d-block">Consultante</span>
+                            <span class="text-muted small d-block">Alumno</span>
                             <span class="fw-semibold">{{ $expediente->paciente }}</span>
                         </div>
                         <div class="col-md-4">
@@ -523,7 +523,7 @@
                         @can('update', $expediente)
                             <p class="text-muted small mb-3">
                                 Documenta los hallazgos finales y las decisiones de cierre del proceso. Asegúrate de capturar las notas de alta,
-                                las recomendaciones y el estatus acordado con el paciente.
+                                las recomendaciones y el estatus acordado con el alumno.
                             </p>
                             <form
                                 action="{{ route('expedientes.update', $expediente) }}"
@@ -1012,8 +1012,8 @@
                                 <div class="border rounded-3 bg-light p-3 h-100">
                                     <div class="row g-2 align-items-center mb-2">
                                         <div class="col-md-6">
-                                            <label class="form-label mb-1">Alumno</label>
-                                            <input type="text" class="form-control form-control-sm" value="{{ $expediente->alumno?->name ?? 'No asignado' }}" disabled>
+                                            <label class="form-label mb-1">Facilitador</label>
+                                            <input type="text" class="form-control form-control-sm" value="{{ $expediente->facilitador?->name ?? 'No asignado' }}" disabled>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label mb-1">Profesor</label>
@@ -1021,6 +1021,7 @@
                                                 name="tutor_id"
                                                 id="consentimientos-profesor"
                                                 class="form-select form-select-sm"
+                                                @disabled(! auth()->user()?->hasGlobalExpedienteAccess() && ! auth()->user()?->isCoordinatorOf($expediente))
                                             >
                                                 <option value="">Sin asignar</option>
                                                 @foreach ($profesores as $profesor)
@@ -1036,7 +1037,7 @@
                                     </div>
                                     <div class="row g-2 align-items-center mb-3">
                                         <div class="col-md-6">
-                                            <label class="form-label mb-1">Consultante</label>
+                                            <label class="form-label mb-1">Alumno</label>
                                             <input type="text" class="form-control form-control-sm" value="{{ $expediente->paciente ?? '—' }}" disabled>
                                         </div>
                                         <div class="col-md-6">
@@ -1142,8 +1143,8 @@
                                 <div class="border rounded-3 bg-light p-3 h-100">
                                     <div class="row g-2 align-items-center mb-2">
                                         <div class="col-md-6">
-                                            <label class="form-label mb-1">Alumno</label>
-                                            <input type="text" class="form-control form-control-sm" value="{{ $expediente->alumno?->name ?? 'No asignado' }}" disabled>
+                                            <label class="form-label mb-1">Facilitador</label>
+                                            <input type="text" class="form-control form-control-sm" value="{{ $expediente->facilitador?->name ?? 'No asignado' }}" disabled>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label mb-1">Profesor</label>
@@ -1152,7 +1153,7 @@
                                     </div>
                                     <div class="row g-2 align-items-center mb-3">
                                         <div class="col-md-6">
-                                            <label class="form-label mb-1">Consultante</label>
+                                            <label class="form-label mb-1">Alumno</label>
                                             <input type="text" class="form-control form-control-sm" value="{{ $expediente->paciente ?? '—' }}" disabled>
                                         </div>
                                         <div class="col-md-6">

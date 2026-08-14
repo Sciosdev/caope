@@ -110,4 +110,46 @@ class ComentarioApiTest extends TestCase
         $this->assertSame('Seguimiento del caso', $response->json('data.0.contenido'));
         $this->assertSame($docente->id, $response->json('data.0.autor.id'));
     }
+
+    public function test_inactive_user_cannot_read_or_write_comments_through_api(): void
+    {
+        $usuario = User::factory()->create(['is_active' => false]);
+        $usuario->assignRole('alumno');
+
+        $expediente = Expediente::factory()->create([
+            'creado_por' => $usuario->id,
+        ]);
+
+        $existingComment = Comentario::factory()->create([
+            'user_id' => $usuario->id,
+            'comentable_type' => Expediente::class,
+            'comentable_id' => $expediente->id,
+            'contenido' => 'Comentario existente',
+        ]);
+
+        $commentsBefore = Comentario::query()->count();
+        $eventsBefore = TimelineEvento::query()->count();
+
+        $this->actingAs($usuario)
+            ->getJson(route('api.comentarios.index', [
+                'comentable_type' => 'expediente',
+                'comentable_id' => $expediente->id,
+            ]))
+            ->assertForbidden();
+
+        $this->actingAs($usuario)
+            ->postJson(route('api.comentarios.store'), [
+                'comentable_type' => 'expediente',
+                'comentable_id' => $expediente->id,
+                'contenido' => 'Intento de escritura deshabilitado',
+            ])
+            ->assertForbidden();
+
+        $this->assertSame($commentsBefore, Comentario::query()->count());
+        $this->assertSame($eventsBefore, TimelineEvento::query()->count());
+        $this->assertDatabaseHas('comentarios', ['id' => $existingComment->id]);
+        $this->assertDatabaseMissing('comentarios', [
+            'contenido' => 'Intento de escritura deshabilitado',
+        ]);
+    }
 }

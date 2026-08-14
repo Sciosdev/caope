@@ -75,6 +75,7 @@ jobs:
             tests/Feature/Smoke/SecuritySmokeTest.php \
             tests/Feature/Auth/AuthenticationTest.php \
             tests/Feature/Auth/PasswordConfirmationTest.php
+          composer test:access-control
 
       - name: Simulate the cPanel bootstrap
         run: bash ../scripts/tests/bootstrap-cpanel-smoke.sh

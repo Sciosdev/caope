@@ -40,7 +40,7 @@
                                         <span class="badge text-bg-secondary">{{ __('Sin rol') }}</span>
                                     @else
                                         @foreach ($user->roles as $role)
-                                            <span class="badge text-bg-light text-capitalize">{{ $role->name }}</span>
+                                            <span class="badge text-bg-light text-capitalize">{{ $role->name === 'alumno' ? 'Facilitador' : $role->name }}</span>
                                         @endforeach
                                     @endif
                                 </td>

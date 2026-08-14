@@ -208,19 +208,7 @@ class ExpedienteController extends Controller
 
         return Expediente::query()
             ->with('creadoPor')
-            ->when(! $user->can('expedientes.manage'), function ($q) use ($user) {
-                if ($user->hasRole('paps')) {
-                    return;
-                }
-
-                if ($user->hasRole('docente')) {
-                    $q->where('tutor_id', $user->id);
-                } elseif ($user->hasRole('alumno')) {
-                    $q->where('creado_por', $user->id);
-                } else {
-                    $q->whereRaw('1 = 0');
-                }
-            })
+            ->visibleTo($user)
             ->when($busqueda, function ($q) use ($busqueda) {
                 $q->where(function ($w) use ($busqueda) {
                     $w->where('no_control', 'like', "%{$busqueda}%")
@@ -249,6 +237,15 @@ class ExpedienteController extends Controller
         $consultorioReservaData = data_get($request->validatedConsultorioReservaData(), 'consultorio_reserva', []);
         $data['clinica'] = 'Caope';
         $data = $this->applyPapsRestrictions($request, $data);
+
+        if (! $request->user()->hasGlobalExpedienteAccess()) {
+            foreach (['tutor_id', 'coordinador_id'] as $assignment) {
+                if ((int) ($data[$assignment] ?? 0) === (int) $request->user()->getKey()) {
+                    unset($data[$assignment]);
+                }
+            }
+        }
+
         Log::debug('Validated expediente data for creation', [
             'user_id' => $request->user()?->id,
             'validated_keys' => array_keys($data),
@@ -269,7 +266,7 @@ class ExpedienteController extends Controller
             && $data['observaciones_relevantes'] !== null
             && $data['observaciones_relevantes'] !== '';
 
-        [$data, $missingColumns] = $this->prepareExpedienteColumns($data, new Expediente());
+        [$data, $missingColumns] = $this->prepareExpedienteColumns($data, new Expediente);
 
         if (! empty($missingColumns)) {
             Log::error('Expediente creation aborted due to missing columns', [
@@ -289,7 +286,7 @@ class ExpedienteController extends Controller
         }
 
         $data['creado_por'] = $request->user()->id;
-        $data['estado'] = $data['estado'] ?? 'abierto';
+        $data['estado'] = 'abierto';
 
         try {
             Log::info('Attempting to create expediente', [
@@ -426,14 +423,20 @@ class ExpedienteController extends Controller
 
         $expediente->load([
             'creadoPor',
-            'alumno',
+            'facilitador',
             'tutor',
             'coordinador',
             'registroUrgencia',
-            'sesiones' => fn ($q) => $q->with(['realizadaPor', 'validadaPor'])->orderByDesc('fecha'),
+            'sesiones' => fn ($q) => $q
+                ->visibleTo($request->user())
+                ->with(['realizadaPor', 'validadaPor'])
+                ->orderByDesc('fecha'),
             'consentimientos' => fn ($q) => $q->with('subidoPor')->orderByDesc('requerido')->orderBy('tratamiento'),
             'anexos' => fn ($q) => $q->with('subidoPor')->filter($activeFilters)->latest(),
-            'timelineEventos' => fn ($q) => $q->with('actor')->orderByDesc('created_at'),
+            'timelineEventos' => fn ($q) => $q
+                ->visibleTo($request->user())
+                ->with('actor')
+                ->orderByDesc('created_at'),
         ]);
 
         $this->hydrateAnexoLinks($expediente);
@@ -443,7 +446,11 @@ class ExpedienteController extends Controller
         $anexosMax = AnexoUploadOptions::maxKilobytes();
         $consentimientoMimes = (string) Parametro::obtener('uploads.consentimientos.mimes', 'pdf,jpg,jpeg');
         $consentimientoMax = (int) Parametro::obtener('uploads.consentimientos.max', 5120);
-        $profesores = User::role('docente')->orderBy('name')->get();
+        $canChangeAssignments = $request->user()->hasGlobalExpedienteAccess()
+            || $request->user()->isCoordinatorOf($expediente);
+        $profesores = $canChangeAssignments
+            ? User::role('docente')->orderBy('name')->get()
+            : collect([$expediente->tutor])->filter();
 
         $familyHistory = $expediente->antecedentes_familiares ?? Expediente::defaultFamilyHistory();
         $personalPathologicalHistory = $expediente->antecedentes_personales_patologicos
@@ -497,7 +504,7 @@ class ExpedienteController extends Controller
     {
         $this->authorize('update', $expediente);
 
-        $options = $this->formOptions();
+        $options = $this->formOptions($expediente);
 
         return view('expedientes.edit', array_merge($options, [
             'expediente' => $expediente,
@@ -508,6 +515,18 @@ class ExpedienteController extends Controller
     {
         $data = $request->validatedExpedienteData();
         $data = $this->applyPapsRestrictions($request, $data, $expediente);
+        unset($data['estado']);
+
+        if (array_key_exists('resumen_clinico', $data)) {
+            $summary = is_array($data['resumen_clinico']) ? $data['resumen_clinico'] : [];
+            $summary['cubiculo'] = data_get($expediente->resumen_clinico ?? [], 'cubiculo');
+            $data['resumen_clinico'] = $summary;
+        }
+
+        if (! $this->canChangeAssignments($request->user(), $expediente)) {
+            unset($data['tutor_id'], $data['coordinador_id']);
+        }
+
         [$data, $missingColumns] = $this->prepareExpedienteColumns($data, $expediente, applyDefaults: false);
 
         if (! empty($missingColumns)) {
@@ -730,7 +749,9 @@ class ExpedienteController extends Controller
      */
     private function syncConsultorioReservaFromPayload(Request $request, array $payload): void
     {
-        if (! $request->user()?->hasAnyRole(['paps', 'admin', 'alumno'])) {
+        $user = $request->user();
+
+        if (! $user || (! $user->hasRole('admin') && ! $user->isApprovedPaps() && ! $user->hasRole('alumno'))) {
             return;
         }
 
@@ -783,7 +804,7 @@ class ExpedienteController extends Controller
             'origen_expediente' => true,
         ]);
 
-        if ($request->user()?->hasRole('paps') && Schema::hasTable('consultorio_reserva_solicitudes')) {
+        if ($request->user()?->isApprovedPaps() && Schema::hasTable('consultorio_reserva_solicitudes')) {
             ConsultorioReservaSolicitud::query()->create([
                 'consultorio_reserva_id' => $reserva->id,
                 'requested_by' => $request->user()->id,
@@ -872,19 +893,36 @@ class ExpedienteController extends Controller
         }
     }
 
-    protected function formOptions(): array
+    protected function formOptions(?Expediente $expediente = null): array
     {
+        $user = auth()->user();
+        $canChangeAssignments = $expediente === null
+            || ($user !== null
+                && ($user->hasGlobalExpedienteAccess() || $user->isCoordinatorOf($expediente)));
+
         $carreras = CatalogoCarrera::activos()->pluck('nombre');
 
         $turnos = CatalogoTurno::activos()->pluck('nombre');
 
-        $tutores = User::role('docente')->orderBy('name')->get();
-        $coordinadores = User::role('coordinador')->orderBy('name')->get();
-        $cubiculos = CatalogoCubiculo::activos()->sortBy('numero')->values();
+        $tutores = $canChangeAssignments
+            ? User::role('docente')->orderBy('name')->get()
+            : collect([$expediente?->tutor])->filter();
+        $coordinadores = $canChangeAssignments
+            ? User::role('coordinador')->orderBy('name')->get()
+            : collect([$expediente?->coordinador])->filter();
+        $cubiculos = $expediente === null
+            ? CatalogoCubiculo::activos()->sortBy('numero')->values()
+            : CatalogoCubiculo::activos()
+                ->where('numero', data_get($expediente->resumen_clinico ?? [], 'cubiculo'))
+                ->values();
         $consultoriosActivos = CatalogoConsultorio::activos();
         $estrategiasActivas = CatalogoEstrategia::activos();
-        $usuariosActivos = User::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']);
-        $docentes = User::role('docente')->where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        $usuariosActivos = $expediente === null
+            ? User::query()->where('is_active', true)->orderBy('name')->get(['id', 'name'])
+            : collect([$expediente->facilitador])->filter();
+        $docentes = $expediente === null
+            ? User::role('docente')->where('is_active', true)->orderBy('name')->get(['id', 'name'])
+            : collect([$expediente->tutor])->filter();
 
         $generos = collect(Expediente::GENERO_OPTIONS)
             ->mapWithKeys(function (string $value) {
@@ -931,6 +969,7 @@ class ExpedienteController extends Controller
     {
         $expediente->load([
             'alumno',
+            'facilitador',
             'tutor',
             'coordinador',
             'anexos' => fn ($query) => $query->with('subidoPor')->latest(),
@@ -968,7 +1007,7 @@ class ExpedienteController extends Controller
      */
     private function applyPapsRestrictions(Request $request, array $data, ?Expediente $expediente = null): array
     {
-        if (! $request->user()?->hasRole('paps')) {
+        if (! $request->user()?->isApprovedPaps()) {
             return $data;
         }
 
@@ -985,6 +1024,12 @@ class ExpedienteController extends Controller
         }
 
         return $data;
+    }
+
+    private function canChangeAssignments(?User $user, Expediente $expediente): bool
+    {
+        return $user !== null
+            && ($user->hasGlobalExpedienteAccess() || $user->isCoordinatorOf($expediente));
     }
 
     /**
@@ -1013,8 +1058,10 @@ class ExpedienteController extends Controller
      */
     private function resolveUrgencyPayloadForUser(Request $request, array $data): array
     {
-        if (! $request->user()?->hasRole('paps')) {
-            return $data;
+        $user = $request->user();
+
+        if (! $user || (! $user->hasRole('admin') && ! $user->isApprovedPaps())) {
+            return [];
         }
 
         if ($data !== []) {
@@ -1056,5 +1103,4 @@ class ExpedienteController extends Controller
         $this->expedienteContacts($expediente)
             ->each(fn (User $user) => $user->notify(new ExpedienteClosedNotification($expediente, $actor)));
     }
-
 }

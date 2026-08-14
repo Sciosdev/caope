@@ -103,7 +103,7 @@
             <div class="col-md-6">
                 <label for="nombre_facilitador" class="form-label">Nombre del facilitador</label>
                 <input type="text" name="nombre_facilitador" id="nombre_facilitador" maxlength="120"
-                    value="{{ old('nombre_facilitador', $sesion->nombre_facilitador ?? $expediente->alumno?->name) }}"
+                    value="{{ old('nombre_facilitador', $sesion->nombre_facilitador ?? $expediente->facilitador?->name) }}"
                     class="form-control @error('nombre_facilitador') is-invalid @enderror" placeholder="Opcional" readonly>
                 @error('nombre_facilitador')
                     <div class="invalid-feedback">{{ $message }}</div>

@@ -20,6 +20,21 @@ class ConsultorioReservaTest extends TestCase
     {
         parent::setUp();
 
+        foreach (['admin', 'paps', 'coordinador', 'alumno', 'docente'] as $role) {
+            Role::query()->firstOrCreate(['name' => $role, 'guard_name' => 'web']);
+        }
+
+        CatalogoConsultorio::query()->firstOrCreate([
+            'nombre' => 'Consultorio 1',
+            'numero' => 1,
+            'activo' => true,
+        ]);
+        CatalogoConsultorio::query()->firstOrCreate([
+            'nombre' => 'Consultorio 2',
+            'numero' => 2,
+            'activo' => true,
+        ]);
+
         CatalogoConsultorio::query()->firstOrCreate([
             'nombre' => 'Consultorio 3',
             'numero' => 3,
@@ -154,7 +169,7 @@ class ConsultorioReservaTest extends TestCase
     public function test_puede_registrar_reserva_desde_peticion_json(): void
     {
         $role = Role::query()->firstOrCreate(['name' => 'paps', 'guard_name' => 'web']);
-        $paps = User::factory()->create();
+        $paps = User::factory()->create(['approved_at' => now()]);
         $paps->assignRole($role);
 
         $response = $this->actingAs($paps)->postJson(route('consultorios.store'), [
@@ -165,6 +180,7 @@ class ConsultorioReservaTest extends TestCase
             'consultorio_numero' => 3,
             'cubiculo_numero' => 1,
             'estrategia' => 'Intervención breve',
+            'origen_expediente' => true,
         ]);
 
         $response
@@ -268,9 +284,6 @@ class ConsultorioReservaTest extends TestCase
             ->assertJsonPath('reservas.0.estrategia', 'Asignada al coordinador');
     }
 
-
-
-
     public function test_index_muestra_usuario_que_captura_accion_realizada_y_fecha_base_actual(): void
     {
         $role = Role::query()->firstOrCreate(['name' => 'paps', 'guard_name' => 'web']);
@@ -289,6 +302,7 @@ class ConsultorioReservaTest extends TestCase
             'consultorio_numero' => 3,
             'cubiculo_numero' => 1,
             'estrategia' => 'Intervención breve',
+            'usuario_atendido_id' => $paps->id,
             'creado_por' => $paps->id,
             'origen_expediente' => true,
         ]);
@@ -301,7 +315,7 @@ class ConsultorioReservaTest extends TestCase
             ->assertOk()
             ->assertSee('Facilitador')
             ->assertSee('Usuario PAPS')
-            ->assertSee('Alta automática (asignación de cubículo desde expediente)')
+            ->assertSee('Alta automática (asignación de consultorio desde expediente)')
             ->assertSee('Solicitar edición')
             ->assertSee('Solicitar baja')
             ->assertSee('id="bitacora-fecha-base" name="bitacora_inicio" value="'.$fecha.'"', false);
@@ -348,8 +362,7 @@ class ConsultorioReservaTest extends TestCase
         $this->actingAs($admin)
             ->get(route('consultorios.index', ['fecha' => $fecha]))
             ->assertOk()
-            ->assertSee('Intervención breve')
-            ->assertDontSee('Otra estrategia');
+            ->assertViewHas('reservas', fn ($reservas) => $reservas->pluck('id')->all() === [$reservaVisible->id]);
 
         $this->actingAs($admin)
             ->getJson(route('consultorios.availability', [
@@ -557,7 +570,6 @@ class ConsultorioReservaTest extends TestCase
         $response->assertRedirect(route('consultorios.index'));
         $this->assertGreaterThan(1, ConsultorioReserva::query()->count());
     }
-
 
     public function test_elimina_registros_seleccionados_en_bitacora(): void
     {
@@ -899,6 +911,4 @@ class ConsultorioReservaTest extends TestCase
             ->get(route('admin.consultorios.solicitudes.index'))
             ->assertForbidden();
     }
-
-
 }

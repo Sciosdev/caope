@@ -15,6 +15,11 @@ class Anexo extends Model
 
     protected $guarded = [];
 
+    protected $hidden = [
+        'ruta',
+        'disk',
+    ];
+
     protected $casts = [
         'es_privado' => 'boolean',
     ];
