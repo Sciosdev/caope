@@ -48,6 +48,13 @@ class ProfileUpdateRequest extends FormRequest
                 'max:20',
                 Rule::exists('catalogo_turnos', 'nombre')->where('activo', true),
             ],
+            'current_password' => [
+                Rule::requiredIf(
+                    fn (): bool => (string) $this->input('email') !== (string) $this->user()->email
+                ),
+                'nullable',
+                'current_password',
+            ],
         ];
     }
 }

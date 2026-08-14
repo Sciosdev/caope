@@ -63,7 +63,8 @@ class RegisteredUserController extends Controller
         ]);
 
         $user = DB::transaction(function () use ($request): User {
-            $user = User::create([
+            $user = new User;
+            $user->forceFill([
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
@@ -71,7 +72,7 @@ class RegisteredUserController extends Controller
                 'turno' => $request->input('turno'),
                 'is_active' => false,
                 'approved_at' => null,
-            ]);
+            ])->save();
 
             $user->syncRoles(['alumno']);
 

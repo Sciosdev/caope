@@ -48,6 +48,21 @@
         </div>
 
         <div>
+            <x-input-label for="current_password" :value="__('Contraseña actual')" />
+            <x-text-input
+                id="current_password"
+                name="current_password"
+                type="password"
+                class="mt-1 block w-full"
+                autocomplete="current-password"
+            />
+            <p class="mt-1 text-sm text-gray-600">
+                {{ __('Es obligatoria únicamente cuando cambias tu correo electrónico.') }}
+            </p>
+            <x-input-error class="mt-2" :messages="$errors->get('current_password')" />
+        </div>
+
+        <div>
             <x-input-label for="carrera" :value="__('Carrera')" />
             <select
                 id="carrera"

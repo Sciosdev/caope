@@ -20,6 +20,7 @@ class UserManagementTest extends TestCase
         parent::setUp();
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $this->withSession(['auth.password_confirmed_at' => time()]);
     }
 
     public function test_guest_is_redirected_from_user_index(): void
@@ -109,6 +110,75 @@ class UserManagementTest extends TestCase
 
         $created = User::where('email', 'nuevo@example.com')->firstOrFail();
         $this->assertTrue($created->hasRole('tutor'));
+    }
+
+    public function test_sensitive_user_mutations_require_recent_password_confirmation(): void
+    {
+        $this->seedRoles();
+
+        $admin = User::factory()->create();
+        $admin->syncRoles(['admin']);
+
+        $target = User::factory()->create(['is_active' => true]);
+        $target->syncRoles(['tutor']);
+
+        $response = $this
+            ->actingAs($admin)
+            ->withSession(['auth.password_confirmed_at' => 0])
+            ->patch(route('admin.users.toggle-active', $target), ['is_active' => false]);
+
+        $response->assertRedirect(route('password.confirm'));
+        $this->assertTrue($target->fresh()->is_active);
+    }
+
+    public function test_admin_form_can_explicitly_remove_approval_and_access(): void
+    {
+        $this->seedRoles();
+
+        $admin = User::factory()->create();
+        $admin->syncRoles(['admin']);
+
+        $target = User::factory()->create([
+            'is_active' => true,
+            'approved_at' => now(),
+        ]);
+        $target->syncRoles(['tutor']);
+
+        $this->actingAs($admin)
+            ->put(route('admin.users.update', $target), [
+                'name' => $target->name,
+                'email' => $target->email,
+                'roles' => ['tutor'],
+                'approved' => '0',
+                'is_active' => '0',
+            ])
+            ->assertRedirect(route('admin.users.index'));
+
+        $target->refresh();
+        $this->assertFalse($target->is_active);
+        $this->assertNull($target->approved_at);
+    }
+
+    public function test_enabling_access_does_not_implicitly_approve_account(): void
+    {
+        $this->seedRoles();
+
+        $admin = User::factory()->create();
+        $admin->syncRoles(['admin']);
+
+        $target = User::factory()->create([
+            'is_active' => false,
+            'approved_at' => null,
+        ]);
+        $target->syncRoles(['tutor']);
+
+        $this->actingAs($admin)
+            ->patch(route('admin.users.toggle-active', $target), ['is_active' => true])
+            ->assertRedirect(route('admin.users.index'));
+
+        $target->refresh();
+        $this->assertTrue($target->is_active);
+        $this->assertNull($target->approved_at);
     }
 
     public function test_developer_role_cannot_be_assigned_from_user_management(): void

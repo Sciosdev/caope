@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Models\CatalogoCarrera;
 use App\Models\CatalogoTurno;
+use App\Services\Security\AccountSessionManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
 
@@ -28,15 +31,35 @@ class ProfileController extends Controller
     /**
      * Update the user's profile information.
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
-    {
-        $request->user()->fill($request->validated());
+    public function update(
+        ProfileUpdateRequest $request,
+        AccountSessionManager $accountSessions
+    ): RedirectResponse {
+        $user = $request->user();
+        $originalEmail = $user->email;
+        $emailChanged = (string) $request->validated('email') !== (string) $originalEmail;
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        DB::transaction(function () use ($request, $accountSessions, $user, $originalEmail, $emailChanged): void {
+            $user->fill(Arr::except($request->validated(), ['current_password']));
+
+            if ($emailChanged) {
+                $user->email_verified_at = null;
+            }
+
+            $user->save();
+
+            if ($emailChanged) {
+                $accountSessions->revokeOtherSessions(
+                    $user,
+                    $request->session()->getId(),
+                    [$originalEmail]
+                );
+            }
+        });
+
+        if ($emailChanged) {
+            $request->session()->regenerate();
         }
-
-        $request->user()->save();
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
@@ -44,8 +67,10 @@ class ProfileController extends Controller
     /**
      * Delete the user's account.
      */
-    public function destroy(Request $request): RedirectResponse
-    {
+    public function destroy(
+        Request $request,
+        AccountSessionManager $accountSessions
+    ): RedirectResponse {
         $request->validateWithBag('userDeletion', [
             'password' => ['required', 'current_password'],
         ]);
@@ -54,7 +79,10 @@ class ProfileController extends Controller
 
         Auth::logout();
 
-        $user->delete();
+        DB::transaction(function () use ($accountSessions, $user): void {
+            $accountSessions->revokeAll($user);
+            $user->delete();
+        });
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

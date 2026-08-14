@@ -25,6 +25,8 @@ class ProductionSecurityAuditTest extends TestCase
             'app.cipher' => 'AES-256-CBC',
             'app.url' => 'https://caope.ayudafesi.com',
             'security.trusted_hosts' => ['caope.ayudafesi.com'],
+            'session.driver' => 'database',
+            'session.encrypt' => true,
             'session.secure' => true,
             'backup.backup.password' => self::BACKUP_PASSWORD,
         ]);
@@ -34,7 +36,7 @@ class ProductionSecurityAuditTest extends TestCase
     {
         $checks = app(ProductionSecurityAudit::class)->run();
 
-        $this->assertCount(6, $checks);
+        $this->assertCount(7, $checks);
         $this->assertSame([], array_values(array_filter(
             $checks,
             static fn (array $check): bool => $check['status'] !== 'ok'
@@ -51,6 +53,8 @@ class ProductionSecurityAuditTest extends TestCase
             'app.debug' => true,
             'app.key' => $invalidKey,
             'app.url' => 'http://untrusted.example.test',
+            'session.driver' => 'file',
+            'session.encrypt' => false,
             'session.secure' => false,
             'backup.backup.password' => null,
         ]);
@@ -64,6 +68,7 @@ class ProductionSecurityAuditTest extends TestCase
                 'security_app_key',
                 'security_app_url',
                 'security_session_cookie',
+                'security_session_storage',
                 'security_backup_encryption',
             ],
             array_column(array_filter(
@@ -114,6 +119,26 @@ class ProductionSecurityAuditTest extends TestCase
 
         $this->assertSame(
             ['security_backup_encryption'],
+            array_column(app(ProductionSecurityAudit::class)->errors(), 'id')
+        );
+    }
+
+    public function test_deployed_sessions_must_be_database_backed_and_encrypted(): void
+    {
+        config(['session.driver' => 'file']);
+
+        $this->assertSame(
+            ['security_session_storage'],
+            array_column(app(ProductionSecurityAudit::class)->errors(), 'id')
+        );
+
+        config([
+            'session.driver' => 'database',
+            'session.encrypt' => false,
+        ]);
+
+        $this->assertSame(
+            ['security_session_storage'],
             array_column(app(ProductionSecurityAudit::class)->errors(), 'id')
         );
     }

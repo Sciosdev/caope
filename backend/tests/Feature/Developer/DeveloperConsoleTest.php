@@ -42,6 +42,8 @@ class DeveloperConsoleTest extends TestCase
             'app.key' => 'base64:'.base64_encode(random_bytes(32)),
             'app.url' => 'https://caope.ayudafesi.com',
             'security.trusted_hosts' => ['caope.ayudafesi.com'],
+            'session.driver' => 'database',
+            'session.encrypt' => true,
             'session.secure' => true,
             'backup.backup.password' => 'testing-backup-password-32-characters',
         ]);

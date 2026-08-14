@@ -34,7 +34,7 @@ class ExpedienteVisibilityScopeTest extends TestCase
         $coordinador = $this->userWithRole('coordinador');
         $admin = $this->userWithRole('admin');
         $paps = $this->userWithRole('paps');
-        $paps->update(['approved_at' => now()]);
+        $paps->forceFill(['approved_at' => now()])->save();
         $neutral = User::factory()->create();
 
         $facilitado = Expediente::factory()->create([

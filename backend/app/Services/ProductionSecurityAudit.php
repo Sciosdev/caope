@@ -27,6 +27,7 @@ final class ProductionSecurityAudit
             $this->applicationKey(),
             $this->applicationUrl($profile),
             $this->secureSessionCookie(),
+            $this->revocableEncryptedSessions(),
             $this->encryptedBackups(),
         ];
     }
@@ -132,6 +133,16 @@ final class ProductionSecurityAudit
         return config('session.secure') === true
             ? $this->result('security_session_cookie', 'Cookie de sesión', 'ok', 'La cookie de sesión está limitada a HTTPS.')
             : $this->result('security_session_cookie', 'Cookie de sesión', 'error', 'SESSION_SECURE_COOKIE debe estar activada en servidores desplegados.');
+    }
+
+    /**
+     * @return array{id: string, label: string, status: string, summary: string, details: null}
+     */
+    private function revocableEncryptedSessions(): array
+    {
+        return config('session.driver') === 'database' && config('session.encrypt') === true
+            ? $this->result('security_session_storage', 'Sesiones protegidas', 'ok', 'Las sesiones pueden revocarse y permanecen cifradas en la base de datos.')
+            : $this->result('security_session_storage', 'Sesiones protegidas', 'error', 'SESSION_DRIVER debe ser database y SESSION_ENCRYPT debe estar activada.');
     }
 
     /**

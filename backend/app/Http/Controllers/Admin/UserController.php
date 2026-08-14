@@ -6,12 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Models\CatalogoCarrera;
 use App\Models\CatalogoTurno;
 use App\Models\User;
+use App\Services\Security\AccountSessionManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Role;
 
@@ -19,8 +23,9 @@ class UserController extends Controller
 {
     private const PAPS_MANAGEABLE_ROLES = ['alumno', 'docente', 'coordinador', 'estratega', 'tutor'];
 
-    public function __construct()
-    {
+    public function __construct(
+        private readonly AccountSessionManager $accountSessions
+    ) {
         $this->middleware('role:admin|paps');
         $this->middleware(function (Request $request, $next) {
             $actor = $request->user();
@@ -69,7 +74,7 @@ class UserController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => ['required', 'string', Password::defaults(), 'confirmed'],
             'roles' => ['required', 'array', 'min:1'],
             'roles.*' => ['string', Rule::in(array_keys($this->availableRoles()))],
             'carrera' => ['nullable', 'string', 'max:100'],
@@ -79,11 +84,14 @@ class UserController extends Controller
         ]);
 
         $payload = Arr::only($validated, ['name', 'email', 'password', 'carrera', 'turno']);
-        $payload['is_active'] = (bool) ($validated['is_active'] ?? true);
-        $payload['approved_at'] = (bool) ($validated['approved'] ?? false) ? Carbon::now() : null;
+        $payload['is_active'] = $request->boolean('is_active');
+        $payload['approved_at'] = $request->boolean('approved') ? Carbon::now() : null;
 
-        $user = User::create($payload);
-        $user->syncRoles($validated['roles']);
+        DB::transaction(function () use ($payload, $validated): void {
+            $user = new User;
+            $user->forceFill($payload)->save();
+            $user->syncRoles($validated['roles']);
+        });
 
         return Redirect::route('admin.users.index')->with('status', __('Usuario creado correctamente.'));
     }
@@ -121,7 +129,7 @@ class UserController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,'.$user->id],
-            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+            'password' => ['nullable', 'string', Password::defaults(), 'confirmed'],
             'roles' => ['required', 'array', 'min:1'],
             'roles.*' => ['string', Rule::in(array_keys($this->availableRoles()))],
             'carrera' => ['nullable', 'string', 'max:100'],
@@ -136,16 +144,50 @@ class UserController extends Controller
             ]);
         }
 
+        $originalEmail = $user->email;
+        $emailChanged = (string) $validated['email'] !== (string) $originalEmail;
+        $passwordChanged = ! empty($validated['password']);
+        $rolesChanged = collect($validated['roles'])->sort()->values()->all()
+            !== $user->roles->pluck('name')->sort()->values()->all();
+
         $data = Arr::only($validated, ['name', 'email', 'carrera', 'turno']);
-        $data['is_active'] = (bool) ($validated['is_active'] ?? $user->is_active);
-        $data['approved_at'] = (bool) ($validated['approved'] ?? (bool) $user->approved_at) ? ($user->approved_at ?? Carbon::now()) : null;
+        $data['is_active'] = array_key_exists('is_active', $validated)
+            ? $request->boolean('is_active')
+            : $user->is_active;
+        $data['approved_at'] = array_key_exists('approved', $validated)
+            ? ($request->boolean('approved') ? ($user->approved_at ?? Carbon::now()) : null)
+            : $user->approved_at;
+
+        if ($emailChanged) {
+            $data['email_verified_at'] = null;
+        }
 
         if (! empty($validated['password'])) {
             $data['password'] = $validated['password'];
         }
 
-        $user->update($data);
-        $user->syncRoles($validated['roles']);
+        $accessChanged = (bool) $data['is_active'] !== (bool) $user->is_active
+            || ($data['approved_at'] === null) !== ($user->approved_at === null)
+            || $rolesChanged;
+
+        DB::transaction(function () use (
+            $user,
+            $data,
+            $validated,
+            $emailChanged,
+            $passwordChanged,
+            $accessChanged,
+            $originalEmail
+        ): void {
+            $this->ensureAdminInvariant($user, $validated['roles']);
+
+            $user->forceFill($data)->save();
+            $user->syncRoles($validated['roles']);
+
+            if ($emailChanged || $passwordChanged || $accessChanged) {
+                $this->accountSessions->revokeAll($user, [$originalEmail]);
+            }
+        });
 
         return Redirect::route('admin.users.index')->with('status', __('Usuario actualizado correctamente.'));
     }
@@ -155,10 +197,10 @@ class UserController extends Controller
         $this->ensureCanManage($user);
 
         if (! $user->approved_at) {
-            $user->update([
+            $user->forceFill([
                 'approved_at' => Carbon::now(),
                 'is_active' => true,
-            ]);
+            ])->save();
         }
 
         return Redirect::route('admin.users.index')->with('status', __('Usuario aprobado correctamente.'));
@@ -178,10 +220,15 @@ class UserController extends Controller
 
         $isActive = (bool) $request->boolean('is_active');
 
-        $user->update([
-            'is_active' => $isActive,
-            'approved_at' => $isActive ? ($user->approved_at ?? Carbon::now()) : $user->approved_at,
-        ]);
+        DB::transaction(function () use ($user, $isActive): void {
+            $user->forceFill([
+                'is_active' => $isActive,
+            ])->save();
+
+            if (! $isActive) {
+                $this->accountSessions->revokeAll($user);
+            }
+        });
 
         return Redirect::route('admin.users.index')->with('status', __('Acceso actualizado correctamente.'));
     }
@@ -200,7 +247,11 @@ class UserController extends Controller
             ]);
         }
 
-        $user->delete();
+        DB::transaction(function () use ($user): void {
+            $this->ensureAdminInvariant($user);
+            $this->accountSessions->revokeAll($user);
+            $user->delete();
+        });
 
         return Redirect::route('admin.users.index')->with('status', __('Usuario eliminado correctamente.'));
     }
@@ -274,6 +325,34 @@ class UserController extends Controller
         }
 
         return User::role('admin')->count() <= 1;
+    }
+
+    /**
+     * Re-check the final administrator invariant while holding row locks.
+     *
+     * @param  array<int, string>|null  $newRoles
+     *
+     * @throws ValidationException
+     */
+    private function ensureAdminInvariant(User $user, ?array $newRoles = null): void
+    {
+        if (! $user->hasRole('admin')) {
+            return;
+        }
+
+        if (is_array($newRoles) && in_array('admin', $newRoles, true)) {
+            return;
+        }
+
+        $adminIds = User::role('admin')
+            ->lockForUpdate()
+            ->pluck('users.id');
+
+        if ($adminIds->count() <= 1) {
+            throw ValidationException::withMessages([
+                'user' => __('Debe permanecer al menos un usuario con rol de administrador.'),
+            ]);
+        }
     }
 
     private function catalogOptions(): array

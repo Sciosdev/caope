@@ -63,11 +63,24 @@ $app->booted(function () use ($app): void {
         $email = strtolower((string) $request->input('email'));
         $identifier = $email !== '' ? $email.'|'.$request->ip() : $request->ip();
 
-        return Limit::perMinute(5)->by($identifier);
+        return [
+            Limit::perMinute(5)->by('login-account|'.$identifier),
+            Limit::perMinute(30)->by('login-ip|'.$request->ip()),
+        ];
     });
 
     $limiter->for('auth-general', function (Request $request) {
         return Limit::perMinute(10)->by($request->ip());
+    });
+
+    $limiter->for('auth-sensitive', function (Request $request) {
+        $userKey = (string) optional($request->user())->getAuthIdentifier();
+        $identifier = $userKey !== '' ? $userKey.'|'.$request->ip() : $request->ip();
+
+        return [
+            Limit::perMinute(10)->by('auth-sensitive-user|'.$identifier),
+            Limit::perMinute(30)->by('auth-sensitive-ip|'.$request->ip()),
+        ];
     });
 
     $limiter->for('uploads.consentimientos', function (Request $request) {
