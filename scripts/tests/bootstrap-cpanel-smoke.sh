@@ -83,6 +83,7 @@ fi
 
 if [[ "${1:-}" == 'artisan' ]]; then
     shift
+    printf 'config-cache:%s\n' "${APP_CONFIG_CACHE:-}" >> "${CAOPE_TEST_LOG}"
     printf 'artisan:%s\n' "$*" >> "${CAOPE_TEST_LOG}"
     exit 0
 fi
@@ -122,6 +123,12 @@ assert_contains 'composer:install --no-dev' "${TEST_LOG}"
 assert_contains 'composer:check-platform-reqs --no-dev' "${TEST_LOG}"
 assert_contains 'artisan:migrate --force' "${TEST_LOG}"
 assert_contains 'artisan:up' "${TEST_LOG}"
+assert_contains "config-cache:${FIXTURE_ROOT}/backend/bootstrap/cache/.caope-uncached-config-" \
+    "${TEST_LOG}"
+
+if grep -F -- 'config-cache:/dev/null' "${TEST_LOG}" >/dev/null; then
+    fail 'El bootstrap no debe usar /dev/null como caché de configuración.'
+fi
 assert_contains '"sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' \
     "${FIXTURE_ROOT}/backend/storage/app/deployment/version.json"
 assert_contains '"request_id":"cpanel-bootstrap"' \

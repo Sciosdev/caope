@@ -11,12 +11,25 @@ VERSION_MARKER_PATH="${APPLICATION_ROOT}/storage/app/deployment/version.json"
 COMPOSER_TOOLS_DIRECTORY="${APPLICATION_ROOT}/storage/app/tools"
 COMPOSER_INSTALLER_PATH="${COMPOSER_TOOLS_DIRECTORY}/composer-setup.php"
 LOCAL_COMPOSER_PATH="${COMPOSER_TOOLS_DIRECTORY}/composer.phar"
+UNCACHED_CONFIG_PATH="${APPLICATION_ROOT}/bootstrap/cache/.caope-uncached-config-$$-${RANDOM}.php"
 APP_WAS_DOWN=0
 LOCK_ACQUIRED=0
 
 fail() {
     echo "ERROR: $1" >&2
     exit 1
+}
+
+report_unexpected_error() {
+    local exit_code="$1"
+    local line_number="$2"
+
+    echo "ERROR: El despliegue falló en la etapa interna ${line_number} (código ${exit_code})." >&2
+    exit "${exit_code}"
+}
+
+run_without_config_cache() {
+    APP_CONFIG_CACHE="${UNCACHED_CONFIG_PATH}" "$@"
 }
 
 resolve_executable() {
@@ -36,7 +49,7 @@ cleanup() {
 
     trap - EXIT INT TERM
     set +e
-    rm -f -- "${COMPOSER_INSTALLER_PATH}"
+    rm -f -- "${COMPOSER_INSTALLER_PATH}" "${UNCACHED_CONFIG_PATH}"
 
     if [[ "${APP_WAS_DOWN}" -eq 1 ]]; then
         cd -- "${APPLICATION_ROOT}" && "${PHP_BIN}" artisan up
@@ -51,6 +64,7 @@ cleanup() {
 }
 
 trap 'cleanup $?' EXIT
+trap 'report_unexpected_error $? $LINENO' ERR
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
@@ -72,6 +86,9 @@ if ! mkdir -- "${LOCK_DIRECTORY}" 2>/dev/null; then
     fail 'Ya existe otro despliegue de CAOPE en curso.'
 fi
 LOCK_ACQUIRED=1
+
+[[ ! -e "${UNCACHED_CONFIG_PATH}" ]] || \
+    fail 'La ruta temporal para omitir la caché de configuración ya existe.'
 
 [[ -r "${EXPECTED_MARKER_PATH}" ]] || \
     fail 'No existe una autorización vigente de GitHub para este despliegue.'
@@ -111,9 +128,9 @@ if [[ "${CAOPE_REQUIRE_CLEAN_CHECKOUT:-0}" == '1' ]] \
 fi
 
 cd -- "${APPLICATION_ROOT}"
-APP_CONFIG_CACHE=/dev/null "${PHP_BIN}" artisan caope:security-audit \
+run_without_config_cache "${PHP_BIN}" artisan caope:security-audit \
     --profile="${SECURITY_PROFILE}" \
-    --no-interaction
+    --no-interaction || fail 'La auditoría de seguridad previa no fue aprobada.'
 
 cd -- "${REPOSITORY_ROOT}"
 
@@ -195,7 +212,8 @@ else
 fi
 
 cd -- "${APPLICATION_ROOT}"
-APP_CONFIG_CACHE=/dev/null "${PHP_BIN}" artisan backup:run --only-db --no-interaction
+run_without_config_cache "${PHP_BIN}" artisan backup:run --only-db --no-interaction || \
+    fail 'No fue posible crear el respaldo previo al despliegue.'
 "${PHP_BIN}" artisan down --retry=60
 APP_WAS_DOWN=1
 

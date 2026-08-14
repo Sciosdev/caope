@@ -32,9 +32,10 @@ class DeploymentSecurityPreflightScriptsTest extends TestCase
         $this->assertLessThan($fetch, $audit);
         $this->assertLessThan($backup, $audit);
         $this->assertLessThan($maintenance, $audit);
-        $this->assertStringContainsString('APP_CONFIG_CACHE=/dev/null', $script);
+        $this->assertStringNotContainsString('APP_CONFIG_CACHE=/dev/null', $script);
+        $this->assertStringContainsString('APP_CONFIG_CACHE="${UNCACHED_CONFIG_PATH}"', $script);
         $this->assertStringContainsString(
-            'APP_CONFIG_CACHE=/dev/null "${PHP_BIN}" artisan backup:run --only-db --no-interaction',
+            'run_without_config_cache "${PHP_BIN}" artisan backup:run --only-db --no-interaction',
             $script,
         );
         $this->assertStringContainsString('CAOPE_SECURITY_PROFILE:-auto', $script);
@@ -59,9 +60,10 @@ class DeploymentSecurityPreflightScriptsTest extends TestCase
         $this->assertLessThan($backup, $firstAudit);
         $this->assertLessThan($lastAudit, $platformCheck);
         $this->assertLessThan($lastMaintenance, $lastAudit);
-        $this->assertStringContainsString('APP_CONFIG_CACHE=/dev/null', $script);
+        $this->assertStringNotContainsString('APP_CONFIG_CACHE=/dev/null', $script);
+        $this->assertStringContainsString('APP_CONFIG_CACHE="${UNCACHED_CONFIG_PATH}"', $script);
         $this->assertStringContainsString(
-            'APP_CONFIG_CACHE=/dev/null "${PHP_BIN}" artisan backup:run --only-db --no-interaction',
+            'run_without_config_cache "${PHP_BIN}" artisan backup:run --only-db --no-interaction',
             $script,
         );
         $this->assertStringContainsString('CAOPE_SECURITY_PROFILE:-auto', $script);

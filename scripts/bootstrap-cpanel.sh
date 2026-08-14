@@ -10,6 +10,7 @@ COMPOSER_TOOLS_DIRECTORY="${APPLICATION_ROOT}/storage/app/tools"
 COMPOSER_INSTALLER_PATH="${COMPOSER_TOOLS_DIRECTORY}/composer-setup.php"
 COMPOSER_SIGNATURE_PATH="${COMPOSER_TOOLS_DIRECTORY}/composer-setup.sig"
 LOCAL_COMPOSER_PATH="${COMPOSER_TOOLS_DIRECTORY}/composer.phar"
+UNCACHED_CONFIG_PATH="${APPLICATION_ROOT}/bootstrap/cache/.caope-uncached-config-$$-${RANDOM}.php"
 APP_WAS_DOWN=0
 LOCK_ACQUIRED=0
 PHP_BIN=''
@@ -21,12 +22,27 @@ fail() {
     exit 1
 }
 
+report_unexpected_error() {
+    local exit_code="$1"
+    local line_number="$2"
+
+    echo "ERROR: El bootstrap falló en la etapa interna ${line_number} (código ${exit_code})." >&2
+    exit "${exit_code}"
+}
+
+run_without_config_cache() {
+    APP_CONFIG_CACHE="${UNCACHED_CONFIG_PATH}" "$@"
+}
+
 cleanup() {
     local exit_code="$1"
 
     trap - EXIT INT TERM
     set +e
-    rm -f -- "${COMPOSER_INSTALLER_PATH}" "${COMPOSER_SIGNATURE_PATH}"
+    rm -f -- \
+        "${COMPOSER_INSTALLER_PATH}" \
+        "${COMPOSER_SIGNATURE_PATH}" \
+        "${UNCACHED_CONFIG_PATH}"
 
     if [[ "${APP_WAS_DOWN}" -eq 1 && -n "${PHP_BIN}" ]]; then
         cd -- "${APPLICATION_ROOT}" && "${PHP_BIN}" artisan up
@@ -69,6 +85,7 @@ download_file() {
 }
 
 trap 'cleanup $?' EXIT
+trap 'report_unexpected_error $? $LINENO' ERR
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
@@ -154,7 +171,12 @@ if ! mkdir -- "${LOCK_DIRECTORY}" 2>/dev/null; then
 fi
 LOCK_ACQUIRED=1
 
-mkdir -p -- "${COMPOSER_TOOLS_DIRECTORY}"
+if ! mkdir -p -- "${COMPOSER_TOOLS_DIRECTORY}"; then
+    fail 'No fue posible preparar el almacenamiento privado de Composer.'
+fi
+
+[[ ! -e "${UNCACHED_CONFIG_PATH}" ]] || \
+    fail 'La ruta temporal para omitir la caché de configuración ya existe.'
 
 GLOBAL_COMPOSER_BIN="$(command -v composer 2>/dev/null || true)"
 
@@ -204,11 +226,13 @@ fi
 cd -- "${APPLICATION_ROOT}"
 
 if [[ -f vendor/autoload.php ]]; then
-    APP_CONFIG_CACHE=/dev/null "${PHP_BIN}" artisan caope:security-audit \
+    echo 'Ejecutando la auditoría de seguridad previa.'
+    run_without_config_cache "${PHP_BIN}" artisan caope:security-audit \
         --profile="${SECURITY_PROFILE}" \
-        --no-interaction
+        --no-interaction || fail 'La auditoría de seguridad previa no fue aprobada.'
     echo 'Instalación existente detectada; se creará un respaldo de la base de datos.'
-    APP_CONFIG_CACHE=/dev/null "${PHP_BIN}" artisan backup:run --only-db --no-interaction
+    run_without_config_cache "${PHP_BIN}" artisan backup:run --only-db --no-interaction || \
+        fail 'No fue posible crear el respaldo previo al despliegue.'
     "${PHP_BIN}" artisan down --retry=60
     APP_WAS_DOWN=1
 else
@@ -225,9 +249,10 @@ fi
 "${COMPOSER_COMMAND[@]}" check-platform-reqs --no-dev
 
 if [[ "${APP_WAS_DOWN}" -eq 0 ]]; then
-    APP_CONFIG_CACHE=/dev/null "${PHP_BIN}" artisan caope:security-audit \
+    echo 'Ejecutando la auditoría de seguridad previa.'
+    run_without_config_cache "${PHP_BIN}" artisan caope:security-audit \
         --profile="${SECURITY_PROFILE}" \
-        --no-interaction
+        --no-interaction || fail 'La auditoría de seguridad previa no fue aprobada.'
     "${PHP_BIN}" artisan down --retry=60
     APP_WAS_DOWN=1
 fi
