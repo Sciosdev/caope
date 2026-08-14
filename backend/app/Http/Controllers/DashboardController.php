@@ -151,11 +151,7 @@ class DashboardController extends Controller
                 return [
                     'id' => $notification->id,
                     'primary' => Arr::get($data, 'message', 'Sesión con observaciones'),
-                    'secondary' => $this->formatSecondaryLine(
-                        Arr::get($data, 'expediente_no_control'),
-                        Arr::get($data, 'actor_name'),
-                        Arr::get($data, 'fecha') ? Carbon::parse($data['fecha']) : null
-                    ),
+                    'secondary' => $this->formatSecondaryLine(null, null, $notification->created_at),
                     'url' => $this->resolveObservedNotificationUrl($expedienteId, $sesionId),
                 ];
             })
@@ -203,11 +199,7 @@ class DashboardController extends Controller
                 return [
                     'id' => $notification->id,
                     'primary' => Arr::get($data, 'message', 'Intento de cierre fallido'),
-                    'secondary' => $this->formatSecondaryLine(
-                        Arr::get($data, 'expediente_no_control'),
-                        Arr::get($data, 'actor_name'),
-                        $notification->created_at
-                    ),
+                    'secondary' => $this->formatSecondaryLine(null, null, $notification->created_at),
                     'url' => $expedienteId ? route('expedientes.show', $expedienteId) : null,
                 ];
             })

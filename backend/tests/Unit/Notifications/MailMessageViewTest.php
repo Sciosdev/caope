@@ -7,8 +7,10 @@ use App\Models\CatalogoTurno;
 use App\Models\Expediente;
 use App\Models\Sesion;
 use App\Models\User;
+use App\Notifications\ExpedienteClosedNotification;
 use App\Notifications\ExpedienteClosureAttemptNotification;
 use App\Notifications\SesionObservedNotification;
+use App\Notifications\SesionValidatedNotification;
 use App\Notifications\TutorAssignedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -27,71 +29,50 @@ class MailMessageViewTest extends TestCase
         CatalogoTurno::firstOrCreate(['nombre' => 'Matutino'], ['activo' => true]);
     }
 
-    public function test_tutor_assignment_mail_uses_custom_view(): void
+    public function test_notification_emails_use_generic_views_without_clinical_data(): void
     {
         $expediente = Expediente::factory()->create([
             'carrera' => 'Psicología',
             'turno' => 'Matutino',
+            'no_control' => 'SECURITY-CONTROL-MARKER',
+            'paciente' => 'SECURITY-STUDENT-MARKER',
+            'observaciones_relevantes' => 'SECURITY-CLOSURE-ERROR-MARKER',
         ]);
-
-        $actor = User::factory()->create();
-        $tutor = User::factory()->create();
-
-        $notification = new TutorAssignedNotification($expediente, $actor);
-
-        $mail = $notification->toMail($tutor);
-
-        $this->assertInstanceOf(MailMessage::class, $mail);
-        $this->assertSame('emails.tutor-assigned', $mail->view);
-        $this->assertArrayHasKey('expediente', $mail->viewData);
-    }
-
-    public function test_session_observed_mail_includes_view_and_observations(): void
-    {
-        $expediente = Expediente::factory()->create([
-            'carrera' => 'Psicología',
-            'turno' => 'Matutino',
-        ]);
-
         $sesion = Sesion::factory()->create([
             'expediente_id' => $expediente->id,
             'status_revision' => 'pendiente',
             'realizada_por' => User::factory()->create()->id,
             'fecha' => Carbon::now(),
+            'nota' => 'SECURITY-OBSERVATION-MARKER',
         ]);
-
-        $actor = User::factory()->create();
         $destinatario = User::factory()->create();
+        $sensitiveMarkers = [
+            'SECURITY-CONTROL-MARKER',
+            'SECURITY-STUDENT-MARKER',
+            'SECURITY-OBSERVATION-MARKER',
+            'SECURITY-CLOSURE-ERROR-MARKER',
+        ];
+        $notifications = [
+            [new TutorAssignedNotification($expediente), 'emails.tutor-assigned'],
+            [new SesionObservedNotification($sesion), 'emails.sesion-observed'],
+            [new SesionValidatedNotification($sesion), 'emails.sesion-validated'],
+            [new ExpedienteClosureAttemptNotification($expediente), 'emails.expediente-closure-attempt'],
+            [new ExpedienteClosedNotification($expediente), 'emails.expediente-closed'],
+        ];
 
-        $notification = new SesionObservedNotification($sesion->fresh(), $actor, 'Agregar bitácora.');
+        foreach ($notifications as [$notification, $expectedView]) {
+            $mail = $notification->toMail($destinatario);
+            $html = view($mail->view, $mail->viewData)->render();
 
-        $mail = $notification->toMail($destinatario);
+            $this->assertInstanceOf(MailMessage::class, $mail);
+            $this->assertSame($expectedView, $mail->view);
+            $this->assertSame(['actionUrl'], array_keys($mail->viewData));
+            $this->assertStringContainsString('Por seguridad', $html);
 
-        $this->assertInstanceOf(MailMessage::class, $mail);
-        $this->assertSame('emails.sesion-observed', $mail->view);
-        $this->assertSame('Agregar bitácora.', $mail->viewData['observaciones']);
-    }
-
-    public function test_closure_attempt_mail_uses_view_and_error_list(): void
-    {
-        $expediente = Expediente::factory()->create([
-            'carrera' => 'Psicología',
-            'turno' => 'Matutino',
-        ]);
-
-        $actor = User::factory()->create();
-        $destinatario = User::factory()->create();
-
-        $notification = new ExpedienteClosureAttemptNotification(
-            $expediente,
-            $actor,
-            ['Debe existir una sesión validada.']
-        );
-
-        $mail = $notification->toMail($destinatario);
-
-        $this->assertInstanceOf(MailMessage::class, $mail);
-        $this->assertSame('emails.expediente-closure-attempt', $mail->view);
-        $this->assertEquals(['Debe existir una sesión validada.'], $mail->viewData['errores']);
+            foreach ($sensitiveMarkers as $marker) {
+                $this->assertStringNotContainsString($marker, $html);
+                $this->assertStringNotContainsString($marker, serialize($notification));
+            }
+        }
     }
 }

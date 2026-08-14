@@ -5,19 +5,27 @@ namespace App\Notifications;
 use App\Models\Expediente;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Gate;
 
-class TutorAssignedNotification extends Notification implements ShouldQueue
+class TutorAssignedNotification extends Notification implements ShouldBeEncrypted, ShouldQueue
 {
     use Queueable;
 
-    public function __construct(
-        private readonly Expediente $expediente,
-        private readonly ?User $actor,
-    ) {}
+    private ?int $expedienteId = null;
+
+    // Compatibility fields for queued notifications created before this release.
+    private ?Expediente $expediente = null;
+
+    private ?User $actor = null;
+
+    public function __construct(Expediente $expediente)
+    {
+        $this->expedienteId = (int) $expediente->getKey();
+    }
 
     /**
      * @return array<int, string>
@@ -37,9 +45,7 @@ class TutorAssignedNotification extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject('Nuevo expediente asignado')
             ->view('emails.tutor-assigned', [
-                'expediente' => $this->expediente,
-                'actor' => $this->actor,
-                'tutor' => $notifiable instanceof User ? $notifiable : null,
+                'actionUrl' => $this->actionUrl(),
             ]);
     }
 
@@ -49,27 +55,38 @@ class TutorAssignedNotification extends Notification implements ShouldQueue
     public function toArray(object $notifiable): array
     {
         return [
-            'expediente_id' => $this->expediente->id,
-            'expediente_no_control' => $this->expediente->no_control,
-            'paciente' => $this->expediente->paciente,
-            'actor_id' => $this->actor?->id,
-            'actor_name' => $this->actor?->name,
-            'message' => sprintf(
-                'Se te asignó el expediente %s (%s).',
-                $this->expediente->no_control,
-                $this->expediente->paciente,
-            ),
+            'expediente_id' => $this->resolvedExpedienteId(),
+            'message' => 'Se te asignó un expediente.',
         ];
     }
 
     private function canReceive(object $notifiable): bool
     {
-        $expediente = $this->expediente->fresh();
+        $expediente = $this->currentExpediente();
 
         return $notifiable instanceof User
             && $notifiable->is_active
             && $expediente instanceof Expediente
             && (int) $expediente->tutor_id === (int) $notifiable->getKey()
             && Gate::forUser($notifiable)->allows('view', $expediente);
+    }
+
+    private function currentExpediente(): ?Expediente
+    {
+        $id = $this->resolvedExpedienteId();
+
+        return $id ? Expediente::query()->find($id) : null;
+    }
+
+    private function resolvedExpedienteId(): ?int
+    {
+        return $this->expedienteId ?? $this->expediente?->getKey();
+    }
+
+    private function actionUrl(): string
+    {
+        $id = $this->resolvedExpedienteId();
+
+        return $id ? route('expedientes.show', $id) : route('dashboard');
     }
 }

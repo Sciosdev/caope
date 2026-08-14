@@ -5,23 +5,29 @@ namespace App\Notifications;
 use App\Models\Expediente;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Gate;
 
-class ExpedienteClosureAttemptNotification extends Notification implements ShouldQueue
+class ExpedienteClosureAttemptNotification extends Notification implements ShouldBeEncrypted, ShouldQueue
 {
     use Queueable;
 
-    /**
-     * @param  list<string>  $errores
-     */
-    public function __construct(
-        private readonly Expediente $expediente,
-        private readonly ?User $actor,
-        private readonly array $errores,
-    ) {}
+    private ?int $expedienteId = null;
+
+    // Compatibility fields for queued notifications created before this release.
+    private ?Expediente $expediente = null;
+
+    private ?User $actor = null;
+
+    private array $errores = [];
+
+    public function __construct(Expediente $expediente)
+    {
+        $this->expedienteId = (int) $expediente->getKey();
+    }
 
     /**
      * @return array<int, string>
@@ -41,10 +47,7 @@ class ExpedienteClosureAttemptNotification extends Notification implements Shoul
         return (new MailMessage)
             ->subject('Intento de cierre de expediente con observaciones')
             ->view('emails.expediente-closure-attempt', [
-                'expediente' => $this->expediente,
-                'actor' => $this->actor,
-                'errores' => $this->errores,
-                'destinatario' => $notifiable instanceof User ? $notifiable : null,
+                'actionUrl' => $this->actionUrl(),
             ]);
     }
 
@@ -54,22 +57,37 @@ class ExpedienteClosureAttemptNotification extends Notification implements Shoul
     public function toArray(object $notifiable): array
     {
         return [
-            'expediente_id' => $this->expediente->id,
-            'expediente_no_control' => $this->expediente->no_control,
-            'actor_id' => $this->actor?->id,
-            'actor_name' => $this->actor?->name,
-            'errores' => $this->errores,
-            'message' => 'El expediente no pudo cerrarse debido a observaciones pendientes.',
+            'expediente_id' => $this->resolvedExpedienteId(),
+            'message' => 'Un expediente no pudo cerrarse y requiere revisión.',
         ];
     }
 
     private function canReceive(object $notifiable): bool
     {
-        $expediente = $this->expediente->fresh();
+        $expediente = $this->currentExpediente();
 
         return $notifiable instanceof User
             && $notifiable->is_active
             && $expediente instanceof Expediente
             && Gate::forUser($notifiable)->allows('view', $expediente);
+    }
+
+    private function currentExpediente(): ?Expediente
+    {
+        $id = $this->resolvedExpedienteId();
+
+        return $id ? Expediente::query()->find($id) : null;
+    }
+
+    private function resolvedExpedienteId(): ?int
+    {
+        return $this->expedienteId ?? $this->expediente?->getKey();
+    }
+
+    private function actionUrl(): string
+    {
+        $id = $this->resolvedExpedienteId();
+
+        return $id ? route('expedientes.show', $id) : route('dashboard');
     }
 }

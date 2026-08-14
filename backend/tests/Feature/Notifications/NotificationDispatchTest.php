@@ -278,9 +278,6 @@ class NotificationDispatchTest extends TestCase
 
     public function test_queued_tutor_assignment_is_revoked_after_reassignment_or_deactivation(): void
     {
-        $actor = User::factory()->create();
-        $actor->assignRole('admin');
-
         $tutor = User::factory()->create();
         $tutor->assignRole('docente');
         $otherTutor = User::factory()->create();
@@ -288,7 +285,7 @@ class NotificationDispatchTest extends TestCase
         $expediente = Expediente::factory()->create([
             'tutor_id' => $tutor->id,
         ]);
-        $notification = new TutorAssignedNotification($expediente, $actor);
+        $notification = new TutorAssignedNotification($expediente);
 
         $this->assertSame(['mail', 'database'], $notification->via($tutor));
         $this->assertTrue($notification->shouldSend($tutor, 'mail'));
@@ -310,9 +307,6 @@ class NotificationDispatchTest extends TestCase
 
     public function test_queued_closure_notifications_are_revoked_after_reassignment_or_deactivation(): void
     {
-        $actor = User::factory()->create();
-        $actor->assignRole('admin');
-
         $facilitador = User::factory()->create();
         $facilitador->assignRole('alumno');
         $otherFacilitator = User::factory()->create();
@@ -321,8 +315,8 @@ class NotificationDispatchTest extends TestCase
             'creado_por' => $facilitador->id,
         ]);
         $notifications = [
-            new ExpedienteClosureAttemptNotification($expediente, $actor, ['Sesión pendiente.']),
-            new ExpedienteClosedNotification($expediente, $actor),
+            new ExpedienteClosureAttemptNotification($expediente),
+            new ExpedienteClosedNotification($expediente),
         ];
 
         foreach ($notifications as $notification) {

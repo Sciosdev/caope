@@ -5,20 +5,32 @@ namespace App\Notifications;
 use App\Models\Sesion;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Gate;
 
-class SesionValidatedNotification extends Notification implements ShouldQueue
+class SesionValidatedNotification extends Notification implements ShouldBeEncrypted, ShouldQueue
 {
     use Queueable;
 
-    public function __construct(
-        private readonly Sesion $sesion,
-        private readonly ?User $actor,
-        private readonly ?string $observaciones,
-    ) {}
+    private ?int $sesionId = null;
+
+    private ?int $expedienteId = null;
+
+    // Compatibility fields for queued notifications created before this release.
+    private ?Sesion $sesion = null;
+
+    private ?User $actor = null;
+
+    private ?string $observaciones = null;
+
+    public function __construct(Sesion $sesion)
+    {
+        $this->sesionId = (int) $sesion->getKey();
+        $this->expedienteId = (int) $sesion->expediente_id;
+    }
 
     /**
      * @return array<int, string>
@@ -38,10 +50,7 @@ class SesionValidatedNotification extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject('Sesión validada correctamente')
             ->view('emails.sesion-validated', [
-                'sesion' => $this->sesion,
-                'actor' => $this->actor,
-                'observaciones' => $this->observaciones,
-                'destinatario' => $notifiable instanceof User ? $notifiable : null,
+                'actionUrl' => $this->actionUrl(),
             ]);
     }
 
@@ -50,29 +59,47 @@ class SesionValidatedNotification extends Notification implements ShouldQueue
      */
     public function toArray(object $notifiable): array
     {
-        $expediente = $this->sesion->expediente;
-
         return [
-            'expediente_id' => $expediente?->id,
-            'sesion_id' => $this->sesion->id,
-            'fecha' => $this->sesion->fecha?->toDateString(),
-            'actor_id' => $this->actor?->id,
-            'actor_name' => $this->actor?->name,
-            'observaciones' => $this->observaciones,
-            'message' => sprintf(
-                'La sesión #%d fue validada.',
-                $this->sesion->id,
-            ),
+            'expediente_id' => $this->resolvedExpedienteId(),
+            'sesion_id' => $this->resolvedSesionId(),
+            'message' => 'Una sesión fue validada.',
         ];
     }
 
     private function canReceive(object $notifiable): bool
     {
-        $sesion = $this->sesion->fresh('expediente');
+        $sesion = $this->currentSesion();
 
         return $notifiable instanceof User
             && $notifiable->is_active
             && $sesion instanceof Sesion
             && Gate::forUser($notifiable)->allows('view', $sesion);
+    }
+
+    private function currentSesion(): ?Sesion
+    {
+        $id = $this->resolvedSesionId();
+
+        return $id ? Sesion::query()->with('expediente')->find($id) : null;
+    }
+
+    private function resolvedSesionId(): ?int
+    {
+        return $this->sesionId ?? $this->sesion?->getKey();
+    }
+
+    private function resolvedExpedienteId(): ?int
+    {
+        return $this->expedienteId ?? $this->sesion?->expediente_id;
+    }
+
+    private function actionUrl(): string
+    {
+        $expedienteId = $this->resolvedExpedienteId();
+        $sesionId = $this->resolvedSesionId();
+
+        return $expedienteId && $sesionId
+            ? route('expedientes.sesiones.show', [$expedienteId, $sesionId])
+            : route('dashboard');
     }
 }

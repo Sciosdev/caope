@@ -629,7 +629,7 @@ class ExpedienteController extends Controller
                 $tutor = $expediente->tutor;
 
                 if ($tutor) {
-                    $tutor->notify(new TutorAssignedNotification($expediente, $request->user()));
+                    $tutor->notify(new TutorAssignedNotification($expediente));
                 }
             }
         }
@@ -857,7 +857,7 @@ class ExpedienteController extends Controller
             $erroresCierre = $this->stateValidator->validateClosureRequirements($expediente);
 
             if ($erroresCierre->isNotEmpty()) {
-                $this->notifyClosureAttempt($expediente, $request->user(), $erroresCierre->all());
+                $this->notifyClosureAttempt($expediente);
 
                 return redirect()
                     ->route('expedientes.show', $expediente)
@@ -873,7 +873,7 @@ class ExpedienteController extends Controller
         ]);
 
         if ($nuevoEstado === 'cerrado') {
-            $this->notifyClosureSuccess($expediente, $request->user());
+            $this->notifyClosureSuccess($expediente);
         }
 
         return redirect()
@@ -1097,18 +1097,15 @@ class ExpedienteController extends Controller
             ->values();
     }
 
-    /**
-     * @param  list<string>  $errores
-     */
-    private function notifyClosureAttempt(Expediente $expediente, User $actor, array $errores): void
+    private function notifyClosureAttempt(Expediente $expediente): void
     {
         $this->expedienteContacts($expediente)
-            ->each(fn (User $user) => $user->notify(new ExpedienteClosureAttemptNotification($expediente, $actor, $errores)));
+            ->each(fn (User $user) => $user->notify(new ExpedienteClosureAttemptNotification($expediente)));
     }
 
-    private function notifyClosureSuccess(Expediente $expediente, User $actor): void
+    private function notifyClosureSuccess(Expediente $expediente): void
     {
         $this->expedienteContacts($expediente)
-            ->each(fn (User $user) => $user->notify(new ExpedienteClosedNotification($expediente, $actor)));
+            ->each(fn (User $user) => $user->notify(new ExpedienteClosedNotification($expediente)));
     }
 }

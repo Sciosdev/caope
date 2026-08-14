@@ -1,14 +1,12 @@
-@php($actorName = $actor?->name ?? 'el sistema')
 <p style="font-family: Arial, sans-serif; font-size: 14px;">
-    Hola {{ $tutor?->name ?? 'docente' }},
+    Hola,
 </p>
 <p style="font-family: Arial, sans-serif; font-size: 14px;">
-    El expediente <strong>{{ $expediente->no_control }}</strong> correspondiente a
-    <strong>{{ $expediente->paciente }}</strong> te fue asignado por {{ $actorName }}.
+    Se te asignó un expediente en CAOPE.
 </p>
 <p style="font-family: Arial, sans-serif; font-size: 14px;">
-    Puedes revisar los detalles del expediente iniciando sesión en la plataforma.
+    Por seguridad, el nombre del alumno y el número de control no se incluyen en el correo.
 </p>
 <p style="font-family: Arial, sans-serif; font-size: 14px;">
-    Gracias por tu dedicación.
+    <a href="{{ $actionUrl }}">Abrir CAOPE</a>
 </p>
