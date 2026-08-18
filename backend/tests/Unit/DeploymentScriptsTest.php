@@ -159,6 +159,14 @@ class DeploymentScriptsTest extends TestCase
         $this->assertStringContainsString('run_bootstrap_with_retries()', $installer);
         $this->assertStringContainsString('intento ${attempt}/3', $installer);
         $this->assertStringContainsString('COMPOSER_MAX_PARALLEL_HTTP=4', $installer);
+        $finalApplicationDirectory = strrpos($installer, 'cd -- "${APPLICATION_ROOT}"');
+        $finalSecurityAudit = strrpos($installer, 'artisan caope:security-audit --profile=production');
+        $finalEnvironmentCheck = strrpos($installer, 'artisan about --only=environment');
+        $this->assertNotFalse($finalApplicationDirectory);
+        $this->assertNotFalse($finalSecurityAudit);
+        $this->assertNotFalse($finalEnvironmentCheck);
+        $this->assertLessThan($finalSecurityAudit, $finalApplicationDirectory);
+        $this->assertLessThan($finalEnvironmentCheck, $finalApplicationDirectory);
         $this->assertStringNotContainsString('NOPASSWD', $installer);
         $this->assertStringNotContainsString('/etc/sudoers', $installer);
     }
