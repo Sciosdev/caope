@@ -73,6 +73,10 @@ class DeploymentScriptsTest extends TestCase
         $this->assertStringContainsString('expected.json', $script);
         $this->assertStringContainsString('request_id', $script);
         $this->assertStringContainsString('git merge --ff-only', $script);
+        $this->assertStringContainsString('rollback_failed_deployment()', $script);
+        $this->assertStringContainsString('git reset --hard "${ORIGINAL_SHA}"', $script);
+        $this->assertStringContainsString('"request_id" => "automatic-rollback"', $script);
+        $this->assertStringContainsString("[[ \"\${CAOPE_REQUIRE_CLEAN_CHECKOUT:-0}\" == '1' ]]", $script);
     }
 
     #[Test]
@@ -131,6 +135,49 @@ class DeploymentScriptsTest extends TestCase
             $this->assertStringContainsString('chmod 0660', $script);
             $this->assertGreaterThanOrEqual(3, substr_count($script, 'normalize_runtime_permissions'));
         }
+    }
+
+    #[Test]
+    public function production_agent_runs_laravel_without_root_and_uses_database_control_planes(): void
+    {
+        $installer = $this->read('scripts/install-production-agent.sh');
+        $this->assertStringContainsString('AGENT_USER="${CAOPE_AGENT_USER:-caope-deploy}"', $installer);
+        $this->assertStringContainsString('useradd', $installer);
+        $this->assertStringContainsString('--shell /usr/sbin/nologin', $installer);
+        $this->assertStringContainsString('[[ "${AGENT_USER}" != \'root\'', $installer);
+        $this->assertStringContainsString('usermod', $installer);
+        $this->assertStringContainsString('--lock', $installer);
+        $this->assertStringContainsString('User=${AGENT_USER}', $installer);
+        $this->assertStringContainsString('NoNewPrivileges=true', $installer);
+        $this->assertStringContainsString('UMask=0007', $installer);
+        $this->assertStringContainsString('ExecStartPre=/bin/bash ${REPOSITORY_ROOT}/scripts/repair-runtime.sh', $installer);
+        $this->assertStringContainsString('safe.directory=${REPOSITORY_ROOT}', $installer);
+        $this->assertStringContainsString('caope-scheduler.timer', $installer);
+        $this->assertStringContainsString('caope-queue.service', $installer);
+        $this->assertStringContainsString('CACHE_STORE" => "database', $installer);
+        $this->assertStringContainsString('QUEUE_CONNECTION" => "database', $installer);
+        $this->assertStringContainsString('run_bootstrap_with_retries()', $installer);
+        $this->assertStringContainsString('intento ${attempt}/3', $installer);
+        $this->assertStringContainsString('COMPOSER_MAX_PARALLEL_HTTP=4', $installer);
+        $this->assertStringNotContainsString('NOPASSWD', $installer);
+        $this->assertStringNotContainsString('/etc/sudoers', $installer);
+    }
+
+    #[Test]
+    public function runtime_repair_is_unprivileged_and_limited_to_laravel_runtime_paths(): void
+    {
+        $script = $this->read('scripts/repair-runtime.sh');
+
+        $this->assertStringContainsString('[[ "$(id -u)" -ne 0 ]]', $script);
+        $this->assertStringContainsString('bootstrap/cache', $script);
+        $this->assertStringContainsString('storage/app/deployment', $script);
+        $this->assertStringContainsString('storage/framework/cache', $script);
+        $this->assertStringContainsString('storage/logs', $script);
+        $this->assertStringContainsString('chmod 2770', $script);
+        $this->assertStringContainsString('chmod 0660', $script);
+        $this->assertStringNotContainsString('sudo', $script);
+        $this->assertStringNotContainsString('chown', $script);
+        $this->assertStringNotContainsString('git ', $script);
     }
 
     #[Test]

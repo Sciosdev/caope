@@ -139,13 +139,17 @@ class GitHubDeploymentService
                     continue;
                 }
 
+                $conclusion = $run['conclusion'] ?? null;
+
                 $deployment->update([
                     'status' => (string) ($run['status'] ?? $deployment->status),
-                    'conclusion' => $run['conclusion'] ?? null,
+                    'conclusion' => $conclusion,
                     'workflow_run_id' => isset($run['id']) ? (int) $run['id'] : null,
                     'workflow_url' => $run['html_url'] ?? null,
                     'commit_sha' => $run['head_sha'] ?? null,
-                    'error_message' => null,
+                    'error_message' => $conclusion === 'success'
+                        ? null
+                        : $deployment->error_message,
                 ]);
             }
 

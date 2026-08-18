@@ -14,6 +14,9 @@ LOCAL_COMPOSER_PATH="${COMPOSER_TOOLS_DIRECTORY}/composer.phar"
 UNCACHED_CONFIG_PATH="${APPLICATION_ROOT}/bootstrap/cache/.caope-uncached-config-$$-${RANDOM}.php"
 APP_WAS_DOWN=0
 LOCK_ACQUIRED=0
+CHECKOUT_UPDATED=0
+ORIGINAL_SHA=''
+COMPOSER_COMMAND=()
 
 fail() {
     echo "ERROR: $1" >&2
@@ -80,12 +83,64 @@ resolve_executable() {
     command -v -- "${candidate}"
 }
 
+rollback_failed_deployment() {
+    [[ "${CHECKOUT_UPDATED}" -eq 1 ]] || return 0
+    [[ "${CAOPE_REQUIRE_CLEAN_CHECKOUT:-0}" == '1' ]] || return 0
+    [[ "${ORIGINAL_SHA}" =~ ^[a-f0-9]{40}$ ]] || return 1
+
+    echo "Revirtiendo automáticamente el checkout a ${ORIGINAL_SHA}." >&2
+    cd -- "${REPOSITORY_ROOT}" || return 1
+    git reset --hard "${ORIGINAL_SHA}" || return 1
+    cd -- "${APPLICATION_ROOT}" || return 1
+
+    if (( ${#COMPOSER_COMMAND[@]} > 0 )); then
+        "${COMPOSER_COMMAND[@]}" install \
+            --no-dev \
+            --prefer-dist \
+            --no-interaction \
+            --no-progress \
+            --optimize-autoloader || return 1
+    fi
+
+    "${PHP_BIN}" artisan optimize:clear || return 1
+    "${PHP_BIN}" artisan config:cache || return 1
+    "${PHP_BIN}" artisan view:cache || return 1
+    "${PHP_BIN}" artisan queue:restart || return 1
+
+    local rolled_back_at
+    rolled_back_at="$("${PHP_BIN}" -r 'echo gmdate("Y-m-d\\TH:i:s\\Z");')" || return 1
+
+    "${PHP_BIN}" -r '
+        $payload = json_encode([
+            "sha" => strtolower($argv[2]),
+            "deployed_at" => $argv[3],
+            "request_id" => "automatic-rollback",
+        ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES).PHP_EOL;
+        $temporaryPath = $argv[1].".tmp.".getmypid();
+
+        if (file_put_contents($temporaryPath, $payload, LOCK_EX) === false
+            || ! rename($temporaryPath, $argv[1])) {
+            @unlink($temporaryPath);
+            exit(1);
+        }
+
+        @chmod($argv[1], 0660);
+    ' "${VERSION_MARKER_PATH}" "${ORIGINAL_SHA}" "${rolled_back_at}" || return 1
+
+    echo "Rollback automático completado en ${ORIGINAL_SHA}." >&2
+}
+
 cleanup() {
     local exit_code="$1"
 
     trap - EXIT INT TERM
     set +e
     rm -f -- "${COMPOSER_INSTALLER_PATH}" "${UNCACHED_CONFIG_PATH}"
+
+    if [[ "${exit_code}" -ne 0 ]]; then
+        rollback_failed_deployment || \
+            echo 'ERROR: El rollback automático no pudo completarse.' >&2
+    fi
 
     normalize_runtime_permissions || \
         echo 'ADVERTENCIA: No fue posible normalizar los permisos de ejecución.' >&2
@@ -160,6 +215,7 @@ EXPECTED_SHA="$("${PHP_BIN}" -r '
 
 CURRENT_BRANCH="$(git -C "${REPOSITORY_ROOT}" symbolic-ref --quiet --short HEAD || true)"
 CURRENT_SHA="$(git -C "${REPOSITORY_ROOT}" rev-parse HEAD)"
+ORIGINAL_SHA="${CURRENT_SHA}"
 
 [[ "${CURRENT_BRANCH}" == 'main' ]] || \
     fail 'El checkout de CAOPE debe permanecer en la rama main.'
@@ -186,7 +242,6 @@ if ! git -C "${REPOSITORY_ROOT}" merge-base --is-ancestor "${CURRENT_SHA}" "${EX
     fail 'El checkout no puede avanzar de forma lineal hasta la revisión validada.'
 fi
 
-COMPOSER_COMMAND=()
 GLOBAL_COMPOSER_BIN="$(command -v composer 2>/dev/null || true)"
 
 if [[ -n "${GLOBAL_COMPOSER_BIN}" ]] \
@@ -265,6 +320,7 @@ CURRENT_SHA="$(git rev-parse HEAD)"
 
 [[ "${CURRENT_SHA}" == "${EXPECTED_SHA}" ]] || \
     fail 'El checkout no terminó en la revisión exacta validada por GitHub.'
+CHECKOUT_UPDATED=1
 
 cd -- "${APPLICATION_ROOT}"
 "${COMPOSER_COMMAND[@]}" install \

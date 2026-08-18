@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\DeploymentRun;
 use App\Services\DeveloperConsoleSettings;
 use App\Services\ProductionSecurityAudit;
 use Illuminate\Console\Command;
@@ -38,6 +39,12 @@ class RunPendingDeployment extends Command
         $scriptPath = $settings->deployScript() ?: $defaultScriptPath;
 
         if (! is_file($scriptPath)) {
+            $this->recordFailure(
+                (string) $marker['request_id'],
+                null,
+                'No se encontró el script de despliegue programado.',
+                '',
+            );
             $this->error('No se encontró el script de despliegue programado.');
 
             return self::FAILURE;
@@ -59,12 +66,21 @@ class RunPendingDeployment extends Command
         $this->appendDeploymentLog($result->exitCode(), $result->output(), $result->errorOutput());
 
         if ($result->failed()) {
+            $this->recordFailure(
+                (string) $marker['request_id'],
+                $result->exitCode(),
+                $result->output(),
+                $result->errorOutput(),
+            );
             $this->error('El despliegue programado falló. Revisa storage/logs/developer-deploy.log.');
 
             return self::FAILURE;
         }
 
         $this->info('El despliegue programado terminó correctamente.');
+        DeploymentRun::query()
+            ->where('request_id', (string) $marker['request_id'])
+            ->update(['error_message' => null]);
 
         return self::SUCCESS;
     }
@@ -100,5 +116,39 @@ class RunPendingDeployment extends Command
             sprintf('[%s] Código de salida: %s', now()->toIso8601String(), $exitCode ?? 'desconocido'),
             '',
         ]));
+    }
+
+    private function recordFailure(
+        string $requestId,
+        ?int $exitCode,
+        string $output,
+        string $errorOutput,
+    ): void {
+        $combined = $output.PHP_EOL.$errorOutput;
+        preg_match_all('/^ERROR:\s*(.+)$/mi', $combined, $matches);
+
+        $details = collect($matches[1] ?? [])
+            ->map(static fn (string $line): string => trim(preg_replace('/[\x00-\x1F\x7F]+/', ' ', $line) ?? ''))
+            ->filter()
+            ->unique()
+            ->take(-3)
+            ->implode(' ');
+
+        $message = sprintf(
+            'El agente local no pudo completar el despliegue (código %s).',
+            $exitCode ?? 'desconocido',
+        );
+
+        if ($details !== '') {
+            $message .= ' '.$details;
+        }
+
+        if (str_contains($combined, 'Rollback automático completado')) {
+            $message .= ' La versión anterior fue restaurada automáticamente.';
+        }
+
+        DeploymentRun::query()
+            ->where('request_id', $requestId)
+            ->update(['error_message' => mb_substr($message, 0, 1500)]);
     }
 }
