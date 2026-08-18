@@ -114,6 +114,26 @@ class DeploymentScriptsTest extends TestCase
     }
 
     #[Test]
+    public function root_deployments_restore_web_runtime_permissions(): void
+    {
+        foreach ([
+            'scripts/bootstrap-cpanel.sh',
+            'scripts/deploy-scheduled.sh',
+        ] as $relativePath) {
+            $script = $this->read($relativePath);
+
+            $this->assertStringContainsString('normalize_runtime_permissions()', $script);
+            $this->assertStringContainsString('CAOPE_RUNTIME_GROUP', $script);
+            $this->assertStringContainsString('storage/app/deployment', $script);
+            $this->assertStringContainsString('storage/framework/cache', $script);
+            $this->assertStringContainsString('chgrp -R -- "${runtime_group}"', $script);
+            $this->assertStringContainsString('chmod 2770', $script);
+            $this->assertStringContainsString('chmod 0660', $script);
+            $this->assertGreaterThanOrEqual(3, substr_count($script, 'normalize_runtime_permissions'));
+        }
+    }
+
+    #[Test]
     public function apache_forces_supported_hosts_to_https_without_reflecting_the_host_header(): void
     {
         $configuration = $this->read('backend/public/.htaccess');
