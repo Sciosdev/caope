@@ -173,8 +173,10 @@ class DeploymentScriptsTest extends TestCase
         $this->assertStringContainsString('storage/app/deployment', $script);
         $this->assertStringContainsString('storage/framework/cache', $script);
         $this->assertStringContainsString('storage/logs', $script);
-        $this->assertStringContainsString('chmod 2770', $script);
         $this->assertStringContainsString('chmod 0660', $script);
+        $this->assertStringContainsString('mkdir -p -- "${runtime_path}"', $script);
+        $this->assertStringNotContainsString('install -d -m 2770', $script);
+        $this->assertStringNotContainsString('chmod 2770', $script);
         $this->assertStringNotContainsString('sudo', $script);
         $this->assertStringNotContainsString('chown', $script);
         $this->assertStringNotContainsString('git ', $script);
