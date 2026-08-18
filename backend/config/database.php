@@ -60,6 +60,10 @@ return [
             'engine' => null,
             'dump' => [
                 'skip_ssl' => env('DB_DUMP_SKIP_SSL', false),
+                // Debian may provide MariaDB's mysqldump for a connection
+                // named "mysql". That client accepts skip-ssl, not the
+                // ssl-mode=DISABLED flag inferred from the server version.
+                'ssl_flag' => env('DB_DUMP_SSL_FLAG', env('DB_DUMP_SKIP_SSL', false) ? 'skip-ssl' : ''),
             ],
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
@@ -83,6 +87,7 @@ return [
             'engine' => null,
             'dump' => [
                 'skip_ssl' => env('DB_DUMP_SKIP_SSL', false),
+                'ssl_flag' => env('DB_DUMP_SSL_FLAG', env('DB_DUMP_SKIP_SSL', false) ? 'skip-ssl' : ''),
             ],
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
