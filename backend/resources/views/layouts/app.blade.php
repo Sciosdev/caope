@@ -7,6 +7,8 @@
 
     <title>{{ config('app.name', 'CAOPE') }}</title>
 
+    @include('partials.favicon')
+
     {{-- NobleUI core styles --}}
     <link rel="stylesheet" href="{{ asset('assets/vendors/core/core.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/demo2/style.css') }}">
