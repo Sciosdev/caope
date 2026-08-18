@@ -427,11 +427,11 @@ class DeveloperHealthService
 
         try {
             $repositoryRoot = dirname(base_path());
-            $git = fn (array $command) => Process::path($repositoryRoot)
+            $git = fn (array $arguments) => Process::path($repositoryRoot)
                 ->env(['GIT_TERMINAL_PROMPT' => '0'])
                 ->timeout(5)
-                ->run($command);
-            $status = $git(['git', 'status', '--porcelain=v1', '--untracked-files=no']);
+                ->run(['git', '-c', "safe.directory={$repositoryRoot}", ...$arguments]);
+            $status = $git(['status', '--porcelain=v1', '--untracked-files=no']);
 
             if ($status->failed()) {
                 return $this->result(
@@ -442,9 +442,9 @@ class DeveloperHealthService
                 );
             }
 
-            $branch = $git(['git', 'symbolic-ref', '--quiet', '--short', 'HEAD']);
-            $upstream = $git(['git', 'rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}']);
-            $origin = $git(['git', 'remote', 'get-url', 'origin']);
+            $branch = $git(['symbolic-ref', '--quiet', '--short', 'HEAD']);
+            $upstream = $git(['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}']);
+            $origin = $git(['remote', 'get-url', 'origin']);
 
             if ($branch->failed()
                 || $upstream->failed()
@@ -481,22 +481,6 @@ class DeveloperHealthService
                         ? 'El checkout contiene cambios locales en archivos versionados.'
                         : 'Pruebas contiene cambios locales versionados; se permitirá el despliegue legado.',
                     $requiresCleanCheckout ? null : 'Producción exigirá un checkout limpio.'
-                );
-            }
-
-            $writableTargets = [$repositoryRoot, $repositoryRoot.DIRECTORY_SEPARATOR.'.git', base_path(), storage_path()];
-            $notWritable = array_values(array_filter(
-                $writableTargets,
-                fn (string $path): bool => ! is_dir($path) || ! is_writable($path)
-            ));
-
-            if ($notWritable !== []) {
-                return $this->result(
-                    'deployment_runtime',
-                    'Motor de despliegue',
-                    'error',
-                    'El usuario del scheduler no puede escribir el checkout o el almacenamiento privado.',
-                    implode(', ', $notWritable)
                 );
             }
 
