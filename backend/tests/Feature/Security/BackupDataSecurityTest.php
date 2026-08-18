@@ -6,11 +6,29 @@ use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use ReflectionProperty;
+use Spatie\Backup\Tasks\Backup\DbDumperFactory;
+use Spatie\DbDumper\Databases\MySql;
 use Tests\TestCase;
 use ZipArchive;
 
 class BackupDataSecurityTest extends TestCase
 {
+    public function test_mysql_dump_tls_can_be_disabled_without_changing_the_application_connection(): void
+    {
+        $connectionOptions = config('database.connections.mysql.options');
+
+        config([
+            'database.connections.mysql.dump.skip_ssl' => true,
+        ]);
+
+        $dumper = DbDumperFactory::createFromConnection('mysql');
+        $skipSsl = new ReflectionProperty(MySql::class, 'skipSsl');
+
+        $this->assertTrue($skipSsl->getValue($dumper));
+        $this->assertSame($connectionOptions, config('database.connections.mysql.options'));
+    }
+
     public function test_production_backup_excludes_secrets_and_uses_the_private_destination(): void
     {
         $exclusions = config('backup.backup.source.files.exclude');
