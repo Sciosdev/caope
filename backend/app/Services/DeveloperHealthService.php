@@ -371,7 +371,11 @@ class DeveloperHealthService
         } catch (Throwable $exception) {
             report($exception);
 
-            return $this->result('backup', 'Respaldos', 'error', 'No fue posible revisar los respaldos.', $diskName);
+            // The deployment script creates and validates the backup as the
+            // scheduler user before changing the checkout. A web process that
+            // cannot inspect root-owned archive metadata must not block that
+            // independently enforced safety step.
+            return $this->result('backup', 'Respaldos', 'warning', 'No fue posible revisar los respaldos desde la web.', $diskName);
         }
     }
 
@@ -405,10 +409,6 @@ class DeveloperHealthService
 
         if (! is_executable('/bin/bash')) {
             $missing[] = '/bin/bash';
-        }
-
-        if (! is_executable(PHP_BINARY)) {
-            $missing[] = PHP_BINARY;
         }
 
         if ($script === '' || ! is_readable($script)) {
@@ -505,7 +505,7 @@ class DeveloperHealthService
                 'Motor de despliegue',
                 'ok',
                 'El servidor puede ejecutar despliegues autónomos.',
-                'main · '.PHP_BINARY
+                'main · scheduler'
             );
         } catch (Throwable $exception) {
             report($exception);

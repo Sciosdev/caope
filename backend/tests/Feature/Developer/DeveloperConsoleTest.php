@@ -114,6 +114,20 @@ class DeveloperConsoleTest extends TestCase
         $response->assertSee('Desplegar pruebas');
     }
 
+    public function test_web_process_without_backup_metadata_access_does_not_block_deployment(): void
+    {
+        config(['backup.backup.destination.disks' => ['missing-backup-disk']]);
+        $developer = $this->developer();
+
+        $response = $this->actingAs($developer)
+            ->withSession($this->confirmedPasswordSession())
+            ->get(route('developer.index'));
+
+        $response->assertOk();
+        $response->assertSee('No fue posible revisar los respaldos desde la web.');
+        $response->assertSee('Advertencia');
+    }
+
     public function test_developer_can_dispatch_audited_deployment(): void
     {
         $this->dispatchBody = null;
