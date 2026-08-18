@@ -132,6 +132,16 @@ class DeploymentScriptsTest extends TestCase
         $this->assertStringNotContainsString('https://%{HTTP_HOST}', $configuration);
     }
 
+    #[Test]
+    public function web_health_check_inspects_root_owned_git_checkout_without_impersonating_the_scheduler(): void
+    {
+        $service = $this->read('backend/app/Services/DeveloperHealthService.php');
+
+        $this->assertStringContainsString('safe.directory={$repositoryRoot}', $service);
+        $this->assertStringNotContainsString('$writableTargets = [$repositoryRoot', $service);
+        $this->assertStringContainsString("'main · scheduler'", $service);
+    }
+
     private function read(string $relativePath): string
     {
         $contents = file_get_contents($this->repositoryRoot.DIRECTORY_SEPARATOR.$relativePath);
