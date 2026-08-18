@@ -5,6 +5,7 @@ set -Eeuo pipefail
 SCRIPT_DIRECTORY="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPOSITORY_ROOT="$(cd -- "${SCRIPT_DIRECTORY}/.." && pwd)"
 APPLICATION_ROOT="${REPOSITORY_ROOT}/backend"
+umask 0007
 
 [[ "$(id -u)" -ne 0 ]] || {
     echo 'ERROR: La reparación ordinaria no debe ejecutarse como root.' >&2
@@ -21,7 +22,10 @@ RUNTIME_PATHS=(
 )
 
 for runtime_path in "${RUNTIME_PATHS[@]}"; do
-    install -d -m 2770 -- "${runtime_path}"
+    # mkdir -p does not try to chmod an existing directory owned by Apache.
+    # The root-only installer establishes the initial owner/mode; afterwards
+    # each process may create files under the shared setgid group.
+    mkdir -p -- "${runtime_path}"
     find "${runtime_path}" -type d -user "$(id -u)" -exec chmod 2770 {} +
     find "${runtime_path}" -type f -user "$(id -u)" -exec chmod 0660 {} +
 done
