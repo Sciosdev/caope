@@ -26,7 +26,6 @@ for runtime_path in "${RUNTIME_PATHS[@]}"; do
     # The root-only installer establishes the initial owner/mode; afterwards
     # each process may create files under the shared setgid group.
     mkdir -p -- "${runtime_path}"
-    find "${runtime_path}" -type d -user "$(id -u)" -exec chmod 2770 {} +
     find "${runtime_path}" -type f -user "$(id -u)" -exec chmod 0660 {} +
 done
 
