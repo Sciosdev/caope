@@ -19,6 +19,7 @@ FESI realiza estos pasos, en este orden, durante la primera instalación segura:
    SESSION_DRIVER=database
    SESSION_ENCRYPT=true
    SESSION_SECURE_COOKIE=true
+   DB_DUMP_SKIP_SSL=true
    BACKUP_ARCHIVE_PASSWORD=<secreto aleatorio independiente de 32 o más caracteres>
    ```
 
@@ -27,6 +28,9 @@ FESI realiza estos pasos, en este orden, durante la primera instalación segura:
    `xocoyotzin.iztacala.unam.mx`. La nueva `APP_KEY` y la contraseña de respaldo
    deben generarse fuera del repositorio y guardarse en el gestor de secretos de
    FESI. No se debe copiar una clave de `.env.testing`, commits o documentación.
+   `DB_DUMP_SKIP_SSL=true` sólo desactiva TLS para el proceso de respaldo porque
+   el servidor MySQL institucional no lo ofrece; no cambia la conexión normal de
+   CAOPE.
 2. En la herramienta de despliegue Git, actualizar el checkout persistente de
    `Sciosdev/caope` en `main`. Deben conservar `backend/.env` y `.git`;
    `.cpanel.yml` detecta PHP y Composer y ejecuta dependencias, respaldo,
