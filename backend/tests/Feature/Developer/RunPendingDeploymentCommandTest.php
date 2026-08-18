@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Developer;
 
+use App\Models\DeploymentRun;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Process\PendingProcess;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
@@ -9,6 +11,8 @@ use Tests\TestCase;
 
 class RunPendingDeploymentCommandTest extends TestCase
 {
+    use RefreshDatabase;
+
     private string $logPath;
 
     private string $markerPath;
@@ -114,6 +118,30 @@ class RunPendingDeploymentCommandTest extends TestCase
         $this->artisan('schedule:list')
             ->expectsOutputToContain('caope:deploy-pending')
             ->assertSuccessful();
+    }
+
+    public function test_local_failure_is_visible_in_the_audited_deployment_history(): void
+    {
+        $requestId = 'd062783e-3538-46ba-a56b-1c35e215ee04';
+        DeploymentRun::query()->create([
+            'request_id' => $requestId,
+            'ref' => 'main',
+            'status' => 'in_progress',
+        ]);
+        $this->writeMarker(now()->addMinutes(10)->timestamp, $requestId);
+        Process::fake([
+            '*' => Process::result(
+                errorOutput: "ERROR: Composer no pudo instalar las dependencias.\nRollback automático completado.",
+                exitCode: 100,
+            ),
+        ]);
+
+        $this->artisan('caope:deploy-pending')->assertFailed();
+
+        $deployment = DeploymentRun::query()->where('request_id', $requestId)->sole();
+        $this->assertStringContainsString('código 100', (string) $deployment->error_message);
+        $this->assertStringContainsString('Composer no pudo instalar', (string) $deployment->error_message);
+        $this->assertStringContainsString('versión anterior fue restaurada', (string) $deployment->error_message);
     }
 
     public function test_production_never_downgrades_when_encrypted_console_settings_are_absent(): void

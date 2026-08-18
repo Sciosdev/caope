@@ -3,6 +3,10 @@
 CAOPE despliega `main` desde su consola técnica sin acceso SSH entrante, tokens
 de cPanel, rutas del servidor ni secretos de producción en GitHub Actions.
 
+En servidores Debian administrados por FESI se instala una sola vez el agente
+sin privilegios descrito en [production-agent.md](production-agent.md). Después
+de esa instalación no deben conservarse cron de CAOPE bajo `root`.
+
 ## Instrucción única para FESI
 
 FESI realiza estos pasos, en este orden, durante la primera instalación segura:
@@ -32,15 +36,17 @@ FESI realiza estos pasos, en este orden, durante la primera instalación segura:
    el servidor MySQL institucional no lo ofrece; no cambia la conexión normal de
    CAOPE. El proceso fuerza el indicador `skip-ssl`, compatible con el cliente
    MariaDB que Debian proporciona como `mysqldump`.
-2. En la herramienta de despliegue Git, actualizar el checkout persistente de
-   `Sciosdev/caope` en `main`. Deben conservar `backend/.env` y `.git`;
-   `.cpanel.yml` detecta PHP y Composer y ejecuta dependencias, respaldo,
-   migraciones y cachés.
-3. Conservar una única ejecución de `php artisan schedule:run` cada minuto. Si
-   el scheduler ya funciona, no deben modificarlo. Cuando Apache y el scheduler
-   usan cuentas distintas, `backend/storage/logs` debe conservar el grupo del
-   usuario web y el bit setgid (por ejemplo, `drwxrwsr-x www-data:www-data` en
-   Debian) para que ambos puedan continuar el registro diario.
+2. En Debian de producción, actualizar el checkout persistente de
+   `Sciosdev/caope` en `main`, conservando `backend/.env` y `.git`.
+3. Ejecutar una sola vez, como `root`,
+   `scripts/install-production-agent.sh`, siguiendo el bloque exacto de
+   [production-agent.md](production-agent.md). El instalador crea el usuario
+   técnico, scheduler y trabajador de colas; elimina únicamente los cron
+   anteriores de este checkout y ejecuta el bootstrap final. No se configura
+   manualmente otro cron.
+
+El servidor de pruebas en cPanel conserva su mecanismo propio: `.cpanel.yml`
+detecta PHP y Composer y ejecuta dependencias, respaldo, migraciones y cachés.
 
 No se solicita a FESI que comparta host, puerto, usuario, llave SSH, rutas,
 ejecutables, `APP_KEY`, contraseñas ni tokens de GitHub/cPanel.
@@ -62,9 +68,9 @@ adoptan el perfil transitorio de pruebas cuando `APP_ENV` es exactamente
 `staging`; cualquier otro valor se audita como producción. El scheduler envía
 el perfil de forma explícita según la modalidad activada en la consola.
 
-El checkout debe quedar en `main`, seguir a `origin/main` y ser escribible por
-el mismo usuario que ejecuta el scheduler. CAOPE comprueba estas condiciones en
-la consola y bloquea el botón si alguna falta.
+El checkout debe quedar en `main`, seguir a `origin/main` y pertenecer al agente
+`caope-deploy` instalado una sola vez. CAOPE comprueba estas condiciones en la
+consola y bloquea el botón si alguna falta.
 
 ## Activación desde el navegador
 
@@ -117,8 +123,10 @@ El workflow:
 8. GitHub comprueba el SHA publicado y `/caope/up`.
 
 Producción rechaza el despliegue si contiene cambios locales en archivos
-versionados. Nunca ejecuta seeders, `migrate:fresh`, `reset --hard` ni comandos
-proporcionados desde el navegador.
+versionados. Nunca ejecuta seeders, `migrate:fresh` ni comandos proporcionados
+desde el navegador. El único `reset --hard` permitido está encapsulado en el
+rollback automático: sólo puede volver al SHA local conocido que estaba activo
+antes de que el propio agente avanzara un checkout limpio.
 
 ## Seguridad del callback de producción
 
@@ -182,9 +190,12 @@ El botón de despliegue queda deshabilitado si alguna comprobación está en roj
 
 ## Recuperación de una falla
 
-El script usa un candado para impedir despliegues concurrentes. Si falla después
-de activar mantenimiento, intenta ejecutar `artisan up` antes de salir. No
-sobrescribe cambios locales ni fuerza el historial Git.
+El script usa un candado para impedir despliegues concurrentes. Si producción
+falla después de avanzar el checkout, vuelve al SHA anterior, reinstala el lock
+anterior de Composer, reconstruye las cachés y levanta la aplicación. Este
+rollback de código no deshace migraciones ya confirmadas; por eso las migraciones
+de CAOPE deben conservar compatibilidad hacia atrás. El agente nunca inicia el
+despliegue si detecta cambios locales versionados.
 
 Para diagnosticar desde el navegador:
 

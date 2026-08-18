@@ -261,6 +261,39 @@ class DeveloperConsoleTest extends TestCase
         ]);
     }
 
+    public function test_failed_github_status_keeps_the_local_agent_diagnostic(): void
+    {
+        $developer = $this->developer();
+        $deployment = DeploymentRun::query()->create([
+            'request_id' => 'd062783e-3538-46ba-a56b-1c35e215ee04',
+            'requested_by' => $developer->id,
+            'ref' => 'main',
+            'status' => 'in_progress',
+            'error_message' => 'El agente local no pudo completar el despliegue.',
+        ]);
+
+        $this->workflowRuns = [[
+            'id' => 12345,
+            'display_title' => "Deploy production main [{$deployment->request_id}]",
+            'status' => 'completed',
+            'conclusion' => 'failure',
+            'html_url' => 'https://github.com/Sciosdev/caope/actions/runs/12345',
+            'head_sha' => str_repeat('a', 40),
+        ]];
+
+        $this->actingAs($developer)
+            ->withSession($this->confirmedPasswordSession())
+            ->get(route('developer.index'))
+            ->assertOk()
+            ->assertSeeText('El agente local no pudo completar el despliegue.');
+
+        $this->assertDatabaseHas('deployment_runs', [
+            'id' => $deployment->id,
+            'conclusion' => 'failure',
+            'error_message' => 'El agente local no pudo completar el despliegue.',
+        ]);
+    }
+
     public function test_ip_allow_list_is_enforced(): void
     {
         config(['developer_console.allowed_ips' => ['203.0.113.10']]);
