@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>{{ config('app.name', 'CAOPE') }}</title>
 
+  @include('partials.favicon')
+
   {{-- CSS global mínimo --}}
   <link rel="stylesheet" href="{{ asset('assets/vendors/core/core.css') }}">
   <link rel="stylesheet" href="{{ asset('assets/css/demo2/style.css') }}">
