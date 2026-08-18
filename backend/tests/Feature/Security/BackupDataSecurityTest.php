@@ -14,18 +14,27 @@ use ZipArchive;
 
 class BackupDataSecurityTest extends TestCase
 {
+    public function test_laravel_logs_remain_group_writable_for_web_and_scheduler_users(): void
+    {
+        $this->assertSame(0664, config('logging.channels.single.permission'));
+        $this->assertSame(0664, config('logging.channels.daily.permission'));
+    }
+
     public function test_mysql_dump_tls_can_be_disabled_without_changing_the_application_connection(): void
     {
         $connectionOptions = config('database.connections.mysql.options');
 
         config([
             'database.connections.mysql.dump.skip_ssl' => true,
+            'database.connections.mysql.dump.ssl_flag' => 'skip-ssl',
         ]);
 
         $dumper = DbDumperFactory::createFromConnection('mysql');
         $skipSsl = new ReflectionProperty(MySql::class, 'skipSsl');
 
         $this->assertTrue($skipSsl->getValue($dumper));
+        $this->assertStringContainsString('skip-ssl', $dumper->getContentsOfCredentialsFile());
+        $this->assertStringNotContainsString('ssl-mode=DISABLED', $dumper->getContentsOfCredentialsFile());
         $this->assertSame($connectionOptions, config('database.connections.mysql.options'));
     }
 

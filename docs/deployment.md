@@ -30,13 +30,17 @@ FESI realiza estos pasos, en este orden, durante la primera instalación segura:
    FESI. No se debe copiar una clave de `.env.testing`, commits o documentación.
    `DB_DUMP_SKIP_SSL=true` sólo desactiva TLS para el proceso de respaldo porque
    el servidor MySQL institucional no lo ofrece; no cambia la conexión normal de
-   CAOPE.
+   CAOPE. El proceso fuerza el indicador `skip-ssl`, compatible con el cliente
+   MariaDB que Debian proporciona como `mysqldump`.
 2. En la herramienta de despliegue Git, actualizar el checkout persistente de
    `Sciosdev/caope` en `main`. Deben conservar `backend/.env` y `.git`;
    `.cpanel.yml` detecta PHP y Composer y ejecuta dependencias, respaldo,
    migraciones y cachés.
 3. Conservar una única ejecución de `php artisan schedule:run` cada minuto. Si
-   el scheduler ya funciona, no deben modificarlo.
+   el scheduler ya funciona, no deben modificarlo. Cuando Apache y el scheduler
+   usan cuentas distintas, `backend/storage/logs` debe conservar el grupo del
+   usuario web y el bit setgid (por ejemplo, `drwxrwsr-x www-data:www-data` en
+   Debian) para que ambos puedan continuar el registro diario.
 
 No se solicita a FESI que comparta host, puerto, usuario, llave SSH, rutas,
 ejecutables, `APP_KEY`, contraseñas ni tokens de GitHub/cPanel.
