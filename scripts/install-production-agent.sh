@@ -290,6 +290,8 @@ systemctl start caope-scheduler.service
 
 systemctl is-active --quiet caope-scheduler.timer || fail 'El timer de CAOPE no quedó activo.'
 systemctl is-active --quiet caope-queue.service || fail 'El trabajador de colas no quedó activo.'
+
+cd -- "${APPLICATION_ROOT}" || fail 'No fue posible entrar al directorio de Laravel para la verificación final.'
 run_as_agent "${PHP_BIN}" artisan caope:security-audit --profile=production --no-interaction
 run_as_agent "${PHP_BIN}" artisan about --only=environment
 
