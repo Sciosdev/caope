@@ -72,6 +72,10 @@ class DeploymentPreparationTest extends TestCase
         $this->assertSame(str_repeat('a', 40), $marker['sha']);
         $this->assertSame('d062783e-3538-46ba-a56b-1c35e215ee04', $marker['request_id']);
         $this->assertGreaterThanOrEqual($before, $marker['expires_at']);
+
+        if (DIRECTORY_SEPARATOR === '/') {
+            $this->assertSame(0660, fileperms($this->markerPath) & 0777);
+        }
     }
 
     public function test_preparation_endpoint_validates_the_revision(): void
