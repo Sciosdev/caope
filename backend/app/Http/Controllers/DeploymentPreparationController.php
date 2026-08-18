@@ -144,8 +144,8 @@ class DeploymentPreparationController extends Controller
             'sha' => $sha,
             'request_id' => $requestId,
             'expires_at' => now()->addMinutes(30)->timestamp,
-        ], JSON_THROW_ON_ERROR), 0600);
-        @chmod($markerPath, 0600);
+        ], JSON_THROW_ON_ERROR), 0660);
+        @chmod($markerPath, 0660);
     }
 
     private function accepted(): JsonResponse
