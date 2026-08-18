@@ -32,6 +32,42 @@ run_without_config_cache() {
     APP_CONFIG_CACHE="${UNCACHED_CONFIG_PATH}" "$@"
 }
 
+normalize_runtime_permissions() {
+    [[ "$(id -u)" -eq 0 ]] || return 0
+
+    local runtime_group="${CAOPE_RUNTIME_GROUP:-}"
+
+    if [[ -z "${runtime_group}" ]]; then
+        runtime_group="$(stat -c '%G' "${APPLICATION_ROOT}/storage/logs" 2>/dev/null || true)"
+    fi
+
+    if [[ -z "${runtime_group}" || "${runtime_group}" == 'root' ]]; then
+        if getent group www-data >/dev/null 2>&1; then
+            runtime_group='www-data'
+        else
+            echo 'ERROR: Define CAOPE_RUNTIME_GROUP con el grupo del servidor web.' >&2
+            return 1
+        fi
+    fi
+
+    local runtime_paths=(
+        "${APPLICATION_ROOT}/bootstrap/cache"
+        "${APPLICATION_ROOT}/storage/app/deployment"
+        "${APPLICATION_ROOT}/storage/framework/cache"
+        "${APPLICATION_ROOT}/storage/framework/sessions"
+        "${APPLICATION_ROOT}/storage/framework/views"
+        "${APPLICATION_ROOT}/storage/logs"
+    )
+    local runtime_path
+
+    for runtime_path in "${runtime_paths[@]}"; do
+        mkdir -p -- "${runtime_path}" || return 1
+        chgrp -R -- "${runtime_group}" "${runtime_path}" || return 1
+        find "${runtime_path}" -type d -exec chmod 2770 {} + || return 1
+        find "${runtime_path}" -type f -exec chmod 0660 {} + || return 1
+    done
+}
+
 resolve_executable() {
     local candidate="$1"
 
@@ -50,6 +86,9 @@ cleanup() {
     trap - EXIT INT TERM
     set +e
     rm -f -- "${COMPOSER_INSTALLER_PATH}" "${UNCACHED_CONFIG_PATH}"
+
+    normalize_runtime_permissions || \
+        echo 'ADVERTENCIA: No fue posible normalizar los permisos de ejecución.' >&2
 
     if [[ "${APP_WAS_DOWN}" -eq 1 ]]; then
         cd -- "${APPLICATION_ROOT}" && "${PHP_BIN}" artisan up
@@ -81,6 +120,9 @@ command -v git >/dev/null 2>&1 || fail 'Git no está disponible para el desplieg
 
 [[ -f "${APPLICATION_ROOT}/artisan" ]] || \
     fail 'La instalación no contiene backend/artisan.'
+
+normalize_runtime_permissions || \
+    fail 'No fue posible preparar los permisos de ejecución para el servidor web.'
 
 if ! mkdir -- "${LOCK_DIRECTORY}" 2>/dev/null; then
     fail 'Ya existe otro despliegue de CAOPE en curso.'
@@ -270,5 +312,8 @@ mkdir -p -- "$(dirname -- "${VERSION_MARKER_PATH}")"
 
 "${PHP_BIN}" artisan up
 APP_WAS_DOWN=0
+
+normalize_runtime_permissions || \
+    fail 'No fue posible restaurar los permisos de ejecución para el servidor web.'
 
 echo "Despliegue completado en ${CURRENT_SHA}."
