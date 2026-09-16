@@ -100,7 +100,7 @@ class GitHubDeploymentService
                 'status' => $response->status(),
             ]);
 
-            throw new RuntimeException('GitHub no aceptó la solicitud de despliegue.');
+            throw new RuntimeException('GitHub no aceptó la solicitud de despliegue.', $response->status());
         }
     }
 
@@ -113,10 +113,10 @@ class GitHubDeploymentService
         try {
             $response = $this->client()->get($this->workflowEndpoint('/runs'), [
                 'event' => 'workflow_dispatch',
-                'per_page' => 30,
+                'per_page' => 100,
             ]);
 
-            if (! $response->successful()) {
+            if (! $response->successful() || ! is_array($response->json('workflow_runs'))) {
                 Log::warning('Unable to synchronize GitHub deployment runs.', [
                     'status' => $response->status(),
                 ]);
@@ -124,41 +124,133 @@ class GitHubDeploymentService
                 return 'GitHub no permitió actualizar el estado de los despliegues.';
             }
 
-            foreach ((array) data_get($response->json(), 'workflow_runs', []) as $run) {
-                $displayTitle = (string) ($run['display_title'] ?? '');
-
-                if (preg_match('/\[([0-9a-f-]{36})\]/i', $displayTitle, $matches) !== 1) {
-                    continue;
-                }
-
-                $deployment = DeploymentRun::query()
-                    ->where('request_id', $matches[1])
-                    ->first();
-
-                if (! $deployment) {
-                    continue;
-                }
-
-                $conclusion = $run['conclusion'] ?? null;
-
-                $deployment->update([
-                    'status' => (string) ($run['status'] ?? $deployment->status),
-                    'conclusion' => $conclusion,
-                    'workflow_run_id' => isset($run['id']) ? (int) $run['id'] : null,
-                    'workflow_url' => $run['html_url'] ?? null,
-                    'commit_sha' => $run['head_sha'] ?? null,
-                    'error_message' => $conclusion === 'success'
-                        ? null
-                        : $deployment->error_message,
-                ]);
+            $seenRunIds = [];
+            foreach ($response->json('workflow_runs') as $run) {
+                $this->synchronizeRun($run);
+                $seenRunIds[] = (int) ($run['id'] ?? 0);
             }
 
-            return null;
+            // An approval can outlive the first page of workflow history. Its
+            // age is never evidence that GitHub has stopped executing it.
+            $unseen = DeploymentRun::query()->blocking()
+                ->whereNotNull('workflow_run_id')
+                ->whereNotIn('workflow_run_id', $seenRunIds)
+                ->oldest()
+                ->limit(6)
+                ->get();
+
+            foreach ($unseen->take(5) as $deployment) {
+                $runResponse = $this->client()->get(
+                    '/repos/'.$this->settings->githubRepository().'/actions/runs/'.$deployment->workflow_run_id
+                );
+
+                if (! $runResponse->successful()
+                    || ! $this->synchronizeRun((array) $runResponse->json(), $deployment)) {
+                    return 'No se pudo confirmar un despliegue pendiente en GitHub. Se mantiene bloqueado un nuevo intento.';
+                }
+            }
+
+            if ($unseen->count() > 5) {
+                return 'Quedan despliegues antiguos por comprobar. Se continuará en la siguiente actualización.';
+            }
+
+            return $this->reconcileUnmatchedRequests();
         } catch (Throwable $exception) {
             report($exception);
 
             return 'No fue posible consultar GitHub en este momento.';
         }
+    }
+
+    /** @param array<string, mixed> $run */
+    private function synchronizeRun(array $run, ?DeploymentRun $deployment = null): bool
+    {
+        if (preg_match('/\[([0-9a-f-]{36})\]/i', (string) ($run['display_title'] ?? ''), $matches) !== 1) {
+            return false;
+        }
+
+        $deployment ??= DeploymentRun::query()->where('request_id', $matches[1])->first();
+
+        if (! $deployment
+            || ! hash_equals(strtolower($deployment->request_id), strtolower($matches[1]))
+            || (int) ($run['id'] ?? 0) < 1
+            || ($deployment->workflow_run_id !== null && (int) $deployment->workflow_run_id !== (int) $run['id'])
+            || ! in_array($run['status'] ?? null, ['queued', 'in_progress', 'waiting', 'pending', 'requested', 'completed'], true)) {
+            return false;
+        }
+
+        // Agent results and diagnostics have their own lifecycle. A late API
+        // response must not erase a rollback failure or revive a failed agent.
+        $deployment->update([
+            'status' => $run['status'],
+            'conclusion' => $run['conclusion'] ?? null,
+            'workflow_run_id' => (int) $run['id'],
+            'workflow_url' => $run['html_url'] ?? $deployment->workflow_url,
+            'commit_sha' => $run['head_sha'] ?? $deployment->commit_sha,
+        ]);
+
+        return true;
+    }
+
+    private function reconcileUnmatchedRequests(): ?string
+    {
+        $unmatched = DeploymentRun::query()
+            ->where('status', 'requested')
+            ->whereNull('workflow_run_id')
+            ->whereNull('agent_status')
+            ->whereNull('agent_started_at')
+            ->where('created_at', '<', now()->subHours(2))
+            ->get();
+
+        if ($unmatched->isEmpty()) {
+            return null;
+        }
+
+        // Bound the lookup to the relevant dates and exhaust every page before
+        // declaring a dispatch missing. GitHub caps filtered results at 1,000.
+        $created = $unmatched->min('created_at')->copy()->subMinutes(5)->toIso8601String().'..'.now()->toIso8601String();
+        $complete = false;
+
+        for ($page = 1; $page <= 10; $page++) {
+            $response = $this->client()->get($this->workflowEndpoint('/runs'), [
+                'event' => 'workflow_dispatch',
+                'created' => $created,
+                'per_page' => 100,
+                'page' => $page,
+            ]);
+
+            if (! $response->successful() || ! is_array($response->json('workflow_runs'))) {
+                break;
+            }
+
+            $runs = $response->json('workflow_runs');
+            foreach ($runs as $run) {
+                $this->synchronizeRun($run);
+            }
+
+            if (count($runs) < 100 && (int) $response->json('total_count', 0) <= $page * 100) {
+                $complete = true;
+                break;
+            }
+        }
+
+        if (! $complete) {
+            return 'GitHub no pudo confirmar todas las solicitudes antiguas. Se mantiene bloqueado un nuevo intento.';
+        }
+
+        // Conditional update also protects an agent or preparation request
+        // which starts concurrently with this read-only GitHub reconciliation.
+        DeploymentRun::query()->whereKey($unmatched->modelKeys())
+            ->where('status', 'requested')
+            ->whereNull('workflow_run_id')
+            ->whereNull('agent_status')
+            ->whereNull('agent_started_at')
+            ->update([
+                'status' => 'failed_to_dispatch',
+                'error_message' => 'GitHub no registró esta solicitud después de dos horas. Puedes solicitar un nuevo despliegue.',
+            ]);
+
+        return null;
     }
 
     /**

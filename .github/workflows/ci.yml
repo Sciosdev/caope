@@ -132,6 +132,11 @@ jobs:
           composer test:security-baseline
           composer test:access-control
 
+      - name: Simulate bootstrap and deployment recovery
+        run: |
+          bash ../scripts/tests/bootstrap-cpanel-smoke.sh
+          bash ../scripts/tests/deploy-scheduled-smoke.sh
+
       - name: Run complete legacy suite (diagnostic)
         continue-on-error: true
         run: php artisan test

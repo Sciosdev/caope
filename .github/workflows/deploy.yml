@@ -90,6 +90,9 @@ jobs:
       - name: Simulate the cPanel bootstrap
         run: bash ../scripts/tests/bootstrap-cpanel-smoke.sh
 
+      - name: Simulate deployment failures and recovery
+        run: bash ../scripts/tests/deploy-scheduled-smoke.sh
+
       - name: Validate Blade templates
         run: php artisan blade:validate
 
@@ -108,6 +111,7 @@ jobs:
 
   deploy:
     name: Deploy to production
+    timeout-minutes: 50
     runs-on: ubuntu-latest
     needs: validate
     environment:
@@ -157,8 +161,11 @@ jobs:
           set -euo pipefail
 
           version_url="${PRODUCTION_URL%/}/api/deployment/version"
+          deadline=$(( STARTED_AT + 45 * 60 ))
+          attempt=0
 
-          for attempt in $(seq 1 210); do
+          while (( $(date -u +%s) < deadline )); do
+            attempt=$(( attempt + 1 ))
             response="$(curl --fail --silent --show-error --max-time 15 "${version_url}" || true)"
             deployed_sha="$(jq -r '.sha // empty' <<< "${response}" 2>/dev/null || true)"
             deployed_request_id="$(jq -r '.request_id // empty' <<< "${response}" 2>/dev/null || true)"
@@ -174,15 +181,16 @@ jobs:
                 --show-error \
                 --retry 5 \
                 --retry-delay 3 \
+                --max-time 15 \
                 "${PRODUCTION_URL%/}/up" \
                 > /dev/null
               echo "Production now serves ${EXPECTED_SHA}."
               exit 0
             fi
 
-            echo "Waiting for the production scheduler (${attempt}/210)..."
+            echo "Waiting for the production scheduler (attempt ${attempt}, deadline 45 minutes)..."
             sleep 10
           done
 
-          echo "Production did not publish ${EXPECTED_SHA} within 35 minutes."
+          echo "Production did not publish ${EXPECTED_SHA} within 45 minutes."
           exit 1

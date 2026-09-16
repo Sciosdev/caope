@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Listeners\AuthEventSubscriber;
+use App\Listeners\QueueWorkerHeartbeatSubscriber;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 
 class EventServiceProvider extends ServiceProvider
@@ -14,5 +15,6 @@ class EventServiceProvider extends ServiceProvider
      */
     protected $subscribe = [
         AuthEventSubscriber::class,
+        QueueWorkerHeartbeatSubscriber::class,
     ];
 }
