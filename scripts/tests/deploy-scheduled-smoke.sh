@@ -3,7 +3,8 @@
 # shellcheck disable=SC2016
 
 # Real Git, PHP JSON snippets, flock and signals; only application commands and
-# Composer are simulated. Everything stays in a disposable local repository.
+# Composer are simulated. Each scenario uses an isolated temporary repository.
+# Retain fixtures for inspection; the CI platform discards its runner afterward.
 set -Eeuo pipefail
 TEST_DIRECTORY="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPOSITORY_ROOT="$(cd -- "${TEST_DIRECTORY}/../.." && pwd)"
@@ -12,12 +13,9 @@ REAL_PHP="$(command -v php || command -v php83)"
 REAL_GIT="$(command -v git)"
 export REAL_PHP REAL_GIT
 
-cleanup() {
-    [[ "${TEST_ROOT}" == "${TMPDIR:-/tmp}/"* && -d "${TEST_ROOT}" ]] && rm -rf -- "${TEST_ROOT}"
-}
 fail() { echo "ERROR: $1" >&2; [[ -f "${OUTPUT:-}" ]] && cat "${OUTPUT}" >&2; exit 1; }
 contains() { grep -F -- "$1" "$2" >/dev/null || fail "No se encontró: $1"; }
-trap cleanup EXIT
+printf 'Smoke fixtures retained: %s\n' "${TEST_ROOT}"
 for dependency in flock timeout git; do command -v "${dependency}" >/dev/null || fail "Falta ${dependency}."; done
 
 mkdir -p "${TEST_ROOT}/bin"
@@ -68,12 +66,12 @@ GIT_WRAPPER
 chmod +x "${TEST_ROOT}/bin/"*
 
 fixture() {
-    if [[ -n "${CASE_ROOT:-}" && "${CASE_ROOT}" == "${TEST_ROOT}/"* ]]; then
-        rm -rf -- "${CASE_ROOT}" "${CASE_ROOT}-origin"
-    fi
     SCENARIO="$1"
     CASE_ROOT="${TEST_ROOT}/${SCENARIO}"
     OUTPUT="${CASE_ROOT}/output.log"
+    if [[ -e "${CASE_ROOT}" || -L "${CASE_ROOT}" || -e "${CASE_ROOT}-origin" || -L "${CASE_ROOT}-origin" ]]; then
+        fail 'El destino del escenario ya existe; se conserva sin modificar.'
+    fi
     export CASE_ROOT SCENARIO
     mkdir -p "${CASE_ROOT}/scripts" "${CASE_ROOT}/backend/storage/app/deployment" \
         "${CASE_ROOT}/backend/storage/framework" "${CASE_ROOT}/backend/bootstrap/cache"

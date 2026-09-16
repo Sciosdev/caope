@@ -4,14 +4,13 @@ set -Eeuo pipefail
 TEST_DIRECTORY="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPOSITORY_ROOT="$(cd -- "${TEST_DIRECTORY}/../.." && pwd)"
 TEST_ROOT="$(mktemp -d)"
+# Retain this isolated fixture for inspection. Its CI runner is discarded by
+# the platform; this script never recursively cleans temporary directories.
 REAL_GREP="$(command -v grep)"
 REAL_ID="$(command -v id)"
 export TEST_ROOT REAL_GREP REAL_ID
-cleanup() {
-    [[ "${TEST_ROOT}" == "${TMPDIR:-/tmp}/"* && -d "${TEST_ROOT}" ]] && rm -rf -- "${TEST_ROOT}"
-}
 fail() { echo "ERROR: $1" >&2; cat "${TEST_ROOT}/output.log" >&2; exit 1; }
-trap cleanup EXIT
+printf 'Smoke fixtures retained: %s\n' "${TEST_ROOT}"
 mkdir -p "${TEST_ROOT}/scripts" "${TEST_ROOT}/bin" "${TEST_ROOT}/backend/storage/app/deployment"
 cp -- "${REPOSITORY_ROOT}/scripts/repair-runtime.sh" "${TEST_ROOT}/scripts/repair-runtime.sh"
 cat > "${TEST_ROOT}/bin/id" <<'FAKE_ID'

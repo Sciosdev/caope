@@ -195,6 +195,32 @@ La consola comprueba automáticamente:
 
 El botón de despliegue queda deshabilitado si alguna comprobación está en rojo.
 
+## Validación de cambios en el agente
+
+Las pruebas automatizadas del agente comprueban su lógica y simulan fallos.
+Los escenarios de shell usan Git, bloqueos y señales reales, pero sustituyen
+Composer y las órdenes Artisan. Un CI aprobado no sustituye un ensayo completo
+del despliegue ni confirma que un respaldo del servidor pueda restaurarse.
+
+Antes de publicar una modificación del agente:
+
+1. Preparar una máquina de pruebas independiente, con una copia obtenida de Git,
+   datos ficticios y servicios y permisos equivalentes al servidor. No montar
+   carpetas del equipo ni proporcionar credenciales de producción.
+2. Probar la actualización desde la versión instalada, ejecutando Composer,
+   migraciones, scheduler y trabajador de colas reales. La primera actualización
+   comienza con el script antiguo y debe ensayarse también.
+3. Provocar una interrupción durante dependencias y otra después de migrar.
+   Comprobar que la versión anterior funciona con el esquema resultante y que
+   conserva los registros de prueba. Si la recuperación falla, debe mantener
+   la aplicación en mantenimiento.
+4. Restaurar el respaldo en una base de pruebas separada y comprobar sus datos.
+   Registrar el SHA ensayado, los resultados y los tiempos antes de autorizar
+   la publicación. El chequeo `/up` no acredita estos resultados.
+
+Los nuevos escenarios de shell conservan sus archivos temporales para revisión;
+la plataforma de CI descarta el runner. No ejecutan limpieza recursiva automática.
+
 ## Recuperación de una falla
 
 El script usa `flock` para impedir despliegues concurrentes, incluso cuando se

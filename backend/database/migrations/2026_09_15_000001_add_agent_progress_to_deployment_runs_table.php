@@ -8,15 +8,38 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // MySQL commits each ALTER separately. Resume after an interrupted
+        // migration without replacing columns or their existing audit data.
         Schema::table('deployment_runs', function (Blueprint $table): void {
-            $table->string('agent_status', 40)->nullable()->index();
-            $table->string('agent_stage', 40)->nullable();
-            $table->timestamp('agent_started_at')->nullable();
-            $table->timestamp('agent_finished_at')->nullable();
-            $table->timestamp('agent_heartbeat_at')->nullable();
-            $table->string('agent_result_key', 64)->nullable();
-            $table->timestamp('agent_result_at')->nullable();
+            if (! Schema::hasColumn('deployment_runs', 'agent_status')) {
+                $table->string('agent_status', 40)->nullable();
+            }
+            if (! Schema::hasColumn('deployment_runs', 'agent_stage')) {
+                $table->string('agent_stage', 40)->nullable();
+            }
+            if (! Schema::hasColumn('deployment_runs', 'agent_started_at')) {
+                $table->timestamp('agent_started_at')->nullable();
+            }
+            if (! Schema::hasColumn('deployment_runs', 'agent_finished_at')) {
+                $table->timestamp('agent_finished_at')->nullable();
+            }
+            if (! Schema::hasColumn('deployment_runs', 'agent_heartbeat_at')) {
+                $table->timestamp('agent_heartbeat_at')->nullable();
+            }
+            if (! Schema::hasColumn('deployment_runs', 'agent_result_key')) {
+                $table->string('agent_result_key', 64)->nullable();
+            }
+            if (! Schema::hasColumn('deployment_runs', 'agent_result_at')) {
+                $table->timestamp('agent_result_at')->nullable();
+            }
         });
+
+        // The process may also stop between adding the columns and the index.
+        if (! Schema::hasIndex('deployment_runs', 'deployment_runs_agent_status_index')) {
+            Schema::table('deployment_runs', function (Blueprint $table): void {
+                $table->index('agent_status');
+            });
+        }
     }
 
     public function down(): void
