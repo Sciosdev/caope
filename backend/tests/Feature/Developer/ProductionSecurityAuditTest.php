@@ -24,6 +24,7 @@ class ProductionSecurityAuditTest extends TestCase
             'app.key' => $this->validKey,
             'app.cipher' => 'AES-256-CBC',
             'app.url' => 'https://caope.ayudafesi.com',
+            'app.maintenance.driver' => 'file',
             'security.trusted_hosts' => ['caope.ayudafesi.com'],
             'session.driver' => 'database',
             'session.encrypt' => true,
@@ -36,7 +37,7 @@ class ProductionSecurityAuditTest extends TestCase
     {
         $checks = app(ProductionSecurityAudit::class)->run();
 
-        $this->assertCount(7, $checks);
+        $this->assertCount(8, $checks);
         $this->assertSame([], array_values(array_filter(
             $checks,
             static fn (array $check): bool => $check['status'] !== 'ok'
@@ -57,6 +58,7 @@ class ProductionSecurityAuditTest extends TestCase
             'session.encrypt' => false,
             'session.secure' => false,
             'backup.backup.password' => null,
+            'app.maintenance.driver' => 'cache',
         ]);
 
         $checks = app(ProductionSecurityAudit::class)->run();
@@ -70,6 +72,7 @@ class ProductionSecurityAuditTest extends TestCase
                 'security_session_cookie',
                 'security_session_storage',
                 'security_backup_encryption',
+                'security_maintenance',
             ],
             array_column(array_filter(
                 $checks,
@@ -201,5 +204,26 @@ class ProductionSecurityAuditTest extends TestCase
     {
         $this->assertSame(0, Artisan::call('list', ['--raw' => true]));
         $this->assertStringContainsString('caope:security-audit', Artisan::output());
+    }
+
+    public function test_every_deployed_profile_requires_file_maintenance_for_independent_recovery(): void
+    {
+        foreach (['cache', '', null] as $driver) {
+            config(['app.maintenance.driver' => $driver]);
+
+            foreach ([ProductionSecurityAudit::PROFILE_PRODUCTION, ProductionSecurityAudit::PROFILE_STAGING] as $profile) {
+                $errors = app(ProductionSecurityAudit::class)->errors($profile);
+                $this->assertSame(['security_maintenance'], array_column($errors, 'id'));
+                $this->assertStringContainsString('aunque Laravel no pueda iniciar', $errors[0]['summary']);
+            }
+        }
+    }
+
+    public function test_command_rejects_cache_maintenance_before_the_deployment_can_start(): void
+    {
+        config(['app.maintenance.driver' => 'cache']);
+
+        $this->assertSame(1, Artisan::call('caope:security-audit', ['--profile' => 'production', '--no-interaction' => true]));
+        $this->assertStringContainsString('APP_MAINTENANCE_DRIVER debe ser file', Artisan::output());
     }
 }
