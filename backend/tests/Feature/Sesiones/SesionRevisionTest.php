@@ -427,7 +427,7 @@ class SesionRevisionTest extends TestCase
             ->get($downloadUrl)
             ->assertForbidden();
 
-        $expediente->update(['creado_por' => $otherFacilitator->id]);
+        $expediente->update(['facilitador_id' => $otherFacilitator->id]);
         $sesion->unsetRelation('expediente');
 
         $this->actingAs($facilitador)

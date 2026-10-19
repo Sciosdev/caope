@@ -80,7 +80,7 @@ class ExpedienteNameMaskingTest extends TestCase
         $view->assertSeeText($anotherUser->name);
     }
 
-    public function test_index_eager_loads_creado_por_relation(): void
+    public function test_index_eager_loads_assigned_facilitador_relation(): void
     {
         $user = $this->createDocenteUser();
         $alumno = User::factory()->create();
@@ -88,6 +88,7 @@ class ExpedienteNameMaskingTest extends TestCase
         $expediente = Expediente::factory()->create([
             'tutor_id' => $user->id,
             'creado_por' => $alumno->id,
+            'facilitador_id' => $alumno->id,
         ]);
 
         $response = $this->actingAs($user)->get(route('expedientes.index'));
@@ -100,8 +101,8 @@ class ExpedienteNameMaskingTest extends TestCase
 
         $this->assertInstanceOf(LengthAwarePaginator::class, $expedientes);
         $this->assertNotNull($expedientes->first());
-        $this->assertTrue($expedientes->first()->relationLoaded('creadoPor'));
-        $this->assertSame($alumno->name, optional($expedientes->first()->creadoPor)->name);
+        $this->assertTrue($expedientes->first()->relationLoaded('facilitador'));
+        $this->assertSame($alumno->name, optional($expedientes->first()->facilitador)->name);
     }
 
     public function test_paps_can_view_expedientes_index_without_expedientes_view_permission(): void

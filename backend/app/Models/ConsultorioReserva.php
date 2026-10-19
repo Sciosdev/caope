@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 
 class ConsultorioReserva extends Model
 {
@@ -31,6 +32,16 @@ class ConsultorioReserva extends Model
         'origen_expediente' => 'boolean',
     ];
 
+    protected static function booted(): void
+    {
+        static::saving(function (ConsultorioReserva $reserva): void {
+            if (! $reserva->exists || $reserva->isDirty('estrategia')) {
+                $reserva->estrategia_id = CatalogoEstrategia::query()
+                    ->where('nombre', $reserva->estrategia)->value('id');
+            }
+        });
+    }
+
     /**
      * Limita las reservas al alcance operativo del usuario.
      *
@@ -47,6 +58,14 @@ class ConsultorioReserva extends Model
             return $query;
         }
 
+        if ($user->hasRole('coordinador')) {
+            return $query->whereIn($query->qualifyColumn('estrategia_id'), function (QueryBuilder $assignments) use ($user): void {
+                $assignments->select('estrategia_id')
+                    ->from('coordinador_estrategia')
+                    ->where('user_id', $user->getKey());
+            });
+        }
+
         if (! $user->hasAnyRole(['coordinador', 'alumno', 'docente', 'estratega'])) {
             return $query->whereRaw('1 = 0');
         }
@@ -54,10 +73,6 @@ class ConsultorioReserva extends Model
         return $query->where(function (Builder $assigned) use ($user): void {
             if ($user->hasRole('alumno')) {
                 $assigned->orWhere('usuario_atendido_id', $user->getKey());
-            }
-
-            if ($user->hasRole('coordinador')) {
-                $assigned->orWhere('supervisor_id', $user->getKey());
             }
 
             if ($user->hasAnyRole(['docente', 'estratega'])) {
@@ -69,6 +84,11 @@ class ConsultorioReserva extends Model
     public function usuarioAtendido(): BelongsTo
     {
         return $this->belongsTo(User::class, 'usuario_atendido_id');
+    }
+
+    public function estrategiaCatalogo(): BelongsTo
+    {
+        return $this->belongsTo(CatalogoEstrategia::class, 'estrategia_id');
     }
 
     public function estratega(): BelongsTo

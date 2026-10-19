@@ -294,14 +294,14 @@ class SesionController extends Controller
      */
     private function sesionRecipients(Sesion $sesion): Collection
     {
-        $sesion->loadMissing(['realizadaPor', 'expediente.tutor', 'expediente.creadoPor', 'expediente.coordinador']);
+        $sesion->loadMissing(['realizadaPor', 'expediente.tutor', 'expediente.facilitador', 'expediente.coordinador']);
 
         $expediente = $sesion->expediente;
 
         return collect([
             $sesion->realizadaPor,
             $expediente?->tutor,
-            $expediente?->creadoPor,
+            $expediente?->facilitador,
             $expediente?->coordinador,
         ])->filter()
             ->unique(fn (User $user) => $user->id)

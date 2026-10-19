@@ -265,14 +265,9 @@ class ConsultorioReservaController extends Controller
             $this->canManageBitacora($request) || $this->canRequestBitacoraChanges($request),
             403
         );
-        abort_if(
-            $reserva->origen_expediente && ! $this->canManageBitacora($request),
-            403,
-            'Las asignaciones creadas desde expediente solo las puede modificar el administrador general.'
-        );
 
         return view('consultorios.edit', [
-            'reserva' => $reserva->load(['usuarioAtendido', 'estratega', 'supervisor']),
+            'reserva' => $reserva->load(['usuarioAtendido', 'estratega', 'supervisor', 'estrategiaCatalogo']),
             'usuarios' => User::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'docentes' => User::role('docente')->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'consultoriosActivos' => CatalogoConsultorio::activos(),

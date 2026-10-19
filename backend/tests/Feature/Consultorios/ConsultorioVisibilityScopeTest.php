@@ -49,8 +49,9 @@ class ConsultorioVisibilityScopeTest extends TestCase
     public function test_coordinador_solo_recibe_catalogos_y_reservas_asignadas(): void
     {
         [$admin, $coordinador] = [$this->user('admin'), $this->user('coordinador')];
-        $visible = $this->reservation(5, 2, $admin, ['supervisor_id' => $coordinador->id]);
-        $this->reservation(6, 3, $admin, ['estrategia' => 'Reserva ajena']);
+        $this->assignStrategy($coordinador);
+        $visible = $this->reservation(5, 2, $admin);
+        $this->reservation(6, 3, $admin, ['estrategia' => 'Reserva ajena', 'supervisor_id' => $coordinador->id]);
 
         $this->actingAs($coordinador)
             ->get(route('consultorios.index', ['consultorio_numero' => 6, 'cubiculo_numero' => 3]))
@@ -122,8 +123,9 @@ class ConsultorioVisibilityScopeTest extends TestCase
     public function test_export_directo_respeta_el_alcance_del_coordinador(): void
     {
         [$admin, $coordinador] = [$this->user('admin'), $this->user('coordinador')];
-        $visible = $this->reservation(5, 2, $admin, ['supervisor_id' => $coordinador->id]);
-        $this->reservation(6, 3, $admin, ['estrategia' => 'Reserva ajena']);
+        $this->assignStrategy($coordinador);
+        $visible = $this->reservation(5, 2, $admin);
+        $this->reservation(6, 3, $admin, ['estrategia' => 'Reserva ajena', 'supervisor_id' => $coordinador->id]);
 
         Excel::fake();
         Excel::matchByRegex();
@@ -244,6 +246,13 @@ class ConsultorioVisibilityScopeTest extends TestCase
             'status' => 'atendida',
         ]);
         $this->assertNull($solicitud->fresh()->reserva);
+    }
+
+    private function assignStrategy(User $coordinador): void
+    {
+        $estrategia = CatalogoEstrategia::query()->where('nombre', 'Reserva asignada')->firstOrFail();
+        $coordinador->estrategiasCoordinadas()->attach($estrategia);
+        CatalogoEstrategia::query()->firstOrCreate(['nombre' => 'Reserva ajena'], ['activo' => true]);
     }
 
     private function user(string $role, array $attributes = []): User

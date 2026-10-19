@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Dashboard;
 
+use App\Models\CatalogoEstrategia;
 use App\Models\Expediente;
 use App\Models\Sesion;
 use App\Models\User;
@@ -151,8 +152,12 @@ class DashboardPendingsTest extends TestCase
         $coordinador->assignRole('coordinador');
         $otroCoordinador = User::factory()->create();
 
+        $estrategia = CatalogoEstrategia::create(['nombre' => 'Estrategia coordinada', 'activo' => true]);
+        $coordinador->estrategiasCoordinadas()->attach($estrategia);
+
         $asignado = Expediente::factory()->create([
             'coordinador_id' => $coordinador->id,
+            'estrategia_id' => $estrategia->id,
         ]);
         $ajeno = Expediente::factory()->create([
             'coordinador_id' => $otroCoordinador->id,
@@ -189,7 +194,7 @@ class DashboardPendingsTest extends TestCase
         ]);
 
         $facilitador->notify(new SesionObservedNotification($sesion));
-        $expediente->update(['creado_por' => $nuevoFacilitador->id]);
+        $expediente->update(['facilitador_id' => $nuevoFacilitador->id]);
 
         $response = $this->actingAs($facilitador)->getJson(route('dashboard.pending'));
 

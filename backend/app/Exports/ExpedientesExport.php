@@ -45,7 +45,7 @@ class ExpedientesExport extends DefaultValueBinder implements FromQuery, WithHea
      */
     public function map($expediente): array
     {
-        $expediente->loadMissing(['tutor', 'coordinador', 'creadoPor']);
+        $expediente->loadMissing(['tutor', 'coordinador', 'facilitador']);
 
         return [
             $expediente->no_control,
@@ -54,7 +54,7 @@ class ExpedientesExport extends DefaultValueBinder implements FromQuery, WithHea
             optional($expediente->apertura)->format('Y-m-d'),
             optional($expediente->tutor)->name,
             optional($expediente->coordinador)->name,
-            optional($expediente->creadoPor)->name,
+            optional($expediente->facilitador)->name,
         ];
     }
 
@@ -87,6 +87,7 @@ class ExpedientesExport extends DefaultValueBinder implements FromQuery, WithHea
             ->when($filters['hasta'] ?? null, fn (Builder $q, string $hasta): Builder => $q->whereDate('apertura', '<=', $hasta))
             ->when($filters['tutor_id'] ?? null, fn (Builder $q, int $tutorId): Builder => $q->where('tutor_id', $tutorId))
             ->when($filters['coordinador_id'] ?? null, fn (Builder $q, int $coordinadorId): Builder => $q->where('coordinador_id', $coordinadorId))
+            ->when($filters['facilitador_id'] ?? null, fn (Builder $q, int $facilitadorId): Builder => $q->where('facilitador_id', $facilitadorId))
             ->when($filters['creado_por'] ?? null, fn (Builder $q, int $creadoPor): Builder => $q->where('creado_por', $creadoPor));
     }
 }

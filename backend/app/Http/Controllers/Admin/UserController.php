@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\CatalogoCarrera;
+use App\Models\CatalogoEstrategia;
 use App\Models\CatalogoTurno;
 use App\Models\User;
 use App\Services\Security\AccountSessionManager;
@@ -44,7 +45,7 @@ class UserController extends Controller
     public function index(): View
     {
         $users = User::query()
-            ->with('roles')
+            ->with(['roles', 'estrategiasCoordinadas'])
             ->when(
                 $this->isRestrictedPaps(),
                 fn ($query) => $query->whereDoesntHave(
@@ -81,16 +82,22 @@ class UserController extends Controller
             'turno' => ['nullable', 'string', 'max:100'],
             'is_active' => ['nullable', 'boolean'],
             'approved' => ['nullable', 'boolean'],
+            ...$this->strategyValidationRules(),
         ]);
 
         $payload = Arr::only($validated, ['name', 'email', 'password', 'carrera', 'turno']);
         $payload['is_active'] = $request->boolean('is_active');
         $payload['approved_at'] = $request->boolean('approved') ? Carbon::now() : null;
 
-        DB::transaction(function () use ($payload, $validated): void {
+        $strategyIds = in_array('coordinador', $validated['roles'], true)
+            ? ($validated['estrategia_ids'] ?? [])
+            : [];
+
+        DB::transaction(function () use ($payload, $validated, $strategyIds): void {
             $user = new User;
             $user->forceFill($payload)->save();
             $user->syncRoles($validated['roles']);
+            $user->estrategiasCoordinadas()->sync($strategyIds);
         });
 
         return Redirect::route('admin.users.index')->with('status', __('Usuario creado correctamente.'));
@@ -105,9 +112,9 @@ class UserController extends Controller
         }
 
         return view('admin.usuarios.edit', [
-            'user' => $user->load('roles'),
+            'user' => $user->load(['roles', 'estrategiasCoordinadas']),
             'roles' => $this->availableRoles(),
-            ...$this->catalogOptions(),
+            ...$this->catalogOptions($user),
         ]);
     }
 
@@ -136,6 +143,7 @@ class UserController extends Controller
             'turno' => ['nullable', 'string', 'max:100'],
             'is_active' => ['nullable', 'boolean'],
             'approved' => ['nullable', 'boolean'],
+            ...$this->strategyValidationRules($user),
         ]);
 
         if ($this->wouldRemoveLastAdmin($user, $validated['roles'])) {
@@ -149,6 +157,14 @@ class UserController extends Controller
         $passwordChanged = ! empty($validated['password']);
         $rolesChanged = collect($validated['roles'])->sort()->values()->all()
             !== $user->roles->pluck('name')->sort()->values()->all();
+        $currentStrategyIds = $user->estrategiasCoordinadas()
+            ->pluck('catalogo_estrategias.id')->map(fn ($id) => (int) $id)->sort()->values()->all();
+        $strategyIds = ! in_array('coordinador', $validated['roles'], true)
+            ? []
+            : ((array_key_exists('estrategia_ids', $validated) || $request->boolean('estrategia_ids_present'))
+                ? collect($validated['estrategia_ids'] ?? [])->map(fn ($id) => (int) $id)->sort()->values()->all()
+                : $currentStrategyIds);
+        $strategiesChanged = $strategyIds !== $currentStrategyIds;
 
         $data = Arr::only($validated, ['name', 'email', 'carrera', 'turno']);
         $data['is_active'] = array_key_exists('is_active', $validated)
@@ -168,12 +184,14 @@ class UserController extends Controller
 
         $accessChanged = (bool) $data['is_active'] !== (bool) $user->is_active
             || ($data['approved_at'] === null) !== ($user->approved_at === null)
-            || $rolesChanged;
+            || $rolesChanged
+            || $strategiesChanged;
 
         DB::transaction(function () use (
             $user,
             $data,
             $validated,
+            $strategyIds,
             $emailChanged,
             $passwordChanged,
             $accessChanged,
@@ -183,6 +201,7 @@ class UserController extends Controller
 
             $user->forceFill($data)->save();
             $user->syncRoles($validated['roles']);
+            $user->estrategiasCoordinadas()->sync($strategyIds);
 
             if ($emailChanged || $passwordChanged || $accessChanged) {
                 $this->accountSessions->revokeAll($user, [$originalEmail]);
@@ -355,9 +374,35 @@ class UserController extends Controller
         }
     }
 
-    private function catalogOptions(): array
+    private function strategyValidationRules(?User $user = null): array
+    {
+        $currentIds = $user?->estrategiasCoordinadas()->pluck('catalogo_estrategias.id')->all() ?? [];
+
+        return [
+            'estrategia_ids_present' => ['sometimes', 'boolean'],
+            'estrategia_ids' => ['sometimes', 'array'],
+            'estrategia_ids.*' => [
+                'integer',
+                'distinct',
+                Rule::exists('catalogo_estrategias', 'id')->where(
+                    fn ($query) => $query->where(fn ($active) => $active
+                        ->where('activo', true)
+                        ->orWhereIn('id', $currentIds))
+                ),
+            ],
+        ];
+    }
+
+    private function catalogOptions(?User $user = null): array
     {
         return [
+            'estrategias' => CatalogoEstrategia::query()
+                ->where(fn ($query) => $query->where('activo', true)->orWhereIn(
+                    'id',
+                    $user?->estrategiasCoordinadas()->pluck('catalogo_estrategias.id')->all() ?? []
+                ))
+                ->orderBy('nombre')
+                ->get(),
             'carreras' => CatalogoCarrera::query()
                 ->where('activo', true)
                 ->orderBy('nombre')

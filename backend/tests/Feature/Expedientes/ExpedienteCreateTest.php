@@ -123,6 +123,10 @@ class ExpedienteCreateTest extends TestCase
         foreach (['coordinador', 'docente'] as $index => $privilegedRole) {
             $user = User::factory()->create();
             $user->assignRole(['alumno', $privilegedRole]);
+            $estrategia = CatalogoEstrategia::query()->create(['nombre' => 'Estrategia de prueba '.$index, 'activo' => true]);
+            if ($privilegedRole === 'coordinador') {
+                $user->estrategiasCoordinadas()->sync([$estrategia->id]);
+            }
             $noControl = sprintf('CA-2026-72%02d', $index + 1);
 
             $this->actingAs($user)
@@ -134,6 +138,7 @@ class ExpedienteCreateTest extends TestCase
                     'turno' => $turno->nombre,
                     'tutor_id' => $user->id,
                     'coordinador_id' => $user->id,
+                    'estrategia_id' => $estrategia->id,
                 ])
                 ->assertSessionHasNoErrors()
                 ->assertRedirect();
@@ -146,7 +151,7 @@ class ExpedienteCreateTest extends TestCase
         }
     }
 
-    public function test_formulario_para_paps_muestra_hoja_urgencia_y_asignacion_pero_oculta_facilitador(): void
+    public function test_formulario_para_paps_muestra_hoja_urgencia_y_asignacion_de_facilitador(): void
     {
         $paps = User::factory()->create(['approved_at' => now()]);
         $paps->assignRole('paps');
@@ -156,7 +161,7 @@ class ExpedienteCreateTest extends TestCase
         $response->assertOk();
         $response->assertSee('Hoja de urgencia');
         $response->assertSee('Nueva asignación');
-        $response->assertDontSee('Facilitador responsable');
+        $response->assertSee('Facilitador responsable');
     }
 
     public function test_admin_crea_expediente_registra_timeline_y_redirige(): void

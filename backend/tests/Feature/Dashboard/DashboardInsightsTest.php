@@ -310,7 +310,7 @@ class DashboardInsightsTest extends TestCase
             ->getJson(route('dashboard.metrics'))
             ->assertJsonPath('expedientes.total', 1);
 
-        $expediente->update(['creado_por' => $nuevoFacilitador->id]);
+        $expediente->update(['facilitador_id' => $nuevoFacilitador->id]);
 
         $this->actingAs($facilitador)
             ->getJson(route('dashboard.metrics'))

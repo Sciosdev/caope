@@ -766,7 +766,14 @@ class ConsultorioReservaTest extends TestCase
             'origen_expediente' => true,
         ]);
 
-        $this->actingAs($paps)->get(route('consultorios.edit', $reserva))->assertForbidden();
+        $this->actingAs($paps)->get(route('consultorios.edit', $reserva))
+            ->assertOk()
+            ->assertSee('Esta edición se enviará como solicitud.')
+            ->assertSee('action="'.route('consultorios.request-update', $reserva).'"', false)
+            ->assertSee('name="hora_inicio"', false)
+            ->assertSee('name="cubiculo_numero"', false);
+
+        $this->assertDatabaseCount('consultorio_reserva_solicitudes', 0);
         $this->actingAs($paps)->delete(route('consultorios.request-destroy', $reserva))
             ->assertRedirect(route('consultorios.index'));
         $this->actingAs($paps)->put(route('consultorios.request-update', $reserva), [
@@ -793,7 +800,7 @@ class ConsultorioReservaTest extends TestCase
         ]);
     }
 
-    public function test_paps_puede_solicitar_edicion_desde_bitacora_sin_salir_de_la_pagina(): void
+    public function test_paps_propone_ajuste_desde_bitacora_y_admin_aplica_los_cambios(): void
     {
         $adminRole = Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
         $papsRole = Role::query()->firstOrCreate(['name' => 'paps', 'guard_name' => 'web']);
@@ -813,17 +820,132 @@ class ConsultorioReservaTest extends TestCase
             'origen_expediente' => false,
         ]);
 
-        $this->actingAs($paps)
-            ->post(route('consultorios.request-edit', $reserva))
-            ->assertRedirect(route('consultorios.index'))
-            ->assertSessionHas('status', 'Solicitud enviada al administrador.');
+        $this->actingAs($paps)->get(route('consultorios.index'))
+            ->assertOk()
+            ->assertSee('href="'.route('consultorios.edit', $reserva).'">Solicitar edición</a>', false)
+            ->assertDontSee('action="'.route('consultorios.request-edit', $reserva).'"', false);
 
-        $this->assertDatabaseHas('consultorio_reserva_solicitudes', [
-            'consultorio_reserva_id' => $reserva->id,
-            'requested_by' => $paps->id,
-            'tipo' => 'edicion',
-            'status' => 'pendiente',
+        $this->actingAs($paps)->get(route('consultorios.edit', $reserva))->assertOk();
+        $this->assertDatabaseCount('consultorio_reserva_solicitudes', 0);
+
+        $propuesta = [
+            'fecha' => now()->startOfWeek()->addWeek()->toDateString(),
+            'hora_inicio' => '12:00',
+            'hora_fin' => '13:00',
+            'consultorio_numero' => 5,
+            'cubiculo_numero' => 2,
+            'estrategia' => 'Otra estrategia',
+        ];
+
+        $this->actingAs($paps)->put(route('consultorios.update', $reserva), $propuesta)->assertForbidden();
+        $this->actingAs($paps)->put(route('consultorios.request-update', $reserva), $propuesta)
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('consultorios.index'));
+
+        $solicitud = ConsultorioReservaSolicitud::query()->where('consultorio_reserva_id', $reserva->id)->sole();
+        $this->assertSame($paps->id, $solicitud->requested_by);
+        $this->assertSame('edicion', $solicitud->tipo);
+        $this->assertSame('pendiente', $solicitud->status);
+        $this->assertSame($propuesta, $solicitud->payload);
+        $this->assertDatabaseHas('consultorio_reservas', [
+            'id' => $reserva->id,
+            'hora_inicio' => '10:00',
+            'hora_fin' => '11:00',
+            'consultorio_numero' => 3,
+            'cubiculo_numero' => 1,
         ]);
+
+        $this->actingAs($admin)->post(route('admin.consultorios.solicitudes.approve', $solicitud))
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('admin.consultorios.solicitudes.index'));
+
+        $this->assertDatabaseHas('consultorio_reservas', ['id' => $reserva->id] + $propuesta);
+        $this->assertSame('atendida', $solicitud->fresh()->status);
+    }
+
+    public function test_perfiles_sin_permiso_no_pueden_abrir_ni_enviar_ajustes_de_reserva(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+        $reserva = ConsultorioReserva::query()->create([
+            'fecha' => now()->startOfWeek()->addWeek()->toDateString(),
+            'hora_inicio' => '09:00',
+            'hora_fin' => '10:00',
+            'consultorio_numero' => 3,
+            'cubiculo_numero' => 1,
+            'estrategia' => 'Intervención breve',
+            'creado_por' => $admin->id,
+            'origen_expediente' => true,
+        ]);
+
+        foreach (['paps', 'coordinador', 'docente', 'alumno', 'estratega'] as $role) {
+            Role::query()->firstOrCreate(['name' => $role, 'guard_name' => 'web']);
+            $actor = User::factory()->create(['approved_at' => null]);
+            $actor->assignRole($role);
+
+            $this->actingAs($actor)->get(route('consultorios.edit', $reserva))->assertForbidden();
+            $this->actingAs($actor)->put(route('consultorios.request-update', $reserva), [
+                'fecha' => $reserva->fecha->toDateString(),
+                'hora_inicio' => '12:00',
+                'hora_fin' => '13:00',
+                'consultorio_numero' => 5,
+                'cubiculo_numero' => 2,
+                'estrategia' => 'Otra estrategia',
+            ])->assertForbidden();
+        }
+
+        $this->assertDatabaseCount('consultorio_reserva_solicitudes', 0);
+    }
+
+    public function test_solicitud_de_ajuste_rechaza_empalmes_y_horarios_fuera_del_rango(): void
+    {
+        $paps = User::factory()->create(['approved_at' => now()]);
+        $paps->assignRole('paps');
+        $fecha = now()->startOfWeek()->addWeek()->toDateString();
+        $reserva = ConsultorioReserva::query()->create([
+            'fecha' => $fecha,
+            'hora_inicio' => '09:00',
+            'hora_fin' => '10:00',
+            'consultorio_numero' => 3,
+            'cubiculo_numero' => 1,
+            'estrategia' => 'Intervención breve',
+            'creado_por' => $paps->id,
+            'origen_expediente' => true,
+        ]);
+        ConsultorioReserva::query()->create([
+            'fecha' => $fecha,
+            'hora_inicio' => '12:00',
+            'hora_fin' => '13:00',
+            'consultorio_numero' => 5,
+            'cubiculo_numero' => 2,
+            'estrategia' => 'Otra estrategia',
+            'creado_por' => $paps->id,
+        ]);
+
+        foreach ([['12:30', '13:30'], ['06:00', '07:00'], ['21:30', '22:30']] as [$inicio, $fin]) {
+            $formUrl = route('consultorios.edit', $reserva);
+            $response = $this->actingAs($paps)->from($formUrl)
+                ->put(route('consultorios.request-update', $reserva), [
+                    'fecha' => $fecha,
+                    'hora_inicio' => $inicio,
+                    'hora_fin' => $fin,
+                    'consultorio_numero' => 5,
+                    'cubiculo_numero' => 2,
+                    'estrategia' => 'Otra estrategia',
+                ]);
+
+            $response->assertSessionHasErrors('hora_inicio')->assertRedirect($formUrl);
+
+            $this->get($response->headers->get('Location'))
+                ->assertOk()
+                ->assertSee($inicio === '12:30'
+                    ? 'Ese consultorio ya está reservado en el bloque seleccionado.'
+                    : 'El horario permitido es de 07:00 a 22:00.')
+                ->assertSee('value="'.$inicio.'"', false);
+        }
+
+        $this->assertDatabaseCount('consultorio_reserva_solicitudes', 0);
+        $this->assertSame(1, $reserva->fresh()->cubiculo_numero);
     }
 
     public function test_admin_puede_aprobar_solicitud_de_baja_de_consultorio(): void

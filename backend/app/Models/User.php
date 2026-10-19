@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -69,6 +70,12 @@ class User extends Authenticatable
         return $this->hasMany(Expediente::class, 'coordinador_id');
     }
 
+    public function estrategiasCoordinadas(): BelongsToMany
+    {
+        return $this->belongsToMany(CatalogoEstrategia::class, 'coordinador_estrategia', 'user_id', 'estrategia_id')
+            ->withTimestamps();
+    }
+
     /**
      * Indica si el usuario puede consultar todos los expedientes del centro.
      *
@@ -97,12 +104,20 @@ class User extends Authenticatable
 
     public function isFacilitatorOf(Expediente $expediente): bool
     {
+        if ($this->hasRole('coordinador') && ! $this->hasGlobalExpedienteAccess() && ! $this->isCoordinatorOf($expediente)) {
+            return false;
+        }
+
         return $this->hasRole('alumno')
-            && (int) $expediente->creado_por === (int) $this->getKey();
+            && (int) $expediente->facilitador_id === (int) $this->getKey();
     }
 
     public function isTutorOf(Expediente $expediente): bool
     {
+        if ($this->hasRole('coordinador') && ! $this->hasGlobalExpedienteAccess() && ! $this->isCoordinatorOf($expediente)) {
+            return false;
+        }
+
         return $this->hasAnyRole(['docente', 'estratega'])
             && (int) $expediente->tutor_id === (int) $this->getKey();
     }
@@ -110,11 +125,16 @@ class User extends Authenticatable
     public function isCoordinatorOf(Expediente $expediente): bool
     {
         return $this->hasRole('coordinador')
-            && (int) $expediente->coordinador_id === (int) $this->getKey();
+            && $expediente->estrategia_id !== null
+            && $this->estrategiasCoordinadas()->whereKey($expediente->estrategia_id)->exists();
     }
 
     public function isAssignedToExpediente(Expediente $expediente): bool
     {
+        if ($this->hasRole('coordinador') && ! $this->hasGlobalExpedienteAccess()) {
+            return $this->isCoordinatorOf($expediente);
+        }
+
         return $this->isFacilitatorOf($expediente)
             || $this->isTutorOf($expediente)
             || $this->isCoordinatorOf($expediente);

@@ -27,6 +27,8 @@ class CheckExpedienteSchema extends Command
         $table = (new Expediente)->getTable();
 
         $optionalColumns = [
+            'facilitador_id',
+            'estrategia_id',
             'antecedentes_familiares',
             'antecedentes_observaciones',
             'antecedentes_personales_patologicos',

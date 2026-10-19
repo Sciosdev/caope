@@ -24,6 +24,9 @@
     </div>
 
     <form id="report-filters-form" class="row g-3 mb-4" method="get">
+        @if ($filters['creado_por'] ?? null)
+            <input type="hidden" name="creado_por" value="{{ $filters['creado_por'] }}">
+        @endif
         <div class="col-md-3">
             <label class="form-label text-muted small" for="filtro-estado">{{ __('Estado') }}</label>
             <select class="form-select" id="filtro-estado" name="estado">
@@ -60,11 +63,11 @@
             </select>
         </div>
         <div class="col-md-3">
-            <label class="form-label text-muted small" for="filtro-creador">{{ __('Facilitador') }}</label>
-            <select class="form-select" id="filtro-creador" name="creado_por">
+            <label class="form-label text-muted small" for="filtro-facilitador">{{ __('Facilitador') }}</label>
+            <select class="form-select" id="filtro-facilitador" name="facilitador_id">
                 <option value="">{{ __('Todos') }}</option>
-                @foreach ($creadores as $creador)
-                    <option value="{{ $creador->id }}" @selected(($filters['creado_por'] ?? null) === $creador->id)>{{ $creador->name }}</option>
+                @foreach ($facilitadores as $facilitador)
+                    <option value="{{ $facilitador->id }}" @selected(($filters['facilitador_id'] ?? null) === $facilitador->id)>{{ $facilitador->name }}</option>
                 @endforeach
             </select>
         </div>
@@ -112,7 +115,7 @@
                         <td>{{ optional($expediente->apertura)->format('Y-m-d') }}</td>
                         <td>{{ optional($expediente->tutor)->name ?? '—' }}</td>
                         <td>{{ optional($expediente->coordinador)->name ?? '—' }}</td>
-                        <td>{{ optional($expediente->creadoPor)->name ?? '—' }}</td>
+                        <td>{{ optional($expediente->facilitador)->name ?? '—' }}</td>
                     </tr>
                 @empty
                     <tr>

@@ -16,6 +16,15 @@
                     Esta edición se enviará como solicitud. El administrador general será quien aplique el cambio.
                 </div>
             @endunless
+            @if ($errors->any())
+                <div class="alert alert-danger" role="alert">
+                    <ul class="mb-0">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
             <form method="POST" action="{{ $isAdmin ? route('consultorios.update', $reserva) : route('consultorios.request-update', $reserva) }}" class="row g-3">
                 @csrf @method('PUT')
                 <div class="col-md-2"><label class="form-label">Día</label><input type="date" name="fecha" class="form-control" value="{{ old('fecha', $reserva->fecha->format('Y-m-d')) }}" required></div>
@@ -26,10 +35,10 @@
                     <select name="consultorio_numero" class="form-select" required>@foreach($consultoriosActivos as $consultorio)<option value="{{ $consultorio->numero }}" @selected((int) old('consultorio_numero', $reserva->consultorio_numero)===(int) $consultorio->numero)>{{ $consultorio->nombre }}</option>@endforeach</select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">Consultorio</label>
-                    <select name="cubiculo_numero" class="form-select" required>@foreach($cubiculosActivos as $cubiculo)<option value="{{ $cubiculo->numero }}" @selected((int) old('cubiculo_numero', $reserva->cubiculo_numero)===(int) $cubiculo->numero)>Consultorio {{ $cubiculo->numero }}</option>@endforeach</select>
+                    <label class="form-label">Cubículo</label>
+                    <select name="cubiculo_numero" class="form-select" required>@foreach($cubiculosActivos as $cubiculo)<option value="{{ $cubiculo->numero }}" @selected((int) old('cubiculo_numero', $reserva->cubiculo_numero)===(int) $cubiculo->numero)>Cubículo {{ $cubiculo->numero }}</option>@endforeach</select>
                 </div>
-                <div class="col-md-8"><label class="form-label">Estrategia</label><select name="estrategia" class="form-select" required><option value="">Selecciona una estrategia</option>@foreach($estrategiasActivas as $estrategia)<option value="{{ $estrategia->nombre }}" @selected(old('estrategia', $reserva->estrategia)===$estrategia->nombre)>{{ $estrategia->nombre }}</option>@endforeach</select></div>
+                <div class="col-md-8"><label class="form-label">Estrategia</label><select name="estrategia" class="form-select" required><option value="">Selecciona una estrategia</option>@foreach($estrategiasActivas as $estrategia)<option value="{{ $estrategia->nombre }}" @selected(old('estrategia', $reserva->estrategiaCatalogo?->nombre ?? $reserva->estrategia)===$estrategia->nombre)>{{ $estrategia->nombre }}</option>@endforeach</select></div>
                 <div class="col-md-4"><label class="form-label">Usuario</label><select name="usuario_atendido_id" class="form-select"><option value="">--</option>@foreach($usuarios as $u)<option value="{{ $u->id }}" @selected((int) old('usuario_atendido_id', $reserva->usuario_atendido_id)===$u->id)>{{ $u->name }}</option>@endforeach</select></div>
                 <div class="col-md-4"><label class="form-label">Estratega</label><select name="estratega_id" class="form-select"><option value="">--</option>@foreach($docentes as $u)<option value="{{ $u->id }}" @selected((int) old('estratega_id', $reserva->estratega_id)===$u->id)>{{ $u->name }}</option>@endforeach</select></div>
                 
