@@ -65,8 +65,8 @@ class AssignmentMigrationRecoveryTest extends TestCase
             $table->unsignedBigInteger('estrategia_id')->nullable();
         });
         Schema::create('coordinador_estrategia', function (Blueprint $table): void {
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignId('estrategia_id')->constrained('catalogo_estrategias')->cascadeOnDelete();
+            $table->unsignedBigInteger('user_id');
+            $table->unsignedBigInteger('estrategia_id');
             $table->primary(['user_id', 'estrategia_id']);
             $table->timestamps();
         });
@@ -91,6 +91,7 @@ class AssignmentMigrationRecoveryTest extends TestCase
         $this->assertDatabaseHas('consultorio_reservas', ['id' => $unknown->id, 'estrategia_id' => null]);
         $this->assertDatabaseHas('coordinador_estrategia', ['user_id' => $creator->id, 'estrategia_id' => $first->id]);
         $this->assertDatabaseCount('coordinador_estrategia', 1);
+        $this->assertCount(2, Schema::getForeignKeys('coordinador_estrategia'));
 
         foreach (['expedientes', 'consultorio_reservas'] as $table) {
             $this->assertTrue(Schema::hasIndex($table, ['estrategia_id']));

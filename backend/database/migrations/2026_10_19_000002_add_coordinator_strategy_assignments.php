@@ -20,6 +20,17 @@ return new class extends Migration
             });
         }
 
+        foreach (['user_id' => 'users', 'estrategia_id' => 'catalogo_estrategias'] as $column => $target) {
+            $hasForeignKey = collect(Schema::getForeignKeys('coordinador_estrategia'))
+                ->contains(fn (array $key): bool => $key['columns'] === [$column]);
+
+            if (! $hasForeignKey) {
+                Schema::table('coordinador_estrategia', function (Blueprint $table) use ($column, $target): void {
+                    $table->foreign($column)->references('id')->on($target)->cascadeOnDelete();
+                });
+            }
+        }
+
         $this->ensureStrategyColumn('consultorio_reservas');
 
         // Las reservas ya identificaban la estrategia por su nombre de catálogo.

@@ -60,7 +60,7 @@ instalación de estos cambios. No se modificó ninguna instalación remota.
 
 - Compuerta `test:access-control` ampliada con gestión de estrategias, alcance
   de coordinación, eliminación y reintento de migraciones:
-  **208 pruebas y 1535 aserciones aprobadas**. Las pruebas
+  **208 pruebas y 1536 aserciones aprobadas**. Las pruebas
   comprueban acceso por varias estrategias,
   bloqueo de enlaces directos ajenos, revocación inmediata, roles combinados,
   exportaciones y edición de membresías y clasificación.
@@ -68,7 +68,7 @@ instalación de estos cambios. No se modificó ninguna instalación remota.
 - Las dos migraciones nuevas pueden reanudarse si una interrupción deja columnas
   o tablas creadas antes de registrar la migración. Sus regresiones conservan
   registros, asignaciones y membresías; pasaron también en una base MariaDB
-  10.11 aislada (**2 pruebas, 14 aserciones**), sin datos ni accesos de producción.
+  10.11 aislada (**2 pruebas, 15 aserciones**), sin datos ni accesos de producción.
 - Pint aprobado en 34 archivos PHP; vistas Blade compiladas. Se comprobó en
   Chrome sin interfaz la sincronización de estrategias y la independencia de
   consultorio/cubículo, usando el JavaScript actual de la vista. La recuperación
