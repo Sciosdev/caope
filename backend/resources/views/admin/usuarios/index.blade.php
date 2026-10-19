@@ -43,6 +43,12 @@
                                             <span class="badge text-bg-light text-capitalize">{{ $role->name === 'alumno' ? 'Facilitador' : $role->name }}</span>
                                         @endforeach
                                     @endif
+                                    @if ($user->hasRole('coordinador'))
+                                        <div class="small text-muted mt-1">
+                                            {{ __('Estrategias:') }}
+                                            {{ $user->estrategiasCoordinadas->pluck('nombre')->join(', ') ?: __('Sin asignar') }}
+                                        </div>
+                                    @endif
                                 </td>
                                 <td>
                                     @if ($user->approved_at)

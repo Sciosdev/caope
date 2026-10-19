@@ -82,8 +82,10 @@ class ExpedienteController extends Controller
         'medico_referencia_correo',
         'medico_referencia_telefono',
         'creado_por',
+        'facilitador_id',
         'tutor_id',
         'coordinador_id',
+        'estrategia_id',
         'diagnostico',
         'dsm_tr',
         'observaciones_relevantes',
@@ -207,7 +209,7 @@ class ExpedienteController extends Controller
         $user = $request->user();
 
         return Expediente::query()
-            ->with('creadoPor')
+            ->with(['facilitador', 'estrategia'])
             ->visibleTo($user)
             ->when($busqueda, function ($q) use ($busqueda) {
                 $q->where(function ($w) use ($busqueda) {
@@ -235,8 +237,24 @@ class ExpedienteController extends Controller
 
         $data = $request->validatedExpedienteData();
         $consultorioReservaData = data_get($request->validatedConsultorioReservaData(), 'consultorio_reserva', []);
+        if (! empty($consultorioReservaData['estrategia'])) {
+            $estrategiaNombre = CatalogoEstrategia::query()->find($data['estrategia_id'] ?? null)?->nombre;
+            if ($estrategiaNombre !== $consultorioReservaData['estrategia']) {
+                throw ValidationException::withMessages([
+                    'consultorio_reserva.estrategia' => 'La reserva debe pertenecer a la misma estrategia que el expediente.',
+                ]);
+            }
+        }
         $data['clinica'] = 'Caope';
         $data = $this->applyPapsRestrictions($request, $data);
+
+        if (! $request->user()->hasGlobalExpedienteAccess()) {
+            $data['facilitador_id'] = $request->user()->getKey();
+        }
+
+        if (array_key_exists('facilitador_id', $data)) {
+            $data = $this->syncFacilitatorName($data, $data['facilitador_id']);
+        }
 
         if (! $request->user()->hasGlobalExpedienteAccess()) {
             foreach (['tutor_id', 'coordinador_id'] as $assignment) {
@@ -425,6 +443,7 @@ class ExpedienteController extends Controller
             'facilitador',
             'tutor',
             'coordinador',
+            'estrategia',
             'registroUrgencia',
             'sesiones' => fn ($q) => $q
                 ->visibleTo($request->user())
@@ -517,6 +536,10 @@ class ExpedienteController extends Controller
         $data = $this->applyPapsRestrictions($request, $data, $expediente);
         unset($data['estado']);
 
+        if (! $request->user()->hasGlobalExpedienteAccess()) {
+            unset($data['estrategia_id']);
+        }
+
         if (array_key_exists('resumen_clinico', $data)) {
             $summary = is_array($data['resumen_clinico']) ? $data['resumen_clinico'] : [];
             $summary['cubiculo'] = data_get($expediente->resumen_clinico ?? [], 'cubiculo');
@@ -524,7 +547,14 @@ class ExpedienteController extends Controller
         }
 
         if (! $this->canChangeAssignments($request->user(), $expediente)) {
-            unset($data['tutor_id'], $data['coordinador_id']);
+            unset($data['facilitador_id'], $data['tutor_id'], $data['coordinador_id']);
+        }
+
+        if (array_key_exists('facilitador_id', $data) || array_key_exists('resumen_clinico', $data)) {
+            $facilitadorId = array_key_exists('facilitador_id', $data)
+                ? $data['facilitador_id']
+                : $expediente->facilitador_id;
+            $data = $this->syncFacilitatorName($data, $facilitadorId, $expediente);
         }
 
         [$data, $missingColumns] = $this->prepareExpedienteColumns($data, $expediente, applyDefaults: false);
@@ -702,6 +732,8 @@ class ExpedienteController extends Controller
         }
 
         $columnDefaults = [
+            'estrategia_id' => static fn () => null,
+            'facilitador_id' => static fn () => auth()->id(),
             'antecedentes_familiares' => static fn () => Expediente::defaultFamilyHistory(),
             'antecedentes_observaciones' => static fn () => null,
             'antecedentes_personales_patologicos' => static fn () => Expediente::defaultPersonalPathologicalHistory(),
@@ -918,6 +950,12 @@ class ExpedienteController extends Controller
         $coordinadores = $canChangeAssignments
             ? User::role('coordinador')->orderBy('name')->get()
             : collect([$expediente?->coordinador])->filter();
+        $facilitadores = $canChangeAssignments && ($expediente !== null || $user?->hasGlobalExpedienteAccess())
+            ? User::role('alumno')->where('is_active', true)->orderBy('name')->get(['id', 'name'])
+            : collect([$expediente?->facilitador ?? $user])->filter();
+        if ($expediente?->facilitador) {
+            $facilitadores = $facilitadores->push($expediente->facilitador)->unique('id')->sortBy('name')->values();
+        }
         $cubiculos = $expediente === null
             ? CatalogoCubiculo::activos()->sortBy('numero')->values()
             : CatalogoCubiculo::activos()
@@ -925,6 +963,13 @@ class ExpedienteController extends Controller
                 ->values();
         $consultoriosActivos = CatalogoConsultorio::activos();
         $estrategiasActivas = CatalogoEstrategia::activos();
+        $estrategiasExpediente = $estrategiasActivas;
+        if ($expediente === null && $user?->hasRole('coordinador') && ! $user->hasGlobalExpedienteAccess()) {
+            $estrategiasExpediente = $user->estrategiasCoordinadas()->where('activo', true)->orderBy('nombre')->get();
+        }
+        if ($expediente?->estrategia) {
+            $estrategiasExpediente = $estrategiasExpediente->concat([$expediente->estrategia])->unique('id')->sortBy('nombre')->values();
+        }
         $usuariosActivos = $expediente === null
             ? User::query()->where('is_active', true)->orderBy('name')->get(['id', 'name'])
             : collect([$expediente->facilitador])->filter();
@@ -957,10 +1002,12 @@ class ExpedienteController extends Controller
             'turnos' => $turnos,
             'tutores' => $tutores,
             'coordinadores' => $coordinadores,
+            'facilitadores' => $facilitadores,
             'cubiculos' => $cubiculos,
             'consultoriosActivos' => $consultoriosActivos,
             'cubiculosActivos' => $cubiculos,
             'estrategiasActivas' => $estrategiasActivas,
+            'estrategiasExpediente' => $estrategiasExpediente,
             'usuariosActivos' => $usuariosActivos,
             'docentesActivos' => $docentes,
             'generos' => $generos,
@@ -980,6 +1027,7 @@ class ExpedienteController extends Controller
             'facilitador',
             'tutor',
             'coordinador',
+            'estrategia',
             'anexos' => fn ($query) => $query->with('subidoPor')->latest(),
         ]);
 
@@ -1040,6 +1088,15 @@ class ExpedienteController extends Controller
             && ($user->hasGlobalExpedienteAccess() || $user->isCoordinatorOf($expediente));
     }
 
+    private function syncFacilitatorName(array $data, mixed $facilitadorId, ?Expediente $expediente = null): array
+    {
+        $summary = array_replace($expediente?->resumen_clinico ?? [], $data['resumen_clinico'] ?? []);
+        $summary['facilitador'] = $facilitadorId ? User::query()->find($facilitadorId)?->name : null;
+        $data['resumen_clinico'] = $summary;
+
+        return $data;
+    }
+
     /**
      * @param  array<string, mixed>  $data
      */
@@ -1089,9 +1146,9 @@ class ExpedienteController extends Controller
      */
     private function expedienteContacts(Expediente $expediente): Collection
     {
-        $expediente->loadMissing(['tutor', 'creadoPor', 'coordinador']);
+        $expediente->loadMissing(['tutor', 'facilitador', 'coordinador']);
 
-        return collect([$expediente->tutor, $expediente->creadoPor, $expediente->coordinador])
+        return collect([$expediente->tutor, $expediente->facilitador, $expediente->coordinador])
             ->filter()
             ->unique(fn (User $user) => $user->id)
             ->values();

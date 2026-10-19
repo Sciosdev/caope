@@ -3,6 +3,7 @@
 namespace Tests\Feature\Notifications;
 
 use App\Models\CatalogoCarrera;
+use App\Models\CatalogoEstrategia;
 use App\Models\CatalogoTurno;
 use App\Models\Consentimiento;
 use App\Models\Expediente;
@@ -94,11 +95,15 @@ class NotificationDispatchTest extends TestCase
         $tutor->assignRole('docente');
         $coordinador->assignRole('coordinador');
 
+        $estrategia = CatalogoEstrategia::create(['nombre' => 'Estrategia coordinada', 'activo' => true]);
+        $coordinador->estrategiasCoordinadas()->attach($estrategia);
+
         $expediente = Expediente::factory()->create([
             'estado' => 'revision',
             'creado_por' => $creador->id,
             'tutor_id' => $tutor->id,
             'coordinador_id' => $coordinador->id,
+            'estrategia_id' => $estrategia->id,
             'carrera' => 'Psicología',
             'turno' => 'Matutino',
         ]);
@@ -147,11 +152,15 @@ class NotificationDispatchTest extends TestCase
         $tutor->assignRole('docente');
         $coordinador->assignRole('coordinador');
 
+        $estrategia = CatalogoEstrategia::create(['nombre' => 'Estrategia coordinada', 'activo' => true]);
+        $coordinador->estrategiasCoordinadas()->attach($estrategia);
+
         $expediente = Expediente::factory()->create([
             'estado' => 'revision',
             'creado_por' => $creador->id,
             'tutor_id' => $tutor->id,
             'coordinador_id' => $coordinador->id,
+            'estrategia_id' => $estrategia->id,
             'carrera' => 'Psicología',
             'turno' => 'Matutino',
         ]);
@@ -194,11 +203,15 @@ class NotificationDispatchTest extends TestCase
         $tutor->assignRole('docente');
         $coordinador->assignRole('coordinador');
 
+        $estrategia = CatalogoEstrategia::create(['nombre' => 'Estrategia coordinada', 'activo' => true]);
+        $coordinador->estrategiasCoordinadas()->attach($estrategia);
+
         $expediente = Expediente::factory()->create([
             'estado' => 'revision',
             'creado_por' => $creador->id,
             'tutor_id' => $tutor->id,
             'coordinador_id' => $coordinador->id,
+            'estrategia_id' => $estrategia->id,
             'carrera' => 'Psicología',
             'turno' => 'Matutino',
         ]);
@@ -236,11 +249,15 @@ class NotificationDispatchTest extends TestCase
         $tutor->assignRole('docente');
         $coordinador->assignRole('coordinador');
 
+        $estrategia = CatalogoEstrategia::create(['nombre' => 'Estrategia coordinada', 'activo' => true]);
+        $coordinador->estrategiasCoordinadas()->attach($estrategia);
+
         $expediente = Expediente::factory()->create([
             'estado' => 'revision',
             'creado_por' => $creador->id,
             'tutor_id' => $tutor->id,
             'coordinador_id' => $coordinador->id,
+            'estrategia_id' => $estrategia->id,
             'carrera' => 'Psicología',
             'turno' => 'Matutino',
         ]);
@@ -325,7 +342,7 @@ class NotificationDispatchTest extends TestCase
             $this->assertTrue($notification->shouldSend($facilitador, 'database'));
         }
 
-        $expediente->update(['creado_por' => $otherFacilitator->id]);
+        $expediente->update(['facilitador_id' => $otherFacilitator->id]);
 
         foreach ($notifications as $notification) {
             $this->assertSame([], $notification->via($facilitador));
@@ -333,7 +350,7 @@ class NotificationDispatchTest extends TestCase
             $this->assertFalse($notification->shouldSend($facilitador, 'database'));
         }
 
-        $expediente->update(['creado_por' => $facilitador->id]);
+        $expediente->update(['facilitador_id' => $facilitador->id]);
         $facilitador->forceFill(['is_active' => false])->save();
 
         foreach ($notifications as $notification) {

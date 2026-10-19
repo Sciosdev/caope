@@ -271,10 +271,7 @@
                                     </div>
                                 @elseif ($isPapsAprobado)
                                     <div class="d-flex gap-2">
-                                        <form action="{{ route('consultorios.request-edit', $reserva) }}" method="POST" onsubmit="return confirm('Se enviará una solicitud al administrador para editar este registro.');">
-                                            @csrf
-                                            <button class="btn btn-sm btn-outline-primary">Solicitar edición</button>
-                                        </form>
+                                        <a class="btn btn-sm btn-outline-primary" href="{{ route('consultorios.edit', $reserva) }}">Solicitar edición</a>
                                         <form
                                             action="{{ route('consultorios.request-destroy', $reserva) }}"
                                             method="POST"

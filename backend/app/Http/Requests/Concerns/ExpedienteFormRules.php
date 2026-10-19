@@ -2,13 +2,16 @@
 
 namespace App\Http\Requests\Concerns;
 
+use App\Models\CatalogoEstrategia;
 use App\Models\Expediente;
+use App\Models\User;
 use Illuminate\Validation\Rule;
 use JsonException;
 
 trait ExpedienteFormRules
 {
     private const DEFAULT_NO_CONTROL_PATTERN = '/^(?:[A-Z]{2}-\d{4}-\d{4}|[A-Z]{2}-\d{4})$/';
+
     private const DEFAULT_NO_CONTROL_EXAMPLE = 'CA-2025-0001';
 
     private const PHONE_REGEX = '/^(?=.{7,25}$)(?=(?:.*\d){7,})(?:\+?\d{1,3}[\s.\-]?)?(?:\(\d{2,5}\)|\d{2,5})(?:[\s.\-]?\d{2,5})+(?:\s?(?:ext\.?|x)\s?\d{1,5})?$/i';
@@ -18,6 +21,14 @@ trait ExpedienteFormRules
         $this->merge($this->sanitizedStringFields());
 
         $this->merge($this->normalizedArrayFields());
+
+        // El alta anterior solo enviaba el nombre de la estrategia de la reserva.
+        if (! $this->resolveExpedienteFromRoute() && ! $this->exists('estrategia_id') && is_string($this->input('consultorio_reserva.estrategia')) && filled($this->input('consultorio_reserva.estrategia'))) {
+            $this->merge([
+                'estrategia_id' => CatalogoEstrategia::query()
+                    ->where('nombre', $this->input('consultorio_reserva.estrategia'))->value('id'),
+            ]);
+        }
 
         if ($this->exists('antecedentes_familiares')) {
             $this->merge([
@@ -132,7 +143,7 @@ trait ExpedienteFormRules
             }
         }
 
-        foreach (['tutor_id', 'coordinador_id'] as $field) {
+        foreach (['facilitador_id', 'tutor_id', 'coordinador_id', 'estrategia_id'] as $field) {
             if (! $this->has($field)) {
                 continue;
             }
@@ -141,11 +152,13 @@ trait ExpedienteFormRules
 
             if ($value === null) {
                 $sanitized[$field] = null;
+
                 continue;
             }
 
             if (is_int($value)) {
                 $sanitized[$field] = $value > 0 ? $value : null;
+
                 continue;
             }
 
@@ -154,12 +167,14 @@ trait ExpedienteFormRules
 
                 if ($trimmed === '' || $trimmed === '0') {
                     $sanitized[$field] = null;
+
                     continue;
                 }
 
                 if (is_numeric($trimmed)) {
                     $intValue = (int) $trimmed;
                     $sanitized[$field] = $intValue > 0 ? $intValue : null;
+
                     continue;
                 }
             }
@@ -243,6 +258,24 @@ trait ExpedienteFormRules
             $uniqueNoControl = $uniqueNoControl->ignore($expediente);
         }
 
+        $facilitadorExists = Rule::exists('users', 'id');
+        if (! $expediente?->facilitador_id || (int) $this->input('facilitador_id') !== (int) $expediente->facilitador_id) {
+            $facilitadorExists->where('is_active', true)
+                ->whereIn('id', User::role('alumno')->select('users.id'));
+        }
+
+        $estrategiaExists = Rule::exists('catalogo_estrategias', 'id');
+        if (! $expediente?->estrategia_id || (int) $this->input('estrategia_id') !== (int) $expediente->estrategia_id) {
+            $estrategiaExists->where('activo', true);
+        }
+        $coordinatorCreating = ! $expediente && $this->user()?->hasRole('coordinador') && ! $this->user()->hasGlobalExpedienteAccess();
+        $estrategiaRules = ['sometimes', 'nullable', 'integer', 'min:1', $estrategiaExists];
+        if ($coordinatorCreating) {
+            $estrategiaRules = ['required', 'integer', 'min:1', $estrategiaExists,
+                Rule::in($this->user()->estrategiasCoordinadas()->pluck('catalogo_estrategias.id')->all()),
+            ];
+        }
+
         return [
             'no_control' => $noControlRules,
             'paciente' => ['required', 'string', 'min:2', 'max:140'],
@@ -286,7 +319,12 @@ trait ExpedienteFormRules
             'medico_referencia_correo' => ['sometimes', 'nullable', 'string', 'email:rfc'],
             'medico_referencia_telefono' => ['sometimes', 'nullable', 'string', 'max:25', 'regex:'.self::PHONE_REGEX],
             'tutor_id' => ['sometimes', 'nullable', 'integer', 'min:1', 'exists:users,id'],
+            'facilitador_id' => [
+                'sometimes', 'nullable', 'integer', 'min:1',
+                $facilitadorExists,
+            ],
             'coordinador_id' => ['sometimes', 'nullable', 'integer', 'min:1', 'exists:users,id'],
+            'estrategia_id' => $estrategiaRules,
             'antecedentes_familiares' => ['sometimes', 'array'],
             'antecedentes_observaciones' => ['sometimes', 'nullable', 'string', 'max:500'],
             'antecedentes_personales_patologicos' => ['sometimes', 'array'],
@@ -325,7 +363,6 @@ trait ExpedienteFormRules
     }
 
     /**
-     * @param  mixed  $value
      * @return array<string, array<string, bool>>
      */
     private function sanitizeFamilyHistory(mixed $value): array
@@ -373,7 +410,6 @@ trait ExpedienteFormRules
     }
 
     /**
-     * @param  mixed  $value
      * @return array<string, ?string>
      */
     private function sanitizeSystemsReview(mixed $value): array
@@ -389,11 +425,13 @@ trait ExpedienteFormRules
             if (is_string($raw)) {
                 $trimmed = trim($raw);
                 $normalized[$section] = $trimmed === '' ? null : $trimmed;
+
                 continue;
             }
 
             if (is_scalar($raw)) {
                 $normalized[$section] = trim((string) $raw) ?: null;
+
                 continue;
             }
 
@@ -404,7 +442,6 @@ trait ExpedienteFormRules
     }
 
     /**
-     * @param  mixed  $value
      * @return array{
      *     nota_alta: ?string,
      *     resumen_evaluacion: ?string,
@@ -428,16 +465,19 @@ trait ExpedienteFormRules
 
             if ($field === 'fecha') {
                 $normalized[$field] = $this->normalizeDateField($provided);
+
                 continue;
             }
 
             if ($field === 'resultado') {
                 $normalized[$field] = is_string($provided) ? (trim($provided) ?: null) : null;
+
                 continue;
             }
 
             if ($field === 'cubiculo') {
                 $normalized[$field] = is_numeric($provided) ? (int) $provided : null;
+
                 continue;
             }
 
@@ -626,6 +666,8 @@ trait ExpedienteFormRules
             'turno',
             'tutor_id',
             'coordinador_id',
+            'estrategia_id',
+            'facilitador_id',
             'antecedentes_familiares',
             'antecedentes_observaciones',
             'antecedentes_personales_patologicos',
@@ -704,11 +746,13 @@ trait ExpedienteFormRules
             if (is_string($value)) {
                 $trimmed = trim($value);
                 $sanitized[$target] = $trimmed === '' ? null : $trimmed;
+
                 continue;
             }
 
             if (is_scalar($value)) {
                 $sanitized[$target] = trim((string) $value) ?: null;
+
                 continue;
             }
 

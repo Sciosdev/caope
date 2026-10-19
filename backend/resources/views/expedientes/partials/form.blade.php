@@ -163,6 +163,25 @@
             </div>
 
             <div class="col-md-4">
+                <label for="estrategia_id" class="form-label">Estrategia del expediente</label>
+                <select
+                    name="estrategia_id"
+                    id="estrategia_id"
+                    class="form-select @error('estrategia_id') is-invalid @enderror"
+                    @disabled(! $isCreating && ! auth()->user()?->hasGlobalExpedienteAccess())
+                >
+                    <option value="">Sin clasificar</option>
+                    @foreach ($estrategiasExpediente as $estrategia)
+                        <option value="{{ $estrategia->id }}" data-nombre="{{ $estrategia->nombre }}" @selected((int) old('estrategia_id', $expediente->estrategia_id ?? 0) === $estrategia->id)>{{ $estrategia->nombre }}</option>
+                    @endforeach
+                </select>
+                <div class="form-text">La estrategia determina qué coordinadores pueden consultar el expediente. Sin clasificar, solo los demás perfiles autorizados tendrán acceso.</div>
+                @error('estrategia_id')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+
+            <div class="col-md-4">
                 <label for="tutor_id" class="form-label">Estratega</label>
                 <select
                     name="tutor_id"
@@ -204,26 +223,28 @@
                 @enderror
             </div>
 
-            @if (! $isPaps)
-                <div class="col-md-4">
-                    <label for="resumen_clinico_facilitador" class="form-label">Facilitador responsable</label>
-                    <input
-                        type="text"
-                        name="resumen_clinico[facilitador]"
-                        id="resumen_clinico_facilitador"
-                        value="{{ old('resumen_clinico.facilitador', data_get($expediente->resumen_clinico ?? [], 'facilitador', auth()->user()?->name)) }}"
-                        class="form-control @error('resumen_clinico.facilitador') is-invalid @enderror"
-                        maxlength="150"
-                        readonly
-                    >
-                    @error('resumen_clinico.facilitador')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
-            @endif
+            <div class="col-md-4">
+                <label for="facilitador_id" class="form-label">Facilitador responsable</label>
+                <select
+                    name="facilitador_id"
+                    id="facilitador_id"
+                    class="form-select js-select2 @error('facilitador_id') is-invalid @enderror"
+                    @disabled(! $canChangeAssignments || ($isCreating && ! auth()->user()?->hasGlobalExpedienteAccess()))
+                >
+                    <option value="">Sin asignar</option>
+                    @foreach ($facilitadores as $facilitador)
+                        <option value="{{ $facilitador->id }}" @selected((int) old('facilitador_id', $isCreating && auth()->user()?->hasRole('alumno') ? auth()->id() : ($expediente->facilitador_id ?? 0)) === $facilitador->id)>
+                            {{ $facilitador->name }}
+                        </option>
+                    @endforeach
+                </select>
+                @error('facilitador_id')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
 
             <div class="col-md-4">
-                <label for="resumen_clinico_cubiculo" class="form-label">Consultorio asignado</label>
+                <label for="resumen_clinico_cubiculo" class="form-label">Cubículo asignado</label>
                 <select
                     name="resumen_clinico[cubiculo]"
                     id="resumen_clinico_cubiculo"
@@ -232,13 +253,13 @@
                 >
                     <option value="">Sin asignar</option>
                     @foreach ($cubiculos as $cubiculo)
-                        <option value="{{ $cubiculo->numero }}" @selected((string) old('resumen_clinico.cubiculo', data_get($expediente->resumen_clinico ?? [], 'cubiculo')) === (string) $cubiculo->numero)>
-                            Consultorio {{ $cubiculo->numero }}
+                        <option value="{{ $cubiculo->numero }}" @selected((string) old('resumen_clinico.cubiculo', old('consultorio_reserva.cubiculo_numero', data_get($expediente->resumen_clinico ?? [], 'cubiculo'))) === (string) $cubiculo->numero)>
+                            Cubículo {{ $cubiculo->numero }}
                         </option>
                     @endforeach
                 </select>
                 @if (! $isCreating)
-                    <div class="form-text">El consultorio solo puede asignarse durante la creación del expediente.</div>
+                    <div class="form-text">Los ajustes de horario y cubículo se gestionan en la <a href="{{ route('consultorios.index') }}">bitácora de consultorios</a>.</div>
                 @endif
                 @error('resumen_clinico.cubiculo')
                     <div class="invalid-feedback">{{ $message }}</div>
@@ -712,7 +733,7 @@
             <div class="row g-3">
                 <div class="col-md-2">
                     <label class="form-label">Día</label>
-                    <input type="date" class="form-control" id="expediente-asignacion-fecha" value="{{ now()->toDateString() }}" required>
+                    <input type="date" class="form-control" id="expediente-asignacion-fecha" value="{{ old('consultorio_reserva.fecha', now()->toDateString()) }}" required>
                 </div>
 
                 <div class="col-md-4">
@@ -753,19 +774,19 @@
 
                 <div class="col-md-2">
                     <label class="form-label">Inicio</label>
-                    <input type="time" class="form-control" id="expediente-asignacion-hora-inicio" min="07:00" max="22:00" value="07:00" required>
+                    <input type="time" class="form-control" id="expediente-asignacion-hora-inicio" min="07:00" max="22:00" value="{{ old('consultorio_reserva.hora_inicio', '07:00') }}" required>
                 </div>
 
                 <div class="col-md-2">
                     <label class="form-label">Fin</label>
-                    <input type="time" class="form-control" id="expediente-asignacion-hora-fin" min="07:00" max="22:00" value="08:00" required>
+                    <input type="time" class="form-control" id="expediente-asignacion-hora-fin" min="07:00" max="22:00" value="{{ old('consultorio_reserva.hora_fin', '08:00') }}" required>
                 </div>
 
                 <div class="col-md-2">
                     <label class="form-label">Consultorio</label>
                     <select class="form-select" id="expediente-asignacion-consultorio" required>
                         @foreach ($consultoriosActivos as $consultorio)
-                            <option value="{{ $consultorio->numero }}">{{ $consultorio->nombre }}</option>
+                            <option value="{{ $consultorio->numero }}" @selected((int) old('consultorio_reserva.consultorio_numero') === (int) $consultorio->numero)>{{ $consultorio->nombre }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -775,8 +796,8 @@
                     <label class="form-label">Estrategia</label>
                     <select class="form-select" id="expediente-asignacion-estrategia" required>
                         <option value="">Selecciona una estrategia</option>
-                        @foreach ($estrategiasActivas as $estrategia)
-                            <option value="{{ $estrategia->nombre }}">{{ $estrategia->nombre }}</option>
+                        @foreach ($estrategiasExpediente as $estrategia)
+                            <option value="{{ $estrategia->nombre }}" data-estrategia-id="{{ $estrategia->id }}" @selected(old('consultorio_reserva.estrategia') === $estrategia->nombre)>{{ $estrategia->nombre }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -786,7 +807,7 @@
                     <select class="form-select" id="expediente-asignacion-usuario-atendido">
                         <option value="">--</option>
                         @foreach ($usuariosActivos as $usuario)
-                            <option value="{{ $usuario->id }}">{{ $usuario->name }}</option>
+                            <option value="{{ $usuario->id }}" @selected((int) old('consultorio_reserva.usuario_atendido_id') === $usuario->id)>{{ $usuario->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -796,12 +817,21 @@
                     <select class="form-select" id="expediente-asignacion-estratega">
                         <option value="">--</option>
                         @foreach ($docentesActivos as $usuario)
-                            <option value="{{ $usuario->id }}">{{ $usuario->name }}</option>
+                            <option value="{{ $usuario->id }}" @selected((int) old('consultorio_reserva.estratega_id') === $usuario->id)>{{ $usuario->name }}</option>
                         @endforeach
                     </select>
                 </div>
 
                 <div class="col-12">
+                    @if ($errors->has('consultorio_reserva.*'))
+                        <div class="alert alert-danger" role="alert">
+                            <ul class="mb-0">
+                                @foreach (collect($errors->get('consultorio_reserva.*'))->flatten() as $message)
+                                    <li>{{ $message }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
                     <div id="expediente-asignacion-alerta" class="alert d-none mb-3" role="alert"></div>
                     <p class="text-muted small mb-0">La asignación se guardará automáticamente al guardar el expediente.</p>
                 </div>
@@ -918,8 +948,9 @@
                 const startInput = document.getElementById('expediente-asignacion-hora-inicio');
                 const endInput = document.getElementById('expediente-asignacion-hora-fin');
                 const consultorioInput = document.getElementById('expediente-asignacion-consultorio');
-                const cubiculoInput = consultorioInput;
+                const cubiculoInput = document.getElementById('resumen_clinico_cubiculo');
                 const estrategiaInput = document.getElementById('expediente-asignacion-estrategia');
+                const estrategiaExpedienteInput = document.getElementById('estrategia_id');
                 const usuarioAtendidoInput = document.getElementById('expediente-asignacion-usuario-atendido');
                 const estrategaInput = document.getElementById('expediente-asignacion-estratega');
                 const repeatConfig = document.getElementById('expediente-repeticion-config');
@@ -1045,14 +1076,30 @@
                 startInput?.addEventListener('change', checkAvailability);
                 endInput?.addEventListener('change', checkAvailability);
                 consultorioInput?.addEventListener('change', checkAvailability);
+                cubiculoInput?.addEventListener('change', checkAvailability);
                 dateInput?.addEventListener('change', syncHiddenAssignmentFields);
                 startInput?.addEventListener('change', syncHiddenAssignmentFields);
                 endInput?.addEventListener('change', syncHiddenAssignmentFields);
                 consultorioInput?.addEventListener('change', syncHiddenAssignmentFields);
-                estrategiaInput?.addEventListener('change', syncHiddenAssignmentFields);
+                cubiculoInput?.addEventListener('change', syncHiddenAssignmentFields);
+                estrategiaInput?.addEventListener('change', () => {
+                    if (estrategiaExpedienteInput && !estrategiaExpedienteInput.disabled) {
+                        estrategiaExpedienteInput.value = estrategiaInput.selectedOptions[0]?.dataset.estrategiaId ?? '';
+                    }
+                    syncHiddenAssignmentFields();
+                });
+                estrategiaExpedienteInput?.addEventListener('change', () => {
+                    if (estrategiaInput) {
+                        estrategiaInput.value = estrategiaExpedienteInput.selectedOptions[0]?.dataset.nombre ?? '';
+                    }
+                    syncHiddenAssignmentFields();
+                });
                 usuarioAtendidoInput?.addEventListener('change', syncHiddenAssignmentFields);
                 estrategaInput?.addEventListener('change', syncHiddenAssignmentFields);
                 toggleRepeatConfig();
+                if (estrategiaExpedienteInput?.value && estrategiaInput) {
+                    estrategiaInput.value = estrategiaExpedienteInput.selectedOptions[0]?.dataset.nombre ?? '';
+                }
                 syncHiddenAssignmentFields();
                 checkAvailability();
             });

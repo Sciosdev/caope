@@ -1,6 +1,8 @@
 @php
     $editing = isset($user);
     $selectedRoles = collect(old('roles', $editing ? $user->roles->pluck('name')->all() : []))->map(fn ($role) => (string) $role)->all();
+    $selectedStrategies = collect(old('estrategia_ids', old('estrategia_ids_present') ? [] : ($editing ? $user->estrategiasCoordinadas->modelKeys() : [])))
+        ->map(fn ($id) => (string) $id)->all();
 @endphp
 
 <div class="mb-3">
@@ -49,6 +51,27 @@
         <div class="text-danger small mt-1">{{ $message }}</div>
     @enderror
     @error('roles.*')
+        <div class="text-danger small mt-1">{{ $message }}</div>
+    @enderror
+</div>
+
+<div class="mb-3">
+    <label for="estrategia_ids" class="form-label">{{ __('Estrategias que coordina') }}</label>
+    <input type="hidden" name="estrategia_ids_present" value="1">
+    <select name="estrategia_ids[]" id="estrategia_ids" class="form-select" multiple aria-describedby="estrategia_ids_help">
+        @foreach ($estrategias as $estrategia)
+            <option value="{{ $estrategia->id }}" @selected(in_array((string) $estrategia->id, $selectedStrategies, true))>
+                {{ $estrategia->nombre }}{{ $estrategia->activo ? '' : ' (inactiva)' }}
+            </option>
+        @endforeach
+    </select>
+    <div id="estrategia_ids_help" class="form-text">
+        {{ __('Se aplica al rol coordinador. Solo podrá consultar expedientes de las estrategias seleccionadas. Sin estrategias asignadas no tendrá acceso como coordinador. Al quitar ese rol se eliminan sus estrategias.') }}
+    </div>
+    @error('estrategia_ids')
+        <div class="text-danger small mt-1">{{ $message }}</div>
+    @enderror
+    @error('estrategia_ids.*')
         <div class="text-danger small mt-1">{{ $message }}</div>
     @enderror
 </div>

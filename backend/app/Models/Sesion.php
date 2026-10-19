@@ -55,14 +55,12 @@ class Sesion extends Model
             return $query;
         }
 
+        if ($user->hasRole('coordinador')) {
+            return $query->whereHas('expediente', fn (Builder $expedientes) => $expedientes->coordinatedBy($user));
+        }
+
         return $query->where(function (Builder $visible) use ($user): void {
             $hasSessionAccess = false;
-
-            if ($user->hasRole('coordinador')) {
-                $visible->orWhereHas('expediente', fn (Builder $expedientes) => $expedientes
-                    ->where('coordinador_id', $user->getKey()));
-                $hasSessionAccess = true;
-            }
 
             if ($user->hasAnyRole(['docente', 'estratega'])) {
                 $visible->orWhereHas('expediente', fn (Builder $expedientes) => $expedientes
@@ -75,7 +73,7 @@ class Sesion extends Model
                     $ownSessions
                         ->where('realizada_por', $user->getKey())
                         ->whereHas('expediente', fn (Builder $expedientes) => $expedientes
-                            ->where('creado_por', $user->getKey()));
+                            ->facilitatedBy($user));
                 });
                 $hasSessionAccess = true;
             }

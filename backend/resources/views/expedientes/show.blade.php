@@ -8,11 +8,14 @@
             <h4 class="mb-1">Expediente {{ $expediente->no_control }}</h4>
             <p class="text-muted small mb-0">{{ $expediente->paciente }}</p>
         </div>
-        <div class="btn-group">
-            <a href="{{ route('expedientes.index') }}" class="btn btn-outline-secondary">Volver</a>
-            @can('update', $expediente)
-                <a href="{{ route('expedientes.edit', $expediente) }}" class="btn btn-primary">Editar</a>
-            @endcan
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <div class="btn-group">
+                <a href="{{ route('expedientes.index') }}" class="btn btn-outline-secondary">Volver</a>
+                @can('update', $expediente)
+                    <a href="{{ route('expedientes.edit', $expediente) }}" class="btn btn-primary">Editar</a>
+                @endcan
+            </div>
+            @include('expedientes.partials.delete-form')
         </div>
     </div>
 
@@ -58,7 +61,11 @@
             </div>
             <div class="col-md-4">
                 <span class="text-muted small d-block">Facilitador</span>
-                <span class="fw-semibold">{{ $expediente->creadoPor?->name ?? 'Desconocido' }}</span>
+                <span class="fw-semibold">{{ $expediente->facilitador?->name ?? 'Sin asignar' }}</span>
+            </div>
+            <div class="col-md-4">
+                <span class="text-muted small d-block">Estrategia</span>
+                <span class="fw-semibold">{{ $expediente->estrategia?->nombre ?? 'Sin clasificar' }}</span>
             </div>
         </div>
         @can('changeState', $expediente)
@@ -641,6 +648,7 @@
                                                 class="form-control @error('resumen_clinico.facilitador') is-invalid @enderror"
                                                 maxlength="150"
                                                 placeholder="Nombre del facilitador"
+                                                readonly
                                             >
                                             @error('resumen_clinico.facilitador')
                                                 <div class="invalid-feedback">{{ $message }}</div>

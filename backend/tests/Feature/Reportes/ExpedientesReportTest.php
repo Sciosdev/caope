@@ -3,6 +3,7 @@
 namespace Tests\Feature\Reportes;
 
 use App\Exports\ExpedientesExport;
+use App\Models\CatalogoEstrategia;
 use App\Models\Expediente;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
@@ -101,6 +102,48 @@ class ExpedientesReportTest extends TestCase
         $this->assertSame($admin->id, $cacheData['user_id']);
 
         Storage::disk('local')->delete($path);
+    }
+
+    public function test_facilitator_report_filter_and_export_use_assignment_independently_of_authorship(): void
+    {
+        $admin = User::factory()->create(['name' => 'Capturista de expedientes']);
+        $admin->assignRole('admin');
+        $facilitador = User::factory()->create(['name' => 'Facilitador asignado']);
+        $facilitador->assignRole('alumno');
+        $otro = User::factory()->create(['name' => 'Otro facilitador']);
+        $otro->assignRole('alumno');
+
+        $asignado = Expediente::factory()->create([
+            'creado_por' => $admin->id,
+            'facilitador_id' => $facilitador->id,
+        ]);
+        $creado = Expediente::factory()->create([
+            'creado_por' => $facilitador->id,
+            'facilitador_id' => $otro->id,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('reportes.index', ['facilitador_id' => $facilitador->id]))
+            ->assertOk()
+            ->assertSee($asignado->no_control)
+            ->assertDontSee($creado->no_control)
+            ->assertSee('<td>Facilitador asignado</td>', false)
+            ->assertSee('name="facilitador_id"', false)
+            ->assertViewHas('facilitadores', fn ($options) => $options->modelKeys() === [$facilitador->id, $otro->id]);
+
+        $export = new ExpedientesExport(['facilitador_id' => $facilitador->id], $admin->id);
+        $this->assertSame([$asignado->id], $export->query()->pluck('id')->all());
+        $this->assertSame($facilitador->name, $export->map($asignado)[6]);
+
+        $this->actingAs($admin)
+            ->get(route('reportes.index', ['creado_por' => $facilitador->id]))
+            ->assertOk()
+            ->assertSee($creado->no_control)
+            ->assertDontSee($asignado->no_control)
+            ->assertSee('<input type="hidden" name="creado_por" value="'.$facilitador->id.'">', false);
+
+        $authorExport = new ExpedientesExport(['creado_por' => $facilitador->id], $admin->id);
+        $this->assertSame([$creado->id], $authorExport->query()->pluck('id')->all());
     }
 
     public function test_large_export_generates_file_immediately(): void
@@ -217,7 +260,7 @@ class ExpedientesReportTest extends TestCase
             ], now()->addMinutes(10));
         }
 
-        $expediente->update(['creado_por' => $newFacilitador->id]);
+        $expediente->update(['facilitador_id' => $newFacilitador->id]);
 
         $this->actingAs($facilitador)
             ->getJson(route('reportes.expedientes.export.status', $statusToken))
@@ -242,6 +285,8 @@ class ExpedientesReportTest extends TestCase
 
         $coordinador = User::factory()->create(['name' => 'Coordinador Asignado']);
         $coordinador->assignRole('coordinador');
+        $estrategia = CatalogoEstrategia::create(['nombre' => 'Estrategia coordinada', 'activo' => true]);
+        $coordinador->estrategiasCoordinadas()->attach($estrategia);
 
         $ajeno = User::factory()->create(['name' => 'Usuario Fuera de Alcance']);
 
@@ -259,6 +304,7 @@ class ExpedientesReportTest extends TestCase
         ]);
         $delCoordinador = Expediente::factory()->create([
             'no_control' => 'CA-2026-C001',
+            'estrategia_id' => $estrategia->id,
             'creado_por' => $ajeno->id,
             'tutor_id' => $ajeno->id,
             'coordinador_id' => $coordinador->id,
@@ -306,11 +352,12 @@ class ExpedientesReportTest extends TestCase
                 'hasta' => null,
                 'tutor_id' => null,
                 'coordinador_id' => null,
+                'facilitador_id' => null,
                 'creado_por' => null,
             ],
             'tutores' => collect(),
             'coordinadores' => collect(),
-            'creadores' => collect(),
+            'facilitadores' => collect(),
         ]);
 
         $response->assertSee(

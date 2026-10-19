@@ -3,6 +3,7 @@
 namespace Tests\Feature\Expedientes;
 
 use App\Models\Anexo;
+use App\Models\CatalogoEstrategia;
 use App\Models\Comentario;
 use App\Models\Consentimiento;
 use App\Models\Expediente;
@@ -32,6 +33,7 @@ class ExpedienteVisibilityScopeTest extends TestCase
         $facilitador = $this->userWithRole('alumno');
         $docente = $this->userWithRole('docente');
         $coordinador = $this->userWithRole('coordinador');
+        $estrategia = $this->assignStrategy($coordinador);
         $admin = $this->userWithRole('admin');
         $paps = $this->userWithRole('paps');
         $paps->forceFill(['approved_at' => now()])->save();
@@ -48,6 +50,7 @@ class ExpedienteVisibilityScopeTest extends TestCase
             'coordinador_id' => $neutral->id,
         ]);
         $coordinado = Expediente::factory()->create([
+            'estrategia_id' => $estrategia->id,
             'creado_por' => $neutral->id,
             'tutor_id' => $neutral->id,
             'coordinador_id' => $coordinador->id,
@@ -68,15 +71,17 @@ class ExpedienteVisibilityScopeTest extends TestCase
     public function test_coordinator_can_open_and_edit_only_assigned_expedientes(): void
     {
         $coordinador = $this->userWithRole('coordinador');
+        $estrategia = $this->assignStrategy($coordinador);
         $neutral = User::factory()->create();
 
         $asignado = Expediente::factory()->create([
+            'estrategia_id' => $estrategia->id,
             'creado_por' => $neutral->id,
             'coordinador_id' => $coordinador->id,
         ]);
         $ajeno = Expediente::factory()->create([
             'creado_por' => $neutral->id,
-            'coordinador_id' => $neutral->id,
+            'coordinador_id' => $coordinador->id,
         ]);
 
         $this->assertTrue(Gate::forUser($coordinador)->allows('view', $asignado));
@@ -116,36 +121,45 @@ class ExpedienteVisibilityScopeTest extends TestCase
         $response->assertDontSeeText($foreignCoordinator->name);
     }
 
-    public function test_multiple_restricted_roles_combine_assignments_without_global_access(): void
+    public function test_coordinator_role_limits_other_roles_to_assigned_strategies(): void
     {
         $user = User::factory()->create();
         $user->assignRole(['alumno', 'coordinador']);
+        $estrategia = $this->assignStrategy($user);
+        $ajena = CatalogoEstrategia::create(['nombre' => 'Estrategia ajena', 'activo' => true]);
         $neutral = User::factory()->create();
 
         $creado = Expediente::factory()->create([
+            'estrategia_id' => $ajena->id,
             'creado_por' => $user->id,
-            'coordinador_id' => $neutral->id,
+            'coordinador_id' => $user->id,
         ]);
         $coordinado = Expediente::factory()->create([
+            'estrategia_id' => $estrategia->id,
             'creado_por' => $neutral->id,
-            'coordinador_id' => $user->id,
+            'coordinador_id' => $neutral->id,
         ]);
         Expediente::factory()->create([
             'creado_por' => $neutral->id,
             'coordinador_id' => $neutral->id,
         ]);
 
-        $this->assertVisibleIds($user, [$creado->id, $coordinado->id]);
+        $this->assertVisibleIds($user, [$coordinado->id]);
+        $this->assertFalse(Gate::forUser($user)->allows('view', $creado));
+        $this->assertFalse($user->isFacilitatorOf($creado));
     }
 
     public function test_facilitator_coordinator_cannot_use_coordinator_actions_when_only_assigned_as_creator(): void
     {
         $user = User::factory()->create();
         $user->assignRole(['alumno', 'coordinador']);
+        $this->assignStrategy($user);
+        $ajena = CatalogoEstrategia::create(['nombre' => 'Estrategia ajena', 'activo' => true]);
 
         $otherUser = User::factory()->create();
 
         $expediente = Expediente::factory()->create([
+            'estrategia_id' => $ajena->id,
             'estado' => 'abierto',
             'creado_por' => $user->id,
             'tutor_id' => $otherUser->id,
@@ -167,8 +181,9 @@ class ExpedienteVisibilityScopeTest extends TestCase
             'comentable_id' => $expediente->id,
         ]);
 
-        $this->assertTrue(Gate::forUser($user)->allows('view', $expediente));
-        $this->assertVisibleIds($user, [$expediente->id]);
+        $this->assertFalse(Gate::forUser($user)->allows('view', $expediente));
+        $this->assertVisibleIds($user, []);
+        $this->assertFalse(Gate::forUser($user)->allows('view', $sesion));
         $this->assertFalse(Gate::forUser($user)->allows('changeState', $expediente));
         $this->assertFalse(Gate::forUser($user)->allows('validate', $sesion));
         $this->assertFalse(Gate::forUser($user)->allows('observe', $sesion));
@@ -221,12 +236,17 @@ class ExpedienteVisibilityScopeTest extends TestCase
                 'validada_por' => null,
             ]);
 
-            $this->actingAs($user)
+            $response = $this->actingAs($user)
                 ->put(route('expedientes.update', $expediente), [
                     'tutor_id' => $user->id,
                     'coordinador_id' => $user->id,
-                ])
-                ->assertRedirect();
+                ]);
+
+            if ($privilegedRole === 'coordinador') {
+                $response->assertForbidden();
+            } else {
+                $response->assertRedirect();
+            }
 
             $expediente->refresh();
 
@@ -328,7 +348,7 @@ class ExpedienteVisibilityScopeTest extends TestCase
         $this->assertTrue(Gate::forUser($facilitador)->allows('view', $consentimiento));
         $this->assertTrue(Gate::forUser($facilitador)->allows('update', $comentario));
 
-        $expediente->update(['creado_por' => $nuevoFacilitador->id]);
+        $expediente->update(['facilitador_id' => $nuevoFacilitador->id]);
         $sesion->unsetRelation('expediente');
         $anexo->unsetRelation('expediente');
         $consentimiento->unsetRelation('expediente');
@@ -343,6 +363,14 @@ class ExpedienteVisibilityScopeTest extends TestCase
         $this->assertFalse(Gate::forUser($facilitador)->allows('update', $consentimiento));
         $this->assertFalse(Gate::forUser($facilitador)->allows('update', $comentario));
         $this->assertFalse(Gate::forUser($facilitador)->allows('delete', $comentario));
+    }
+
+    private function assignStrategy(User $coordinador): CatalogoEstrategia
+    {
+        $estrategia = CatalogoEstrategia::query()->create(['nombre' => 'Estrategia coordinada', 'activo' => true]);
+        $coordinador->estrategiasCoordinadas()->attach($estrategia);
+
+        return $estrategia;
     }
 
     private function userWithRole(string $role): User

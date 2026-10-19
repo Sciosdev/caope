@@ -20,6 +20,13 @@
         </div>
     </div>
 
+    @if (session('status'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('status') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+        </div>
+    @endif
+
     <form class="row g-3 mb-4" method="get">
         <div class="col-md-3">
             <label class="form-label text-muted small" for="filtro-q">Buscar</label>
@@ -82,7 +89,10 @@
             <tbody>
                 @forelse($expedientes as $expediente)
                     <tr>
-                        <td class="fw-semibold">{{ $expediente->no_control }}</td>
+                        <td>
+                            <span class="fw-semibold">{{ $expediente->no_control }}</span>
+                            <div class="small text-muted">{{ $expediente->estrategia?->nombre ?? 'Sin clasificar' }}</div>
+                        </td>
                         <td>
                             @can('viewFullName', $expediente)
                                 {{ $expediente->paciente }}
@@ -90,7 +100,7 @@
                                 {{ $expediente->paciente_masked }}
                             @endcan
                         </td>
-                        <td>{{ optional($expediente->creadoPor)->name }}</td>
+                        <td>{{ optional($expediente->facilitador)->name }}</td>
                         <td>
                             @switch($expediente->estado)
                                 @case('abierto')
@@ -114,11 +124,14 @@
                         <td>{{ $expediente->carrera }}</td>
                         <td>{{ $expediente->turno }}</td>
                         <td class="text-end">
-                            <div class="btn-group btn-group-sm" role="group">
-                                <a href="{{ route('expedientes.show', $expediente) }}" class="btn btn-outline-secondary">Ver</a>
-                                @can('update', $expediente)
-                                    <a href="{{ route('expedientes.edit', $expediente) }}" class="btn btn-outline-secondary">Editar</a>
-                                @endcan
+                            <div class="d-inline-flex align-items-center gap-2">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{{ route('expedientes.show', $expediente) }}" class="btn btn-outline-secondary">Ver</a>
+                                    @can('update', $expediente)
+                                        <a href="{{ route('expedientes.edit', $expediente) }}" class="btn btn-outline-secondary">Editar</a>
+                                    @endcan
+                                </div>
+                                @include('expedientes.partials.delete-form', ['deleteButtonSize' => 'btn-sm'])
                             </div>
                         </td>
                     </tr>

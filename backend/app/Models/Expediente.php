@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Carbon;
 
 class Expediente extends Model
@@ -142,8 +143,10 @@ class Expediente extends Model
         'medico_referencia_correo',
         'medico_referencia_telefono',
         'creado_por',
+        'facilitador_id',
         'tutor_id',
         'coordinador_id',
+        'estrategia_id',
         'diagnostico',
         'dsm_tr',
         'observaciones_relevantes',
@@ -259,12 +262,34 @@ class Expediente extends Model
     /**
      * Usuario que facilita la captura y seguimiento del expediente.
      *
-     * alumno() se conserva como alias temporal para no romper integraciones
-     * existentes; el alumno atendido se almacena en el campo paciente.
+     * La asignación es independiente de la autoría (creado_por).
      */
     public function facilitador(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'creado_por');
+        return $this->belongsTo(User::class, 'facilitador_id');
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (Expediente $expediente): void {
+            if (! array_key_exists('facilitador_id', $expediente->getAttributes())) {
+                $expediente->facilitador_id = $expediente->creado_por;
+            }
+        });
+    }
+
+    public function scopeFacilitatedBy(Builder $query, User $user): Builder
+    {
+        return $query->where('facilitador_id', $user->getKey());
+    }
+
+    public function scopeCoordinatedBy(Builder $query, User $user): Builder
+    {
+        return $query->whereIn($query->qualifyColumn('estrategia_id'), function (QueryBuilder $assignments) use ($user): void {
+            $assignments->select('estrategia_id')
+                ->from('coordinador_estrategia')
+                ->where('user_id', $user->getKey());
+        });
     }
 
     /**
@@ -283,23 +308,22 @@ class Expediente extends Model
             return $query;
         }
 
+        if ($user->hasRole('coordinador')) {
+            return $query->coordinatedBy($user);
+        }
+
         $roles = $user->getRoleNames();
 
         return $query->where(function (Builder $visible) use ($roles, $user): void {
             $hasAssignment = false;
 
             if ($roles->contains('alumno')) {
-                $visible->orWhere('creado_por', $user->getKey());
+                $visible->orWhere(fn (Builder $assigned) => $assigned->facilitatedBy($user));
                 $hasAssignment = true;
             }
 
             if ($roles->intersect(['docente', 'estratega'])->isNotEmpty()) {
                 $visible->orWhere('tutor_id', $user->getKey());
-                $hasAssignment = true;
-            }
-
-            if ($roles->contains('coordinador')) {
-                $visible->orWhere('coordinador_id', $user->getKey());
                 $hasAssignment = true;
             }
 
@@ -312,9 +336,8 @@ class Expediente extends Model
     /**
      * Limita una consulta a los expedientes donde el usuario puede validar.
      *
-     * A diferencia de visibleTo(), cada rol se acopla a su columna de
-     * asignación para que una cuenta con varios roles no herede facultades de
-     * coordinación por estar vinculada solo como facilitador.
+     * Coordinación se limita a las estrategias asignadas, incluso si la cuenta
+     * tiene además otro rol. Docentes y estrategas validan sus tutorías.
      *
      * @param  Builder<Expediente>  $query
      * @return Builder<Expediente>
@@ -329,13 +352,12 @@ class Expediente extends Model
             return $query;
         }
 
+        if ($user->hasRole('coordinador')) {
+            return $query->coordinatedBy($user);
+        }
+
         return $query->where(function (Builder $validatable) use ($user): void {
             $hasValidationAssignment = false;
-
-            if ($user->hasRole('coordinador')) {
-                $validatable->orWhere('coordinador_id', $user->getKey());
-                $hasValidationAssignment = true;
-            }
 
             if ($user->hasAnyRole(['docente', 'estratega'])) {
                 $validatable->orWhere('tutor_id', $user->getKey());
@@ -356,6 +378,11 @@ class Expediente extends Model
     public function coordinador(): BelongsTo
     {
         return $this->belongsTo(User::class, 'coordinador_id');
+    }
+
+    public function estrategia(): BelongsTo
+    {
+        return $this->belongsTo(CatalogoEstrategia::class, 'estrategia_id');
     }
 
     public function sesiones(): HasMany

@@ -26,7 +26,7 @@ class ReporteExpedienteController extends Controller
         $user = $request->user();
 
         $expedientes = $this->baseQuery($filters, $user)
-            ->with(['tutor', 'coordinador', 'creadoPor'])
+            ->with(['tutor', 'coordinador', 'facilitador'])
             ->orderByDesc('apertura')
             ->paginate(15)
             ->withQueryString();
@@ -34,14 +34,14 @@ class ReporteExpedienteController extends Controller
         $visible = Expediente::query()->visibleTo($user);
         $tutorIds = (clone $visible)->whereNotNull('tutor_id')->distinct()->pluck('tutor_id');
         $coordinadorIds = (clone $visible)->whereNotNull('coordinador_id')->distinct()->pluck('coordinador_id');
-        $creadorIds = (clone $visible)->whereNotNull('creado_por')->distinct()->pluck('creado_por');
+        $facilitadorIds = (clone $visible)->whereNotNull('facilitador_id')->distinct()->pluck('facilitador_id');
 
         return view('reportes.expedientes.index', [
             'expedientes' => $expedientes,
             'filters' => $filters,
             'tutores' => User::query()->whereIn('id', $tutorIds)->orderBy('name')->get(),
             'coordinadores' => User::query()->whereIn('id', $coordinadorIds)->orderBy('name')->get(),
-            'creadores' => User::query()->whereIn('id', $creadorIds)->orderBy('name')->get(),
+            'facilitadores' => User::query()->whereIn('id', $facilitadorIds)->orderBy('name')->get(),
         ]);
     }
 
@@ -169,6 +169,7 @@ class ReporteExpedienteController extends Controller
             'hasta' => ['nullable', 'date', 'after_or_equal:desde'],
             'tutor_id' => ['nullable', 'integer', 'exists:users,id'],
             'coordinador_id' => ['nullable', 'integer', 'exists:users,id'],
+            'facilitador_id' => ['nullable', 'integer', 'exists:users,id'],
             'creado_por' => ['nullable', 'integer', 'exists:users,id'],
         ]);
 
@@ -178,6 +179,7 @@ class ReporteExpedienteController extends Controller
             'hasta' => isset($validated['hasta']) ? Carbon::parse($validated['hasta'])->format('Y-m-d') : null,
             'tutor_id' => isset($validated['tutor_id']) ? (int) $validated['tutor_id'] : null,
             'coordinador_id' => isset($validated['coordinador_id']) ? (int) $validated['coordinador_id'] : null,
+            'facilitador_id' => isset($validated['facilitador_id']) ? (int) $validated['facilitador_id'] : null,
             'creado_por' => isset($validated['creado_por']) ? (int) $validated['creado_por'] : null,
         ];
     }
@@ -195,6 +197,7 @@ class ReporteExpedienteController extends Controller
             ->when($filters['hasta'] ?? null, fn (Builder $q, string $hasta): Builder => $q->whereDate('apertura', '<=', $hasta))
             ->when($filters['tutor_id'] ?? null, fn (Builder $q, int $tutorId): Builder => $q->where('tutor_id', $tutorId))
             ->when($filters['coordinador_id'] ?? null, fn (Builder $q, int $coordinadorId): Builder => $q->where('coordinador_id', $coordinadorId))
+            ->when($filters['facilitador_id'] ?? null, fn (Builder $q, int $facilitadorId): Builder => $q->where('facilitador_id', $facilitadorId))
             ->when($filters['creado_por'] ?? null, fn (Builder $q, int $creadoPor): Builder => $q->where('creado_por', $creadoPor));
     }
 
