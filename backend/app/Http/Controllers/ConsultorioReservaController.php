@@ -6,11 +6,12 @@ use App\Exports\ConsultorioReservasExport;
 use App\Http\Requests\StoreConsultorioReservaRequest;
 use App\Http\Requests\UpdateConsultorioReservaRequest;
 use App\Models\CatalogoConsultorio;
-use App\Models\CatalogoCubiculo;
 use App\Models\CatalogoEstrategia;
 use App\Models\ConsultorioReserva;
 use App\Models\ConsultorioReservaSolicitud;
+use App\Models\Expediente;
 use App\Models\User;
+use App\Services\ConsultorioReservationGuard;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -18,6 +19,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
@@ -122,32 +124,8 @@ class ConsultorioReservaController extends Controller
                 ? $consultorioSolicitado
                 : $consultoriosActivos->first()?->numero;
 
-        $cubiculosActivos = CatalogoCubiculo::activos();
-        if (! $hasGlobalVisibility) {
-            $assignedCubiculos = $consultorioSeleccionado === null
-                ? collect()
-                : (clone $visibleReservationsForCatalogs)
-                    ->where('consultorio_numero', $consultorioSeleccionado)
-                    ->select('cubiculo_numero')
-                    ->distinct()
-                    ->pluck('cubiculo_numero')
-                    ->map(fn ($numero) => (int) $numero);
-
-            $cubiculosActivos = $cubiculosActivos
-                ->whereIn('numero', $assignedCubiculos)
-                ->values();
-        }
-
-        $cubiculosDisponibles = $cubiculosActivos->pluck('numero')->map(fn ($numero) => (int) $numero)->values();
-        $cubiculoSolicitado = $request->filled('cubiculo_numero')
-            ? (int) $request->integer('cubiculo_numero')
-            : null;
-        $cubiculoSeleccionado = $request->filled('cubiculo_numero') && $cubiculosDisponibles->contains($cubiculoSolicitado)
-            ? $cubiculoSolicitado
-            : null;
-
         $reservasQuery = ConsultorioReserva::query()
-            ->with(['usuarioAtendido', 'estratega', 'supervisor', 'creadoPor'])
+            ->with(['usuarioAtendido', 'estratega', 'supervisor', 'creadoPor', 'cubiculo'])
             ->orderByDesc('fecha')
             ->orderBy('consultorio_numero')
             ->orderBy('cubiculo_numero')
@@ -167,7 +145,6 @@ class ConsultorioReservaController extends Controller
                 fn (Builder $query) => $query->where('consultorio_numero', $consultorioSeleccionado),
                 fn (Builder $query) => $query->whereRaw('1 = 0')
             )
-            ->when($cubiculoSeleccionado, fn ($query) => $query->where('cubiculo_numero', $cubiculoSeleccionado))
             ->orderBy('cubiculo_numero')
             ->orderBy('hora_inicio');
 
@@ -175,7 +152,7 @@ class ConsultorioReservaController extends Controller
             $this->applyAssignedReservationsVisibilityFilter($request, $ocupacionQuery)
         )
             ->get()
-            ->groupBy('cubiculo_numero');
+            ->groupBy('consultorio_numero');
 
         $usuariosActivos = User::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']);
         $docentes = User::role('docente')->where('is_active', true)->orderBy('name')->get(['id', 'name']);
@@ -189,11 +166,11 @@ class ConsultorioReservaController extends Controller
             'bitacoraFin' => $bitacoraFin,
             'bitacoraModo' => $bitacoraModo,
             'consultorioSeleccionado' => $consultorioSeleccionado,
-            'cubiculoSeleccionado' => $cubiculoSeleccionado,
+            'cubiculoSeleccionado' => null,
             'usuarios' => $usuariosActivos,
             'docentes' => $docentes,
             'consultoriosActivos' => $consultoriosActivos,
-            'cubiculosActivos' => $cubiculosActivos,
+            'cubiculosActivos' => $consultoriosActivos,
             'estrategiasActivas' => CatalogoEstrategia::activos(),
         ]);
     }
@@ -210,7 +187,7 @@ class ConsultorioReservaController extends Controller
             : null;
 
         $reservasQuery = ConsultorioReserva::query()
-            ->with(['usuarioAtendido:id,name', 'estratega:id,name'])
+            ->with(['usuarioAtendido:id,name', 'estratega:id,name', 'cubiculo:id,numero,nombre'])
             ->when(
                 $fechaInicio && $fechaFin,
                 fn ($query) => $query->whereBetween('fecha', [
@@ -231,6 +208,7 @@ class ConsultorioReservaController extends Controller
             ->map(fn (ConsultorioReserva $reserva) => [
                 'fecha' => $reserva->fecha?->toDateString(),
                 'consultorio_numero' => $reserva->consultorio_numero,
+                'cubiculo_nombre' => $reserva->cubiculo?->nombre ?? 'Cubículo '.$reserva->consultorio_numero,
                 'cubiculo_numero' => $reserva->cubiculo_numero,
                 'hora_inicio' => $reserva->hora_inicio,
                 'hora_fin' => $reserva->hora_fin,
@@ -267,11 +245,13 @@ class ConsultorioReservaController extends Controller
         );
 
         return view('consultorios.edit', [
-            'reserva' => $reserva->load(['usuarioAtendido', 'estratega', 'supervisor', 'estrategiaCatalogo']),
+            'reserva' => $reserva->load(['usuarioAtendido', 'estratega', 'supervisor', 'estrategiaCatalogo', 'cubiculo']),
+            'expedientes' => Expediente::query()->visibleTo($request->user())
+                ->orderBy('no_control')->get(['id', 'no_control', 'paciente']),
             'usuarios' => User::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'docentes' => User::role('docente')->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'consultoriosActivos' => CatalogoConsultorio::activos(),
-            'cubiculosActivos' => CatalogoCubiculo::activos(),
+            'cubiculosActivos' => CatalogoConsultorio::activos(),
             'estrategiasActivas' => CatalogoEstrategia::activos(),
         ]);
     }
@@ -285,19 +265,34 @@ class ConsultorioReservaController extends Controller
             'consultorio_numero',
             'cubiculo_numero',
             'estrategia',
+            'expediente_id',
             'usuario_atendido_id',
             'estratega_id',
             'supervisor_id',
             'origen_expediente',
         ]);
 
-        foreach ($request->reservationDates() as $fecha) {
-            ConsultorioReserva::query()->create($baseData + [
-                'fecha' => $fecha,
-                'creado_por' => $request->user()->id,
-                'origen_expediente' => (bool) ($baseData['origen_expediente'] ?? false),
-            ]);
-        }
+        $fechas = $request->reservationDates()->all();
+        $reservationGuard = app(ConsultorioReservationGuard::class);
+
+        DB::transaction(function () use ($baseData, $fechas, $reservationGuard, $request): void {
+            $consultorioNumero = (int) $baseData['consultorio_numero'];
+            $reservationGuard->lockConsultorio($consultorioNumero);
+            $reservationGuard->assertAvailable(
+                $consultorioNumero,
+                $fechas,
+                $baseData['hora_inicio'],
+                $baseData['hora_fin']
+            );
+
+            foreach ($fechas as $fecha) {
+                ConsultorioReserva::query()->create($baseData + [
+                    'fecha' => $fecha,
+                    'creado_por' => $request->user()->id,
+                    'origen_expediente' => (bool) ($baseData['origen_expediente'] ?? false),
+                ]);
+            }
+        }, 3);
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -312,7 +307,22 @@ class ConsultorioReservaController extends Controller
     {
         abort_unless($this->canManageBitacora($request), 403);
 
-        $reserva->update($request->validated());
+        $validated = $request->validated();
+        $reservationGuard = app(ConsultorioReservationGuard::class);
+
+        DB::transaction(function () use ($reserva, $validated, $reservationGuard): void {
+            $consultorioNumero = (int) $validated['consultorio_numero'];
+            $reservationGuard->lockConsultorio($consultorioNumero);
+            $lockedReserva = ConsultorioReserva::query()->whereKey($reserva->getKey())->lockForUpdate()->firstOrFail();
+            $reservationGuard->assertAvailable(
+                $consultorioNumero,
+                [$validated['fecha']],
+                $validated['hora_inicio'],
+                $validated['hora_fin'],
+                (int) $lockedReserva->getKey()
+            );
+            $lockedReserva->update($validated);
+        }, 3);
 
         return redirect()->route('consultorios.index')->with('status', 'Reserva actualizada correctamente.');
     }
@@ -335,13 +345,17 @@ class ConsultorioReservaController extends Controller
             return redirect()->route('consultorios.index')->with('status', 'Las solicitudes de modificación no están disponibles temporalmente.');
         }
 
-        ConsultorioReservaSolicitud::query()->create([
-            'consultorio_reserva_id' => $reserva->id,
-            'requested_by' => $request->user()->id,
-            'tipo' => 'edicion',
-            'payload' => $request->validated(),
-            'status' => 'pendiente',
-        ]);
+        DB::transaction(function () use ($request, $reserva): void {
+            $validated = $request->validated();
+            app(ConsultorioReservationGuard::class)->lockConsultorio((int) $validated['consultorio_numero']);
+            ConsultorioReservaSolicitud::query()->create([
+                'consultorio_reserva_id' => $reserva->id,
+                'requested_by' => $request->user()->id,
+                'tipo' => 'edicion',
+                'payload' => $validated,
+                'status' => 'pendiente',
+            ]);
+        }, 3);
 
         return redirect()->route('consultorios.index')->with('status', 'Solicitud de modificación enviada. El administrador general revisará el cambio.');
     }
@@ -364,6 +378,7 @@ class ConsultorioReservaController extends Controller
                 'consultorio_numero' => (int) $reserva->consultorio_numero,
                 'cubiculo_numero' => (int) $reserva->cubiculo_numero,
                 'estrategia' => $reserva->estrategia,
+                'expediente_id' => $reserva->expediente_id,
                 'usuario_atendido_id' => $reserva->usuario_atendido_id,
                 'estratega_id' => $reserva->estratega_id,
                 'supervisor_id' => $reserva->supervisor_id,

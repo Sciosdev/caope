@@ -2,13 +2,17 @@
 
 namespace App\Http\Requests;
 
-use App\Models\ConsultorioReserva;
-use Carbon\Carbon;
+use App\Services\ConsultorioReservationGuard;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class UpdateConsultorioReservaRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $this->merge(['cubiculo_numero' => $this->input('consultorio_numero')]);
+    }
+
     public function authorize(): bool
     {
         $user = $this->user();
@@ -31,27 +35,34 @@ class UpdateConsultorioReservaRequest extends FormRequest
             'hora_inicio' => ['required', 'date_format:H:i'],
             'hora_fin' => ['required', 'date_format:H:i', 'after:hora_inicio'],
             'consultorio_numero' => ['required', 'integer', Rule::exists('catalogo_consultorios', 'numero')->where('activo', true)],
-            'cubiculo_numero' => ['required', 'integer', Rule::exists('catalogo_cubiculos', 'numero')->where('activo', true)],
+            'cubiculo_numero' => ['required', 'integer', 'same:consultorio_numero'],
             'estrategia' => ['required', 'string', 'max:255', Rule::exists('catalogo_estrategias', 'nombre')->where('activo', true)],
+            'expediente_id' => ['sometimes', 'nullable', 'integer', 'exists:expedientes,id'],
             'usuario_atendido_id' => ['nullable', 'integer', 'exists:users,id'],
             'estratega_id' => ['nullable', 'integer', 'exists:users,id'],
             'supervisor_id' => ['nullable', 'integer', 'exists:users,id'],
         ];
     }
 
+    public function attributes(): array
+    {
+        return ['consultorio_numero' => 'cubículo', 'cubiculo_numero' => 'cubículo'];
+    }
+
     public function withValidator($validator): void
     {
         $validator->after(function ($validator): void {
+            if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
+
             $reserva = $this->route('reserva');
             $fecha = $this->input('fecha');
             $horaInicio = $this->input('hora_inicio');
             $horaFin = $this->input('hora_fin');
-            $horaInicioComparable = $this->toDatabaseTime($horaInicio);
-            $horaFinComparable = $this->toDatabaseTime($horaFin);
             $consultorio = (int) $this->input('consultorio_numero');
-            $cubiculo = (int) $this->input('cubiculo_numero');
 
-            if (! $fecha || ! $horaInicio || ! $horaFin || ! $horaInicioComparable || ! $horaFinComparable || ! $reserva) {
+            if (! $reserva) {
                 return;
             }
 
@@ -63,27 +74,17 @@ class UpdateConsultorioReservaRequest extends FormRequest
                 $validator->errors()->add('hora_inicio', 'El horario permitido es de 07:00 a 22:00.');
             }
 
-            $overlap = ConsultorioReserva::query()
-                ->whereKeyNot($reserva->id)
-                ->whereDate('fecha', $fecha)
-                ->where('consultorio_numero', $consultorio)
-                ->where('cubiculo_numero', $cubiculo)
-                ->where('hora_inicio', '<', $horaFinComparable)
-                ->where('hora_fin', '>', $horaInicioComparable)
-                ->exists();
-
-            if ($overlap) {
-                $validator->errors()->add('hora_inicio', 'Ese consultorio ya está reservado en el bloque seleccionado.');
+            if ($validator->errors()->isNotEmpty()) {
+                return;
             }
+
+            app(ConsultorioReservationGuard::class)->assertAvailable(
+                $consultorio,
+                [$fecha],
+                $horaInicio,
+                $horaFin,
+                (int) $reserva->id
+            );
         });
-    }
-
-    protected function toDatabaseTime(?string $time): ?string
-    {
-        if (! $time) {
-            return null;
-        }
-
-        return Carbon::createFromFormat('H:i', $time)?->format('H:i:s');
     }
 }

@@ -60,19 +60,19 @@ class ExpedienteCreateTest extends TestCase
         $response->assertSee(sprintf('value="CA-%d-0008"', $year), false);
     }
 
-    public function test_formulario_para_alumno_muestra_nueva_asignacion_y_oculta_hoja_urgencia(): void
+    public function test_facilitator_cannot_open_the_expediente_creation_form(): void
     {
         $alumno = User::factory()->create();
         $alumno->assignRole('alumno');
 
         $response = $this->actingAs($alumno)->get(route('expedientes.create'));
 
-        $response->assertOk();
-        $response->assertSee('Nueva asignación');
-        $response->assertDontSee('Hoja de urgencia');
+        $response->assertForbidden();
+        $this->assertDatabaseCount('expedientes', 0);
     }
 
-    public function test_alumno_cannot_create_an_expediente_already_closed(): void
+    #[DataProvider('expedienteStateProvider')]
+    public function test_facilitator_cannot_create_an_expediente_in_any_state(string $estado): void
     {
         $alumno = User::factory()->create();
         $alumno->assignRole('alumno');
@@ -95,16 +95,14 @@ class ExpedienteCreateTest extends TestCase
                 'apertura' => now()->toDateString(),
                 'carrera' => $carrera->nombre,
                 'turno' => $turno->nombre,
-                'estado' => 'cerrado',
+                'estado' => $estado,
             ])
-            ->assertSessionHasNoErrors()
-            ->assertRedirect();
+            ->assertForbidden();
 
-        $this->assertDatabaseHas('expedientes', [
-            'no_control' => 'CA-2026-7101',
-            'creado_por' => $alumno->id,
-            'estado' => 'abierto',
-        ]);
+        $this->assertDatabaseCount('expedientes', 0);
+        $this->assertDatabaseCount('registro_urgencias', 0);
+        $this->assertDatabaseCount('consultorio_reservas', 0);
+        $this->assertDatabaseCount('timeline_eventos', 0);
     }
 
     public function test_multi_role_alumno_cannot_self_assign_privileged_relationships_on_creation(): void
@@ -120,7 +118,7 @@ class ExpedienteCreateTest extends TestCase
         CatalogoCarrera::flushCache();
         CatalogoTurno::flushCache();
 
-        foreach (['coordinador', 'docente'] as $index => $privilegedRole) {
+        foreach (['coordinador', 'docente', 'estratega'] as $index => $privilegedRole) {
             $user = User::factory()->create();
             $user->assignRole(['alumno', $privilegedRole]);
             $estrategia = CatalogoEstrategia::query()->create(['nombre' => 'Estrategia de prueba '.$index, 'activo' => true]);
@@ -128,6 +126,10 @@ class ExpedienteCreateTest extends TestCase
                 $user->estrategiasCoordinadas()->sync([$estrategia->id]);
             }
             $noControl = sprintf('CA-2026-72%02d', $index + 1);
+
+            $this->actingAs($user)
+                ->get(route('expedientes.create'))
+                ->assertForbidden();
 
             $this->actingAs($user)
                 ->post(route('expedientes.store'), [
@@ -140,15 +142,40 @@ class ExpedienteCreateTest extends TestCase
                     'coordinador_id' => $user->id,
                     'estrategia_id' => $estrategia->id,
                 ])
-                ->assertSessionHasNoErrors()
-                ->assertRedirect();
+                ->assertForbidden();
 
-            $expediente = Expediente::query()->where('no_control', $noControl)->firstOrFail();
-
-            $this->assertSame($user->id, $expediente->creado_por);
-            $this->assertNull($expediente->tutor_id);
-            $this->assertNull($expediente->coordinador_id);
+            $this->assertDatabaseCount('expedientes', 0);
+            $this->assertDatabaseCount('registro_urgencias', 0);
+            $this->assertDatabaseCount('consultorio_reservas', 0);
+            $this->assertDatabaseCount('timeline_eventos', 0);
         }
+    }
+
+    #[DataProvider('privilegedFacilitatorRoleProvider')]
+    public function test_privileged_roles_can_still_create_expedientes_when_also_facilitators(string $role): void
+    {
+        $manager = User::factory()->create(['approved_at' => now()]);
+        $manager->assignRole(['alumno', $role]);
+        $carrera = CatalogoCarrera::create(['nombre' => 'Psicología de prueba', 'activo' => true]);
+        $turno = CatalogoTurno::create(['nombre' => 'Matutino de prueba', 'activo' => true]);
+        CatalogoCarrera::flushCache();
+        CatalogoTurno::flushCache();
+
+        $this->actingAs($manager)->get(route('expedientes.create'))->assertOk();
+
+        $this->post(route('expedientes.store'), [
+            'no_control' => 'CA-2026-7301',
+            'paciente' => 'Paciente ficticio con alta autorizada',
+            'apertura' => now()->toDateString(),
+            'carrera' => $carrera->nombre,
+            'turno' => $turno->nombre,
+        ])->assertSessionHasNoErrors()->assertRedirect();
+
+        $this->assertDatabaseHas('expedientes', [
+            'no_control' => 'CA-2026-7301',
+            'creado_por' => $manager->id,
+        ]);
+        $this->assertDatabaseCount('expedientes', 1);
     }
 
     public function test_formulario_para_paps_muestra_hoja_urgencia_y_asignacion_de_facilitador(): void
@@ -334,6 +361,7 @@ class ExpedienteCreateTest extends TestCase
         $payload = [
             'no_control' => 'CA-2025-9010',
             'paciente' => 'Paciente con consultorio',
+            'cubiculo_id' => CatalogoConsultorio::query()->where('numero', 1)->value('id'),
             'apertura' => Carbon::now()->toDateString(),
             'carrera' => $carrera->nombre,
             'turno' => $turno->nombre,
@@ -878,6 +906,23 @@ class ExpedienteCreateTest extends TestCase
             'medico_referencia_correo',
             'medico_referencia_telefono',
         ]);
+    }
+
+    public static function expedienteStateProvider(): array
+    {
+        return [
+            'abierto' => ['abierto'],
+            'revision' => ['revision'],
+            'cerrado' => ['cerrado'],
+        ];
+    }
+
+    public static function privilegedFacilitatorRoleProvider(): array
+    {
+        return [
+            'administrador y facilitador' => ['admin'],
+            'paps aprobado y facilitador' => ['paps'],
+        ];
     }
 
     public static function phoneFormatProvider(): array

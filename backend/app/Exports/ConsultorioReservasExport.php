@@ -28,7 +28,6 @@ class ConsultorioReservasExport extends DefaultValueBinder implements FromQuery,
             'Fecha',
             'Hora inicio',
             'Hora fin',
-            'Consultorio',
             'Cubículo',
             'Estrategia',
             'Estratega',
@@ -44,14 +43,16 @@ class ConsultorioReservasExport extends DefaultValueBinder implements FromQuery,
      */
     public function map($reserva): array
     {
-        $reserva->loadMissing(['usuarioAtendido', 'estratega', 'supervisor', 'creadoPor']);
+        $reserva->loadMissing(['cubiculo', 'usuarioAtendido', 'estratega', 'supervisor', 'creadoPor']);
+
+        $cubiculoNombre = trim((string) ($reserva->cubiculo?->nombre ?? ''));
+        $cubiculoNombre = $cubiculoNombre !== '' ? $cubiculoNombre : 'Cubículo sin catálogo';
 
         return [
             optional($reserva->fecha)->format('Y-m-d'),
             substr((string) $reserva->hora_inicio, 0, 5),
             substr((string) $reserva->hora_fin, 0, 5),
-            $reserva->consultorio_numero,
-            $reserva->cubiculo_numero,
+            sprintf('%s · Núm. %d', $cubiculoNombre, $reserva->consultorio_numero),
             $reserva->estrategia,
             $reserva->estratega?->name ?? '',
             $reserva->usuarioAtendido?->name ?? '',
@@ -67,7 +68,7 @@ class ConsultorioReservasExport extends DefaultValueBinder implements FromQuery,
 
         $query = ConsultorioReserva::query()
             ->visibleTo($user)
-            ->with(['usuarioAtendido:id,name', 'estratega:id,name', 'supervisor:id,name', 'creadoPor:id,name'])
+            ->with(['cubiculo:id,nombre,numero', 'usuarioAtendido:id,name', 'estratega:id,name', 'supervisor:id,name', 'creadoPor:id,name'])
             ->orderByDesc('fecha')
             ->orderByDesc('hora_inicio');
 

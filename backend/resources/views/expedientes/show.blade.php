@@ -67,6 +67,18 @@
                 <span class="text-muted small d-block">Estrategia</span>
                 <span class="fw-semibold">{{ $expediente->estrategia?->nombre ?? 'Sin clasificar' }}</span>
             </div>
+            <div class="col-md-4">
+                <span class="text-muted small d-block">Cubículo</span>
+                @if ($expediente->cubiculo)
+                    <span class="fw-semibold">{{ $expediente->cubiculo->nombre }}</span>
+                @elseif (filled(data_get($expediente->resumen_clinico ?? [], 'cubiculo')))
+                    <span class="fw-semibold text-warning">
+                        Asignación anterior: Cubículo {{ data_get($expediente->resumen_clinico, 'cubiculo') }}. Pendiente de confirmar.
+                    </span>
+                @else
+                    <span class="fw-semibold">Sin asignar</span>
+                @endif
+            </div>
         </div>
         @can('changeState', $expediente)
             <div class="card-footer">
@@ -787,6 +799,7 @@
                                         <th>Estado revisión</th>
                                         <th>Realizada por</th>
                                         <th>Validada por</th>
+                                        <th>Documentos</th>
                                         <th class="text-end">Acciones</th>
                                     </tr>
                                 </thead>
@@ -807,6 +820,15 @@
                                             </td>
                                             <td>{{ $sesion->realizadaPor?->name }}</td>
                                             <td>{{ $sesion->validadaPor?->name ?? '—' }}</td>
+                                            <td>
+                                                @can('view', $sesion)
+                                                    <a href="{{ route('expedientes.sesiones.show', [$expediente, $sesion]) }}#documentos-sesion" class="btn btn-sm btn-outline-primary">
+                                                        Documentos ({{ (int) ($sesion->adjuntos_count ?? 0) }})
+                                                    </a>
+                                                @else
+                                                    <span class="text-muted">—</span>
+                                                @endcan
+                                            </td>
                                             <td class="text-end">
                                                 <div class="btn-group btn-group-sm" role="group">
                                                     @can('view', $sesion)

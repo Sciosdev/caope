@@ -25,6 +25,7 @@ class ConsultorioReserva extends Model
         'supervisor_id',
         'creado_por',
         'origen_expediente',
+        'expediente_id',
     ];
 
     protected $casts = [
@@ -84,6 +85,17 @@ class ConsultorioReserva extends Model
     public function usuarioAtendido(): BelongsTo
     {
         return $this->belongsTo(User::class, 'usuario_atendido_id');
+    }
+
+    public function expediente(): BelongsTo
+    {
+        return $this->belongsTo(Expediente::class);
+    }
+
+    public function cubiculo(): BelongsTo
+    {
+        // Keep the existing room numbers and reservation history unchanged.
+        return $this->belongsTo(CatalogoConsultorio::class, 'consultorio_numero', 'numero');
     }
 
     public function estrategiaCatalogo(): BelongsTo

@@ -81,12 +81,12 @@
     @endphp
 
     <nav class="navbar">
-      <div class="container d-flex justify-content-between align-items-center">
+      <div class="container d-flex flex-wrap gap-2 justify-content-between align-items-center">
         <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url('/') }}">
           <img src="{{ asset('assets/images/SDRI_oro.png') }}" height="26" alt="logo">
           <span>CAOPE</span>
         </a>
-        <div class="d-flex align-items-center gap-3">
+        <div class="d-flex flex-wrap justify-content-end align-items-center gap-3">
           @auth
             <a href="{{ route('dashboard') }}"
                class="text-muted small {{ request()->routeIs('dashboard') ? 'fw-semibold text-body' : '' }}">
@@ -101,7 +101,7 @@
             @if (($currentUser?->hasAnyRole(['admin', 'coordinador', 'estratega', 'alumno', 'docente']) ?? false) || $isApprovedPaps)
               <a href="{{ route('consultorios.index') }}"
                  class="text-muted small {{ request()->routeIs('consultorios.*') ? 'fw-semibold text-body' : '' }}">
-                Consultorios
+                Cubículos
               </a>
               @if ($reportesRouteName)
                 <a href="{{ route($reportesRouteName) }}"
@@ -109,13 +109,11 @@
                   Reportes
                 </a>
               @endif
-              @if ($currentUser?->hasAnyRole(['coordinador', 'estratega']) ?? false)
-                <a href="{{ route('admin.documentos.index') }}"
-                   class="text-muted small {{ request()->routeIs('admin.documentos.*') ? 'fw-semibold text-body' : '' }}">
-                  Documentos
-                </a>
-              @endif
             @endif
+            <a href="{{ route('admin.documentos.index') }}"
+               class="text-muted small {{ request()->routeIs('admin.documentos.*') ? 'fw-semibold text-body' : '' }}">
+              Documentos
+            </a>
             @can('sesiones.validate')
               @if ($sesionesValidacionRouteName)
                 <a href="{{ route($sesionesValidacionRouteName) }}"
@@ -140,7 +138,7 @@
                 <ul class="dropdown-menu dropdown-menu-end">
                   <li><a class="dropdown-item" href="{{ route('admin.users.index') }}">Usuarios</a></li>
                   <li><a class="dropdown-item" href="{{ route('admin.catalogos.carreras.index') }}">Carreras</a></li>
-                  <li><a class="dropdown-item" href="{{ route('admin.catalogos.consultorios.index') }}">Consultorios</a></li>
+                  <li><a class="dropdown-item" href="{{ route('admin.catalogos.consultorios.index') }}">Cubículos</a></li>
                   <li><a class="dropdown-item" href="{{ route('admin.catalogos.estrategias.index') }}">Estrategias</a></li>
                   <li><a class="dropdown-item" href="{{ route('admin.documentos.index') }}">Documentos</a></li>
                   @if (($currentUser?->hasRole('admin') ?? false) || $isApprovedPaps)
@@ -155,7 +153,7 @@
                     </li>
                     <li>
                       <a class="dropdown-item d-flex justify-content-between align-items-center" href="{{ route('admin.consultorios.solicitudes.index') }}">
-                        <span>Herramientas · Solicitudes consultorios</span>
+                        <span>Herramientas · Solicitudes cubículos</span>
                         @if ($pendingConsultorioSolicitudesCount > 0)
                           <span class="badge rounded-pill bg-danger">{{ $pendingConsultorioSolicitudesCount }}</span>
                         @endif

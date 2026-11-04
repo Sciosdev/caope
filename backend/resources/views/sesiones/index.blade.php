@@ -38,6 +38,7 @@
                                 <th>Estado revisión</th>
                                 <th>Realizada por</th>
                                 <th>Validada por</th>
+                                <th>Documentos</th>
                                 <th class="text-end">Acciones</th>
                             </tr>
                         </thead>
@@ -59,6 +60,15 @@
                                     </td>
                                     <td>{{ $sesion->realizadaPor?->name ?? '—' }}</td>
                                     <td>{{ $sesion->validadaPor?->name ?? '—' }}</td>
+                                    <td>
+                                        @can('view', $sesion)
+                                            <a href="{{ route('expedientes.sesiones.show', [$expediente, $sesion]) }}#documentos-sesion" class="btn btn-sm btn-outline-primary">
+                                                Documentos ({{ (int) ($sesion->adjuntos_count ?? 0) }})
+                                            </a>
+                                        @else
+                                            <span class="text-muted">—</span>
+                                        @endcan
+                                    </td>
                                     <td class="text-end">
                                         <div class="btn-group btn-group-sm" role="group">
                                             @can('view', $sesion)

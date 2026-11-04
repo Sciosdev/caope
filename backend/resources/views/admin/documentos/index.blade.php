@@ -52,6 +52,7 @@
                                 <td>{{ $documento->aprobado_en ? 'Autorizado' : 'Pendiente de autorización' }}</td>
                             @endif
                             <td class="d-flex flex-wrap gap-2">
+                                <a href="{{ route('admin.documentos.show', $documento) }}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener noreferrer" aria-label="Ver {{ $documento->titulo }} (se abre en otra pestaña)">Ver</a>
                                 <a href="{{ route('admin.documentos.download', $documento) }}" class="btn btn-sm btn-outline-primary">Descargar</a>
                                 @if ($isAdmin)
                                     <button class="btn btn-sm btn-outline-warning" type="button" data-bs-toggle="collapse" data-bs-target="#editar-documento-{{ $documento->id }}" aria-expanded="false" aria-controls="editar-documento-{{ $documento->id }}">Editar</button>

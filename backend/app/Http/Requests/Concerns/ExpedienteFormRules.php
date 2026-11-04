@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Concerns;
 
+use App\Models\CatalogoConsultorio;
 use App\Models\CatalogoEstrategia;
 use App\Models\Expediente;
 use App\Models\User;
@@ -28,6 +29,27 @@ trait ExpedienteFormRules
                 'estrategia_id' => CatalogoEstrategia::query()
                     ->where('nombre', $this->input('consultorio_reserva.estrategia'))->value('id'),
             ]);
+        }
+
+        // Las reservas nuevas reciben su identidad física exclusivamente del
+        // catálogo canónico. Los dos números legados se mantienen iguales por
+        // compatibilidad, sin consultar ni reinterpretar catalogo_cubiculos.
+        if ($this->exists('consultorio_reserva') && $this->filled('cubiculo_id')) {
+            $numero = CatalogoConsultorio::query()
+                ->whereKey((int) $this->input('cubiculo_id'))
+                ->value('numero');
+
+            if ($numero !== null) {
+                $this->merge([
+                    'consultorio_reserva' => array_replace(
+                        $this->normalizeArrayPayload($this->input('consultorio_reserva')),
+                        [
+                            'consultorio_numero' => (int) $numero,
+                            'cubiculo_numero' => (int) $numero,
+                        ]
+                    ),
+                ]);
+            }
         }
 
         if ($this->exists('antecedentes_familiares')) {
@@ -143,7 +165,7 @@ trait ExpedienteFormRules
             }
         }
 
-        foreach (['facilitador_id', 'tutor_id', 'coordinador_id', 'estrategia_id'] as $field) {
+        foreach (['facilitador_id', 'tutor_id', 'coordinador_id', 'estrategia_id', 'cubiculo_id'] as $field) {
             if (! $this->has($field)) {
                 continue;
             }
@@ -276,6 +298,11 @@ trait ExpedienteFormRules
             ];
         }
 
+        $cubiculoExists = Rule::exists('catalogo_consultorios', 'id');
+        if (! $expediente?->cubiculo_id || (int) $this->input('cubiculo_id') !== (int) $expediente->cubiculo_id) {
+            $cubiculoExists->where('activo', true);
+        }
+
         return [
             'no_control' => $noControlRules,
             'paciente' => ['required', 'string', 'min:2', 'max:140'],
@@ -325,6 +352,10 @@ trait ExpedienteFormRules
             ],
             'coordinador_id' => ['sometimes', 'nullable', 'integer', 'min:1', 'exists:users,id'],
             'estrategia_id' => $estrategiaRules,
+            'cubiculo_id' => [
+                'nullable', 'required_with:consultorio_reserva.fecha', 'integer', 'min:1',
+                $cubiculoExists,
+            ],
             'antecedentes_familiares' => ['sometimes', 'array'],
             'antecedentes_observaciones' => ['sometimes', 'nullable', 'string', 'max:500'],
             'antecedentes_personales_patologicos' => ['sometimes', 'array'],
@@ -612,7 +643,7 @@ trait ExpedienteFormRules
             'resumen_clinico.autorizacion_responsable' => ['sometimes', 'nullable', 'string', 'max:1000'],
             'resumen_clinico.resultado' => ['sometimes', 'nullable', Rule::in(array_keys(Expediente::CLINICAL_OUTCOME_OPTIONS))],
             'resumen_clinico.resultado_detalle' => ['sometimes', 'nullable', 'string', 'max:1000'],
-            'resumen_clinico.cubiculo' => ['sometimes', 'nullable', 'integer', Rule::exists('catalogo_cubiculos', 'numero')->where('activo', true)],
+            'resumen_clinico.cubiculo' => ['sometimes', 'nullable', 'integer', 'min:1'],
         ];
     }
 
@@ -631,7 +662,7 @@ trait ExpedienteFormRules
             'consultorio_reserva.hora_inicio' => ['sometimes', 'required_with:consultorio_reserva.consultorio_numero', 'date_format:H:i'],
             'consultorio_reserva.hora_fin' => ['sometimes', 'required_with:consultorio_reserva.consultorio_numero', 'date_format:H:i', 'after:consultorio_reserva.hora_inicio'],
             'consultorio_reserva.consultorio_numero' => ['sometimes', 'integer', Rule::exists('catalogo_consultorios', 'numero')->where('activo', true)],
-            'consultorio_reserva.cubiculo_numero' => ['sometimes', 'required_with:consultorio_reserva.consultorio_numero', 'integer', Rule::exists('catalogo_cubiculos', 'numero')->where('activo', true)],
+            'consultorio_reserva.cubiculo_numero' => ['sometimes', 'required_with:consultorio_reserva.consultorio_numero', 'integer', Rule::exists('catalogo_consultorios', 'numero')->where('activo', true)],
             'consultorio_reserva.estrategia' => ['sometimes', 'required_with:consultorio_reserva.consultorio_numero', 'string', 'max:255', Rule::exists('catalogo_estrategias', 'nombre')->where('activo', true)],
             'consultorio_reserva.usuario_atendido_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
             'consultorio_reserva.estratega_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
@@ -668,6 +699,7 @@ trait ExpedienteFormRules
             'coordinador_id',
             'estrategia_id',
             'facilitador_id',
+            'cubiculo_id',
             'antecedentes_familiares',
             'antecedentes_observaciones',
             'antecedentes_personales_patologicos',

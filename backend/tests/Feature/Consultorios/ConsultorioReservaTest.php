@@ -189,7 +189,7 @@ class ConsultorioReservaTest extends TestCase
 
         $this->assertDatabaseHas('consultorio_reservas', [
             'consultorio_numero' => 3,
-            'cubiculo_numero' => 1,
+            'cubiculo_numero' => 3,
             'hora_inicio' => '12:00',
             'hora_fin' => '13:00',
             'estrategia' => 'Intervención breve',
@@ -315,7 +315,7 @@ class ConsultorioReservaTest extends TestCase
             ->assertOk()
             ->assertSee('Facilitador')
             ->assertSee('Usuario PAPS')
-            ->assertSee('Alta automática (asignación de consultorio desde expediente)')
+            ->assertSee('Alta automática (asignación de cubículo desde expediente)')
             ->assertSee('Solicitar edición')
             ->assertSee('Solicitar baja')
             ->assertSee('id="bitacora-fecha-base" name="bitacora_inicio" value="'.$fecha.'"', false);
@@ -735,7 +735,7 @@ class ConsultorioReservaTest extends TestCase
         $this->assertDatabaseHas('consultorio_reservas', [
             'id' => $reserva->id,
             'consultorio_numero' => 5,
-            'cubiculo_numero' => 2,
+            'cubiculo_numero' => 5,
             'estrategia' => 'Otra estrategia',
             'origen_expediente' => true,
         ]);
@@ -771,7 +771,8 @@ class ConsultorioReservaTest extends TestCase
             ->assertSee('Esta edición se enviará como solicitud.')
             ->assertSee('action="'.route('consultorios.request-update', $reserva).'"', false)
             ->assertSee('name="hora_inicio"', false)
-            ->assertSee('name="cubiculo_numero"', false);
+            ->assertSee('name="consultorio_numero"', false)
+            ->assertDontSee('name="cubiculo_numero"', false);
 
         $this->assertDatabaseCount('consultorio_reserva_solicitudes', 0);
         $this->actingAs($paps)->delete(route('consultorios.request-destroy', $reserva))
@@ -846,7 +847,8 @@ class ConsultorioReservaTest extends TestCase
         $this->assertSame($paps->id, $solicitud->requested_by);
         $this->assertSame('edicion', $solicitud->tipo);
         $this->assertSame('pendiente', $solicitud->status);
-        $this->assertSame($propuesta, $solicitud->payload);
+        $propuestaNormalizada = array_replace($propuesta, ['cubiculo_numero' => $propuesta['consultorio_numero']]);
+        $this->assertSame($propuestaNormalizada, $solicitud->payload);
         $this->assertDatabaseHas('consultorio_reservas', [
             'id' => $reserva->id,
             'hora_inicio' => '10:00',
@@ -859,7 +861,7 @@ class ConsultorioReservaTest extends TestCase
             ->assertSessionHasNoErrors()
             ->assertRedirect(route('admin.consultorios.solicitudes.index'));
 
-        $this->assertDatabaseHas('consultorio_reservas', ['id' => $reserva->id] + $propuesta);
+        $this->assertDatabaseHas('consultorio_reservas', ['id' => $reserva->id] + $propuestaNormalizada);
         $this->assertSame('atendida', $solicitud->fresh()->status);
     }
 
@@ -939,7 +941,7 @@ class ConsultorioReservaTest extends TestCase
             $this->get($response->headers->get('Location'))
                 ->assertOk()
                 ->assertSee($inicio === '12:30'
-                    ? 'Ese consultorio ya está reservado en el bloque seleccionado.'
+                    ? 'Ese cubículo ya está reservado en el bloque seleccionado.'
                     : 'El horario permitido es de 07:00 a 22:00.')
                 ->assertSee('value="'.$inicio.'"', false);
         }
@@ -1015,7 +1017,7 @@ class ConsultorioReservaTest extends TestCase
         $this->actingAs($paps)
             ->get(route('admin.consultorios.solicitudes.index'))
             ->assertOk()
-            ->assertSee('Solicitudes pendientes de consultorios')
+            ->assertSee('Solicitudes pendientes de cubículos')
             ->assertDontSee('Aprobar');
 
         $this->actingAs($paps)

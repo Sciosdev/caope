@@ -112,7 +112,7 @@
                             @if (($currentUser?->hasAnyRole(['admin', 'coordinador', 'estratega', 'alumno', 'docente']) ?? false) || $isApprovedPaps)
                                 <li class="nav-item">
                                     <a class="nav-link {{ request()->routeIs('consultorios.*') ? 'active fw-semibold' : '' }}" href="{{ route('consultorios.index') }}">
-                                        {{ __('Consultorios') }}
+                                        {{ __('Cubículos') }}
                                     </a>
                                 </li>
                                 @if ($reportesRouteName)
@@ -122,14 +122,12 @@
                                         </a>
                                     </li>
                                 @endif
-                                @if ($currentUser?->hasAnyRole(['coordinador', 'estratega']) ?? false)
-                                    <li class="nav-item">
-                                        <a class="nav-link {{ request()->routeIs('admin.documentos.*') ? 'active fw-semibold' : '' }}" href="{{ route('admin.documentos.index') }}">
-                                            {{ __('Documentos') }}
-                                        </a>
-                                    </li>
-                                @endif
                             @endif
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('admin.documentos.*') ? 'active fw-semibold' : '' }}" href="{{ route('admin.documentos.index') }}">
+                                    {{ __('Documentos') }}
+                                </a>
+                            </li>
                             @can('sesiones.validate')
                                 @if ($sesionesValidacionRouteName)
                                     <li class="nav-item">
@@ -151,7 +149,7 @@
                                     <ul class="dropdown-menu">
                                         <li><a class="dropdown-item" href="{{ route('admin.users.index') }}">{{ __('Usuarios') }}</a></li>
                                         <li><a class="dropdown-item" href="{{ route('admin.catalogos.carreras.index') }}">{{ __('Carreras') }}</a></li>
-                                        <li><a class="dropdown-item" href="{{ route('admin.catalogos.consultorios.index') }}">{{ __('Consultorios') }}</a></li>
+                                        <li><a class="dropdown-item" href="{{ route('admin.catalogos.consultorios.index') }}">{{ __('Cubículos') }}</a></li>
                                         <li><a class="dropdown-item" href="{{ route('admin.catalogos.estrategias.index') }}">{{ __('Estrategias') }}</a></li>
                                         <li><a class="dropdown-item" href="{{ route('admin.documentos.index') }}">Documentos</a></li>
                                         @if (($currentUser?->hasRole('admin') ?? false) || $isApprovedPaps)
@@ -166,7 +164,7 @@
                                             </li>
                                             <li>
                                                 <a class="dropdown-item d-flex justify-content-between align-items-center" href="{{ route('admin.consultorios.solicitudes.index') }}">
-                                                    <span>Herramientas · Solicitudes consultorios</span>
+                                                    <span>Herramientas · Solicitudes cubículos</span>
                                                     @if ($pendingConsultorioSolicitudesCount > 0)
                                                         <span class="badge rounded-pill bg-danger">{{ $pendingConsultorioSolicitudesCount }}</span>
                                                     @endif

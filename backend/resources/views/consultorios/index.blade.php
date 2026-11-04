@@ -1,11 +1,11 @@
 <x-app-layout>
     @section('breadcrumbs')
         <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Inicio</a></li>
-        <li class="breadcrumb-item active" aria-current="page">Consultorios</li>
+        <li class="breadcrumb-item active" aria-current="page">Cubículos</li>
     @endsection
 
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="mb-0">Reserva de consultorios</h4>
+        <h4 class="mb-0">Reserva de cubículos</h4>
     </div>
     @php
         $currentUser = auth()->user();
@@ -86,16 +86,17 @@
                     <input type="time" name="hora_fin" class="form-control" id="asignacion-hora-fin" min="07:00" max="22:00" value="{{ old('hora_fin', '08:00') }}" required>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">Consultorio</label>
+                    <label class="form-label">Cubículo</label>
                     <select name="consultorio_numero" class="form-select" id="asignacion-consultorio" required>
-                        @forelse ($consultoriosActivos as $consultorio)
-                            <option value="{{ $consultorio->numero }}" @selected((int) old('consultorio_numero', (int) ($consultoriosActivos->first()?->numero ?? 0)) === (int) $consultorio->numero)>{{ $consultorio->nombre }}</option>
+                        @forelse ($consultoriosActivos as $cubiculo)
+                            <option value="{{ $cubiculo->numero }}" @selected((int) old('consultorio_numero', (int) ($consultoriosActivos->first()?->numero ?? 0)) === (int) $cubiculo->numero)>
+                                {{ trim((string) $cubiculo->nombre) !== '' ? $cubiculo->nombre : 'Cubículo sin nombre' }}
+                            </option>
                         @empty
-                            <option value="">Sin consultorios disponibles</option>
+                            <option value="">Sin cubículos disponibles</option>
                         @endforelse
                     </select>
                 </div>
-                <input type="hidden" name="cubiculo_numero" id="asignacion-cubiculo" value="{{ old('cubiculo_numero', $cubiculosActivos->first()?->numero) }}" required>
                 <div class="col-md-4">
                     <label class="form-label">Estrategia</label>
                     <select name="estrategia" class="form-select" required>
@@ -134,14 +135,16 @@
 
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <span>Calendario de ocupación por consultorio</span>
+            <span>Calendario de ocupación por cubículo</span>
             <form method="GET" class="d-flex gap-2" id="ocupacion-filtro-form">
                 <input type="month" class="form-control" name="fecha" id="ocupacion-fecha" value="{{ \Illuminate\Support\Carbon::parse($fechaFiltro)->format('Y-m') }}">
                 <select name="consultorio_numero" class="form-select" id="ocupacion-consultorio">
-                    @forelse ($consultoriosActivos as $consultorio)
-                        <option value="{{ $consultorio->numero }}" @selected($consultorioSeleccionado === (int) $consultorio->numero)>{{ $consultorio->nombre }}</option>
+                    @forelse ($consultoriosActivos as $cubiculo)
+                        <option value="{{ $cubiculo->numero }}" @selected($consultorioSeleccionado === (int) $cubiculo->numero)>
+                            {{ trim((string) $cubiculo->nombre) !== '' ? $cubiculo->nombre : 'Cubículo sin nombre' }}
+                        </option>
                     @empty
-                        <option value="">Sin consultorios asignados</option>
+                        <option value="">Sin cubículos asignados</option>
                     @endforelse
                 </select>
                 <button class="btn btn-outline-secondary" type="submit" id="ocupacion-ver-btn">Ver mes</button>
@@ -179,9 +182,6 @@
             <form method="GET" class="d-flex gap-2 align-items-center">
                 <input type="hidden" name="fecha" value="{{ $fechaFiltro }}">
                 <input type="hidden" name="consultorio_numero" value="{{ $consultorioSeleccionado }}">
-                @if($cubiculoSeleccionado)
-                    <input type="hidden" name="cubiculo_numero" value="{{ $cubiculoSeleccionado }}">
-                @endif
                 <input type="date" class="form-control" id="bitacora-fecha-base" name="bitacora_inicio" value="{{ $bitacoraFechaSeleccionada }}" aria-label="Fecha base de bitácora">
                 <select class="form-select" id="bitacora-modo" name="bitacora_modo" aria-label="Modo de vista de bitácora">
                     <option value="semana" @selected($bitacoraModo === 'semana')>Semana</option>
@@ -201,9 +201,6 @@
                     @method('DELETE')
                     <input type="hidden" name="fecha" value="{{ $fechaFiltro }}">
                     <input type="hidden" name="consultorio_numero" value="{{ $consultorioSeleccionado }}">
-                    @if($cubiculoSeleccionado)
-                        <input type="hidden" name="cubiculo_numero" value="{{ $cubiculoSeleccionado }}">
-                    @endif
                     <input type="hidden" name="bitacora_inicio" value="{{ request('bitacora_inicio', $bitacoraFechaSeleccionada) }}">
                     <input type="hidden" name="bitacora_modo" value="{{ request('bitacora_modo', $bitacoraModo) }}">
                     <button type="submit" class="btn btn-sm btn-outline-danger" id="bitacora-bulk-delete-button" disabled aria-disabled="true">
@@ -219,7 +216,7 @@
                         @endif
                         <th>Fecha</th>
                         <th>Horario</th>
-                        <th>Consultorio</th>
+                        <th>Cubículo</th>
                         <th>Estrategia</th>
                         <th>Estratega</th>
                         <th>Facilitador</th>
@@ -246,7 +243,10 @@
                             @endif
                             <td>{{ $reserva->fecha->format('Y-m-d') }}</td>
                             <td>{{ substr($reserva->hora_inicio, 0, 5) }} - {{ substr($reserva->hora_fin, 0, 5) }}</td>
-                            <td>Consultorio {{ $reserva->consultorio_numero }} · Cubículo {{ $reserva->cubiculo_numero }}</td>
+                            <td>
+                                {{ trim((string) ($reserva->cubiculo?->nombre ?? '')) !== '' ? $reserva->cubiculo->nombre : 'Cubículo sin catálogo' }}
+                                · Núm. {{ $reserva->consultorio_numero }}
+                            </td>
                             <td>
                                 {{ $reserva->estrategia }}
                                 @if ($reserva->origen_expediente)
@@ -258,7 +258,7 @@
                             @if($canManageBitacora || $isPapsAprobado)
                             <td>
                                 <span class="small text-muted d-block mb-2">
-                                    {{ $reserva->origen_expediente ? 'Alta automática (asignación de consultorio desde expediente)' : 'Alta manual (asignación de consultorio)' }}
+                                    {{ $reserva->origen_expediente ? 'Alta automática (asignación de cubículo desde expediente)' : 'Alta manual (asignación de cubículo)' }}
                                 </span>
                                 @if ($isAdmin)
                                     <div class="d-flex gap-2">
@@ -306,7 +306,6 @@
         const availabilityEndpoint = @json(route('consultorios.availability'));
         const formFecha = document.getElementById('asignacion-fecha');
         const formConsultorio = document.getElementById('asignacion-consultorio');
-        const formCubiculo = document.getElementById('asignacion-cubiculo');
         const formHoraInicio = document.getElementById('asignacion-hora-inicio');
         const formHoraFin = document.getElementById('asignacion-hora-fin');
         const alerta = document.getElementById('disponibilidad-alerta');
@@ -393,7 +392,7 @@
                     return horaInicio;
                 }
 
-                return Number(a.cubiculo_numero) - Number(b.cubiculo_numero);
+                return Number(a.consultorio_numero) - Number(b.consultorio_numero);
             });
 
             if (!sortedItems.length) {
@@ -404,8 +403,8 @@
             const detailRows = sortedItems.map((item) => {
                 const horaInicio = escapeHtml((item.hora_inicio ?? '').slice(0, 5));
                 const horaFin = escapeHtml((item.hora_fin ?? '').slice(0, 5));
-                const consultorio = escapeHtml(item.consultorio_numero ?? '—');
-                const cubiculo = escapeHtml(item.cubiculo_numero ?? '—');
+                const cubiculoNumero = escapeHtml(item.consultorio_numero ?? '—');
+                const cubiculoNombre = escapeHtml(item.cubiculo_nombre ?? 'Cubículo sin catálogo');
                 const estrategia = escapeHtml(item.estrategia ?? '—');
                 const estratega = escapeHtml(item.estratega_nombre ?? '—');
                 const usuario = escapeHtml(item.usuario_atendido_nombre ?? '—');
@@ -413,7 +412,7 @@
                 return `
                     <tr>
                         <td class="text-nowrap">${horaInicio} - ${horaFin}</td>
-                        <td class="text-nowrap">Consultorio ${consultorio} · Cubículo ${cubiculo}</td>
+                        <td class="text-nowrap">${cubiculoNombre} · Núm. ${cubiculoNumero}</td>
                         <td>${estrategia}</td>
                         <td>${estratega}</td>
                         <td>${usuario}</td>
@@ -431,7 +430,7 @@
                         <thead>
                             <tr>
                                 <th>Horario</th>
-                                <th>Consultorio / Cubículo</th>
+                                <th>Cubículo</th>
                                 <th>Estrategia</th>
                                 <th>Estratega</th>
                                 <th>Facilitador</th>
@@ -678,7 +677,7 @@
                     return horaInicio;
                 }
 
-                return Number(a.cubiculo_numero) - Number(b.cubiculo_numero);
+                return Number(a.consultorio_numero) - Number(b.consultorio_numero);
             });
 
             const renderSection = (titulo, registros, badgeClass) => {
@@ -697,8 +696,8 @@
                 const rows = registros.map((item) => {
                     const horaInicio = escapeHtml((item.hora_inicio ?? '').slice(0, 5));
                     const horaFin = escapeHtml((item.hora_fin ?? '').slice(0, 5));
-                    const consultorio = escapeHtml(item.consultorio_numero ?? '—');
-                    const cubiculo = escapeHtml(item.cubiculo_numero ?? '—');
+                    const cubiculoNumero = escapeHtml(item.consultorio_numero ?? '—');
+                    const cubiculoNombre = escapeHtml(item.cubiculo_nombre ?? 'Cubículo sin catálogo');
                     const estrategia = escapeHtml(item.estrategia ?? '—');
                     const estratega = escapeHtml(item.estratega_nombre ?? '—');
                     const usuario = escapeHtml(item.usuario_atendido_nombre ?? '—');
@@ -706,7 +705,7 @@
                     return `
                         <tr>
                             <td class="small text-nowrap">${horaInicio} - ${horaFin}</td>
-                            <td class="small text-nowrap">Consultorio ${consultorio} · Cubículo ${cubiculo}</td>
+                            <td class="small text-nowrap">${cubiculoNombre} · Núm. ${cubiculoNumero}</td>
                             <td class="small">${estrategia}</td>
                             <td class="small">${estratega}</td>
                             <td class="small">${usuario}</td>
@@ -725,7 +724,7 @@
                                 <thead>
                                     <tr>
                                         <th>Horario</th>
-                                        <th>Consultorio / Cubículo</th>
+                                        <th>Cubículo</th>
                                         <th>Estrategia</th>
                                         <th>Estratega</th>
                                         <th>Facilitador</th>
@@ -868,12 +867,15 @@
             }
         };
 
-        const hasOverlap = (items, start, end, cubiculo) => {
+        const hasOverlap = (items, start, end, consultorio, fechaInicio, fechaFin = fechaInicio, diaSemana = null) => {
             const startMinutes = timeToMinutes(start);
             const endMinutes = timeToMinutes(end);
 
             return items.find((item) => {
-                if (Number(item.cubiculo_numero) !== Number(cubiculo)) {
+                const fecha = String(item.fecha ?? '').slice(0, 10);
+                if (Number(item.consultorio_numero) !== Number(consultorio)
+                    || fecha < fechaInicio || fecha > fechaFin
+                    || (diaSemana !== null && toIsoWeekday(fecha) !== Number(diaSemana))) {
                     return false;
                 }
 
@@ -887,7 +889,17 @@
         const checkAvailability = async () => {
             hideAlert();
 
-            if (!formFecha.value || !formConsultorio.value || !formCubiculo.value || !formHoraInicio.value || !formHoraFin.value) {
+            const semanal = document.querySelector('input[name="modo_repeticion"]:checked')?.value === 'semanal';
+            const fechaInicio = semanal ? repeticionFechaInicio?.value : formFecha.value;
+            const fechaFin = semanal ? repeticionFechaFin?.value : fechaInicio;
+            const diaSemana = semanal ? (diaSemanaSelect?.value || toIsoWeekday(fechaInicio)) : null;
+
+            if (!fechaInicio || !fechaFin || !formConsultorio.value || !formHoraInicio.value || !formHoraFin.value) {
+                return;
+            }
+
+            if (fechaInicio > fechaFin || (semanal && !diaSemana)) {
+                showAlert('Revisa el intervalo y el día de la repetición semanal.');
                 return;
             }
 
@@ -898,9 +910,13 @@
 
             try {
                 const params = new URLSearchParams({
-                    fecha: formFecha.value,
+                    fecha: fechaInicio,
                     consultorio_numero: formConsultorio.value,
                 });
+                if (semanal) {
+                    params.set('fecha_inicio', fechaInicio);
+                    params.set('fecha_fin', fechaFin);
+                }
                 const response = await fetch(`${availabilityEndpoint}?${params.toString()}`, {
                     headers: {
                         'Accept': 'application/json',
@@ -908,48 +924,54 @@
                 });
 
                 if (!response.ok) {
+                    showAlert('No fue posible verificar la disponibilidad. El servidor volverá a comprobar los horarios al guardar.');
                     return;
                 }
 
                 const data = await response.json();
-                const overlap = hasOverlap(data.reservas ?? [], formHoraInicio.value, formHoraFin.value, formCubiculo.value);
+                const overlap = hasOverlap(data.reservas ?? [], formHoraInicio.value, formHoraFin.value, formConsultorio.value, fechaInicio, fechaFin, diaSemana);
 
                 if (overlap) {
-                    showAlert(`⚠️ El Consultorio ${formConsultorio.value}, Cubículo ${formCubiculo.value} ya está ocupado de ${overlap.hora_inicio.slice(0, 5)} a ${overlap.hora_fin.slice(0, 5)}.`);
+                    const cubiculoNombre = overlap.cubiculo_nombre || 'Cubículo sin catálogo';
+                    showAlert(`⚠️ ${cubiculoNombre} · Núm. ${formConsultorio.value} ya está ocupado el ${String(overlap.fecha).slice(0, 10)} de ${overlap.hora_inicio.slice(0, 5)} a ${overlap.hora_fin.slice(0, 5)}.`);
                 }
             } catch (error) {
                 console.error(error);
+                showAlert('No fue posible verificar la disponibilidad. El servidor volverá a comprobar los horarios al guardar.');
             }
         };
 
-        if (formConsultorio && formCubiculo && formFecha && formHoraInicio && formHoraFin) {
+        if (formConsultorio && formFecha && formHoraInicio && formHoraFin) {
             formConsultorio.addEventListener('change', checkAvailability);
-            formCubiculo.addEventListener('change', () => {
-                checkAvailability();
-            });
             formFecha.addEventListener('change', () => {
-                checkAvailability();
                 if (document.querySelector('input[name="modo_repeticion"]:checked')?.value === 'semanal') {
                     syncRepeatStartFromSelectedDate();
                     syncRepeatEndFromStartDate();
                 }
+                checkAvailability();
             });
             formHoraInicio.addEventListener('change', checkAvailability);
             formHoraFin.addEventListener('change', checkAvailability);
         }
         modoRepeticionInputs.forEach((input) => {
-            input.addEventListener('change', toggleRepeatConfig);
+            input.addEventListener('change', () => {
+                toggleRepeatConfig();
+                checkAvailability();
+            });
         });
         repeticionFechaInicio?.addEventListener('change', () => {
             repeticionFechaInicio.dataset.userSelected = repeticionFechaInicio.value ? 'true' : 'false';
             syncRepeatDayFromStartDate();
             syncRepeatEndFromStartDate();
+            checkAvailability();
         });
         repeticionFechaFin?.addEventListener('change', () => {
             repeticionFechaFin.dataset.userSelected = repeticionFechaFin.value ? 'true' : 'false';
+            checkAvailability();
         });
         diaSemanaSelect?.addEventListener('change', () => {
             diaSemanaSelect.dataset.userSelected = diaSemanaSelect.value ? 'true' : 'false';
+            checkAvailability();
         });
         toggleRepeatConfig();
         calendarioContainer?.addEventListener('click', (event) => {

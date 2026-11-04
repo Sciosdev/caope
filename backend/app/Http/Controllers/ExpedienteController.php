@@ -8,7 +8,6 @@ use App\Http\Requests\UpdateExpedienteRequest;
 use App\Models\Anexo;
 use App\Models\CatalogoCarrera;
 use App\Models\CatalogoConsultorio;
-use App\Models\CatalogoCubiculo;
 use App\Models\CatalogoEstrategia;
 use App\Models\CatalogoTurno;
 use App\Models\ConsultorioReserva;
@@ -18,6 +17,7 @@ use App\Models\User;
 use App\Notifications\ExpedienteClosedNotification;
 use App\Notifications\ExpedienteClosureAttemptNotification;
 use App\Notifications\TutorAssignedNotification;
+use App\Services\ConsultorioReservationGuard;
 use App\Services\ExpedienteStateValidator;
 use App\Services\TimelineLogger;
 use App\Support\Uploads\AnexoUploadOptions;
@@ -86,6 +86,7 @@ class ExpedienteController extends Controller
         'tutor_id',
         'coordinador_id',
         'estrategia_id',
+        'cubiculo_id',
         'diagnostico',
         'dsm_tr',
         'observaciones_relevantes',
@@ -237,6 +238,10 @@ class ExpedienteController extends Controller
 
         $data = $request->validatedExpedienteData();
         $consultorioReservaData = data_get($request->validatedConsultorioReservaData(), 'consultorio_reserva', []);
+        $consultorioReservaData = $this->normalizeReservationForCanonicalCubiculo(
+            $data['cubiculo_id'] ?? null,
+            $consultorioReservaData,
+        );
         if (! empty($consultorioReservaData['estrategia'])) {
             $estrategiaNombre = CatalogoEstrategia::query()->find($data['estrategia_id'] ?? null)?->nombre;
             if ($estrategiaNombre !== $consultorioReservaData['estrategia']) {
@@ -314,15 +319,16 @@ class ExpedienteController extends Controller
                 'user_id' => $request->user()?->id,
             ]);
             $expediente = DB::transaction(function () use ($request, $data, $consultorioReservaData): Expediente {
+                $this->lockCanonicalCubiculoForAssignment($data['cubiculo_id'] ?? null);
                 $expediente = Expediente::create($data);
                 $this->syncRegistroUrgencia(
                     $expediente,
                     $this->resolveUrgencyPayloadForUser($request, $request->validated('registro_urgencia', []))
                 );
-                $this->syncConsultorioReservaFromPayload($request, $consultorioReservaData);
+                $this->syncConsultorioReservaFromPayload($request, $consultorioReservaData, $expediente);
 
                 return $expediente;
-            });
+            }, 3);
         } catch (ValidationException $exception) {
             throw $exception;
         } catch (QueryException $exception) {
@@ -444,10 +450,12 @@ class ExpedienteController extends Controller
             'tutor',
             'coordinador',
             'estrategia',
+            'cubiculo',
             'registroUrgencia',
             'sesiones' => fn ($q) => $q
                 ->visibleTo($request->user())
                 ->with(['realizadaPor', 'validadaPor'])
+                ->withCount('adjuntos')
                 ->orderByDesc('fecha'),
             'consentimientos' => fn ($q) => $q->with('subidoPor')->orderByDesc('requerido')->orderBy('tratamiento'),
             'anexos' => fn ($q) => $q->with('subidoPor')->filter($activeFilters)->latest(),
@@ -540,6 +548,10 @@ class ExpedienteController extends Controller
             unset($data['estrategia_id']);
         }
 
+        if (! $request->user()->hasRole('admin') && ! $request->user()->isApprovedPaps()) {
+            unset($data['cubiculo_id']);
+        }
+
         if (array_key_exists('resumen_clinico', $data)) {
             $summary = is_array($data['resumen_clinico']) ? $data['resumen_clinico'] : [];
             $summary['cubiculo'] = data_get($expediente->resumen_clinico ?? [], 'cubiculo');
@@ -602,12 +614,19 @@ class ExpedienteController extends Controller
         ];
 
         try {
-            $expediente->fill($data);
-            $expediente->save();
-            $this->syncRegistroUrgencia(
-                $expediente,
-                $this->resolveUrgencyPayloadForUser($request, $request->validated('registro_urgencia', []))
-            );
+            DB::transaction(function () use ($data, $expediente, $request): void {
+                $this->lockCanonicalCubiculoForAssignment(
+                    $data['cubiculo_id'] ?? null,
+                    $expediente->cubiculo_id,
+                );
+
+                $expediente->fill($data);
+                $expediente->save();
+                $this->syncRegistroUrgencia(
+                    $expediente,
+                    $this->resolveUrgencyPayloadForUser($request, $request->validated('registro_urgencia', []))
+                );
+            }, 3);
         } catch (QueryException $exception) {
             Log::error('Failed to update expediente', [
                 'audit_id' => $auditId,
@@ -780,7 +799,7 @@ class ExpedienteController extends Controller
     /**
      * @param  array<string, mixed>  $payload
      */
-    private function syncConsultorioReservaFromPayload(Request $request, array $payload): void
+    private function syncConsultorioReservaFromPayload(Request $request, array $payload, Expediente $expediente): void
     {
         $user = $request->user();
 
@@ -792,11 +811,18 @@ class ExpedienteController extends Controller
             return;
         }
 
+        $canonicalCubiculo = $expediente->cubiculo()->first(['numero']);
+        if (! $canonicalCubiculo) {
+            throw ValidationException::withMessages([
+                'cubiculo_id' => 'Selecciona un cubículo del catálogo vigente para guardar la asignación.',
+            ]);
+        }
+
         $fecha = (string) data_get($payload, 'fecha', '');
         $horaInicio = (string) data_get($payload, 'hora_inicio', '');
         $horaFin = (string) data_get($payload, 'hora_fin', '');
-        $consultorioNumero = (int) data_get($payload, 'consultorio_numero');
-        $cubiculoNumero = (int) data_get($payload, 'cubiculo_numero');
+        $consultorioNumero = (int) $canonicalCubiculo->numero;
+        $cubiculoNumero = (int) $canonicalCubiculo->numero;
 
         if (
             $fecha === ''
@@ -806,23 +832,19 @@ class ExpedienteController extends Controller
             || $cubiculoNumero <= 0
         ) {
             throw ValidationException::withMessages([
-                'consultorio_reserva' => 'Completa los datos de asignación para guardar el consultorio junto con el expediente.',
+                'consultorio_reserva' => 'Completa los datos de asignación para guardar el cubículo junto con el expediente.',
             ]);
         }
 
-        $overlap = ConsultorioReserva::query()
-            ->whereDate('fecha', $fecha)
-            ->where('consultorio_numero', $consultorioNumero)
-            ->where('cubiculo_numero', $cubiculoNumero)
-            ->where('hora_inicio', '<', $horaFin.':00')
-            ->where('hora_fin', '>', $horaInicio.':00')
-            ->exists();
-
-        if ($overlap) {
-            throw ValidationException::withMessages([
-                'consultorio_reserva.hora_inicio' => 'Ese consultorio ya está reservado en el bloque seleccionado.',
-            ]);
-        }
+        $guard = app(ConsultorioReservationGuard::class);
+        $guard->lockConsultorio($consultorioNumero);
+        $guard->assertAvailable(
+            $consultorioNumero,
+            [$fecha],
+            $horaInicio,
+            $horaFin,
+            errorKey: 'consultorio_reserva.hora_inicio',
+        );
 
         $reserva = ConsultorioReserva::query()->create([
             'fecha' => $fecha,
@@ -835,6 +857,7 @@ class ExpedienteController extends Controller
             'estratega_id' => data_get($payload, 'estratega_id') ?: null,
             'creado_por' => $request->user()->id,
             'origen_expediente' => true,
+            'expediente_id' => $expediente->getKey(),
         ]);
 
         if ($request->user()?->isApprovedPaps() && Schema::hasTable('consultorio_reserva_solicitudes')) {
@@ -956,12 +979,15 @@ class ExpedienteController extends Controller
         if ($expediente?->facilitador) {
             $facilitadores = $facilitadores->push($expediente->facilitador)->unique('id')->sortBy('name')->values();
         }
-        $cubiculos = $expediente === null
-            ? CatalogoCubiculo::activos()->sortBy('numero')->values()
-            : CatalogoCubiculo::activos()
-                ->where('numero', data_get($expediente->resumen_clinico ?? [], 'cubiculo'))
+        $cubiculos = CatalogoConsultorio::activos()->sortBy('nombre')->values();
+        if ($expediente?->cubiculo) {
+            $cubiculos = $cubiculos
+                ->push($expediente->cubiculo)
+                ->unique('id')
+                ->sortBy('nombre')
                 ->values();
-        $consultoriosActivos = CatalogoConsultorio::activos();
+        }
+        $consultoriosActivos = $cubiculos;
         $estrategiasActivas = CatalogoEstrategia::activos();
         $estrategiasExpediente = $estrategiasActivas;
         if ($expediente === null && $user?->hasRole('coordinador') && ! $user->hasGlobalExpedienteAccess()) {
@@ -1080,6 +1106,55 @@ class ExpedienteController extends Controller
         }
 
         return $data;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function normalizeReservationForCanonicalCubiculo(mixed $cubiculoId, array $payload): array
+    {
+        if ($payload === []) {
+            return $payload;
+        }
+
+        if (! $cubiculoId) {
+            throw ValidationException::withMessages([
+                'cubiculo_id' => 'Selecciona un cubículo del catálogo vigente para guardar la asignación.',
+            ]);
+        }
+
+        $cubiculo = CatalogoConsultorio::query()->find($cubiculoId, ['numero']);
+        if (! $cubiculo) {
+            throw ValidationException::withMessages([
+                'cubiculo_id' => 'El cubículo seleccionado no está disponible.',
+            ]);
+        }
+
+        return array_replace($payload, [
+            'consultorio_numero' => (int) $cubiculo->numero,
+            'cubiculo_numero' => (int) $cubiculo->numero,
+        ]);
+    }
+
+    private function lockCanonicalCubiculoForAssignment(mixed $cubiculoId, mixed $currentCubiculoId = null): void
+    {
+        if (! filled($cubiculoId)) {
+            return;
+        }
+
+        $cubiculo = CatalogoConsultorio::query()
+            ->whereKey((int) $cubiculoId)
+            ->lockForUpdate()
+            ->first(['id', 'activo']);
+        $preservesCurrentAssignment = $cubiculo
+            && (int) $cubiculo->getKey() === (int) $currentCubiculoId;
+
+        if (! $cubiculo || (! $cubiculo->activo && ! $preservesCurrentAssignment)) {
+            throw ValidationException::withMessages([
+                'cubiculo_id' => 'El cubículo seleccionado ya no está disponible.',
+            ]);
+        }
     }
 
     private function canChangeAssignments(?User $user, Expediente $expediente): bool

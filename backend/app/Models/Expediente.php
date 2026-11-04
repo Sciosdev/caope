@@ -147,6 +147,7 @@ class Expediente extends Model
         'tutor_id',
         'coordinador_id',
         'estrategia_id',
+        'cubiculo_id',
         'diagnostico',
         'dsm_tr',
         'observaciones_relevantes',
@@ -383,6 +384,17 @@ class Expediente extends Model
     public function estrategia(): BelongsTo
     {
         return $this->belongsTo(CatalogoEstrategia::class, 'estrategia_id');
+    }
+
+    /**
+     * Espacio físico confirmado en el catálogo canónico de cubículos.
+     *
+     * No se deriva de resumen_clinico.cubiculo porque ese número pertenece al
+     * catálogo histórico y puede identificar otro espacio.
+     */
+    public function cubiculo(): BelongsTo
+    {
+        return $this->belongsTo(CatalogoConsultorio::class, 'cubiculo_id');
     }
 
     public function sesiones(): HasMany

@@ -63,8 +63,10 @@ class ExpedienteFamilyHistoryTest extends TestCase
         }
     }
 
-    public function test_alumno_puede_crear_expediente_con_antecedentes(): void
+    public function test_admin_con_rol_facilitador_puede_crear_expediente_y_auditar_antecedentes(): void
     {
+        $admin = User::factory()->create();
+        $admin->assignRole(['admin', 'alumno']);
         $alumno = User::factory()->create();
         $alumno->assignRole('alumno');
 
@@ -125,6 +127,7 @@ class ExpedienteFamilyHistoryTest extends TestCase
         $payload = [
             'no_control' => 'AL-2025-0001',
             'paciente' => 'Alumno Demo',
+            'facilitador_id' => $alumno->id,
             'apertura' => Carbon::now()->toDateString(),
             'carrera' => $carrera->nombre,
             'turno' => $turno->nombre,
@@ -139,12 +142,14 @@ class ExpedienteFamilyHistoryTest extends TestCase
             'observaciones_relevantes' => 'Observaciones clínicas iniciales aportadas por el alumno.',
         ];
 
-        $response = $this->actingAs($alumno)->post(route('expedientes.store'), $payload);
+        $response = $this->actingAs($admin)->post(route('expedientes.store'), $payload);
 
         $response->assertSessionHasNoErrors();
 
         $expediente = Expediente::where('no_control', $payload['no_control'])->first();
         $this->assertNotNull($expediente);
+        $this->assertSame($admin->id, $expediente->creado_por);
+        $this->assertSame($alumno->id, (int) $expediente->facilitador_id);
 
         $this->assertTrue($expediente->antecedentes_familiares['diabetes_mellitus']['madre']);
         $this->assertTrue($expediente->antecedentes_familiares['hipertension_arterial']['padre']);
@@ -177,15 +182,16 @@ class ExpedienteFamilyHistoryTest extends TestCase
             $expediente->plan_accion
         );
         $this->assertSame(
-            $systemsPayload,
+            array_intersect_key($systemsPayload, Expediente::SYSTEMS_REVIEW_SECTIONS),
             $expediente->aparatos_sistemas
         );
+        $this->assertArrayNotHasKey('nervioso', $expediente->aparatos_sistemas);
         $this->assertSame($payload['diagnostico'], $expediente->diagnostico);
         $this->assertSame($payload['observaciones_relevantes'], $expediente->observaciones_relevantes);
 
         $this->assertDatabaseHas('timeline_eventos', [
             'expediente_id' => $expediente->id,
-            'actor_id' => $alumno->id,
+            'actor_id' => $admin->id,
             'evento' => 'expediente.antecedentes_registrados',
         ]);
 
@@ -411,9 +417,10 @@ class ExpedienteFamilyHistoryTest extends TestCase
             $expediente->plan_accion
         );
         $this->assertSame(
-            $updatedSystems,
+            array_intersect_key($updatedSystems, Expediente::SYSTEMS_REVIEW_SECTIONS),
             $expediente->aparatos_sistemas
         );
+        $this->assertArrayNotHasKey('nervioso', $expediente->aparatos_sistemas);
         $this->assertSame($payload['diagnostico'], $expediente->diagnostico);
         $this->assertSame($payload['observaciones_relevantes'], $expediente->observaciones_relevantes);
 
@@ -472,7 +479,7 @@ class ExpedienteFamilyHistoryTest extends TestCase
             $antecedentesEvento->payload['antes']['aparatos_sistemas']
         );
         $this->assertSame(
-            $updatedSystems,
+            array_intersect_key($updatedSystems, Expediente::SYSTEMS_REVIEW_SECTIONS),
             $antecedentesEvento->payload['despues']['aparatos_sistemas']
         );
         $this->assertSame(
@@ -503,8 +510,8 @@ class ExpedienteFamilyHistoryTest extends TestCase
 
     public function test_validacion_falla_con_datos_invalidos(): void
     {
-        $alumno = User::factory()->create();
-        $alumno->assignRole('alumno');
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
 
         $carrera = CatalogoCarrera::create([
             'nombre' => 'Licenciatura en Enfermería',
@@ -555,7 +562,7 @@ class ExpedienteFamilyHistoryTest extends TestCase
             'observaciones_relevantes' => str_repeat('o', 1100),
         ];
 
-        $response = $this->actingAs($alumno)->post(route('expedientes.store'), $payload);
+        $response = $this->actingAs($admin)->post(route('expedientes.store'), $payload);
 
         $response->assertSessionHasErrors([
             'antecedentes_observaciones',
@@ -577,8 +584,8 @@ class ExpedienteFamilyHistoryTest extends TestCase
 
     public function test_family_history_old_input_is_preserved_after_validation_error(): void
     {
-        $alumno = User::factory()->create();
-        $alumno->assignRole('alumno');
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
 
         $carrera = CatalogoCarrera::create([
             'nombre' => 'Licenciatura en Psicología',
@@ -610,7 +617,7 @@ class ExpedienteFamilyHistoryTest extends TestCase
             ],
         ];
 
-        $initialResponse = $this->actingAs($alumno)
+        $initialResponse = $this->actingAs($admin)
             ->from(route('expedientes.create'))
             ->post(route('expedientes.store'), $payload);
 
@@ -626,7 +633,7 @@ class ExpedienteFamilyHistoryTest extends TestCase
             FILTER_VALIDATE_BOOL
         ));
 
-        $followUp = $this->actingAs($alumno)
+        $followUp = $this->actingAs($admin)
             ->withSession(session()->all())
             ->get(route('expedientes.create'));
 
