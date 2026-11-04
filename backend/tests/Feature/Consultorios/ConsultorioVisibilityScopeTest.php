@@ -57,7 +57,7 @@ class ConsultorioVisibilityScopeTest extends TestCase
             ->get(route('consultorios.index', ['consultorio_numero' => 6, 'cubiculo_numero' => 3]))
             ->assertOk()
             ->assertViewHas('consultoriosActivos', fn ($items) => $items->pluck('numero')->all() === [5])
-            ->assertViewHas('cubiculosActivos', fn ($items) => $items->pluck('numero')->all() === [2])
+            ->assertViewHas('cubiculosActivos', fn ($items) => $items->pluck('numero')->all() === [5])
             ->assertViewHas('consultorioSeleccionado', 5)
             ->assertViewHas('reservas', fn ($items) => $items->pluck('id')->all() === [$visible->id]);
     }
@@ -133,8 +133,12 @@ class ConsultorioVisibilityScopeTest extends TestCase
         $this->actingAs($coordinador)->get(route('consultorios.export'))->assertOk();
 
         Excel::assertDownloaded('/^bitacora_reservas_\d{8}_\d{6}\.xlsx$/', function (ConsultorioReservasExport $export) use ($visible): bool {
-            return $export->query()->pluck('id')->all() === [$visible->id]
-                && $export->headings()[4] === 'Cubículo';
+            $rows = $export->query()->get();
+
+            return $rows->pluck('id')->all() === [$visible->id]
+                && $export->headings()[3] === 'Cubículo'
+                && ! in_array('Consultorio', $export->headings(), true)
+                && $export->map($rows->sole())[3] === 'Consultorio 5 · Núm. 5';
         });
     }
 
@@ -214,7 +218,7 @@ class ConsultorioVisibilityScopeTest extends TestCase
         $reserva->refresh();
         $this->assertSame('2026-08-14', $reserva->fecha->toDateString());
         $this->assertSame(6, $reserva->consultorio_numero);
-        $this->assertSame(3, $reserva->cubiculo_numero);
+        $this->assertSame(6, $reserva->cubiculo_numero);
         $this->assertSame('10:00', $reserva->hora_inicio);
         $this->assertSame('11:00', $reserva->hora_fin);
         $this->assertSame('atendida', $solicitud->fresh()->status);

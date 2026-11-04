@@ -116,10 +116,11 @@ Route::middleware(['auth', 'active_user'])->group(function () {
         Route::post('solicitudes/{solicitud}/aprobar', [ConsultorioSolicitudController::class, 'approve'])->name('approve');
     });
 
-    Route::prefix('admin/documentos')->name('admin.documentos.')->middleware(['role:admin|coordinador|estratega|paps', 'approved_paps:admin,coordinador,estratega'])->group(function (): void {
+    Route::prefix('admin/documentos')->name('admin.documentos.')->group(function (): void {
         Route::get('/', [DocumentoAdministrativoController::class, 'index'])->name('index');
+        Route::get('{documento}/ver', [DocumentoAdministrativoController::class, 'show'])->name('show');
         Route::get('{documento}/download', [DocumentoAdministrativoController::class, 'download'])->name('download');
-        Route::middleware('role:admin|paps')->group(function (): void {
+        Route::middleware(['role:admin|paps', 'approved_paps:admin'])->group(function (): void {
             Route::post('/', [DocumentoAdministrativoController::class, 'store'])->name('store');
             Route::put('{documento}', [DocumentoAdministrativoController::class, 'update'])->middleware('role:admin')->name('update');
             Route::delete('{documento}', [DocumentoAdministrativoController::class, 'destroy'])->middleware('role:admin')->name('destroy');
@@ -197,6 +198,8 @@ Route::middleware(['auth', 'active_user'])->group(function () {
         ->name('expedientes.sesiones.observe');
     Route::post('expedientes/{expediente}/sesiones/{sesion}/validate', [SesionController::class, 'validateSesion'])
         ->name('expedientes.sesiones.validate');
+    Route::get('expedientes/{expediente}/sesiones/{sesion}/adjuntos/{adjunto}/ver', [SesionAdjuntoController::class, 'preview'])
+        ->name('expedientes.sesiones.adjuntos.preview');
     Route::get('expedientes/{expediente}/sesiones/{sesion}/adjuntos/{adjunto}', SesionAdjuntoController::class)
         ->name('expedientes.sesiones.adjuntos.download');
     Route::get('expedientes/export/ficha-identificacion/xlsx', [ExpedienteController::class, 'exportFichaIdentificacion'])

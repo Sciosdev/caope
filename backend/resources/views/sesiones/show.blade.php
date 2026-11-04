@@ -180,26 +180,31 @@
                 </div>
             @endif
 
-            @if ($sesion->adjuntos->isNotEmpty())
-                <div class="mt-4">
-                    <h6 class="mb-2">Adjuntos</h6>
+            <section class="mt-4" id="documentos-sesion" aria-labelledby="documentos-sesion-titulo">
+                <h6 class="mb-2" id="documentos-sesion-titulo">Documentos de la sesión</h6>
+                @if ($sesion->adjuntos->isNotEmpty())
                     <ul class="list-group list-group-flush">
                         @foreach ($sesion->adjuntos as $adjunto)
                             <li class="list-group-item d-flex justify-content-between align-items-start gap-3">
                                 <div>
-                                    <a href="{{ $adjunto->url }}" target="_blank" rel="noopener" class="fw-semibold">{{ $adjunto->nombre_original }}</a>
+                                    <span class="fw-semibold">{{ $adjunto->nombre_original }}</span>
                                     <div class="text-muted small">
                                         {{ number_format($adjunto->tamano / 1024, 1) }} KB ·
                                         {{ $adjunto->subidoPor?->name ?? 'Desconocido' }} ·
                                         {{ optional($adjunto->created_at)->format('Y-m-d H:i') }}
                                     </div>
                                 </div>
-                                <a href="{{ $adjunto->url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">Descargar</a>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <a href="{{ route('expedientes.sesiones.adjuntos.preview', [$expediente, $sesion, $adjunto]) }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" aria-label="Ver {{ $adjunto->nombre_original }} (se abre en otra pestaña)">Ver</a>
+                                    <a href="{{ route('expedientes.sesiones.adjuntos.download', [$expediente, $sesion, $adjunto]) }}" class="btn btn-sm btn-outline-secondary">Descargar</a>
+                                </div>
                             </li>
                         @endforeach
                     </ul>
-                </div>
-            @endif
+                @else
+                    <p class="text-muted small mb-0">No hay documentos adjuntos en esta sesión.</p>
+                @endif
+            </section>
 
             <div class="mt-4">
                 <h6 class="mb-2">Historial de revisión</h6>

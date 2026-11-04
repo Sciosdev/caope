@@ -34,6 +34,7 @@ class SesionController extends Controller
         $sesiones = $expediente->sesiones()
             ->visibleTo($request->user())
             ->with(['realizadaPor', 'validadaPor'])
+            ->withCount('adjuntos')
             ->orderByDesc('fecha')
             ->paginate(10)
             ->withQueryString();

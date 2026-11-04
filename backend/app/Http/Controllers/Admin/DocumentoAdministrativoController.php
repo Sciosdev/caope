@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\DocumentoAdministrativo;
 use App\Models\User;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -111,33 +112,69 @@ class DocumentoAdministrativoController extends Controller
 
     public function download(DocumentoAdministrativo $documento)
     {
-        $user = request()->user();
-        $this->ensureCanViewDocuments($user);
+        $disk = $this->readableDocumentDisk($documento);
 
-        $isAdmin = $user?->hasRole('admin') ?? false;
-        if (! $isAdmin && is_null($documento->aprobado_en)) {
-            abort(403);
+        return $disk->download($documento->ruta, $this->downloadFilename($documento), [
+            'Cache-Control' => 'private, no-store',
+            'Content-Security-Policy' => "sandbox; default-src 'none'",
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
+    public function show(DocumentoAdministrativo $documento)
+    {
+        $disk = $this->readableDocumentDisk($documento);
+        // The stored MIME comes from the uploader and is not a safe preview
+        // decision. Detect the actual file before allowing inline content.
+        $mimeType = $disk->mimeType($documento->ruta) ?: 'application/octet-stream';
+
+        if (! in_array($mimeType, ['application/pdf', 'image/jpeg', 'image/png'], true)) {
+            return response()->view('admin.documentos.show', compact('documento'), 200, [
+                'Cache-Control' => 'private, no-store',
+            ]);
         }
 
+        return $disk->response($documento->ruta, $this->downloadFilename($documento), [
+            'Content-Type' => $mimeType,
+            'Cache-Control' => 'private, no-store',
+            'Content-Security-Policy' => "sandbox; default-src 'none'; img-src 'self' data:",
+            'X-Content-Type-Options' => 'nosniff',
+        ], 'inline');
+    }
+
+    private function readableDocumentDisk(DocumentoAdministrativo $documento): FilesystemAdapter
+    {
+        $user = request()->user();
+        $this->ensureCanViewDocuments($user);
+        abort_if(! $user->hasRole('admin') && is_null($documento->aprobado_en), 403);
+
+        $disk = Storage::disk($documento->disk ?: config('filesystems.private_default', 'private'));
+        abort_if(! $documento->ruta || ! $disk->exists($documento->ruta), 404);
+
+        return $disk;
+    }
+
+    private function downloadFilename(DocumentoAdministrativo $documento): string
+    {
         $extension = pathinfo((string) $documento->ruta, PATHINFO_EXTENSION);
-        $filename = $documento->titulo;
+        $filename = trim(str_replace(
+            ['/', '\\'],
+            '-',
+            (string) preg_replace('/[\x00-\x1F\x7F]/u', '', (string) $documento->titulo)
+        ));
+        $filename = $filename === '' ? 'documento-'.$documento->getKey() : $filename;
 
         if ($extension !== '' && ! str_ends_with(strtolower($filename), '.'.strtolower($extension))) {
             $filename .= '.'.$extension;
         }
 
-        return Storage::disk($documento->disk ?: config('filesystems.private_default', 'private'))
-            ->download($documento->ruta, $filename);
+        return $filename;
     }
 
     private function ensureCanViewDocuments(?User $user): void
     {
-        $canView = $user?->hasAnyRole(['admin', 'coordinador', 'estratega']) ?? false;
-
-        if ($user?->hasRole('paps')) {
-            $canView = $canView || $user->isApprovedPaps();
-        }
-
-        abort_unless($canView, 403);
+        // Published administrative material is shared with all active accounts,
+        // not clinical attachments and not pending administrative uploads.
+        abort_unless($user !== null && $user->is_active, 403);
     }
 }

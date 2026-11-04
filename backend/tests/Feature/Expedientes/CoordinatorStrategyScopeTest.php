@@ -358,24 +358,23 @@ class CoordinatorStrategyScopeTest extends TestCase
         $this->assertSame([], ConsultorioReserva::query()->visibleTo($coordinator)->pluck('id')->all());
     }
 
-    public function test_coordinator_with_facilitator_role_can_only_create_within_their_assigned_strategies(): void
+    public function test_coordinator_with_facilitator_role_cannot_create_even_within_assigned_strategies(): void
     {
         $coordinator = $this->coordinator([$this->strategyA->id]);
         $coordinator->assignRole('alumno');
 
         $this->actingAs($coordinator)->postJson(route('expedientes.store'), $this->createPayload([
             'estrategia_id' => $this->strategyB->id,
-        ]))->assertUnprocessable()->assertJsonValidationErrors('estrategia_id');
+        ]))->assertForbidden();
         $this->postJson(route('expedientes.store'), $this->createPayload())
-            ->assertUnprocessable()->assertJsonValidationErrors('estrategia_id');
+            ->assertForbidden();
         $this->assertDatabaseCount('expedientes', 0);
 
         $this->post(route('expedientes.store'), $this->createPayload([
             'estrategia_id' => $this->strategyA->id,
-        ]))->assertSessionHasNoErrors()->assertRedirect();
-        $created = Expediente::query()->firstOrFail();
-        $this->assertSame($this->strategyA->id, (int) $created->estrategia_id);
-        $this->assertVisibleIds($coordinator, [$created->id]);
+        ]))->assertForbidden();
+        $this->assertDatabaseCount('expedientes', 0);
+        $this->assertDatabaseCount('consultorio_reservas', 0);
     }
 
     public function test_legacy_create_payload_classifies_the_expediente_using_the_exact_reservation_strategy_name(): void
@@ -438,8 +437,6 @@ class CoordinatorStrategyScopeTest extends TestCase
             'expediente-asignacion-fecha' => $reservation['fecha'],
             'expediente-asignacion-hora-inicio' => '09:15',
             'expediente-asignacion-hora-fin' => '08:45',
-            'expediente-consultorio-numero' => '5',
-            'expediente-consultorio-cubiculo' => '2',
             'expediente-consultorio-estrategia' => $this->strategyA->nombre,
         ];
         foreach ($expectedInputs as $id => $expected) {
@@ -448,8 +445,7 @@ class CoordinatorStrategyScopeTest extends TestCase
 
         $expectedSelections = [
             'estrategia_id' => (string) $this->strategyA->id,
-            'expediente-asignacion-consultorio' => '5',
-            'resumen_clinico_cubiculo' => '2',
+            'cubiculo_id' => (string) $payload['cubiculo_id'],
             'expediente-asignacion-estrategia' => $this->strategyA->nombre,
             'expediente-asignacion-usuario-atendido' => (string) $facilitator->id,
             'expediente-asignacion-estratega' => (string) $teacher->id,
@@ -472,7 +468,7 @@ class CoordinatorStrategyScopeTest extends TestCase
             'hora_inicio' => '09:15',
             'hora_fin' => '10:15',
             'consultorio_numero' => 5,
-            'cubiculo_numero' => 2,
+            'cubiculo_numero' => 5,
             'estrategia' => $this->strategyA->nombre,
             'usuario_atendido_id' => $facilitator->id,
             'estratega_id' => $teacher->id,
@@ -550,6 +546,13 @@ class CoordinatorStrategyScopeTest extends TestCase
 
     private function createPayload(array $attributes = []): array
     {
+        if (isset($attributes['consultorio_reserva']['consultorio_numero'])) {
+            $attributes += [
+                'cubiculo_id' => CatalogoConsultorio::query()
+                    ->where('numero', $attributes['consultorio_reserva']['consultorio_numero'])->value('id'),
+            ];
+        }
+
         return $attributes + [
             'no_control' => 'CA-'.now()->format('Y').'-8802',
             'paciente' => 'Paciente ficticio de alta por estrategia',

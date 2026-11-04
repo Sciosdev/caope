@@ -72,6 +72,9 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
+      - name: Run frontend regression tests
+        run: node --test tests/Frontend/*.test.mjs
+
       # The repository currently has legacy feature failures outside the deploy
       # path. Keep this gate strict and deterministic until that baseline is
       # repaired, instead of making every production request impossible.

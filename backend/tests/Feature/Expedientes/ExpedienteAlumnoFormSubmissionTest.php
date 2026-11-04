@@ -30,7 +30,7 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
         CatalogoTurno::flushCache();
     }
 
-    public function test_alumno_form_submissions_to_store_and_update_return_server_error(): void
+    public function test_admin_creates_clinical_form_and_assigned_facilitator_can_update_existing_expediente(): void
     {
         Schema::dropIfExists('timeline_eventos');
 
@@ -41,10 +41,12 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
 
         $alumno = User::factory()->create();
         $alumno->assignRole('alumno');
+        $admin = $this->createAdmin();
 
         $createPayload = $this->representativePayload($carrera, $turno, $tutor->id, $coordinador->id);
+        $createPayload['facilitador_id'] = $alumno->id;
 
-        $storeResponse = $this->actingAs($alumno)->post(route('expedientes.store'), $createPayload);
+        $storeResponse = $this->actingAs($admin)->post(route('expedientes.store'), $createPayload);
         $storeStatus = $storeResponse->getStatusCode();
 
         $this->assertSame(302, $storeStatus, 'La creación del expediente debe redirigir correctamente.');
@@ -62,7 +64,8 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
             ->assertSee($createPayload['no_control'])
             ->assertSee($createPayload['paciente']);
 
-        $this->assertSame($alumno->id, $creado->creado_por);
+        $this->assertSame($admin->id, $creado->creado_por);
+        $this->assertSame($alumno->id, $creado->facilitador_id);
         $this->assertTrue($creado->antecedentes_familiares['diabetes_mellitus']['madre']);
         $this->assertTrue($creado->antecedentes_familiares['hipertension_arterial']['padre']);
         $this->assertSame(
@@ -71,9 +74,10 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
         );
         $this->assertTrue($creado->antecedentes_personales_patologicos['asma']['padece']);
         $this->assertSame(
-            $createPayload['aparatos_sistemas']['nervioso'],
-            $creado->aparatos_sistemas['nervioso']
+            $createPayload['aparatos_sistemas']['digestivo'],
+            $creado->aparatos_sistemas['digestivo']
         );
+        $this->assertArrayNotHasKey('nervioso', $creado->aparatos_sistemas);
         $this->assertSame(
             $createPayload['plan_accion'],
             $creado->plan_accion
@@ -89,11 +93,14 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
             'turno' => $turno->nombre,
             'tutor_id' => $tutor->id,
             'coordinador_id' => $coordinador->id,
-            'creado_por' => $alumno->id,
+            'creado_por' => $admin->id,
+            'facilitador_id' => $alumno->id,
             'estado' => 'abierto',
         ]);
 
         $nuevoTutor = User::factory()->create();
+
+        $this->actingAs($alumno)->get(route('expedientes.edit', $expediente))->assertOk();
 
         $updatePayload = $this->representativePayload($carrera, $turno, $nuevoTutor->id, $coordinador->id);
         $updatePayload['no_control'] = $expediente->no_control;
@@ -101,6 +108,7 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
         $updatePayload['plan_accion'] = 'Plan de acción actualizado con metas claras.';
         $updatePayload['diagnostico'] = 'Diagnóstico actualizado con seguimiento interdisciplinario.';
         $updatePayload['observaciones_relevantes'] = 'Observaciones relevantes revisadas durante tutoría.';
+        $updatePayload['aparatos_sistemas']['digestivo'] = 'Historia psicosocial actualizada por el facilitador asignado.';
 
         $updateResponse = $this->actingAs($alumno)->put(route('expedientes.update', $expediente), $updatePayload);
         $updateStatus = $updateResponse->getStatusCode();
@@ -111,7 +119,9 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
         $expediente->refresh();
 
         $this->assertSame('Alumno Actualizado', $expediente->paciente);
-        $this->assertSame($nuevoTutor->id, $expediente->tutor_id);
+        $this->assertSame($tutor->id, $expediente->tutor_id);
+        $this->assertSame($admin->id, $expediente->creado_por);
+        $this->assertSame($alumno->id, $expediente->facilitador_id);
         $this->assertSame(
             $updatePayload['antecedentes_observaciones'],
             $expediente->antecedentes_observaciones
@@ -121,9 +131,10 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
             $expediente->antecedentes_personales_patologicos['asma']['padece']
         );
         $this->assertSame(
-            $updatePayload['aparatos_sistemas']['nervioso'],
-            $expediente->aparatos_sistemas['nervioso']
+            $updatePayload['aparatos_sistemas']['digestivo'],
+            $expediente->aparatos_sistemas['digestivo']
         );
+        $this->assertArrayNotHasKey('nervioso', $expediente->aparatos_sistemas);
         $this->assertSame(
             $updatePayload['plan_accion'],
             $expediente->plan_accion
@@ -132,7 +143,7 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
         $this->assertSame($updatePayload['observaciones_relevantes'], $expediente->observaciones_relevantes);
     }
 
-    public function test_family_history_payload_with_boolean_strings_is_accepted(): void
+    public function test_admin_can_create_with_boolean_strings_in_family_history(): void
     {
         Schema::dropIfExists('timeline_eventos');
 
@@ -143,8 +154,10 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
 
         $alumno = User::factory()->create();
         $alumno->assignRole('alumno');
+        $admin = $this->createAdmin();
 
         $payload = $this->representativePayload($carrera, $turno, $tutor->id, $coordinador->id);
+        $payload['facilitador_id'] = $alumno->id;
 
         $payload['antecedentes_familiares'] = collect(Expediente::defaultFamilyHistory())
             ->map(function (array $members) {
@@ -157,7 +170,7 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
         $payload['antecedentes_familiares']['diabetes_mellitus']['madre'] = 'true';
         $payload['antecedentes_familiares']['hipertension_arterial']['padre'] = 'true';
 
-        $response = $this->actingAs($alumno)->post(route('expedientes.store'), $payload);
+        $response = $this->actingAs($admin)->post(route('expedientes.store'), $payload);
 
         $response->assertSessionDoesntHaveErrors();
 
@@ -168,7 +181,7 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
         $this->assertFalse($expediente->antecedentes_familiares['diabetes_mellitus']['padre']);
     }
 
-    public function test_family_history_payload_with_all_checkboxes_off_is_accepted(): void
+    public function test_admin_can_create_with_all_family_history_checkboxes_off(): void
     {
         Schema::dropIfExists('timeline_eventos');
 
@@ -179,14 +192,16 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
 
         $alumno = User::factory()->create();
         $alumno->assignRole('alumno');
+        $admin = $this->createAdmin();
 
         $payload = $this->representativePayload($carrera, $turno, $tutor->id, $coordinador->id);
+        $payload['facilitador_id'] = $alumno->id;
 
         $payload['antecedentes_familiares'] = collect(Expediente::defaultFamilyHistory())
             ->map(fn (array $members) => collect($members)->map(fn () => '0')->all())
             ->all();
 
-        $response = $this->actingAs($alumno)->post(route('expedientes.store'), $payload);
+        $response = $this->actingAs($admin)->post(route('expedientes.store'), $payload);
 
         $response->assertSessionDoesntHaveErrors();
 
@@ -194,6 +209,14 @@ class ExpedienteAlumnoFormSubmissionTest extends TestCase
 
         $this->assertFalse($expediente->antecedentes_familiares['diabetes_mellitus']['madre']);
         $this->assertFalse($expediente->antecedentes_familiares['hipertension_arterial']['padre']);
+    }
+
+    private function createAdmin(): User
+    {
+        $admin = User::factory()->create(['approved_at' => now()]);
+        $admin->assignRole('admin');
+
+        return $admin;
     }
 
     private function createCatalogoOptions(): array

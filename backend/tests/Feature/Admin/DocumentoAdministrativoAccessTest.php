@@ -27,7 +27,7 @@ class DocumentoAdministrativoAccessTest extends TestCase
         Storage::fake('private');
     }
 
-    public function test_facilitador_cannot_list_or_download_administrative_documents(): void
+    public function test_facilitador_can_list_and_download_published_administrative_documents(): void
     {
         $facilitador = User::factory()->create();
         $facilitador->syncRoles(['alumno']);
@@ -36,10 +36,12 @@ class DocumentoAdministrativoAccessTest extends TestCase
 
         $this->actingAs($facilitador)
             ->get(route('admin.documentos.index'))
-            ->assertForbidden();
+            ->assertOk()
+            ->assertSee($documento->titulo);
 
         $this->get(route('admin.documentos.download', $documento))
-            ->assertForbidden();
+            ->assertOk()
+            ->assertDownload('Manual administrativo.pdf');
     }
 
     public function test_authorized_profile_can_list_and_download_an_approved_document(): void
@@ -59,7 +61,7 @@ class DocumentoAdministrativoAccessTest extends TestCase
             ->assertDownload('Manual administrativo.pdf');
     }
 
-    public function test_paps_requires_approval_to_access_administrative_documents(): void
+    public function test_active_paps_can_read_published_documents_before_and_after_upload_approval(): void
     {
         $documento = $this->approvedDocument();
         $paps = User::factory()->create(['approved_at' => null]);
@@ -69,10 +71,10 @@ class DocumentoAdministrativoAccessTest extends TestCase
 
         $this->actingAs($paps)
             ->get(route('admin.documentos.index'))
-            ->assertForbidden();
+            ->assertOk();
 
         $this->get(route('admin.documentos.download', $documento))
-            ->assertForbidden();
+            ->assertOk();
 
         Storage::disk('private')->assertExists($documento->ruta);
 

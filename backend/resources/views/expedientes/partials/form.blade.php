@@ -29,6 +29,8 @@
 @php($isPaps = auth()->user()?->isApprovedPaps())
 @php($canChangeAssignments = $isCreating || auth()->user()?->hasGlobalExpedienteAccess() || auth()->user()?->isCoordinatorOf($expediente))
 @php($showNuevaAsignacion = auth()->user()?->hasAnyRole(['admin', 'alumno']) || auth()->user()?->isApprovedPaps())
+@php($canChangeCubiculo = $isCreating || auth()->user()?->hasRole('admin') || $isPaps)
+@php($legacyCubiculo = data_get($expediente->resumen_clinico ?? [], 'cubiculo'))
 
 <div class="card border shadow-none mb-4">
     <div class="card-body">
@@ -244,24 +246,33 @@
             </div>
 
             <div class="col-md-4">
-                <label for="resumen_clinico_cubiculo" class="form-label">Cubículo asignado</label>
+                <label for="cubiculo_id" class="form-label">Cubículo asignado</label>
                 <select
-                    name="resumen_clinico[cubiculo]"
-                    id="resumen_clinico_cubiculo"
-                    class="form-select @error('resumen_clinico.cubiculo') is-invalid @enderror"
-                    @disabled(! $isCreating)
+                    name="cubiculo_id"
+                    id="cubiculo_id"
+                    class="form-select @error('cubiculo_id') is-invalid @enderror"
+                    @disabled(! $canChangeCubiculo)
+                    @if ($showNuevaAsignacion && request()->routeIs('expedientes.create')) required @endif
                 >
                     <option value="">Sin asignar</option>
                     @foreach ($cubiculos as $cubiculo)
-                        <option value="{{ $cubiculo->numero }}" @selected((string) old('resumen_clinico.cubiculo', old('consultorio_reserva.cubiculo_numero', data_get($expediente->resumen_clinico ?? [], 'cubiculo'))) === (string) $cubiculo->numero)>
-                            Cubículo {{ $cubiculo->numero }}
+                        <option
+                            value="{{ $cubiculo->id }}"
+                            data-numero="{{ $cubiculo->numero }}"
+                            @selected((int) old('cubiculo_id', $expediente->cubiculo_id ?? 0) === $cubiculo->id)
+                        >
+                            {{ $cubiculo->nombre }}
                         </option>
                     @endforeach
                 </select>
-                @if (! $isCreating)
-                    <div class="form-text">Los ajustes de horario y cubículo se gestionan en la <a href="{{ route('consultorios.index') }}">bitácora de consultorios</a>.</div>
+                @if (! $isCreating && blank($expediente->cubiculo_id) && filled($legacyCubiculo))
+                    <div class="form-text text-warning">
+                        Asignación anterior: Cubículo {{ $legacyCubiculo }}. Pendiente de confirmar en el catálogo unificado.
+                    </div>
+                @elseif (! $isCreating && ! $canChangeCubiculo)
+                    <div class="form-text">Solo Administración o PAPS puede cambiar el cubículo confirmado.</div>
                 @endif
-                @error('resumen_clinico.cubiculo')
+                @error('cubiculo_id')
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
             </div>
@@ -783,12 +794,8 @@
                 </div>
 
                 <div class="col-md-2">
-                    <label class="form-label">Consultorio</label>
-                    <select class="form-select" id="expediente-asignacion-consultorio" required>
-                        @foreach ($consultoriosActivos as $consultorio)
-                            <option value="{{ $consultorio->numero }}" @selected((int) old('consultorio_reserva.consultorio_numero') === (int) $consultorio->numero)>{{ $consultorio->nombre }}</option>
-                        @endforeach
-                    </select>
+                    <label class="form-label">Cubículo</label>
+                    <p class="form-control-plaintext small mb-0">Se usará el cubículo seleccionado en Datos institucionales.</p>
                 </div>
 
 
@@ -842,8 +849,6 @@
     <input type="hidden" name="consultorio_reserva[fecha]" id="expediente-consultorio-fecha" value="{{ old('consultorio_reserva.fecha', now()->toDateString()) }}">
     <input type="hidden" name="consultorio_reserva[hora_inicio]" id="expediente-consultorio-hora-inicio" value="{{ old('consultorio_reserva.hora_inicio', '07:00') }}">
     <input type="hidden" name="consultorio_reserva[hora_fin]" id="expediente-consultorio-hora-fin" value="{{ old('consultorio_reserva.hora_fin', '08:00') }}">
-    <input type="hidden" name="consultorio_reserva[consultorio_numero]" id="expediente-consultorio-numero" value="{{ old('consultorio_reserva.consultorio_numero') }}">
-    <input type="hidden" name="consultorio_reserva[cubiculo_numero]" id="expediente-consultorio-cubiculo" value="{{ old('consultorio_reserva.cubiculo_numero') }}">
     <input type="hidden" name="consultorio_reserva[estrategia]" id="expediente-consultorio-estrategia" value="{{ old('consultorio_reserva.estrategia') }}">
     <input type="hidden" name="consultorio_reserva[usuario_atendido_id]" id="expediente-consultorio-usuario" value="{{ old('consultorio_reserva.usuario_atendido_id') }}">
     <input type="hidden" name="consultorio_reserva[estratega_id]" id="expediente-consultorio-estratega" value="{{ old('consultorio_reserva.estratega_id') }}">
@@ -947,8 +952,7 @@
                 const dateInput = document.getElementById('expediente-asignacion-fecha');
                 const startInput = document.getElementById('expediente-asignacion-hora-inicio');
                 const endInput = document.getElementById('expediente-asignacion-hora-fin');
-                const consultorioInput = document.getElementById('expediente-asignacion-consultorio');
-                const cubiculoInput = document.getElementById('resumen_clinico_cubiculo');
+                const cubiculoInput = document.getElementById('cubiculo_id');
                 const estrategiaInput = document.getElementById('expediente-asignacion-estrategia');
                 const estrategiaExpedienteInput = document.getElementById('estrategia_id');
                 const usuarioAtendidoInput = document.getElementById('expediente-asignacion-usuario-atendido');
@@ -961,13 +965,13 @@
                 const hiddenDateInput = document.getElementById('expediente-consultorio-fecha');
                 const hiddenStartInput = document.getElementById('expediente-consultorio-hora-inicio');
                 const hiddenEndInput = document.getElementById('expediente-consultorio-hora-fin');
-                const hiddenConsultorioInput = document.getElementById('expediente-consultorio-numero');
-                const hiddenCubiculoInput = document.getElementById('expediente-consultorio-cubiculo');
                 const hiddenEstrategiaInput = document.getElementById('expediente-consultorio-estrategia');
                 const hiddenUsuarioInput = document.getElementById('expediente-consultorio-usuario');
                 const hiddenEstrategaInput = document.getElementById('expediente-consultorio-estratega');
 
                 const getMode = () => modeInputs.find((input) => input.checked)?.value ?? 'unica';
+                const getCubiculoNumero = () => cubiculoInput?.selectedOptions[0]?.dataset.numero ?? '';
+                const getCubiculoNombre = () => cubiculoInput?.selectedOptions[0]?.textContent?.trim() ?? 'seleccionado';
                 const toMinutes = (time) => {
                     if (!time || !time.includes(':')) {
                         return 0;
@@ -999,12 +1003,13 @@
                     repeatDayInput.required = isWeekly;
                 };
 
-                const findOverlap = (items, start, end, cubiculo) => {
+                const findOverlap = (items, start, end, consultorio, fecha) => {
                     const startMinutes = toMinutes(start);
                     const endMinutes = toMinutes(end);
 
                     return items.find((item) => {
-                        if (Number(item.cubiculo_numero) !== Number(cubiculo)) {
+                        if (Number(item.consultorio_numero) !== Number(consultorio)
+                            || String(item.fecha ?? '').slice(0, 10) !== fecha) {
                             return false;
                         }
 
@@ -1016,8 +1021,9 @@
 
                 const checkAvailability = async () => {
                     hideAssignmentAlert();
+                    const cubiculoNumero = getCubiculoNumero();
 
-                    if (!dateInput?.value || !consultorioInput?.value || !cubiculoInput?.value || !startInput?.value || !endInput?.value) {
+                    if (!dateInput?.value || !cubiculoInput?.value || !cubiculoNumero || !startInput?.value || !endInput?.value) {
                         return true;
                     }
 
@@ -1034,7 +1040,7 @@
                     try {
                         const params = new URLSearchParams({
                             fecha: dateInput.value,
-                            consultorio_numero: consultorioInput.value,
+                            consultorio_numero: cubiculoNumero,
                         });
                         const response = await fetch(`${availabilityEndpoint}?${params.toString()}`, {
                             headers: {
@@ -1043,18 +1049,21 @@
                         });
 
                         if (!response.ok) {
-                            return true;
+                            showAssignmentAlert('No fue posible verificar la disponibilidad. El servidor volverá a comprobar los horarios al guardar.');
+                            return false;
                         }
 
                         const data = await response.json();
-                        const overlap = findOverlap(data.reservas ?? [], startInput.value, endInput.value, cubiculoInput.value);
+                        const overlap = findOverlap(data.reservas ?? [], startInput.value, endInput.value, cubiculoNumero, dateInput.value);
 
                         if (overlap) {
-                            showAssignmentAlert(`⚠️ El Consultorio ${consultorioInput.value}, Cubículo ${cubiculoInput.value} ya está ocupado de ${String(overlap.hora_inicio).slice(0, 5)} a ${String(overlap.hora_fin).slice(0, 5)}.`);
+                            showAssignmentAlert(`⚠️ ${getCubiculoNombre()} ya está ocupado de ${String(overlap.hora_inicio).slice(0, 5)} a ${String(overlap.hora_fin).slice(0, 5)}.`);
                             return false;
                         }
                     } catch (error) {
                         console.error(error);
+                        showAssignmentAlert('No fue posible verificar la disponibilidad. El servidor volverá a comprobar los horarios al guardar.');
+                        return false;
                     }
 
                     return true;
@@ -1064,8 +1073,6 @@
                     if (hiddenDateInput) hiddenDateInput.value = dateInput?.value ?? '';
                     if (hiddenStartInput) hiddenStartInput.value = startInput?.value ?? '';
                     if (hiddenEndInput) hiddenEndInput.value = endInput?.value ?? '';
-                    if (hiddenConsultorioInput) hiddenConsultorioInput.value = consultorioInput?.value ?? '';
-                    if (hiddenCubiculoInput) hiddenCubiculoInput.value = cubiculoInput?.value ?? '';
                     if (hiddenEstrategiaInput) hiddenEstrategiaInput.value = estrategiaInput?.value ?? '';
                     if (hiddenUsuarioInput) hiddenUsuarioInput.value = usuarioAtendidoInput?.value ?? '';
                     if (hiddenEstrategaInput) hiddenEstrategaInput.value = estrategaInput?.value ?? '';
@@ -1075,12 +1082,10 @@
                 dateInput?.addEventListener('change', checkAvailability);
                 startInput?.addEventListener('change', checkAvailability);
                 endInput?.addEventListener('change', checkAvailability);
-                consultorioInput?.addEventListener('change', checkAvailability);
                 cubiculoInput?.addEventListener('change', checkAvailability);
                 dateInput?.addEventListener('change', syncHiddenAssignmentFields);
                 startInput?.addEventListener('change', syncHiddenAssignmentFields);
                 endInput?.addEventListener('change', syncHiddenAssignmentFields);
-                consultorioInput?.addEventListener('change', syncHiddenAssignmentFields);
                 cubiculoInput?.addEventListener('change', syncHiddenAssignmentFields);
                 estrategiaInput?.addEventListener('change', () => {
                     if (estrategiaExpedienteInput && !estrategiaExpedienteInput.disabled) {

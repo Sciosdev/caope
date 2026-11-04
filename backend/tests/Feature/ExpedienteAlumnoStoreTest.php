@@ -27,9 +27,10 @@ class ExpedienteAlumnoStoreTest extends TestCase
         $this->seed(CatalogoTurnoSeeder::class);
     }
 
-    public function test_student_can_create_expediente_when_schema_complete(): void
+    public function test_admin_can_create_expediente_for_student_when_schema_complete(): void
     {
         $student = $this->createStudent();
+        $admin = $this->createAdmin();
 
         $payload = [
             'no_control' => 'NC-0001',
@@ -37,25 +38,43 @@ class ExpedienteAlumnoStoreTest extends TestCase
             'apertura' => now()->format('Y-m-d'),
             'carrera' => $student->carrera,
             'turno' => $student->turno,
+            'facilitador_id' => $student->id,
             'plan_accion' => 'Plan inicial',
             'diagnostico' => 'Diagnóstico demo',
             'observaciones_relevantes' => 'Observaciones demo',
         ];
 
-        $response = $this->actingAs($student)->post(route('expedientes.store'), $payload);
+        $response = $this->actingAs($admin)->post(route('expedientes.store'), $payload);
 
         $response->assertRedirect();
 
         $expediente = Expediente::where('no_control', 'NC-0001')->first();
         $this->assertNotNull($expediente);
-        $this->assertSame($student->id, $expediente->creado_por);
+        $this->assertSame($admin->id, $expediente->creado_por);
+        $this->assertSame($student->id, $expediente->facilitador_id);
 
         $response->assertRedirect(route('expedientes.show', $expediente));
     }
 
-    public function test_student_receives_error_when_optional_columns_missing(): void
+    public function test_student_cannot_create_expediente_when_schema_complete(): void
     {
         $student = $this->createStudent();
+
+        $this->actingAs($student)->post(route('expedientes.store'), [
+            'no_control' => 'NC-DENIED',
+            'paciente' => 'Alumno Demo',
+            'apertura' => now()->format('Y-m-d'),
+            'carrera' => $student->carrera,
+            'turno' => $student->turno,
+        ])->assertForbidden();
+
+        $this->assertDatabaseCount('expedientes', 0);
+    }
+
+    public function test_admin_receives_error_when_optional_columns_missing(): void
+    {
+        $student = $this->createStudent();
+        $admin = $this->createAdmin();
 
         $columnsToDrop = array_values(array_filter([
             Schema::hasColumn('expedientes', 'plan_accion') ? 'plan_accion' : null,
@@ -75,11 +94,12 @@ class ExpedienteAlumnoStoreTest extends TestCase
             'apertura' => now()->format('Y-m-d'),
             'carrera' => $student->carrera,
             'turno' => $student->turno,
+            'facilitador_id' => $student->id,
             'plan_accion' => 'Plan faltante',
         ];
 
         $response = $this->from(route('expedientes.create'))
-            ->actingAs($student)
+            ->actingAs($admin)
             ->post(route('expedientes.store'), $payload);
 
         $response->assertRedirect(route('expedientes.create'));
@@ -92,9 +112,10 @@ class ExpedienteAlumnoStoreTest extends TestCase
         ]);
     }
 
-    public function test_student_receives_error_when_form_columns_missing_in_schema(): void
+    public function test_admin_receives_error_when_form_columns_missing_in_schema(): void
     {
         $student = $this->createStudent();
+        $admin = $this->createAdmin();
 
         Schema::table('expedientes', function (Blueprint $table): void {
             if (Schema::hasColumn('expedientes', 'contacto_emergencia_horario')) {
@@ -108,6 +129,7 @@ class ExpedienteAlumnoStoreTest extends TestCase
             'apertura' => now()->format('Y-m-d'),
             'carrera' => $student->carrera,
             'turno' => $student->turno,
+            'facilitador_id' => $student->id,
             'clinica' => 'Clínica Norte',
             'fecha_inicio_real' => now()->format('Y-m-d'),
             'recibo_expediente' => 'REC-EXP-01',
@@ -136,7 +158,7 @@ class ExpedienteAlumnoStoreTest extends TestCase
         ];
 
         $response = $this->from(route('expedientes.create'))
-            ->actingAs($student)
+            ->actingAs($admin)
             ->post(route('expedientes.store'), $payload);
 
         $response->assertRedirect(route('expedientes.create'));
@@ -206,5 +228,13 @@ class ExpedienteAlumnoStoreTest extends TestCase
         $student->assignRole('alumno');
 
         return $student;
+    }
+
+    private function createAdmin(): User
+    {
+        $admin = User::factory()->create(['approved_at' => now()]);
+        $admin->assignRole('admin');
+
+        return $admin;
     }
 }

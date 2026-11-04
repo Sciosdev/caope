@@ -1,7 +1,7 @@
 <x-app-layout>
     @section('breadcrumbs')
         <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Inicio</a></li>
-        <li class="breadcrumb-item"><a href="{{ route('consultorios.index') }}">Consultorios</a></li>
+        <li class="breadcrumb-item"><a href="{{ route('consultorios.index') }}">Cubículos</a></li>
         <li class="breadcrumb-item active" aria-current="page">Editar reserva</li>
     @endsection
 
@@ -10,6 +10,12 @@
         <div class="card-body">
             @php
                 $isAdmin = auth()->user()?->hasRole('admin') ?? false;
+                $cubiculoNumeroSeleccionado = (int) old('consultorio_numero', $reserva->consultorio_numero);
+                $cubiculoSeleccionadoDisponible = $consultoriosActivos->contains(
+                    fn ($cubiculo) => (int) $cubiculo->numero === $cubiculoNumeroSeleccionado
+                );
+                $cubiculoActualNombre = trim((string) ($reserva->cubiculo?->nombre ?? ''));
+                $cubiculoActualNombre = $cubiculoActualNombre !== '' ? $cubiculoActualNombre : 'Cubículo sin catálogo';
             @endphp
             @unless($isAdmin)
                 <div class="alert alert-warning">
@@ -30,15 +36,37 @@
                 <div class="col-md-2"><label class="form-label">Día</label><input type="date" name="fecha" class="form-control" value="{{ old('fecha', $reserva->fecha->format('Y-m-d')) }}" required></div>
                 <div class="col-md-2"><label class="form-label">Inicio</label><input type="time" name="hora_inicio" class="form-control" value="{{ old('hora_inicio', substr($reserva->hora_inicio,0,5)) }}" required></div>
                 <div class="col-md-2"><label class="form-label">Fin</label><input type="time" name="hora_fin" class="form-control" value="{{ old('hora_fin', substr($reserva->hora_fin,0,5)) }}" required></div>
-                <div class="col-md-2">
-                    <label class="form-label">Consultorio</label>
-                    <select name="consultorio_numero" class="form-select" required>@foreach($consultoriosActivos as $consultorio)<option value="{{ $consultorio->numero }}" @selected((int) old('consultorio_numero', $reserva->consultorio_numero)===(int) $consultorio->numero)>{{ $consultorio->nombre }}</option>@endforeach</select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Cubículo</label>
-                    <select name="cubiculo_numero" class="form-select" required>@foreach($cubiculosActivos as $cubiculo)<option value="{{ $cubiculo->numero }}" @selected((int) old('cubiculo_numero', $reserva->cubiculo_numero)===(int) $cubiculo->numero)>Cubículo {{ $cubiculo->numero }}</option>@endforeach</select>
+                <div class="col-md-4">
+                    <label class="form-label" for="consultorio_numero">Cubículo</label>
+                    <select name="consultorio_numero" id="consultorio_numero" class="form-select" required>
+                        @unless ($cubiculoSeleccionadoDisponible)
+                            <option value="" selected disabled>
+                                {{ $cubiculoActualNombre }} · Núm. {{ $reserva->consultorio_numero }} (no disponible; selecciona otro)
+                            </option>
+                        @endunless
+                        @foreach($consultoriosActivos as $cubiculo)
+                            <option value="{{ $cubiculo->numero }}" @selected($cubiculoSeleccionadoDisponible && $cubiculoNumeroSeleccionado === (int) $cubiculo->numero)>
+                                {{ trim((string) $cubiculo->nombre) !== '' ? $cubiculo->nombre : 'Cubículo sin nombre' }}
+                            </option>
+                        @endforeach
+                    </select>
                 </div>
                 <div class="col-md-8"><label class="form-label">Estrategia</label><select name="estrategia" class="form-select" required><option value="">Selecciona una estrategia</option>@foreach($estrategiasActivas as $estrategia)<option value="{{ $estrategia->nombre }}" @selected(old('estrategia', $reserva->estrategiaCatalogo?->nombre ?? $reserva->estrategia)===$estrategia->nombre)>{{ $estrategia->nombre }}</option>@endforeach</select></div>
+                <div class="col-md-12">
+                    <label for="expediente_id" class="form-label">Expediente vinculado</label>
+                    <select name="expediente_id" id="expediente_id" class="form-select @error('expediente_id') is-invalid @enderror" aria-describedby="expediente_id_help">
+                        <option value="" @selected(old('expediente_id', $reserva->expediente_id) === null || old('expediente_id', $reserva->expediente_id) === '')>Sin expediente vinculado</option>
+                        @foreach ($expedientes as $expediente)
+                            <option value="{{ $expediente->id }}" @selected((string) old('expediente_id', $reserva->expediente_id) === (string) $expediente->id)>
+                                {{ $expediente->no_control }} — {{ $expediente->paciente }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <div id="expediente_id_help" class="form-text">Selecciona el expediente real al que corresponde la reserva. No se vincula automáticamente por facilitador, estrategia u horario.</div>
+                    @error('expediente_id')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
                 <div class="col-md-4"><label class="form-label">Usuario</label><select name="usuario_atendido_id" class="form-select"><option value="">--</option>@foreach($usuarios as $u)<option value="{{ $u->id }}" @selected((int) old('usuario_atendido_id', $reserva->usuario_atendido_id)===$u->id)>{{ $u->name }}</option>@endforeach</select></div>
                 <div class="col-md-4"><label class="form-label">Estratega</label><select name="estratega_id" class="form-select"><option value="">--</option>@foreach($docentes as $u)<option value="{{ $u->id }}" @selected((int) old('estratega_id', $reserva->estratega_id)===$u->id)>{{ $u->name }}</option>@endforeach</select></div>
                 

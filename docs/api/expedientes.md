@@ -2,6 +2,12 @@
 
 ## Crear expediente (POST /expedientes)
 
+Solo Administración y PAPS aprobado pueden crear expedientes. El rol
+Facilitador (`alumno`) no habilita la creación: no ve el botón de alta y las
+peticiones directas, tanto HTML como JSON, reciben `403`. Combinar Facilitador
+con Coordinador, Docente o Estratega tampoco habilita el alta; una cuenta con
+Admin o PAPS aprobado conserva el permiso de ese rol privilegiado.
+
 Cuando la petición incluye cabeceras `Accept: application/json` o se envía mediante `fetch`/`axios`, la respuesta ahora retorna un JSON con la siguiente estructura:
 
 ```json
@@ -21,8 +27,9 @@ El campo `alumno` expone al creador del expediente y `anexos` se entrega con los
 
 La asignación de acceso usa `facilitador_id`, separado de `creado_por` (autoría).
 Administración y PAPS aprobado pueden elegir una cuenta activa con rol `alumno`
-al crear el expediente. Un facilitador que captura su propio expediente queda
-asignado a él mismo. El campo `resumen_clinico.facilitador` es descriptivo:
+al crear el expediente. El facilitador conserva la consulta y edición permitida
+de sus expedientes asignados, pero no puede dar de alta otros.
+El campo `resumen_clinico.facilitador` es descriptivo:
 escribir un nombre no concede acceso. La respuesta incluye la relación
 `facilitador` con la cuenta asignada.
 
@@ -50,9 +57,9 @@ aprobado conservan el alcance global.
 
 La creación acepta una estrategia activa. Para clientes anteriores, si se
 omite `estrategia_id` pero se envía `consultorio_reserva.estrategia`, se utiliza
-la coincidencia exacta del catálogo; si ambos se envían, deben coincidir. Una
-cuenta con roles coordinador y facilitador solo puede crear en las estrategias
-que coordina. Al editar, únicamente los perfiles con alcance global pueden
+la coincidencia exacta del catálogo; si ambos se envían, deben coincidir.
+La asignación de estrategias no concede permiso de creación a coordinación ni
+a facilitadores. Al editar, únicamente los perfiles con alcance global pueden
 cambiar o limpiar `estrategia_id`; el resto conserva la clasificación vigente.
 Quitar una estrategia al coordinador retira inmediatamente el acceso a sus
 expedientes, sesiones, anexos, reportes y exportaciones pendientes.

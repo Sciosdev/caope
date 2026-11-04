@@ -76,24 +76,28 @@ class ExpedienteFacilitadorAssignmentTest extends TestCase
         $this->assertTrue(Gate::forUser($facilitador)->allows('create', [Sesion::class, $expediente]));
     }
 
-    public function test_facilitator_cannot_assign_a_new_expediente_to_another_user(): void
+    public function test_facilitator_cannot_create_an_expediente_for_self_or_another_user(): void
     {
         $facilitador = $this->userWithRole('alumno');
         $ajeno = $this->userWithRole('alumno');
 
+        $this->assertTrue(Gate::forUser($facilitador)->denies('create', Expediente::class));
         $this->actingAs($facilitador)
-            ->post(route('expedientes.store'), $this->createPayload([
-                'facilitador_id' => $ajeno->id,
-            ]))
-            ->assertSessionHasNoErrors()
-            ->assertRedirect();
+            ->get(route('expedientes.create'))
+            ->assertForbidden();
 
-        $expediente = Expediente::query()->firstOrFail();
+        foreach ([$facilitador, $ajeno] as $asignado) {
+            $this->actingAs($facilitador)
+                ->post(route('expedientes.store'), $this->createPayload([
+                    'facilitador_id' => $asignado->id,
+                ]))
+                ->assertForbidden();
 
-        $this->assertSame($facilitador->id, $expediente->creado_por);
-        $this->assertTrue($facilitador->isFacilitatorOf($expediente));
-        $this->assertFalse($ajeno->isFacilitatorOf($expediente));
-        $this->assertVisibleIds($facilitador, [$expediente->id]);
+            $this->assertDatabaseCount('expedientes', 0);
+            $this->assertDatabaseCount('consultorio_reservas', 0);
+        }
+
+        $this->assertVisibleIds($facilitador, []);
         $this->assertVisibleIds($ajeno, []);
     }
 

@@ -1,6 +1,7 @@
 @php
     $editing = isset($user);
-    $selectedRoles = collect(old('roles', $editing ? $user->roles->pluck('name')->all() : []))->map(fn ($role) => (string) $role)->all();
+    $selectedRoles = collect(old('roles', old('roles_present') ? [] : ($editing ? $user->roles->pluck('name')->all() : [])))
+        ->map(fn ($role) => (string) $role)->all();
     $selectedStrategies = collect(old('estrategia_ids', old('estrategia_ids_present') ? [] : ($editing ? $user->estrategiasCoordinadas->modelKeys() : [])))
         ->map(fn ($id) => (string) $id)->all();
 @endphp
@@ -24,7 +25,7 @@
 <div class="row g-3">
     <div class="col-md-6">
         <label for="password" class="form-label">{{ __('Contraseña') }}</label>
-        <input type="password" id="password" name="password" class="form-control" {{ $editing ? '' : 'required' }}>
+        <x-password-input id="password" :required="! $editing" />
         @if ($editing)
             <small class="text-muted">{{ __('Déjalo en blanco para mantener la contraseña actual.') }}</small>
         @endif
@@ -34,39 +35,68 @@
     </div>
     <div class="col-md-6">
         <label for="password_confirmation" class="form-label">{{ __('Confirmar contraseña') }}</label>
-        <input type="password" id="password_confirmation" name="password_confirmation" class="form-control" {{ $editing ? '' : 'required' }}>
+        <x-password-input
+            id="password_confirmation"
+            :required="! $editing"
+            :show-label="__('Mostrar confirmación de contraseña')"
+            :hide-label="__('Ocultar confirmación de contraseña')"
+        />
     </div>
 </div>
 
-<div class="mb-3">
-    <label for="roles" class="form-label">{{ __('Roles asignados') }}</label>
-    <select name="roles[]" id="roles" class="form-select" multiple required>
+<fieldset class="mb-3" aria-describedby="roles_help">
+    <legend class="form-label fs-6">{{ __('Roles asignados') }}</legend>
+    <input type="hidden" name="roles_present" value="1">
+    <div id="roles" class="border rounded p-3">
         @foreach ($roles as $roleValue => $roleLabel)
-            <option value="{{ $roleValue }}" @selected(in_array($roleValue, $selectedRoles, true))>
-                {{ ucfirst($roleLabel) }}
-            </option>
+            <div class="form-check">
+                <input
+                    type="checkbox"
+                    name="roles[]"
+                    id="role_{{ $roleValue }}"
+                    value="{{ $roleValue }}"
+                    class="form-check-input"
+                    @checked(in_array($roleValue, $selectedRoles, true))
+                >
+                <label class="form-check-label" for="role_{{ $roleValue }}">{{ ucfirst($roleLabel) }}</label>
+            </div>
         @endforeach
-    </select>
+    </div>
+    <div id="roles_help" class="form-text">
+        {{ __('Marca uno o varios roles. Por ejemplo, Coordinador y Estratega. Para agregar otro, conserva marcados los que debe mantener.') }}
+    </div>
     @error('roles')
         <div class="text-danger small mt-1">{{ $message }}</div>
     @enderror
     @error('roles.*')
         <div class="text-danger small mt-1">{{ $message }}</div>
     @enderror
-</div>
+</fieldset>
 
-<div class="mb-3">
-    <label for="estrategia_ids" class="form-label">{{ __('Estrategias que coordina') }}</label>
+<fieldset class="mb-3" aria-describedby="estrategia_ids_help">
+    <legend class="form-label fs-6">{{ __('Estrategias que coordina') }}</legend>
     <input type="hidden" name="estrategia_ids_present" value="1">
-    <select name="estrategia_ids[]" id="estrategia_ids" class="form-select" multiple aria-describedby="estrategia_ids_help">
-        @foreach ($estrategias as $estrategia)
-            <option value="{{ $estrategia->id }}" @selected(in_array((string) $estrategia->id, $selectedStrategies, true))>
-                {{ $estrategia->nombre }}{{ $estrategia->activo ? '' : ' (inactiva)' }}
-            </option>
-        @endforeach
-    </select>
+    <div id="estrategia_ids" class="border rounded p-3">
+        @forelse ($estrategias as $estrategia)
+            <div class="form-check">
+                <input
+                    type="checkbox"
+                    name="estrategia_ids[]"
+                    id="estrategia_{{ $estrategia->id }}"
+                    value="{{ $estrategia->id }}"
+                    class="form-check-input"
+                    @checked(in_array((string) $estrategia->id, $selectedStrategies, true))
+                >
+                <label class="form-check-label" for="estrategia_{{ $estrategia->id }}">
+                    {{ $estrategia->nombre }}{{ $estrategia->activo ? '' : ' (inactiva)' }}
+                </label>
+            </div>
+        @empty
+            <p class="text-muted mb-0">{{ __('No hay estrategias disponibles para asignar.') }}</p>
+        @endforelse
+    </div>
     <div id="estrategia_ids_help" class="form-text">
-        {{ __('Se aplica al rol coordinador. Solo podrá consultar expedientes de las estrategias seleccionadas. Sin estrategias asignadas no tendrá acceso como coordinador. Al quitar ese rol se eliminan sus estrategias.') }}
+        {{ __('Marca todas las estrategias que coordina. Se aplica al rol Coordinador, aunque tenga otros roles. Su acceso como coordinador se limita a las estrategias marcadas. Sin estrategias asignadas no tendrá acceso como coordinador. Al quitar ese rol se eliminan sus estrategias.') }}
     </div>
     @error('estrategia_ids')
         <div class="text-danger small mt-1">{{ $message }}</div>
@@ -74,7 +104,7 @@
     @error('estrategia_ids.*')
         <div class="text-danger small mt-1">{{ $message }}</div>
     @enderror
-</div>
+</fieldset>
 
 <div class="mb-3">
     <label for="carrera" class="form-label">{{ __('Carrera (opcional)') }}</label>

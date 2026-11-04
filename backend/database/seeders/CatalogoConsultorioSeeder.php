@@ -10,13 +10,15 @@ class CatalogoConsultorioSeeder extends Seeder
     public function run(): void
     {
         for ($numero = 1; $numero <= 14; $numero++) {
-            CatalogoConsultorio::query()->updateOrCreate(
+            CatalogoConsultorio::query()->firstOrCreate(
                 ['numero' => $numero],
                 [
-                    'nombre' => 'Consultorio '.$numero,
+                    'nombre' => 'Cubículo '.$numero,
                     'activo' => true,
                 ]
             );
         }
+
+        CatalogoConsultorio::flushCache();
     }
 }
