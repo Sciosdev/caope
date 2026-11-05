@@ -107,6 +107,13 @@ acceso al servidor.
 4. Esperar a que el historial muestre **Completado** y las comprobaciones sigan
    sin errores.
 
+La consola actualiza el progreso cada 15 segundos durante un intento y cada
+minuto cuando está inactiva. Conserva la confirmación y el token que se estén
+escribiendo. Muestra por separado la versión instalada, la solicitada, las
+etapas del agente y el resultado de GitHub. Una interrupción o una recuperación
+incompleta siguen bloqueando nuevos despliegues hasta comprobar el resultado;
+la antigüedad de un intento por sí sola no demuestra que haya terminado.
+
 El workflow:
 
 1. fija el commit exacto asociado a la ejecución;
@@ -188,20 +195,88 @@ La consola comprueba automáticamente:
 
 El botón de despliegue queda deshabilitado si alguna comprobación está en rojo.
 
+## Validación de cambios en el agente
+
+Las pruebas automatizadas del agente comprueban su lógica y simulan fallos.
+Los escenarios de shell usan Git, bloqueos y señales reales, pero sustituyen
+Composer y las órdenes Artisan. Un CI aprobado no sustituye un ensayo completo
+del despliegue ni confirma que un respaldo del servidor pueda restaurarse.
+
+Antes de publicar una modificación del agente:
+
+1. Preparar una máquina de pruebas independiente, con una copia obtenida de Git,
+   datos ficticios y servicios y permisos equivalentes al servidor. No montar
+   carpetas del equipo ni proporcionar credenciales de producción.
+2. Probar la actualización desde la versión instalada, ejecutando Composer,
+   migraciones, scheduler y trabajador de colas reales. La primera actualización
+   comienza con el script antiguo y debe ensayarse también.
+3. Provocar una interrupción durante dependencias y otra después de migrar.
+   Comprobar que la versión anterior funciona con el esquema resultante y que
+   conserva los registros de prueba. Si la recuperación falla, debe mantener
+   la aplicación en mantenimiento.
+4. Restaurar el respaldo en una base de pruebas separada y comprobar sus datos.
+   Registrar el SHA ensayado, los resultados y los tiempos antes de autorizar
+   la publicación. El chequeo `/up` no acredita estos resultados.
+
+Los nuevos escenarios de shell conservan sus archivos temporales para revisión;
+la plataforma de CI descarta el runner. No ejecutan limpieza recursiva automática.
+
 ## Recuperación de una falla
 
-El script usa un candado para impedir despliegues concurrentes. Si producción
-falla después de avanzar el checkout, vuelve al SHA anterior, reinstala el lock
-anterior de Composer, reconstruye las cachés y levanta la aplicación. Este
+El script usa `flock` para impedir despliegues concurrentes, incluso cuando se
+limpia la caché Laravel. El sistema operativo libera ese bloqueo cuando termina
+su propietario. El directorio anterior `.deploy-lock` se conserva como protección
+frente al bootstrap: sólo se recupera automáticamente si su propietario y su
+terminación pueden comprobarse. Un bloqueo legado sin propietario verificable
+se conserva y se muestra en el diagnóstico.
+
+Antes de activar mantenimiento se guarda un diario privado en
+`backend/storage/app/deployment/recovery.json`. Si producción falla después de
+avanzar el checkout, vuelve al SHA anterior, reinstala el lock anterior de
+Composer y reconstruye las cachés. Sólo levanta la aplicación después de verificar
+que la recuperación terminó. Este
 rollback de código no deshace migraciones ya confirmadas; por eso las migraciones
 de CAOPE deben conservar compatibilidad hacia atrás. El agente nunca inicia el
 despliegue si detecta cambios locales versionados.
+
+Si se interrumpe el proceso, el siguiente ciclo del scheduler existente
+ejecuta la recuperación desde `repair-runtime.sh`, antes de iniciar Laravel.
+Así puede reparar un directorio `vendor` incompleto. No necesita que el marcador
+de autorización siga vigente. `result.json` conserva el resultado y permite
+importarlo al historial cuando Laravel vuelve a funcionar. Los archivos sólo
+contienen identificadores, estados y revisiones, nunca tokens.
+
+Mientras exista un diario pendiente, el servicio de colas pospone su arranque
+y reintenta con su política existente. Así su límite de inicio no interrumpe
+una restauración larga. Cada ejecución comprueba bajo bloqueo que conserva la
+misma solicitud autorizada antes de instalarla y registrar su progreso.
+
+El intento dispone de 30 minutos y hasta seis minutos para la salida y
+recuperación. Laravel supervisa el proceso con un margen de 37 minutos y medio,
+inferior a los 40 minutos del servicio instalado. GitHub espera hasta 45 minutos.
+Una salida sin confirmación positiva no se anuncia como instalación correcta.
+
+La recuperación requiere el modo de mantenimiento por archivo:
+`APP_MAINTENANCE_DRIVER=file` (valor predeterminado). Se auditan tanto la
+configuración activa como la siguiente configuración antes de modificar el
+checkout. No se sustituye un mantenimiento que ya estuviera activo.
+
+Estas capacidades quedan disponibles después de instalar esta versión con
+éxito. Con el agente documentado ya instalado no hace falta reinstalar unidades
+systemd ni conceder permisos adicionales. La actualización inicial todavía la
+ejecuta el script de la versión que esté instalada en ese momento.
 
 Para diagnosticar desde el navegador:
 
 1. abrir `/caope/desarrollo`;
 2. revisar la comprobación roja;
 3. abrir **Ver en GitHub** en el historial;
-4. si la actualización alcanzó al servidor, consultar
-   `backend/storage/logs/developer-deploy.log` mediante el mecanismo de registros
-   que FESI ya proporcione.
+4. revisar en el historial la etapa, la última señal del agente y el diagnóstico
+   de recuperación. Para un análisis técnico adicional se conserva
+   `backend/storage/logs/developer-deploy.log`.
+
+**Colas** sólo confirma actividad cuando observa un trabajador reciente de la
+conexión y cola configuradas; mientras el trabajador carga por primera vez esta
+versión puede mostrar una advertencia. **GitHub** comprueba lectura del workflow,
+con una caché de un minuto; el permiso de ejecutar se valida al activar o renovar
+credenciales. Una comprobación de lectura no se presenta como prueba de escritura.

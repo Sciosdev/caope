@@ -36,8 +36,9 @@ Schedule::command('caope:retry-expediente-file-deletions --limit=250')
 
 Schedule::command('caope:deploy-pending')
     ->name('caope-deploy-pending')
-    ->everyMinute()
-    ->withoutOverlapping(30);
+    // The shell owns an OS flock. A cached scheduler lock can survive a killed
+    // process and prevent the next tick from repairing an interrupted release.
+    ->everyMinute();
 
 Schedule::call(function (): void {
     Cache::put('system.scheduler.last_run', now()->toIso8601String(), now()->addDay());

@@ -156,7 +156,7 @@ class DeploymentPreparationTest extends TestCase
         ])->assertAccepted();
 
         $this->assertFileDoesNotExist($this->markerPath);
-        Http::assertSentCount(4);
+        Http::assertSentCount(2);
 
         File::delete(storage_path('app/deployment/version.json'));
         File::delete(config('developer_console.settings_path'));
@@ -195,5 +195,59 @@ class DeploymentPreparationTest extends TestCase
 
         $this->assertFileDoesNotExist($this->markerPath);
         File::delete(config('developer_console.settings_path'));
+    }
+
+    public function test_failed_agent_callback_is_rejected_without_erasing_recovery_diagnostic(): void
+    {
+        $deployment = $this->preparedDeployment('recovery_required');
+        File::put($this->markerPath, 'existing recovery marker');
+        Http::fake();
+
+        $this->postJson(route('api.deployment.prepare'), [
+            'sha' => $deployment->commit_sha,
+            'request_id' => $deployment->request_id,
+            'run_id' => 12345,
+            'run_attempt' => 1,
+        ])->assertConflict();
+
+        $this->assertSame('existing recovery marker', File::get($this->markerPath));
+        $this->assertSame('No se pudo recuperar la versión anterior.', $deployment->refresh()->error_message);
+        Http::assertNothingSent();
+    }
+
+    public function test_running_agent_callback_is_idempotent_and_preserves_authorization(): void
+    {
+        $deployment = $this->preparedDeployment('running');
+        File::put($this->markerPath, 'original authorization');
+        Http::fake();
+
+        $this->postJson(route('api.deployment.prepare'), [
+            'sha' => $deployment->commit_sha,
+            'request_id' => $deployment->request_id,
+            'run_id' => 12345,
+            'run_attempt' => 1,
+        ])->assertAccepted();
+
+        $this->assertSame('original authorization', File::get($this->markerPath));
+        $this->assertSame('running', $deployment->refresh()->agent_status);
+        Http::assertNothingSent();
+    }
+
+    private function preparedDeployment(string $agentStatus): DeploymentRun
+    {
+        config(['developer_console.settings_path' => storage_path('app/testing/production-settings.enc')]);
+        File::delete(config('developer_console.settings_path'));
+        app(DeveloperConsoleSettings::class)->storeProduction('encrypted-github-token', 199102136, 1);
+        File::ensureDirectoryExists(dirname($this->markerPath));
+
+        return DeploymentRun::query()->create([
+            'request_id' => 'd062783e-3538-46ba-a56b-1c35e215ee04',
+            'ref' => 'main',
+            'status' => 'in_progress',
+            'agent_status' => $agentStatus,
+            'workflow_run_id' => 12345,
+            'commit_sha' => str_repeat('a', 40),
+            'error_message' => 'No se pudo recuperar la versión anterior.',
+        ]);
     }
 }
