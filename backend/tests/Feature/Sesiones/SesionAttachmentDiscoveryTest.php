@@ -94,6 +94,9 @@ class SesionAttachmentDiscoveryTest extends TestCase
         if ($role === 'estratega') {
             $this->expediente->update(['tutor_id' => $actor->id]);
         }
+        if (in_array($role, ['docente', 'estratega'], true)) {
+            $actor->estrategiasParticipadas()->attach($this->strategy);
+        }
         if ($role === 'coordinador') {
             $actor->estrategiasCoordinadas()->attach($this->strategy);
         }

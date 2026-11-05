@@ -25,4 +25,10 @@ class CatalogoEstrategia extends Model
         return $this->belongsToMany(User::class, 'coordinador_estrategia', 'estrategia_id', 'user_id')
             ->withTimestamps();
     }
+
+    public function participantes(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'participante_estrategia', 'estrategia_id', 'user_id')
+            ->withTimestamps();
+    }
 }

@@ -3,17 +3,41 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, HasRoles, Notifiable;
+
+    protected static function booted(): void
+    {
+        static::deleting(function (User $user): void {
+            // comments.user_id cascades on account deletion. It must not erase
+            // retained clinical history as a side effect of deleting an account.
+            $retainedCases = fn (Builder $cases) => $cases->withTrashed()->where(fn (Builder $held) => $held
+                ->whereNotNull('deleted_at')->orWhere('retention_until', '>', now()));
+            $hasRetainedComments = Comentario::query()->where('user_id', $user->getKey())
+                ->where(function (Builder $comments) use ($retainedCases): void {
+                    $comments->whereHasMorph('comentable', [Expediente::class], $retainedCases)
+                        ->orWhereHasMorph('comentable', [Sesion::class], fn (Builder $sessions) => $sessions
+                            ->whereHas('expediente', $retainedCases));
+                })->exists();
+
+            if ($hasRetainedComments) {
+                throw ValidationException::withMessages([
+                    'user' => 'No se puede eliminar esta cuenta porque tiene comentarios en expedientes archivados o sujetos a conservación. Puedes desactivar su acceso.',
+                ]);
+            }
+        });
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -76,6 +100,19 @@ class User extends Authenticatable
             ->withTimestamps();
     }
 
+    public function estrategiasParticipadas(): BelongsToMany
+    {
+        return $this->belongsToMany(CatalogoEstrategia::class, 'participante_estrategia', 'user_id', 'estrategia_id')
+            ->withTimestamps();
+    }
+
+    public function participatesInStrategy(?int $strategyId): bool
+    {
+        // Query current assignments, not a relation previously loaded in memory.
+        return $strategyId !== null && $strategyId > 0
+            && $this->estrategiasParticipadas()->whereKey($strategyId)->exists();
+    }
+
     /**
      * Indica si el usuario puede consultar todos los expedientes del centro.
      *
@@ -104,6 +141,10 @@ class User extends Authenticatable
 
     public function isFacilitatorOf(Expediente $expediente): bool
     {
+        if ($expediente->trashed()) {
+            return false;
+        }
+
         if ($this->hasRole('coordinador') && ! $this->hasGlobalExpedienteAccess() && ! $this->isCoordinatorOf($expediente)) {
             return false;
         }
@@ -114,17 +155,23 @@ class User extends Authenticatable
 
     public function isTutorOf(Expediente $expediente): bool
     {
+        if ($expediente->trashed()) {
+            return false;
+        }
+
         if ($this->hasRole('coordinador') && ! $this->hasGlobalExpedienteAccess() && ! $this->isCoordinatorOf($expediente)) {
             return false;
         }
 
         return $this->hasAnyRole(['docente', 'estratega'])
-            && (int) $expediente->tutor_id === (int) $this->getKey();
+            && (int) $expediente->tutor_id === (int) $this->getKey()
+            && $this->participatesInStrategy($expediente->estrategia_id);
     }
 
     public function isCoordinatorOf(Expediente $expediente): bool
     {
         return $this->hasRole('coordinador')
+            && ! $expediente->trashed()
             && $expediente->estrategia_id !== null
             && $this->estrategiasCoordinadas()->whereKey($expediente->estrategia_id)->exists();
     }

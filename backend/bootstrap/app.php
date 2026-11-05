@@ -4,12 +4,14 @@ use App\Console\Commands\AuditProductionConfiguration;
 use App\Console\Commands\CheckExpedienteSchema;
 use App\Console\Commands\ManageDeveloperAccess;
 use App\Console\Commands\PurgeSensitiveRuntimeData;
+use App\Console\Commands\RetryExpedienteFileDeletions;
 use App\Console\Commands\RunPendingDeployment;
 use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\EnsureDeveloperConsoleAccess;
 use App\Http\Middleware\EnsurePapsIsApproved;
 use App\Http\Middleware\EnsureTrustedHost;
 use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\ProtectRetainedExpedienteFiles;
 use App\Http\Middleware\RequireRecentDeveloperPassword;
 use Illuminate\Cache\RateLimiter as CacheRateLimiter;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -33,6 +35,7 @@ $app = Application::configure(basePath: dirname(__DIR__))
         CheckExpedienteSchema::class,
         ManageDeveloperAccess::class,
         PurgeSensitiveRuntimeData::class,
+        RetryExpedienteFileDeletions::class,
         RunPendingDeployment::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
@@ -47,6 +50,7 @@ $app = Application::configure(basePath: dirname(__DIR__))
             'approved_paps' => EnsurePapsIsApproved::class,
             'developer.console' => EnsureDeveloperConsoleAccess::class,
             'developer.reauth' => RequireRecentDeveloperPassword::class,
+            'retention.files' => ProtectRetainedExpedienteFiles::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

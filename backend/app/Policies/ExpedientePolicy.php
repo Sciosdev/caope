@@ -17,6 +17,10 @@ class ExpedientePolicy
 
     public function view(User $user, Expediente $expediente): bool
     {
+        if ($expediente->trashed()) {
+            return $this->isAdmin($user);
+        }
+
         if ($user->hasGlobalExpedienteAccess()) {
             return true;
         }
@@ -31,6 +35,10 @@ class ExpedientePolicy
 
     public function update(User $user, Expediente $expediente): bool
     {
+        if ($expediente->trashed()) {
+            return false;
+        }
+
         if ($user->hasGlobalExpedienteAccess()) {
             return true;
         }
@@ -45,11 +53,30 @@ class ExpedientePolicy
 
     public function delete(User $user, Expediente $expediente): bool
     {
+        return ! $expediente->trashed() && $this->isAdmin($user);
+    }
+
+    public function restore(User $user, Expediente $expediente): bool
+    {
+        return $expediente->trashed() && $this->isAdmin($user);
+    }
+
+    public function forceDelete(User $user, Expediente $expediente): bool
+    {
+        return $this->isAdmin($user);
+    }
+
+    public function viewArchived(User $user): bool
+    {
         return $this->isAdmin($user);
     }
 
     public function changeState(User $user, Expediente $expediente): bool
     {
+        if ($expediente->trashed()) {
+            return false;
+        }
+
         if ($user->hasGlobalExpedienteAccess()) {
             return true;
         }

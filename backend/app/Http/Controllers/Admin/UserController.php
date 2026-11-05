@@ -24,6 +24,8 @@ class UserController extends Controller
 {
     private const PAPS_MANAGEABLE_ROLES = ['alumno', 'docente', 'coordinador', 'estratega', 'tutor'];
 
+    private const PARTICIPANT_ROLES = ['alumno', 'docente', 'estratega'];
+
     public function __construct(
         private readonly AccountSessionManager $accountSessions
     ) {
@@ -45,7 +47,7 @@ class UserController extends Controller
     public function index(): View
     {
         $users = User::query()
-            ->with(['roles', 'estrategiasCoordinadas'])
+            ->with(['roles', 'estrategiasCoordinadas', 'estrategiasParticipadas'])
             ->when(
                 $this->isRestrictedPaps(),
                 fn ($query) => $query->whereDoesntHave(
@@ -83,6 +85,7 @@ class UserController extends Controller
             'is_active' => ['nullable', 'boolean'],
             'approved' => ['nullable', 'boolean'],
             ...$this->strategyValidationRules(),
+            ...$this->participantStrategyValidationRules(),
         ]);
 
         $payload = Arr::only($validated, ['name', 'email', 'password', 'carrera', 'turno']);
@@ -92,12 +95,16 @@ class UserController extends Controller
         $strategyIds = in_array('coordinador', $validated['roles'], true)
             ? ($validated['estrategia_ids'] ?? [])
             : [];
+        $participantStrategyIds = array_intersect(self::PARTICIPANT_ROLES, $validated['roles']) !== []
+            ? ($validated['participante_estrategia_ids'] ?? [])
+            : [];
 
-        DB::transaction(function () use ($payload, $validated, $strategyIds): void {
+        DB::transaction(function () use ($payload, $validated, $strategyIds, $participantStrategyIds): void {
             $user = new User;
             $user->forceFill($payload)->save();
             $user->syncRoles($validated['roles']);
             $user->estrategiasCoordinadas()->sync($strategyIds);
+            $user->estrategiasParticipadas()->sync($participantStrategyIds);
         });
 
         return Redirect::route('admin.users.index')->with('status', __('Usuario creado correctamente.'));
@@ -112,7 +119,7 @@ class UserController extends Controller
         }
 
         return view('admin.usuarios.edit', [
-            'user' => $user->load(['roles', 'estrategiasCoordinadas']),
+            'user' => $user->load(['roles', 'estrategiasCoordinadas', 'estrategiasParticipadas']),
             'roles' => $this->availableRoles(),
             ...$this->catalogOptions($user),
         ]);
@@ -144,6 +151,7 @@ class UserController extends Controller
             'is_active' => ['nullable', 'boolean'],
             'approved' => ['nullable', 'boolean'],
             ...$this->strategyValidationRules($user),
+            ...$this->participantStrategyValidationRules($user),
         ]);
 
         if ($this->wouldRemoveLastAdmin($user, $validated['roles'])) {
@@ -165,6 +173,14 @@ class UserController extends Controller
                 ? collect($validated['estrategia_ids'] ?? [])->map(fn ($id) => (int) $id)->sort()->values()->all()
                 : $currentStrategyIds);
         $strategiesChanged = $strategyIds !== $currentStrategyIds;
+        $currentParticipantStrategyIds = $user->estrategiasParticipadas()
+            ->pluck('catalogo_estrategias.id')->map(fn ($id) => (int) $id)->sort()->values()->all();
+        $participantStrategyIds = array_intersect(self::PARTICIPANT_ROLES, $validated['roles']) === []
+            ? []
+            : ((array_key_exists('participante_estrategia_ids', $validated) || $request->boolean('participante_estrategia_ids_present'))
+                ? collect($validated['participante_estrategia_ids'] ?? [])->map(fn ($id) => (int) $id)->sort()->values()->all()
+                : $currentParticipantStrategyIds);
+        $participantStrategiesChanged = $participantStrategyIds !== $currentParticipantStrategyIds;
 
         $data = Arr::only($validated, ['name', 'email', 'carrera', 'turno']);
         $data['is_active'] = array_key_exists('is_active', $validated)
@@ -185,13 +201,15 @@ class UserController extends Controller
         $accessChanged = (bool) $data['is_active'] !== (bool) $user->is_active
             || ($data['approved_at'] === null) !== ($user->approved_at === null)
             || $rolesChanged
-            || $strategiesChanged;
+            || $strategiesChanged
+            || $participantStrategiesChanged;
 
         DB::transaction(function () use (
             $user,
             $data,
             $validated,
             $strategyIds,
+            $participantStrategyIds,
             $emailChanged,
             $passwordChanged,
             $accessChanged,
@@ -202,6 +220,7 @@ class UserController extends Controller
             $user->forceFill($data)->save();
             $user->syncRoles($validated['roles']);
             $user->estrategiasCoordinadas()->sync($strategyIds);
+            $user->estrategiasParticipadas()->sync($participantStrategyIds);
 
             if ($emailChanged || $passwordChanged || $accessChanged) {
                 $this->accountSessions->revokeAll($user, [$originalEmail]);
@@ -403,6 +422,13 @@ class UserController extends Controller
                 ))
                 ->orderBy('nombre')
                 ->get(),
+            'estrategiasParticipacion' => CatalogoEstrategia::query()
+                ->where(fn ($query) => $query->where('activo', true)->orWhereIn(
+                    'id',
+                    $user?->estrategiasParticipadas()->pluck('catalogo_estrategias.id')->all() ?? []
+                ))
+                ->orderBy('nombre')
+                ->get(),
             'carreras' => CatalogoCarrera::query()
                 ->where('activo', true)
                 ->orderBy('nombre')
@@ -413,6 +439,32 @@ class UserController extends Controller
                 ->orderBy('nombre')
                 ->pluck('nombre')
                 ->all(),
+        ];
+    }
+
+    private function participantStrategyValidationRules(?User $user = null): array
+    {
+        $currentIds = $user?->estrategiasParticipadas()->pluck('catalogo_estrategias.id')->all() ?? [];
+
+        return [
+            'participante_estrategia_ids_present' => ['sometimes', 'boolean'],
+            'participante_estrategia_ids' => ['sometimes', 'array'],
+            'participante_estrategia_ids.*' => [
+                'bail',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (! is_int($value) && ! is_string($value)) {
+                        $fail(__('La estrategia debe identificarse con un número entero.'));
+                    }
+                },
+                'integer',
+                'min:1',
+                'distinct',
+                Rule::exists('catalogo_estrategias', 'id')->where(
+                    fn ($query) => $query->where(fn ($active) => $active
+                        ->where('activo', true)
+                        ->orWhereIn('id', $currentIds))
+                ),
+            ],
         ];
     }
 }

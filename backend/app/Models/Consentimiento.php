@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Casts\SafeDate;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -24,7 +23,7 @@ class Consentimiento extends Model
 
     public function expediente(): BelongsTo
     {
-        return $this->belongsTo(Expediente::class);
+        return $this->belongsTo(Expediente::class)->withTrashed();
     }
 
     public function subidoPor(): BelongsTo

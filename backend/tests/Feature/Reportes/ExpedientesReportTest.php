@@ -282,6 +282,8 @@ class ExpedientesReportTest extends TestCase
 
         $docente = User::factory()->create(['name' => 'Docente Asignado']);
         $docente->assignRole('docente');
+        $estrategiaDocente = CatalogoEstrategia::create(['nombre' => 'Estrategia del reporte docente', 'activo' => true]);
+        $docente->estrategiasParticipadas()->attach($estrategiaDocente);
 
         $coordinador = User::factory()->create(['name' => 'Coordinador Asignado']);
         $coordinador->assignRole('coordinador');
@@ -297,6 +299,7 @@ class ExpedientesReportTest extends TestCase
             'coordinador_id' => $ajeno->id,
         ]);
         $delDocente = Expediente::factory()->create([
+            'estrategia_id' => $estrategiaDocente->id,
             'no_control' => 'CA-2026-D001',
             'creado_por' => $ajeno->id,
             'tutor_id' => $docente->id,

@@ -28,7 +28,11 @@ class ComentarioController extends Controller
             'comentable_id' => ['required', 'integer', 'min:1'],
         ]);
 
-        $comentable = $this->resolveComentable($data['comentable_type'], (int) $data['comentable_id']);
+        $comentable = $this->resolveComentable(
+            $data['comentable_type'],
+            (int) $data['comentable_id'],
+            includeArchived: true,
+        );
 
         $this->authorize('view', $comentable);
 
@@ -136,14 +140,19 @@ class ComentarioController extends Controller
         return response()->noContent();
     }
 
-    private function resolveComentable(string $typeAlias, int $id): Model
+    private function resolveComentable(string $typeAlias, int $id, bool $includeArchived = false): Model
     {
         $class = self::COMENTABLE_TYPES[$typeAlias] ?? null;
 
         abort_if($class === null, 422, 'Tipo de comentable no soportado.');
 
+        $query = $class::query();
+        if ($includeArchived && $class === Expediente::class) {
+            $query->withTrashed();
+        }
+
         /** @var Model|null $comentable */
-        $comentable = $class::query()->find($id);
+        $comentable = $query->find($id);
 
         abort_if($comentable === null, 404, 'El recurso especificado no existe.');
 

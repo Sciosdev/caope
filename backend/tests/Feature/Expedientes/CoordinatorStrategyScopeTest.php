@@ -280,6 +280,9 @@ class CoordinatorStrategyScopeTest extends TestCase
     public function test_facilitators_and_teachers_cannot_change_strategy_during_clinical_updates(string $role): void
     {
         $user = $this->userWithRole($role);
+        if ($role === 'docente') {
+            $user->estrategiasParticipadas()->attach($this->strategyA);
+        }
         $expediente = $this->expediente([
             'estrategia_id' => $this->strategyA->id,
             'facilitador_id' => $user->id,

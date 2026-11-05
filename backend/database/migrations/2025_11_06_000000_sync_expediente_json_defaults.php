@@ -12,7 +12,8 @@ return new class extends Migration
         $personalDefaults = Expediente::defaultPersonalPathologicalHistory();
         $systemsDefaults = Expediente::defaultSystemsReview();
 
-        Expediente::query()
+        // Runs before the archival columns exist on a fresh installation.
+        Expediente::withoutGlobalScopes()
             ->lazyById()
             ->each(function (Expediente $expediente) use ($familyDefaults, $personalDefaults, $systemsDefaults) {
                 $updates = [];
@@ -124,11 +125,13 @@ return new class extends Migration
             if (is_string($raw)) {
                 $trimmed = trim($raw);
                 $normalized[$section] = $trimmed === '' ? null : $trimmed;
+
                 continue;
             }
 
             if (is_scalar($raw)) {
                 $normalized[$section] = trim((string) $raw) ?: null;
+
                 continue;
             }
 

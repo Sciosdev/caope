@@ -3,20 +3,28 @@
 @section('title', 'Expedientes')
 
 @section('content')
+    @php($archived = $archived ?? false)
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-        <h4 class="mb-0">Expedientes</h4>
+        <h4 class="mb-0">{{ $archived ? 'Expedientes archivados' : 'Expedientes' }}</h4>
 
         <div class="d-flex flex-wrap gap-2">
-            <a href="{{ route('expedientes.export.ficha-identificacion', request()->query()) }}" class="btn btn-outline-success">
-                <i class="mdi mdi-file-excel"></i>
-                Descargar XLS
-            </a>
-            @can('create', App\Models\Expediente::class)
-                <a href="{{ route('expedientes.create') }}" class="btn btn-primary">
-                    <i class="mdi mdi-plus"></i>
-                    Nuevo expediente
+            @can('viewArchived', App\Models\Expediente::class)
+                <a href="{{ $archived ? route('expedientes.index') : route('expedientes.archived') }}" class="btn btn-outline-secondary">
+                    {{ $archived ? 'Ver expedientes activos' : 'Ver archivados' }}
                 </a>
             @endcan
+            @unless ($archived)
+                <a href="{{ route('expedientes.export.ficha-identificacion', request()->query()) }}" class="btn btn-outline-success">
+                    <i class="mdi mdi-file-excel"></i>
+                    Descargar XLS
+                </a>
+                @can('create', App\Models\Expediente::class)
+                    <a href="{{ route('expedientes.create') }}" class="btn btn-primary">
+                        <i class="mdi mdi-plus"></i>
+                        Nuevo expediente
+                    </a>
+                @endcan
+            @endunless
         </div>
     </div>
 
@@ -24,6 +32,22 @@
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             {{ session('status') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+        </div>
+    @endif
+
+    @if (session('warning'))
+        <div class="alert alert-warning" role="alert">{{ session('warning') }}</div>
+    @endif
+    @if (session('warning_shared'))
+        <div class="alert alert-info" role="status">{{ session('warning_shared') }}</div>
+    @endif
+    @if (session('warning_unsafe'))
+        <div class="alert alert-danger" role="alert">{{ session('warning_unsafe') }}</div>
+    @endif
+
+    @if ($archived)
+        <div class="alert alert-secondary" role="status">
+            Esta vista es de solo lectura. Restaurar un expediente no elimina su fecha mínima de conservación.
         </div>
     @endif
 
@@ -83,6 +107,10 @@
                     <th>Apertura</th>
                     <th>Carrera</th>
                     <th>Turno</th>
+                    @if ($archived)
+                        <th>Archivado</th>
+                        <th>Conservar hasta</th>
+                    @endif
                     <th class="text-end">Acciones</th>
                 </tr>
             </thead>
@@ -123,6 +151,13 @@
                         <td>{{ optional($expediente->apertura)->format('Y-m-d') }}</td>
                         <td>{{ $expediente->carrera }}</td>
                         <td>{{ $expediente->turno }}</td>
+                        @if ($archived)
+                            <td>
+                                {{ optional($expediente->deleted_at)->format('Y-m-d H:i') }}
+                                <div class="small text-muted">{{ $expediente->archivedBy?->name ?? 'Cuenta no disponible' }}</div>
+                            </td>
+                            <td>{{ optional($expediente->retention_until)->format('Y-m-d H:i') ?? 'Sin fecha' }}</td>
+                        @endif
                         <td class="text-end">
                             <div class="d-inline-flex align-items-center gap-2">
                                 <div class="btn-group btn-group-sm" role="group">
@@ -131,18 +166,27 @@
                                         <a href="{{ route('expedientes.edit', $expediente) }}" class="btn btn-outline-secondary">Editar</a>
                                     @endcan
                                 </div>
-                                @include('expedientes.partials.delete-form', ['deleteButtonSize' => 'btn-sm'])
+                                @include('expedientes.partials.delete-form', [
+                                    'deleteButtonSize' => 'btn-sm',
+                                    'lifecycleButtonOnly' => true,
+                                ])
                             </div>
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="text-center text-muted">No se encontraron expedientes con los filtros seleccionados.</td>
+                        <td colspan="{{ $archived ? 10 : 8 }}" class="text-center text-muted">No se encontraron expedientes con los filtros seleccionados.</td>
                     </tr>
                 @endforelse
             </tbody>
         </table>
     </div>
+
+    {{-- Los modales viven fuera de la tabla responsive para que Bootstrap no
+         los recorte ni DataTables los clone al reorganizar columnas. --}}
+    @foreach ($expedientes as $expediente)
+        @include('expedientes.partials.delete-form', ['lifecycleModalOnly' => true])
+    @endforeach
 
     <div class="mt-3">
         {{ $expedientes->links('pagination::bootstrap-5') }}

@@ -70,7 +70,7 @@ class CatalogoConsultorioController extends CatalogoController
         }
 
         if (Schema::hasColumn('expedientes', 'cubiculo_id')
-            && Expediente::query()->where('cubiculo_id', $item->getKey())->lockForUpdate()->first(['id']) !== null) {
+            && Expediente::withTrashed()->where('cubiculo_id', $item->getKey())->lockForUpdate()->first(['id']) !== null) {
             return true;
         }
 

@@ -48,8 +48,11 @@ class NotificationDispatchTest extends TestCase
 
         $tutor = User::factory()->create();
         $tutor->assignRole('docente');
+        $estrategia = CatalogoEstrategia::create(['nombre' => 'Asignación docente notificada', 'activo' => true]);
+        $tutor->estrategiasParticipadas()->attach($estrategia);
 
         $expediente = Expediente::factory()->create([
+            'estrategia_id' => $estrategia->id,
             'tutor_id' => null,
             'creado_por' => $admin->id,
             'carrera' => 'Psicología',
@@ -97,6 +100,7 @@ class NotificationDispatchTest extends TestCase
 
         $estrategia = CatalogoEstrategia::create(['nombre' => 'Estrategia coordinada', 'activo' => true]);
         $coordinador->estrategiasCoordinadas()->attach($estrategia);
+        $tutor->estrategiasParticipadas()->attach($estrategia);
 
         $expediente = Expediente::factory()->create([
             'estado' => 'revision',
@@ -154,6 +158,7 @@ class NotificationDispatchTest extends TestCase
 
         $estrategia = CatalogoEstrategia::create(['nombre' => 'Estrategia coordinada', 'activo' => true]);
         $coordinador->estrategiasCoordinadas()->attach($estrategia);
+        $tutor->estrategiasParticipadas()->attach($estrategia);
 
         $expediente = Expediente::factory()->create([
             'estado' => 'revision',
@@ -205,6 +210,7 @@ class NotificationDispatchTest extends TestCase
 
         $estrategia = CatalogoEstrategia::create(['nombre' => 'Estrategia coordinada', 'activo' => true]);
         $coordinador->estrategiasCoordinadas()->attach($estrategia);
+        $tutor->estrategiasParticipadas()->attach($estrategia);
 
         $expediente = Expediente::factory()->create([
             'estado' => 'revision',
@@ -251,6 +257,7 @@ class NotificationDispatchTest extends TestCase
 
         $estrategia = CatalogoEstrategia::create(['nombre' => 'Estrategia coordinada', 'activo' => true]);
         $coordinador->estrategiasCoordinadas()->attach($estrategia);
+        $tutor->estrategiasParticipadas()->attach($estrategia);
 
         $expediente = Expediente::factory()->create([
             'estado' => 'revision',
@@ -297,9 +304,12 @@ class NotificationDispatchTest extends TestCase
     {
         $tutor = User::factory()->create();
         $tutor->assignRole('docente');
+        $estrategia = CatalogoEstrategia::create(['nombre' => 'Notificación docente revocable', 'activo' => true]);
+        $tutor->estrategiasParticipadas()->attach($estrategia);
         $otherTutor = User::factory()->create();
 
         $expediente = Expediente::factory()->create([
+            'estrategia_id' => $estrategia->id,
             'tutor_id' => $tutor->id,
         ]);
         $notification = new TutorAssignedNotification($expediente);

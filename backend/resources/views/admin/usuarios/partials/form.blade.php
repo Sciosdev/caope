@@ -4,6 +4,8 @@
         ->map(fn ($role) => (string) $role)->all();
     $selectedStrategies = collect(old('estrategia_ids', old('estrategia_ids_present') ? [] : ($editing ? $user->estrategiasCoordinadas->modelKeys() : [])))
         ->map(fn ($id) => (string) $id)->all();
+    $selectedParticipantStrategies = collect(old('participante_estrategia_ids', old('participante_estrategia_ids_present') ? [] : ($editing ? $user->estrategiasParticipadas->modelKeys() : [])))
+        ->map(fn ($id) => (string) $id)->all();
 @endphp
 
 <div class="mb-3">
@@ -102,6 +104,42 @@
         <div class="text-danger small mt-1">{{ $message }}</div>
     @enderror
     @error('estrategia_ids.*')
+        <div class="text-danger small mt-1">{{ $message }}</div>
+    @enderror
+</fieldset>
+
+<fieldset class="mb-3" aria-describedby="participante_estrategia_ids_help">
+    <legend class="form-label fs-6">{{ __('Estrategias en las que participa (Facilitador / Docente / Estratega)') }}</legend>
+    <input type="hidden" name="participante_estrategia_ids_present" value="1">
+    <div id="participante_estrategia_ids" class="border rounded p-3">
+        @forelse ($estrategiasParticipacion as $estrategia)
+            <div class="form-check">
+                <input
+                    type="checkbox"
+                    name="participante_estrategia_ids[]"
+                    id="participante_estrategia_{{ $estrategia->id }}"
+                    value="{{ $estrategia->id }}"
+                    class="form-check-input"
+                    @checked(in_array((string) $estrategia->id, $selectedParticipantStrategies, true))
+                >
+                <label class="form-check-label" for="participante_estrategia_{{ $estrategia->id }}">
+                    {{ $estrategia->nombre }}{{ $estrategia->activo ? '' : ' (inactiva)' }}
+                </label>
+            </div>
+        @empty
+            <p class="text-muted mb-0">{{ __('No hay estrategias disponibles para asignar.') }}</p>
+        @endforelse
+    </div>
+    <div id="participante_estrategia_ids_help" class="form-text">
+        {{ __('Marca una o varias estrategias para sus funciones de Facilitador, Docente o Estratega. Docentes y estrategas requieren tanto la estrategia como la responsabilidad del expediente. Los facilitadores conservan acceso solo a sus casos asignados; participar no abre los demás expedientes de una estrategia. La coordinación se configura por separado. Al quitar todos esos roles se eliminan sus membresías de participación.') }}
+    </div>
+    <div class="alert alert-warning mt-2 mb-0" role="note">
+        {{ __('Configura también las estrategias de los docentes y estrategas existentes: sin ellas no tendrán acceso mediante su responsabilidad del expediente. No se asignan estrategias automáticamente a partir de expedientes ni de roles. La participación de facilitadores no sustituye su asignación individual de casos.') }}
+    </div>
+    @error('participante_estrategia_ids')
+        <div class="text-danger small mt-1">{{ $message }}</div>
+    @enderror
+    @error('participante_estrategia_ids.*')
         <div class="text-danger small mt-1">{{ $message }}</div>
     @enderror
 </fieldset>

@@ -32,6 +32,8 @@ class ExpedienteVisibilityScopeTest extends TestCase
     {
         $facilitador = $this->userWithRole('alumno');
         $docente = $this->userWithRole('docente');
+        $estrategiaDocente = CatalogoEstrategia::create(['nombre' => 'Estrategia de responsabilidad docente', 'activo' => true]);
+        $docente->estrategiasParticipadas()->attach($estrategiaDocente);
         $coordinador = $this->userWithRole('coordinador');
         $estrategia = $this->assignStrategy($coordinador);
         $admin = $this->userWithRole('admin');
@@ -45,6 +47,7 @@ class ExpedienteVisibilityScopeTest extends TestCase
             'coordinador_id' => $neutral->id,
         ]);
         $tutorado = Expediente::factory()->create([
+            'estrategia_id' => $estrategiaDocente->id,
             'creado_por' => $neutral->id,
             'tutor_id' => $docente->id,
             'coordinador_id' => $neutral->id,

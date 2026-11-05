@@ -29,6 +29,11 @@ Schedule::command('caope:purge-sensitive-data')
     ->dailyAt('01:30')
     ->withoutOverlapping(30);
 
+Schedule::command('caope:retry-expediente-file-deletions --limit=250')
+    ->name('retry-expediente-file-deletions')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping(30);
+
 Schedule::command('caope:deploy-pending')
     ->name('caope-deploy-pending')
     ->everyMinute()

@@ -25,14 +25,26 @@ class ComentarioPolicy
 
     public function create(User $user, Model $comentable): bool
     {
+        $expediente = $this->resolveExpediente($comentable);
+        if ($expediente?->trashed()) {
+            return false;
+        }
+
         return $this->canInteractWithComentable($user, $comentable);
     }
 
     public function update(User $user, Comentario $comentario): bool
     {
         $comentable = $comentario->comentable;
+        $expediente = $comentable instanceof Model
+            ? $this->resolveExpediente($comentable)
+            : null;
 
-        if (! $comentable instanceof Model || ! $this->canInteractWithComentable($user, $comentable)) {
+        if (! $comentable instanceof Model
+            || ! $expediente
+            || $expediente->trashed()
+            || $expediente->retention_until?->isFuture()
+            || ! $this->canInteractWithComentable($user, $comentable)) {
             return false;
         }
 
@@ -46,8 +58,15 @@ class ComentarioPolicy
     public function delete(User $user, Comentario $comentario): bool
     {
         $comentable = $comentario->comentable;
+        $expediente = $comentable instanceof Model
+            ? $this->resolveExpediente($comentable)
+            : null;
 
-        if (! $comentable instanceof Model || ! $this->canInteractWithComentable($user, $comentable)) {
+        if (! $comentable instanceof Model
+            || ! $expediente
+            || $expediente->trashed()
+            || $expediente->retention_until?->isFuture()
+            || ! $this->canInteractWithComentable($user, $comentable)) {
             return false;
         }
 
@@ -74,5 +93,14 @@ class ComentarioPolicy
             : ($comentable instanceof \App\Models\Sesion ? $comentable->expediente : null);
 
         return $expediente !== null && $user->isCoordinatorOf($expediente);
+    }
+
+    private function resolveExpediente(Model $comentable): ?\App\Models\Expediente
+    {
+        if ($comentable instanceof \App\Models\Expediente) {
+            return $comentable;
+        }
+
+        return $comentable instanceof \App\Models\Sesion ? $comentable->expediente : null;
     }
 }

@@ -147,7 +147,13 @@ class ExpedienteFacilitadorAssignmentTest extends TestCase
         $docente = $this->userWithRole('docente');
         $nuevo = $this->userWithRole('alumno');
         $actor = $role === 'alumno' ? $facilitador : $docente;
+        $estrategia = null;
+        if ($role === 'docente') {
+            $estrategia = CatalogoEstrategia::create(['nombre' => 'Estrategia docente sin reasignación', 'activo' => true]);
+            $docente->estrategiasParticipadas()->attach($estrategia);
+        }
         $expediente = $this->expediente([
+            'estrategia_id' => $estrategia?->id,
             'creado_por' => $facilitador->id,
             'facilitador_id' => $facilitador->id,
             'tutor_id' => $docente->id,

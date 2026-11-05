@@ -36,6 +36,12 @@ class CatalogoEstrategiaController extends CatalogoController
     {
         $item = $this->findModel($id);
 
+        if ($item->coordinadores()->exists() || $item->participantes()->exists()) {
+            return Redirect::route($this->routePrefix.'.index')->withErrors([
+                'catalogo' => __('Esta estrategia tiene usuarios asignados. Puedes desactivarla para conservar sus asignaciones.'),
+            ]);
+        }
+
         if ($this->hasPendingRequests($item->nombre)) {
             return Redirect::route($this->routePrefix.'.index')->withErrors([
                 'catalogo' => __('Primero atiende las solicitudes pendientes que proponen esta estrategia antes de eliminarla.'),

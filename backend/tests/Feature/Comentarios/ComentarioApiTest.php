@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Comentarios;
 
+use App\Models\CatalogoEstrategia;
 use App\Models\Comentario;
 use App\Models\Expediente;
 use App\Models\Sesion;
@@ -76,11 +77,14 @@ class ComentarioApiTest extends TestCase
     {
         $docente = User::factory()->create();
         $docente->assignRole('docente');
+        $estrategia = CatalogoEstrategia::create(['nombre' => 'Estrategia docente de comentarios', 'activo' => true]);
+        $docente->estrategiasParticipadas()->attach($estrategia);
 
         $alumno = User::factory()->create();
         $alumno->assignRole('alumno');
 
         $expediente = Expediente::factory()->create([
+            'estrategia_id' => $estrategia->id,
             'tutor_id' => $docente->id,
             'creado_por' => $alumno->id,
         ]);

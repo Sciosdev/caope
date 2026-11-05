@@ -251,12 +251,12 @@ class ConsultorioSolicitudExpedienteTest extends TestCase
         $this->assertDatabaseCount('consultorio_reserva_solicitudes', 0);
     }
 
-    public function test_deleting_an_expediente_nulls_the_link_without_deleting_reservation_or_request(): void
+    public function test_permanently_deleting_an_expediente_nulls_the_link_without_deleting_reservation_or_request(): void
     {
         $patient = $this->expediente('Paciente sintético eliminado en prueba');
         $reservation = $this->reservation($patient);
         $proposal = $this->proposal($reservation, $this->user('paps'));
-        $patient->delete();
+        $patient->forceDelete();
 
         $this->assertNull($reservation->fresh()->expediente_id);
         $this->assertNull($reservation->fresh()->expediente);
@@ -265,6 +265,22 @@ class ConsultorioSolicitudExpedienteTest extends TestCase
         $this->assertDatabaseCount('consultorio_reserva_solicitudes', 1);
         $this->get(route('admin.consultorios.solicitudes.index'))->assertOk()
             ->assertDontSee($patient->paciente)->assertDontSee($patient->no_control);
+    }
+
+    public function test_archiving_an_expediente_preserves_the_historical_reservation_link(): void
+    {
+        $patient = $this->expediente('Paciente sintético archivado en prueba');
+        $reservation = $this->reservation($patient);
+        $proposal = $this->proposal($reservation, $this->user('paps'));
+
+        $this->delete(route('expedientes.destroy', $patient))->assertRedirect(route('expedientes.index'));
+
+        $this->assertSoftDeleted($patient);
+        $this->assertSame($patient->id, (int) $reservation->fresh()->expediente_id);
+        $this->assertTrue($reservation->fresh()->expediente->trashed());
+        $this->assertSame($reservation->id, (int) $proposal->fresh()->consultorio_reserva_id);
+        $this->assertDatabaseCount('consultorio_reservas', 1);
+        $this->assertDatabaseCount('consultorio_reserva_solicitudes', 1);
     }
 
     public static function restrictedProfiles(): array
