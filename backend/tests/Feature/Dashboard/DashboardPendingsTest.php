@@ -42,10 +42,13 @@ class DashboardPendingsTest extends TestCase
     {
         $tutor = User::factory()->create();
         $tutor->assignRole('docente');
+        $estrategia = CatalogoEstrategia::create(['nombre' => 'Estrategia docente de pendientes', 'activo' => true]);
+        $tutor->estrategiasParticipadas()->attach($estrategia);
 
         $creador = User::factory()->create();
 
         $expediente = Expediente::factory()->create([
+            'estrategia_id' => $estrategia->id,
             'estado' => 'revision',
             'creado_por' => $creador->id,
             'tutor_id' => $tutor->id,

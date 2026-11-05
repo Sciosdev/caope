@@ -155,7 +155,7 @@ class ConsultorioReservaController extends Controller
             ->groupBy('consultorio_numero');
 
         $usuariosActivos = User::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']);
-        $docentes = User::role('docente')->where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        $docentes = User::role(['docente', 'estratega'])->where('is_active', true)->orderBy('name')->get(['id', 'name']);
 
         return view('consultorios.index', [
             'reservas' => $reservas,
@@ -249,7 +249,7 @@ class ConsultorioReservaController extends Controller
             'expedientes' => Expediente::query()->visibleTo($request->user())
                 ->orderBy('no_control')->get(['id', 'no_control', 'paciente']),
             'usuarios' => User::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
-            'docentes' => User::role('docente')->where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'docentes' => User::role(['docente', 'estratega'])->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'consultoriosActivos' => CatalogoConsultorio::activos(),
             'cubiculosActivos' => CatalogoConsultorio::activos(),
             'estrategiasActivas' => CatalogoEstrategia::activos(),

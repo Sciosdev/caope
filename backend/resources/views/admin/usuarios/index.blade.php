@@ -49,6 +49,12 @@
                                             {{ $user->estrategiasCoordinadas->pluck('nombre')->join(', ') ?: __('Sin asignar') }}
                                         </div>
                                     @endif
+                                    @if ($user->hasAnyRole(['alumno', 'docente', 'estratega']))
+                                        <div class="small text-muted mt-1">
+                                            {{ __('Participación:') }}
+                                            {{ $user->estrategiasParticipadas->pluck('nombre')->join(', ') ?: __('Sin asignar') }}
+                                        </div>
+                                    @endif
                                 </td>
                                 <td>
                                     @if ($user->approved_at)

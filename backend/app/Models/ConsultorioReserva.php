@@ -77,7 +77,13 @@ class ConsultorioReserva extends Model
             }
 
             if ($user->hasAnyRole(['docente', 'estratega'])) {
-                $assigned->orWhere('estratega_id', $user->getKey());
+                $assigned->orWhere(function (Builder $teacher) use ($user): void {
+                    $teacher->where('estratega_id', $user->getKey())
+                        ->whereIn('estrategia_id', function (QueryBuilder $assignments) use ($user): void {
+                            $assignments->select('estrategia_id')->from('participante_estrategia')
+                                ->where('user_id', $user->getKey());
+                        });
+                });
             }
         });
     }
@@ -89,7 +95,7 @@ class ConsultorioReserva extends Model
 
     public function expediente(): BelongsTo
     {
-        return $this->belongsTo(Expediente::class);
+        return $this->belongsTo(Expediente::class)->withTrashed();
     }
 
     public function cubiculo(): BelongsTo

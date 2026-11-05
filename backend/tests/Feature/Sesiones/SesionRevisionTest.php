@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Sesiones;
 
+use App\Models\CatalogoEstrategia;
 use App\Models\Expediente;
 use App\Models\Sesion;
 use App\Models\SesionAdjunto;
@@ -176,11 +177,14 @@ class SesionRevisionTest extends TestCase
     {
         $docente = User::factory()->create();
         $docente->assignRole('docente');
+        $estrategia = CatalogoEstrategia::create(['nombre' => 'Estrategia docente para observación', 'activo' => true]);
+        $docente->estrategiasParticipadas()->attach($estrategia);
 
         $alumno = User::factory()->create();
         $alumno->assignRole('alumno');
 
         $expediente = Expediente::factory()->create([
+            'estrategia_id' => $estrategia->id,
             'creado_por' => $alumno->id,
             'tutor_id' => $docente->id,
             'estado' => 'revision',
@@ -222,11 +226,14 @@ class SesionRevisionTest extends TestCase
     {
         $docente = User::factory()->create();
         $docente->assignRole('docente');
+        $estrategia = CatalogoEstrategia::create(['nombre' => 'Estrategia docente para validación', 'activo' => true]);
+        $docente->estrategiasParticipadas()->attach($estrategia);
 
         $alumno = User::factory()->create();
         $alumno->assignRole('alumno');
 
         $expediente = Expediente::factory()->create([
+            'estrategia_id' => $estrategia->id,
             'creado_por' => $alumno->id,
             'tutor_id' => $docente->id,
             'estado' => 'revision',

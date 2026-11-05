@@ -34,7 +34,7 @@ class ExpedienteDeleteTest extends TestCase
     }
 
     #[DataProvider('authorizedRoles')]
-    public function test_authorized_users_see_delete_action_on_index_and_detail(string $role): void
+    public function test_authorized_users_see_explicit_archive_and_error_purge_actions(string $role): void
     {
         $user = User::factory()->create(['approved_at' => now()]);
         $user->assignRole($role);
@@ -45,17 +45,21 @@ class ExpedienteDeleteTest extends TestCase
 
             $response->assertOk();
             $form = $this->deleteForm($response, $expediente);
-            $this->assertNotNull($form, 'Debe aparecer la opción de eliminar en '.$route);
+            $this->assertNotNull($form, 'Debe aparecer la opción de archivar en '.$route);
             $this->assertSame('post', strtolower($form->getAttribute('method')));
-            $this->assertSame($expediente->no_control, $form->getAttribute('data-expediente'));
-            $this->assertStringContainsString('return confirm(', $form->getAttribute('onsubmit'));
-            $this->assertStringContainsString('Esta acción no se puede deshacer.', $form->getAttribute('onsubmit'));
-            $this->assertSame(1, (new DOMXPath($form->ownerDocument))->query('.//input[@name="_token"]', $form)->length);
+            $xpath = new DOMXPath($form->ownerDocument);
+            $this->assertSame(1, $xpath->query('.//input[@name="_token"]', $form)->length);
+            $this->assertSame(1, $xpath->query('.//input[@name="lifecycle_action" and @value="archive"]', $form)->length);
+            $this->assertSame(1, $xpath->query('.//input[@name="folio_confirmation" and @required]', $form)->length);
+            $this->assertSame(1, $xpath->query('.//textarea[@name="motivo" and @required]', $form)->length);
+            $response->assertSeeText('Archivar y conservar')
+                ->assertSeeText('Eliminar porque fue creado por error')
+                ->assertSeeText('mínimo de 10 años');
         }
     }
 
     #[DataProvider('authorizedRoles')]
-    public function test_authorized_users_can_delete_only_the_selected_expediente(string $role): void
+    public function test_legacy_delete_request_safely_archives_only_the_selected_expediente(string $role): void
     {
         $user = User::factory()->create(['approved_at' => now()]);
         $user->assignRole($role);
@@ -65,12 +69,18 @@ class ExpedienteDeleteTest extends TestCase
         $response = $this->actingAs($user)->delete(route('expedientes.destroy', $expediente));
 
         $response->assertRedirect(route('expedientes.index'));
-        $response->assertSessionHas('status', 'Expediente eliminado correctamente.');
-        $this->assertDatabaseMissing('expedientes', ['id' => $expediente->id]);
-        $this->assertDatabaseHas('expedientes', ['id' => $other->id]);
+        $response->assertSessionHas('status', fn ($message) => str_contains($message, 'Expediente archivado.'));
+        $this->assertSoftDeleted('expedientes', ['id' => $expediente->id]);
+        $this->assertDatabaseHas('expedientes', ['id' => $other->id, 'deleted_at' => null]);
+        $archived = Expediente::withTrashed()->findOrFail($expediente->id);
+        $this->assertSame($user->id, $archived->archived_by);
+        $this->assertSame(now()->addYearsNoOverflow(10)->toDateString(), $archived->retention_until->toDateString());
+        $this->assertDatabaseHas('expediente_lifecycle_audits', ['expediente_id' => $expediente->id, 'action' => 'archive']);
         $this->get(route('expedientes.index'))
             ->assertOk()
-            ->assertSeeText('Expediente eliminado correctamente.');
+            ->assertSeeText('Expediente archivado.')
+            ->assertDontSeeText($expediente->no_control)
+            ->assertSeeText($other->no_control);
     }
 
     public static function restrictedRoles(): array
@@ -89,12 +99,16 @@ class ExpedienteDeleteTest extends TestCase
         $user = User::factory()->create(['approved_at' => now()]);
         $user->assignRole($role);
         $estrategiaId = null;
-        if ($role === 'coordinador') {
+        if (in_array($role, ['coordinador', 'docente', 'estratega'], true)) {
             $estrategia = CatalogoEstrategia::query()->create([
                 'nombre' => 'Estrategia del coordinador de prueba',
                 'activo' => true,
             ]);
-            $user->estrategiasCoordinadas()->attach($estrategia);
+            if ($role === 'coordinador') {
+                $user->estrategiasCoordinadas()->attach($estrategia);
+            } else {
+                $user->estrategiasParticipadas()->attach($estrategia);
+            }
             $estrategiaId = $estrategia->id;
         }
 

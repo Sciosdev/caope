@@ -45,14 +45,17 @@ class Sesion extends Model
      * @param  Builder<Sesion>  $query
      * @return Builder<Sesion>
      */
-    public function scopeVisibleTo(Builder $query, ?User $user): Builder
+    public function scopeVisibleTo(Builder $query, ?User $user, bool $includeArchived = false): Builder
     {
         if ($user === null) {
             return $query->whereRaw('1 = 0');
         }
 
         if ($user->hasGlobalExpedienteAccess()) {
-            return $query;
+            return $includeArchived && ($user->hasRole('admin') || $user->isApprovedPaps())
+                ? $query
+                : $query->whereHas('expediente', fn (Builder $expedientes) => $expedientes
+                    ->whereNull('expedientes.deleted_at'));
         }
 
         if ($user->hasRole('coordinador')) {
@@ -64,7 +67,7 @@ class Sesion extends Model
 
             if ($user->hasAnyRole(['docente', 'estratega'])) {
                 $visible->orWhereHas('expediente', fn (Builder $expedientes) => $expedientes
-                    ->where('tutor_id', $user->getKey()));
+                    ->tutoredBy($user));
                 $hasSessionAccess = true;
             }
 
@@ -86,7 +89,7 @@ class Sesion extends Model
 
     public function expediente(): BelongsTo
     {
-        return $this->belongsTo(Expediente::class);
+        return $this->belongsTo(Expediente::class)->withTrashed();
     }
 
     public function realizadaPor(): BelongsTo

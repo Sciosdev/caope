@@ -153,12 +153,15 @@ Route::middleware(['auth', 'active_user'])->group(function () {
     });
 
     Route::get('expedientes/{expediente}/consentimientos/pdf', [ConsentimientoPdfController::class, '__invoke'])
+        ->withTrashed()
         ->name('expedientes.consentimientos.pdf');
     Route::get('expedientes/{expediente}/consentimientos/pdf/descargar', [ConsentimientoPdfController::class, 'download'])
+        ->withTrashed()
         ->name('expedientes.consentimientos.pdf.download');
     Route::post('expedientes/{expediente}/consentimientos', [ConsentimientoController::class, 'store'])
         ->name('expedientes.consentimientos.store');
     Route::put('expedientes/{expediente}/consentimientos/{consentimiento}', [ConsentimientoController::class, 'update'])
+        ->middleware('retention.files')
         ->name('expedientes.consentimientos.update');
     Route::delete('expedientes/{expediente}/consentimientos/{consentimiento}', [ConsentimientoController::class, 'destroy'])
         ->name('expedientes.consentimientos.destroy');
@@ -171,14 +174,15 @@ Route::middleware(['auth', 'active_user'])->group(function () {
         ->name('expedientes.timeline.export.download');
 
     Route::post('consentimientos/{consentimiento}/archivo', [ConsentimientoUploadController::class, 'store'])
-        ->middleware('throttle:uploads.consentimientos')
+        ->middleware(['throttle:uploads.consentimientos', 'retention.files'])
         ->name('consentimientos.upload');
     Route::get('consentimientos/{consentimiento}/archivo', [ConsentimientoUploadController::class, 'show'])
         ->name('consentimientos.archivo');
     Route::post('expedientes/{expediente}/consentimientos/observaciones', [ConsentimientoUploadController::class, 'storeObservaciones'])
-        ->middleware('throttle:uploads.consentimientos')
+        ->middleware(['throttle:uploads.consentimientos', 'retention.files'])
         ->name('expedientes.consentimientos.observaciones');
     Route::get('expedientes/{expediente}/consentimientos/observaciones', [ConsentimientoUploadController::class, 'showObservaciones'])
+        ->withTrashed()
         ->name('expedientes.consentimientos.observaciones.show');
 
     Route::post('expedientes/{expediente}/anexos', [AnexoController::class, 'store'])
@@ -186,10 +190,12 @@ Route::middleware(['auth', 'active_user'])->group(function () {
         ->name('expedientes.anexos.store');
     Route::get('expedientes/{expediente}/anexos/{anexo}/preview', [AnexoController::class, 'preview'])
         ->middleware('signed')
+        ->withTrashed()
         ->name('expedientes.anexos.preview');
 
     Route::get('expedientes/{expediente}/anexos/{anexo}', [AnexoController::class, 'show'])
         ->middleware('signed')
+        ->withTrashed()
         ->name('expedientes.anexos.show');
     Route::delete('expedientes/{expediente}/anexos/{anexo}', [AnexoController::class, 'destroy'])
         ->name('expedientes.anexos.destroy');
@@ -199,16 +205,40 @@ Route::middleware(['auth', 'active_user'])->group(function () {
     Route::post('expedientes/{expediente}/sesiones/{sesion}/validate', [SesionController::class, 'validateSesion'])
         ->name('expedientes.sesiones.validate');
     Route::get('expedientes/{expediente}/sesiones/{sesion}/adjuntos/{adjunto}/ver', [SesionAdjuntoController::class, 'preview'])
+        ->withTrashed()
         ->name('expedientes.sesiones.adjuntos.preview');
     Route::get('expedientes/{expediente}/sesiones/{sesion}/adjuntos/{adjunto}', SesionAdjuntoController::class)
+        ->withTrashed()
         ->name('expedientes.sesiones.adjuntos.download');
     Route::get('expedientes/export/ficha-identificacion/xlsx', [ExpedienteController::class, 'exportFichaIdentificacion'])
         ->name('expedientes.export.ficha-identificacion');
 
-    Route::resource('expedientes', ExpedienteController::class)->middleware('auth');
+    Route::get('expedientes/archivados', [ExpedienteController::class, 'archived'])
+        ->name('expedientes.archived');
+    Route::post('expedientes/{expediente}/restaurar', [ExpedienteController::class, 'restore'])
+        ->withTrashed()
+        ->whereNumber('expediente')
+        ->name('expedientes.restore');
+    Route::delete('expedientes/{expediente}/eliminar-definitivamente', [ExpedienteController::class, 'forceDestroy'])
+        ->withTrashed()
+        ->whereNumber('expediente')
+        ->name('expedientes.force-destroy');
+    Route::get('expedientes/{expediente}', [ExpedienteController::class, 'show'])
+        ->withTrashed()
+        ->whereNumber('expediente')
+        ->name('expedientes.show');
+    Route::resource('expedientes', ExpedienteController::class)->except('show')->middleware('auth');
+    Route::get('expedientes/{expediente}/sesiones', [SesionController::class, 'index'])
+        ->withTrashed()
+        ->name('expedientes.sesiones.index');
+    Route::get('expedientes/{expediente}/sesiones/{sesion}', [SesionController::class, 'show'])
+        ->withTrashed()
+        ->whereNumber('sesion')
+        ->name('expedientes.sesiones.show');
     Route::resource('expedientes.sesiones', SesionController::class)
         ->parameters(['sesiones' => 'sesion'])
-        ->middleware('auth');
+        ->except(['index', 'show'])
+        ->middleware(['auth', 'retention.files']);
 
     Route::middleware(['role:admin|paps', 'approved_paps:admin'])->group(function (): void {
         Route::get('consentimientos/requeridos', [ConsentimientoRequeridoController::class, 'index'])

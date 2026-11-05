@@ -77,7 +77,7 @@ class TimelineEvento extends Model
 
     public function expediente(): BelongsTo
     {
-        return $this->belongsTo(Expediente::class);
+        return $this->belongsTo(Expediente::class)->withTrashed();
     }
 
     public function actor(): BelongsTo

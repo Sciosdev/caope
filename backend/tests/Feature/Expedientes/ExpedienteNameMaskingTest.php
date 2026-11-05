@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Expedientes;
 
+use App\Models\CatalogoEstrategia;
 use App\Models\Expediente;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -18,8 +19,11 @@ class ExpedienteNameMaskingTest extends TestCase
     public function test_authorized_user_sees_full_patient_name_on_index(): void
     {
         $user = $this->createDocenteUser();
+        $estrategia = CatalogoEstrategia::create(['nombre' => 'Estrategia docente con nombre visible', 'activo' => true]);
+        $user->estrategiasParticipadas()->attach($estrategia);
 
         $expediente = Expediente::factory()->create([
+            'estrategia_id' => $estrategia->id,
             'paciente' => 'Juan Perez',
             'tutor_id' => $user->id,
             'creado_por' => $user->id,
@@ -83,9 +87,12 @@ class ExpedienteNameMaskingTest extends TestCase
     public function test_index_eager_loads_assigned_facilitador_relation(): void
     {
         $user = $this->createDocenteUser();
+        $estrategia = CatalogoEstrategia::create(['nombre' => 'Estrategia docente con facilitador visible', 'activo' => true]);
+        $user->estrategiasParticipadas()->attach($estrategia);
         $alumno = User::factory()->create();
 
         $expediente = Expediente::factory()->create([
+            'estrategia_id' => $estrategia->id,
             'tutor_id' => $user->id,
             'creado_por' => $alumno->id,
             'facilitador_id' => $alumno->id,

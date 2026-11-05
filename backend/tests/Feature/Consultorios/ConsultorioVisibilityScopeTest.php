@@ -110,6 +110,8 @@ class ConsultorioVisibilityScopeTest extends TestCase
     public function test_docente_solo_ve_donde_es_estratega(): void
     {
         [$admin, $docente] = [$this->user('admin'), $this->user('docente')];
+        $estrategia = CatalogoEstrategia::query()->where('nombre', 'Reserva asignada')->firstOrFail();
+        $docente->estrategiasParticipadas()->attach($estrategia);
         $this->reservation(5, 2, $admin, ['estratega_id' => $docente->id]);
         $this->reservation(6, 3, $admin, ['estrategia' => 'Reserva ajena']);
 

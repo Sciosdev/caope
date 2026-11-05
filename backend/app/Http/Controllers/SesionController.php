@@ -32,7 +32,7 @@ class SesionController extends Controller
         $this->authorize('view', $expediente);
 
         $sesiones = $expediente->sesiones()
-            ->visibleTo($request->user())
+            ->visibleTo($request->user(), $expediente->trashed())
             ->with(['realizadaPor', 'validadaPor'])
             ->withCount('adjuntos')
             ->orderByDesc('fecha')

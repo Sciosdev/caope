@@ -77,12 +77,14 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
-        Auth::logout();
-
         DB::transaction(function () use ($accountSessions, $user): void {
             $accountSessions->revokeAll($user);
             $user->delete();
         });
+
+        // Other sessions and tokens were revoked transactionally. Do not cycle
+        // the remember token after deletion: that could save the deleted model.
+        Auth::guard()->logoutCurrentDevice();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

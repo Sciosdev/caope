@@ -23,6 +23,9 @@ class Comentario extends Model
 
     public function comentable(): MorphTo
     {
-        return $this->morphTo();
+        // Los comentarios forman parte del expediente clínico retenido. La
+        // política decide quién puede leerlos; la relación debe poder resolver
+        // el expediente archivado para no perder su historial.
+        return $this->morphTo()->withTrashed();
     }
 }

@@ -10,7 +10,7 @@
         </div>
         <div class="d-flex flex-wrap align-items-center gap-2">
             <div class="btn-group">
-                <a href="{{ route('expedientes.index') }}" class="btn btn-outline-secondary">Volver</a>
+                <a href="{{ $expediente->trashed() ? route('expedientes.archived') : route('expedientes.index') }}" class="btn btn-outline-secondary">Volver</a>
                 @can('update', $expediente)
                     <a href="{{ route('expedientes.edit', $expediente) }}" class="btn btn-primary">Editar</a>
                 @endcan
@@ -23,6 +23,20 @@
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             {{ session('status') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+        </div>
+    @endif
+
+    @if ($expediente->trashed())
+        <div class="alert alert-secondary" role="status">
+            <strong>Expediente archivado · solo lectura.</strong>
+            Archivado el {{ optional($expediente->deleted_at)->format('d/m/Y H:i') }}
+            por {{ $expediente->archivedBy?->name ?? 'una cuenta no disponible' }}.
+            Debe conservarse, como mínimo, hasta {{ optional($expediente->retention_until)->format('d/m/Y H:i') ?? 'la fecha registrada' }}.
+        </div>
+    @elseif ($expediente->retention_until?->isFuture())
+        <div class="alert alert-warning" role="status">
+            Este expediente fue restaurado y continúa protegido contra eliminación o reemplazo de documentos hasta
+            {{ $expediente->retention_until->format('d/m/Y H:i') }}.
         </div>
     @endif
 
@@ -946,6 +960,7 @@
                                                         name="tipo"
                                                         form="{{ $formId }}"
                                                         class="form-select form-select-sm @error('tipo', $errorBag) is-invalid @enderror"
+                                                        @disabled($expediente->trashed())
                                                         required
                                                     >
                                                         <option value="" disabled {{ $tipoValor ? '' : 'selected' }}>Selecciona una opción</option>
@@ -1483,14 +1498,16 @@
                             <h6 class="mb-0">Actividad reciente</h6>
                             <p class="text-muted small mb-0">Movimientos y acciones registradas en el expediente.</p>
                         </div>
-                        <button
-                            type="button"
-                            class="btn btn-outline-primary btn-sm ms-md-auto"
-                            data-timeline-export-url="{{ route('expedientes.timeline.export', $expediente) }}"
-                        >
-                            <i class="mdi mdi-download"></i>
-                            {{ __('Exportar historial') }}
-                        </button>
+                        @unless ($expediente->trashed())
+                            <button
+                                type="button"
+                                class="btn btn-outline-primary btn-sm ms-md-auto"
+                                data-timeline-export-url="{{ route('expedientes.timeline.export', $expediente) }}"
+                            >
+                                <i class="mdi mdi-download"></i>
+                                {{ __('Exportar historial') }}
+                            </button>
+                        @endunless
                     </div>
                     <div id="timeline-export-feedback" class="alert d-none" role="alert"></div>
                     @if ($timelineEventos->isEmpty())

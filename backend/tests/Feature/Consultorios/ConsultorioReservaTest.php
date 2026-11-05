@@ -748,6 +748,9 @@ class ConsultorioReservaTest extends TestCase
 
     public function test_paps_solo_puede_solicitar_cambios_para_reserva_creada_desde_expediente(): void
     {
+        // Lunes fijo: +3 días no debe caer en domingo según la fecha de ejecución.
+        $this->travelTo(now()->startOfWeek()->addWeek());
+
         $adminRole = Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
         $papsRole = Role::query()->firstOrCreate(['name' => 'paps', 'guard_name' => 'web']);
         $admin = User::factory()->create();

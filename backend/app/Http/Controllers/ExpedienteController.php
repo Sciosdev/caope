@@ -18,6 +18,7 @@ use App\Notifications\ExpedienteClosedNotification;
 use App\Notifications\ExpedienteClosureAttemptNotification;
 use App\Notifications\TutorAssignedNotification;
 use App\Services\ConsultorioReservationGuard;
+use App\Services\ExpedienteLifecycleService;
 use App\Services\ExpedienteStateValidator;
 use App\Services\TimelineLogger;
 use App\Support\Uploads\AnexoUploadOptions;
@@ -105,11 +106,25 @@ class ExpedienteController extends Controller
     public function __construct(
         private TimelineLogger $timelineLogger,
         private ExpedienteStateValidator $stateValidator,
+        private ExpedienteLifecycleService $lifecycleService,
     ) {}
 
     public function index(Request $request): View
     {
         $this->authorize('viewAny', Expediente::class);
+
+        return $this->renderIndex($request, archived: false);
+    }
+
+    public function archived(Request $request): View
+    {
+        $this->authorize('viewArchived', Expediente::class);
+
+        return $this->renderIndex($request, archived: true);
+    }
+
+    private function renderIndex(Request $request, bool $archived): View
+    {
 
         $busqueda = (string) $request->input('q', '');
         $estado = (string) $request->input('estado', '');
@@ -120,7 +135,7 @@ class ExpedienteController extends Controller
 
         $user = $request->user();
 
-        $query = $this->indexQuery($request);
+        $query = $this->indexQuery($request, $archived);
 
         $expedientes = $query->paginate(10)->withQueryString();
 
@@ -138,6 +153,7 @@ class ExpedienteController extends Controller
             'turno' => $turno,
             'carreras' => $carreras,
             'turnos' => $turnos,
+            'archived' => $archived,
         ]);
     }
 
@@ -181,7 +197,7 @@ class ExpedienteController extends Controller
         $year = Carbon::today()->year;
         $pattern = sprintf('/^%s-%d-(\d{4})$/', preg_quote($prefix, '/'), $year);
 
-        $maxSequence = Expediente::query()
+        $maxSequence = Expediente::withTrashed()
             ->where('no_control', 'like', sprintf('%s-%d-%%', $prefix, $year))
             ->pluck('no_control')
             ->map(function (?string $noControl) use ($pattern) {
@@ -199,7 +215,7 @@ class ExpedienteController extends Controller
     /**
      * @return \Illuminate\Database\Eloquent\Builder<Expediente>
      */
-    private function indexQuery(Request $request): \Illuminate\Database\Eloquent\Builder
+    private function indexQuery(Request $request, bool $archived = false): \Illuminate\Database\Eloquent\Builder
     {
         $busqueda = (string) $request->input('q', '');
         $estado = (string) $request->input('estado', '');
@@ -209,9 +225,11 @@ class ExpedienteController extends Controller
         $hasta = $request->input('hasta') ? Carbon::parse($request->input('hasta')) : null;
         $user = $request->user();
 
-        return Expediente::query()
-            ->with(['facilitador', 'estrategia'])
-            ->visibleTo($user)
+        $query = $archived
+            ? Expediente::onlyTrashed()->with(['facilitador', 'estrategia', 'archivedBy'])
+            : Expediente::query()->with(['facilitador', 'estrategia'])->visibleTo($user);
+
+        return $query
             ->when($busqueda, function ($q) use ($busqueda) {
                 $q->where(function ($w) use ($busqueda) {
                     $w->where('no_control', 'like', "%{$busqueda}%")
@@ -451,9 +469,10 @@ class ExpedienteController extends Controller
             'coordinador',
             'estrategia',
             'cubiculo',
+            'archivedBy',
             'registroUrgencia',
             'sesiones' => fn ($q) => $q
-                ->visibleTo($request->user())
+                ->visibleTo($request->user(), $expediente->trashed())
                 ->with(['realizadaPor', 'validadaPor'])
                 ->withCount('adjuntos')
                 ->orderByDesc('fecha'),
@@ -475,7 +494,7 @@ class ExpedienteController extends Controller
         $canChangeAssignments = $request->user()->hasGlobalExpedienteAccess()
             || $request->user()->isCoordinatorOf($expediente);
         $profesores = $canChangeAssignments
-            ? User::role('docente')->orderBy('name')->get()
+            ? User::role(['docente', 'estratega'])->orderBy('name')->get()
             : collect([$expediente->tutor])->filter();
 
         $familyHistory = $expediente->antecedentes_familiares ?? Expediente::defaultFamilyHistory();
@@ -880,15 +899,87 @@ class ExpedienteController extends Controller
         }
     }
 
-    public function destroy(Expediente $expediente): RedirectResponse
+    public function destroy(Request $request, Expediente $expediente): RedirectResponse
     {
         $this->authorize('delete', $expediente);
 
-        $expediente->delete();
+        $explicitAction = $request->input('lifecycle_action');
+        if ($explicitAction !== null && $explicitAction !== 'archive') {
+            throw ValidationException::withMessages([
+                'lifecycle_action' => 'La acción seleccionada no es válida para archivar.',
+            ]);
+        }
+
+        if ($explicitAction === null) {
+            $motivo = 'Archivado seguro desde un formulario anterior sin motivo capturado.';
+        } else {
+            $validated = $this->validateLifecycleConfirmation($request, $expediente, 'archive');
+            $motivo = $validated['motivo'];
+        }
+
+        $archived = $this->lifecycleService->archive($expediente, $request->user(), $motivo);
 
         return redirect()
             ->route('expedientes.index')
-            ->with('status', 'Expediente eliminado correctamente.');
+            ->with('status', sprintf(
+                'Expediente archivado. Su conservación mínima está protegida hasta %s.',
+                $archived->retention_until->format('d/m/Y')
+            ));
+    }
+
+    public function restore(Request $request, Expediente $expediente): RedirectResponse
+    {
+        $this->authorize('restore', $expediente);
+        $validated = $this->validateLifecycleConfirmation($request, $expediente, 'restore');
+
+        $restored = $this->lifecycleService->restore($expediente, $request->user(), $validated['motivo']);
+
+        return redirect()
+            ->route('expedientes.show', $restored)
+            ->with('status', sprintf(
+                'Expediente restaurado. La protección de conservación permanece vigente hasta %s.',
+                $restored->retention_until?->format('d/m/Y') ?? 'la fecha registrada'
+            ));
+    }
+
+    public function forceDestroy(Request $request, Expediente $expediente): RedirectResponse
+    {
+        $this->authorize('forceDelete', $expediente);
+        $validated = $this->validateLifecycleConfirmation($request, $expediente, 'purge_error');
+        $result = $this->lifecycleService->purgeForError($expediente, $request->user(), $validated['motivo']);
+
+        $pending = collect($result['file_summary'])
+            ->only(['pending', 'processing', 'failed'])
+            ->sum();
+        $shared = (int) ($result['file_summary']['retained_shared'] ?? 0);
+        $unsafe = (int) ($result['file_summary']['retained_unsafe'] ?? 0);
+
+        $response = redirect()
+            ->route('expedientes.index')
+            ->with('status', 'Expediente registrado por error eliminado definitivamente. La auditoría mínima fue conservada.');
+
+        if ($pending > 0) {
+            $response->with('warning', sprintf(
+                '%d archivo(s) siguen pendientes de eliminación segura y serán reintentados por el scheduler.',
+                $pending
+            ));
+        }
+
+        if ($shared > 0) {
+            $response->with('warning_shared', sprintf(
+                '%d archivo(s) se conservaron porque todavía están vinculados a otro registro.',
+                $shared
+            ));
+        }
+
+        if ($unsafe > 0) {
+            $response->with('warning_unsafe', sprintf(
+                '%d referencia(s) de archivo no se eliminaron porque requieren revisión manual de seguridad.',
+                $unsafe
+            ));
+        }
+
+        return $response;
     }
 
     public function changeState(Request $request, Expediente $expediente): RedirectResponse
@@ -968,7 +1059,7 @@ class ExpedienteController extends Controller
         $turnos = CatalogoTurno::activos()->pluck('nombre');
 
         $tutores = $canChangeAssignments
-            ? User::role('docente')->orderBy('name')->get()
+            ? User::role(['docente', 'estratega'])->orderBy('name')->get()
             : collect([$expediente?->tutor])->filter();
         $coordinadores = $canChangeAssignments
             ? User::role('coordinador')->orderBy('name')->get()
@@ -1000,7 +1091,7 @@ class ExpedienteController extends Controller
             ? User::query()->where('is_active', true)->orderBy('name')->get(['id', 'name'])
             : collect([$expediente->facilitador])->filter();
         $docentes = $expediente === null
-            ? User::role('docente')->where('is_active', true)->orderBy('name')->get(['id', 'name'])
+            ? User::role(['docente', 'estratega'])->where('is_active', true)->orderBy('name')->get(['id', 'name'])
             : collect([$expediente->tutor])->filter();
 
         $generos = collect(Expediente::GENERO_OPTIONS)
@@ -1155,6 +1246,36 @@ class ExpedienteController extends Controller
                 'cubiculo_id' => 'El cubículo seleccionado ya no está disponible.',
             ]);
         }
+    }
+
+    /**
+     * @return array{lifecycle_action: string, motivo: string, folio_confirmation: string}
+     */
+    private function validateLifecycleConfirmation(
+        Request $request,
+        Expediente $expediente,
+        string $expectedAction,
+    ): array {
+        $validated = $request->validate([
+            'lifecycle_action' => ['required', Rule::in([$expectedAction])],
+            'motivo' => ['required', 'string', 'min:10', 'max:1000'],
+            'folio_confirmation' => ['required', 'string', 'max:50'],
+        ]);
+
+        $validated['motivo'] = Str::squish($validated['motivo']);
+        if (mb_strlen($validated['motivo']) < 10) {
+            throw ValidationException::withMessages([
+                'motivo' => 'Describe brevemente el motivo con al menos 10 caracteres.',
+            ]);
+        }
+
+        if (! hash_equals((string) $expediente->no_control, $validated['folio_confirmation'])) {
+            throw ValidationException::withMessages([
+                'folio_confirmation' => 'El folio no coincide exactamente con el expediente.',
+            ]);
+        }
+
+        return $validated;
     }
 
     private function canChangeAssignments(?User $user, Expediente $expediente): bool

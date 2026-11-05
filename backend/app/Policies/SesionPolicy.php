@@ -13,13 +13,20 @@ class SesionPolicy
 
     public function view(User $user, Sesion $sesion): bool
     {
+        $expediente = $sesion->expediente;
+        if (! $expediente) {
+            return false;
+        }
+
+        if ($expediente->trashed()) {
+            return $this->isAdmin($user);
+        }
+
         if ($user->hasGlobalExpedienteAccess()) {
             return true;
         }
 
-        $expediente = $sesion->expediente;
-
-        if ($expediente && $user->isCoordinatorOf($expediente)) {
+        if ($user->isCoordinatorOf($expediente)) {
             return true;
         }
 
@@ -39,6 +46,10 @@ class SesionPolicy
 
     public function create(User $user, Expediente $expediente): bool
     {
+        if ($expediente->trashed()) {
+            return false;
+        }
+
         if ($user->hasGlobalExpedienteAccess()) {
             return true;
         }
@@ -57,6 +68,10 @@ class SesionPolicy
 
     public function update(User $user, Sesion $sesion): bool
     {
+        if (! $sesion->expediente || $sesion->expediente->trashed()) {
+            return false;
+        }
+
         if ($sesion->status_revision === 'validada') {
             return $user->hasGlobalExpedienteAccess()
                 || ($sesion->expediente && $user->isCoordinatorOf($sesion->expediente));
@@ -83,6 +98,10 @@ class SesionPolicy
 
     public function delete(User $user, Sesion $sesion): bool
     {
+        if (! $sesion->expediente || $sesion->expediente->trashed() || $sesion->expediente->retention_until?->isFuture()) {
+            return false;
+        }
+
         if ($this->isAdmin($user)) {
             return true;
         }
@@ -99,6 +118,10 @@ class SesionPolicy
 
     public function validate(User $user, Sesion $sesion): bool
     {
+        if (! $sesion->expediente || $sesion->expediente->trashed()) {
+            return false;
+        }
+
         if ($user->hasGlobalExpedienteAccess()) {
             return true;
         }
@@ -112,6 +135,10 @@ class SesionPolicy
 
     public function observe(User $user, Sesion $sesion): bool
     {
+        if (! $sesion->expediente || $sesion->expediente->trashed()) {
+            return false;
+        }
+
         if ($user->hasGlobalExpedienteAccess()) {
             return true;
         }

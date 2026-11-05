@@ -11,12 +11,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Carbon;
 
 class Expediente extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     public const FAMILY_HISTORY_MEMBERS = [
         'madre' => 'Madre',
@@ -171,6 +172,8 @@ class Expediente extends Model
         'antecedentes_personales_patologicos' => 'array',
         'aparatos_sistemas' => 'array',
         'resumen_clinico' => 'array',
+        'deleted_at' => 'datetime',
+        'retention_until' => 'datetime',
         'telefono_principal' => 'string',
         'contacto_emergencia_telefono' => 'string',
         'medico_referencia_telefono' => 'string',
@@ -281,16 +284,34 @@ class Expediente extends Model
 
     public function scopeFacilitatedBy(Builder $query, User $user): Builder
     {
-        return $query->where('facilitador_id', $user->getKey());
+        return $query->whereNull($query->qualifyColumn('deleted_at'))
+            ->where('facilitador_id', $user->getKey());
+    }
+
+    public function scopeParticipatedBy(Builder $query, User $user): Builder
+    {
+        return $query->whereIn($query->qualifyColumn('estrategia_id'), function (QueryBuilder $assignments) use ($user): void {
+            $assignments->select('estrategia_id')
+                ->from('participante_estrategia')
+                ->where('user_id', $user->getKey());
+        });
+    }
+
+    public function scopeTutoredBy(Builder $query, User $user): Builder
+    {
+        return $query->whereNull($query->qualifyColumn('deleted_at'))
+            ->where($query->qualifyColumn('tutor_id'), $user->getKey())
+            ->participatedBy($user);
     }
 
     public function scopeCoordinatedBy(Builder $query, User $user): Builder
     {
-        return $query->whereIn($query->qualifyColumn('estrategia_id'), function (QueryBuilder $assignments) use ($user): void {
-            $assignments->select('estrategia_id')
-                ->from('coordinador_estrategia')
-                ->where('user_id', $user->getKey());
-        });
+        return $query->whereNull($query->qualifyColumn('deleted_at'))
+            ->whereIn($query->qualifyColumn('estrategia_id'), function (QueryBuilder $assignments) use ($user): void {
+                $assignments->select('estrategia_id')
+                    ->from('coordinador_estrategia')
+                    ->where('user_id', $user->getKey());
+            });
     }
 
     /**
@@ -324,7 +345,7 @@ class Expediente extends Model
             }
 
             if ($roles->intersect(['docente', 'estratega'])->isNotEmpty()) {
-                $visible->orWhere('tutor_id', $user->getKey());
+                $visible->orWhere(fn (Builder $assigned) => $assigned->tutoredBy($user));
                 $hasAssignment = true;
             }
 
@@ -345,6 +366,8 @@ class Expediente extends Model
      */
     public function scopeValidatableBy(Builder $query, ?User $user): Builder
     {
+        $query->whereNull($query->qualifyColumn('deleted_at'));
+
         if ($user === null) {
             return $query->whereRaw('1 = 0');
         }
@@ -361,7 +384,7 @@ class Expediente extends Model
             $hasValidationAssignment = false;
 
             if ($user->hasAnyRole(['docente', 'estratega'])) {
-                $validatable->orWhere('tutor_id', $user->getKey());
+                $validatable->orWhere(fn (Builder $assigned) => $assigned->tutoredBy($user));
                 $hasValidationAssignment = true;
             }
 
@@ -374,6 +397,11 @@ class Expediente extends Model
     public function tutor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'tutor_id');
+    }
+
+    public function archivedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'archived_by');
     }
 
     public function coordinador(): BelongsTo
