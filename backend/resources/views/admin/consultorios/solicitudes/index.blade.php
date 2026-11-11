@@ -23,7 +23,8 @@
                                 <th>Tipo</th>
                                 <th>Expediente</th>
                                 <th>Persona del expediente</th>
-                                <th>Reserva</th>
+                                <th>Reserva actual</th>
+                                <th>Cambio solicitado</th>
                                 <th>Fecha de solicitud</th>
                                 <th class="text-end">Acciones</th>
                             </tr>
@@ -45,6 +46,9 @@
                                         ? ($expedienteIdPropuesto === null ? null : $expedientesPropuestos->get($expedienteIdPropuesto))
                                         : $expedienteActual;
                                     $puedeVerExpediente = $expedienteVinculado && auth()->user()?->can('view', $expedienteVinculado);
+                                    $numeroPropuesto = isset($payload['consultorio_numero']) && is_numeric($payload['consultorio_numero'])
+                                        ? (int) $payload['consultorio_numero'] : null;
+                                    $cubiculoPropuesto = $numeroPropuesto === null ? null : $cubiculosPropuestos->get($numeroPropuesto);
                                 @endphp
                                 <tr>
                                     <td>{{ $solicitud->requestedBy?->name ?? 'Usuario' }}</td>
@@ -85,16 +89,24 @@
                                             #{{ $solicitud->consultorio_reserva_id }} (registro no disponible)
                                         @endif
                                     </td>
+                                    <td>
+                                        @if ($solicitud->tipo === 'edicion' && $payload !== [])
+                                            <strong>{{ $payload['fecha'] ?? 'Fecha no disponible' }}</strong>
+                                            · {{ isset($payload['hora_inicio']) ? substr((string) $payload['hora_inicio'], 0, 5) : '—' }}-{{ isset($payload['hora_fin']) ? substr((string) $payload['hora_fin'], 0, 5) : '—' }}
+                                            <div class="small text-muted">
+                                                {{ trim((string) ($cubiculoPropuesto?->nombre ?? '')) !== '' ? $cubiculoPropuesto->nombre : ($numeroPropuesto ? 'Cubículo núm. '.$numeroPropuesto : 'Cubículo no disponible') }}
+                                            </div>
+                                        @else
+                                            <span class="text-danger">Dar de baja la reserva completa</span>
+                                        @endif
+                                    </td>
                                     <td>{{ $solicitud->created_at?->format('Y-m-d H:i') }}</td>
                                     <td>
                                         <div class="d-flex justify-content-end gap-2">
-                                            @if ($solicitud->tipo === 'edicion' && $solicitud->reserva)
-                                                <a href="{{ route('consultorios.edit', $solicitud->reserva) }}" class="btn btn-sm btn-outline-primary">Editar reserva</a>
-                                            @endif
                                             @if (auth()->user()?->hasRole('admin'))
                                                 <form method="POST" action="{{ route('admin.consultorios.solicitudes.approve', $solicitud) }}" onsubmit="return confirm('¿Aprobar esta solicitud?');">
                                                     @csrf
-                                                    <button class="btn btn-sm btn-success">Aprobar</button>
+                                                    <button class="btn btn-sm btn-success">Aprobar tal cual</button>
                                                 </form>
                                             @endif
                                         </div>

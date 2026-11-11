@@ -12,6 +12,7 @@ use App\Models\ConsultorioReservaSolicitud;
 use App\Models\Expediente;
 use App\Models\User;
 use App\Services\ConsultorioReservationGuard;
+use App\Services\ConsultorioReservationUpdateService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -21,12 +22,15 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ConsultorioReservaController extends Controller
 {
+    public function __construct(private ConsultorioReservationUpdateService $reservationUpdater) {}
+
     private function applyPendingApprovalVisibilityFilter(Builder $query): Builder
     {
         if (! $this->hasSolicitudesTable()) {
@@ -244,8 +248,26 @@ class ConsultorioReservaController extends Controller
             403
         );
 
+        $reserva->load([
+            'usuarioAtendido',
+            'estratega',
+            'supervisor',
+            'estrategiaCatalogo',
+            'cubiculo',
+            'expediente',
+        ]);
+        abort_if($reserva->expediente?->trashed(), 403, 'Un expediente archivado es de solo lectura.');
+        abort_if($this->reservationHasPendingRequest($reserva), 409, 'Esta reserva tiene una solicitud pendiente por atender.');
+
+        $fromExpediente = $request->string('origen')->toString() === 'expediente';
+        if ($fromExpediente) {
+            abort_unless($this->canManageBitacora($request), 403);
+            abort_if($reserva->expediente === null, 404);
+        }
+
         return view('consultorios.edit', [
-            'reserva' => $reserva->load(['usuarioAtendido', 'estratega', 'supervisor', 'estrategiaCatalogo', 'cubiculo']),
+            'reserva' => $reserva,
+            'editContext' => $fromExpediente ? 'expediente' : null,
             'expedientes' => Expediente::query()->visibleTo($request->user())
                 ->orderBy('no_control')->get(['id', 'no_control', 'paciente']),
             'usuarios' => User::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
@@ -308,21 +330,19 @@ class ConsultorioReservaController extends Controller
         abort_unless($this->canManageBitacora($request), 403);
 
         $validated = $request->validated();
-        $reservationGuard = app(ConsultorioReservationGuard::class);
+        $scheduleOnly = ($validated['edit_context'] ?? null) === 'expediente';
+        $updated = $this->reservationUpdater->updateApproved(
+            $reserva,
+            Arr::except($validated, ['edit_context']),
+            $request->user(),
+            $scheduleOnly,
+        );
 
-        DB::transaction(function () use ($reserva, $validated, $reservationGuard): void {
-            $consultorioNumero = (int) $validated['consultorio_numero'];
-            $reservationGuard->lockConsultorio($consultorioNumero);
-            $lockedReserva = ConsultorioReserva::query()->whereKey($reserva->getKey())->lockForUpdate()->firstOrFail();
-            $reservationGuard->assertAvailable(
-                $consultorioNumero,
-                [$validated['fecha']],
-                $validated['hora_inicio'],
-                $validated['hora_fin'],
-                (int) $lockedReserva->getKey()
-            );
-            $lockedReserva->update($validated);
-        }, 3);
+        if ($scheduleOnly && $updated->expediente_id !== null) {
+            return redirect()
+                ->route('expedientes.show', $updated->expediente_id)
+                ->with('status', 'Horario y cubículo actualizados correctamente.');
+        }
 
         return redirect()->route('consultorios.index')->with('status', 'Reserva actualizada correctamente.');
     }
@@ -348,8 +368,13 @@ class ConsultorioReservaController extends Controller
         DB::transaction(function () use ($request, $reserva): void {
             $validated = $request->validated();
             app(ConsultorioReservationGuard::class)->lockConsultorio((int) $validated['consultorio_numero']);
+            $lockedReserva = ConsultorioReserva::query()
+                ->whereKey($reserva->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+            $this->assertReservationIsMutable($lockedReserva);
             ConsultorioReservaSolicitud::query()->create([
-                'consultorio_reserva_id' => $reserva->id,
+                'consultorio_reserva_id' => $lockedReserva->id,
                 'requested_by' => $request->user()->id,
                 'tipo' => 'edicion',
                 'payload' => $validated,
@@ -367,24 +392,28 @@ class ConsultorioReservaController extends Controller
             return redirect()->route('consultorios.index')->with('status', 'Las solicitudes de modificación no están disponibles temporalmente.');
         }
 
-        ConsultorioReservaSolicitud::query()->create([
-            'consultorio_reserva_id' => $reserva->id,
-            'requested_by' => $request->user()->id,
-            'tipo' => 'edicion',
-            'payload' => [
-                'fecha' => $reserva->fecha?->format('Y-m-d'),
-                'hora_inicio' => substr((string) $reserva->hora_inicio, 0, 5),
-                'hora_fin' => substr((string) $reserva->hora_fin, 0, 5),
-                'consultorio_numero' => (int) $reserva->consultorio_numero,
-                'cubiculo_numero' => (int) $reserva->cubiculo_numero,
-                'estrategia' => $reserva->estrategia,
-                'expediente_id' => $reserva->expediente_id,
-                'usuario_atendido_id' => $reserva->usuario_atendido_id,
-                'estratega_id' => $reserva->estratega_id,
-                'supervisor_id' => $reserva->supervisor_id,
-            ],
-            'status' => 'pendiente',
-        ]);
+        DB::transaction(function () use ($request, $reserva): void {
+            $lockedReserva = ConsultorioReserva::query()->lockForUpdate()->findOrFail($reserva->getKey());
+            $this->assertReservationIsMutable($lockedReserva);
+            ConsultorioReservaSolicitud::query()->create([
+                'consultorio_reserva_id' => $lockedReserva->id,
+                'requested_by' => $request->user()->id,
+                'tipo' => 'edicion',
+                'payload' => [
+                    'fecha' => $lockedReserva->fecha?->format('Y-m-d'),
+                    'hora_inicio' => substr((string) $lockedReserva->hora_inicio, 0, 5),
+                    'hora_fin' => substr((string) $lockedReserva->hora_fin, 0, 5),
+                    'consultorio_numero' => (int) $lockedReserva->consultorio_numero,
+                    'cubiculo_numero' => (int) $lockedReserva->cubiculo_numero,
+                    'estrategia' => $lockedReserva->estrategia,
+                    'expediente_id' => $lockedReserva->expediente_id,
+                    'usuario_atendido_id' => $lockedReserva->usuario_atendido_id,
+                    'estratega_id' => $lockedReserva->estratega_id,
+                    'supervisor_id' => $lockedReserva->supervisor_id,
+                ],
+                'status' => 'pendiente',
+            ]);
+        }, 3);
 
         return redirect()->route('consultorios.index')->with('status', 'Solicitud enviada al administrador.');
     }
@@ -396,13 +425,17 @@ class ConsultorioReservaController extends Controller
             return redirect()->route('consultorios.index')->with('status', 'Las solicitudes de baja no están disponibles temporalmente.');
         }
 
-        ConsultorioReservaSolicitud::query()->create([
-            'consultorio_reserva_id' => $reserva->id,
-            'requested_by' => $request->user()->id,
-            'tipo' => 'baja',
-            'payload' => null,
-            'status' => 'pendiente',
-        ]);
+        DB::transaction(function () use ($request, $reserva): void {
+            $lockedReserva = ConsultorioReserva::query()->lockForUpdate()->findOrFail($reserva->getKey());
+            $this->assertReservationIsMutable($lockedReserva);
+            ConsultorioReservaSolicitud::query()->create([
+                'consultorio_reserva_id' => $lockedReserva->id,
+                'requested_by' => $request->user()->id,
+                'tipo' => 'baja',
+                'payload' => null,
+                'status' => 'pendiente',
+            ]);
+        }, 3);
 
         return redirect()->route('consultorios.index')->with('status', 'Solicitud enviada al administrador.');
     }
@@ -435,5 +468,23 @@ class ConsultorioReservaController extends Controller
                 : ($eliminadas === 1
                     ? 'Reserva eliminada correctamente.'
                     : 'No se encontró un registro vigente para eliminar.'));
+    }
+
+    private function reservationHasPendingRequest(ConsultorioReserva $reserva): bool
+    {
+        return $this->hasSolicitudesTable()
+            && ConsultorioReservaSolicitud::query()
+                ->where('consultorio_reserva_id', $reserva->getKey())
+                ->where('status', 'pendiente')
+                ->exists();
+    }
+
+    private function assertReservationIsMutable(ConsultorioReserva $reserva): void
+    {
+        if ($reserva->expediente?->trashed()) {
+            throw ValidationException::withMessages([
+                'reserva' => 'Un expediente archivado es de solo lectura; su reserva no puede modificarse.',
+            ]);
+        }
     }
 }

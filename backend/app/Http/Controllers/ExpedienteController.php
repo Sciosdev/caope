@@ -159,7 +159,7 @@ class ExpedienteController extends Controller
 
     public function exportFichaIdentificacion(Request $request): BinaryFileResponse
     {
-        $this->authorize('viewAny', Expediente::class);
+        $this->authorize('exportReport', Expediente::class);
 
         $query = $this->indexQuery($request);
         $filename = sprintf('expedientes_ficha_identificacion_%s.xlsx', now()->format('Ymd_His'));
@@ -486,6 +486,15 @@ class ExpedienteController extends Controller
 
         $this->hydrateAnexoLinks($expediente);
 
+        $reservasCubiculo = $expediente->reservasCubiculo()
+            ->select(['id', 'expediente_id', 'fecha', 'hora_inicio', 'hora_fin', 'consultorio_numero'])
+            ->with('cubiculo:id,numero,nombre');
+        if (Schema::hasTable('consultorio_reserva_solicitudes')) {
+            $reservasCubiculo->withExists(['solicitudes as solicitud_pendiente' => fn ($query) => $query
+                ->where('status', 'pendiente')
+                ->whereIn('tipo', ['edicion', 'baja'])]);
+        }
+
         $anexosAcceptedTypes = AnexoUploadOptions::acceptedTypesString();
         $anexosExtensions = AnexoUploadOptions::allowedExtensions();
         $anexosMax = AnexoUploadOptions::maxKilobytes();
@@ -512,6 +521,7 @@ class ExpedienteController extends Controller
 
         return view('expedientes.show', [
             'expediente' => $expediente,
+            'reservasCubiculo' => $reservasCubiculo->get(),
             'sesiones' => $expediente->sesiones,
             'consentimientos' => $expediente->consentimientos,
             'anexos' => $expediente->anexos,
@@ -553,6 +563,7 @@ class ExpedienteController extends Controller
 
         return view('expedientes.edit', array_merge($options, [
             'expediente' => $expediente,
+            'hasLinkedReservations' => $expediente->reservasCubiculo()->reorder()->exists(),
         ]));
     }
 
@@ -638,6 +649,16 @@ class ExpedienteController extends Controller
                     $data['cubiculo_id'] ?? null,
                     $expediente->cubiculo_id,
                 );
+
+                if (array_key_exists('cubiculo_id', $data)) {
+                    $current = Expediente::query()->lockForUpdate()->findOrFail($expediente->getKey(), ['id', 'cubiculo_id']);
+                    if ((int) $current->cubiculo_id !== (int) $data['cubiculo_id']
+                        && $current->reservasCubiculo()->reorder()->exists()) {
+                        throw ValidationException::withMessages([
+                            'cubiculo_id' => 'Cambia el cubículo desde su horario asignado para actualizar también la reserva.',
+                        ]);
+                    }
+                }
 
                 $expediente->fill($data);
                 $expediente->save();

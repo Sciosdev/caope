@@ -15,6 +15,11 @@ class ExpedientePolicy
         return $this->isAdmin($user) || $user->can('expedientes.view');
     }
 
+    public function exportReport(User $user): bool
+    {
+        return $user->hasRole('admin');
+    }
+
     public function view(User $user, Expediente $expediente): bool
     {
         if ($expediente->trashed()) {

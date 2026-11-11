@@ -30,6 +30,7 @@
 @php($canChangeAssignments = $isCreating || auth()->user()?->hasGlobalExpedienteAccess() || auth()->user()?->isCoordinatorOf($expediente))
 @php($showNuevaAsignacion = auth()->user()?->hasAnyRole(['admin', 'alumno']) || auth()->user()?->isApprovedPaps())
 @php($canChangeCubiculo = $isCreating || auth()->user()?->hasRole('admin') || $isPaps)
+@php($hasLinkedReservations = $hasLinkedReservations ?? false)
 @php($legacyCubiculo = data_get($expediente->resumen_clinico ?? [], 'cubiculo'))
 
 <div class="card border shadow-none mb-4">
@@ -251,7 +252,7 @@
                     name="cubiculo_id"
                     id="cubiculo_id"
                     class="form-select @error('cubiculo_id') is-invalid @enderror"
-                    @disabled(! $canChangeCubiculo)
+                    @disabled(! $canChangeCubiculo || $hasLinkedReservations)
                     @if ($showNuevaAsignacion && request()->routeIs('expedientes.create')) required @endif
                 >
                     <option value="">Sin asignar</option>
@@ -265,7 +266,14 @@
                         </option>
                     @endforeach
                 </select>
-                @if (! $isCreating && blank($expediente->cubiculo_id) && filled($legacyCubiculo))
+                @if ($hasLinkedReservations)
+                    <div class="form-text">
+                        El cubículo se actualiza al cambiar el horario de su reserva.
+                        @role('admin')
+                            <a href="{{ route('expedientes.show', $expediente) }}#horarios-asignados">Ir a los horarios asignados</a>
+                        @endrole
+                    </div>
+                @elseif (! $isCreating && blank($expediente->cubiculo_id) && filled($legacyCubiculo))
                     <div class="form-text text-warning">
                         Asignación anterior: Cubículo {{ $legacyCubiculo }}. Pendiente de confirmar en el catálogo unificado.
                     </div>

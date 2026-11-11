@@ -56,7 +56,9 @@
     @php
         $currentUser = auth()->user();
         $isApprovedPaps = ($currentUser?->hasRole('paps') ?? false) && ! is_null($currentUser?->approved_at);
-        $reportesRouteName = collect(['reportes.index', 'reports.index'])->first(fn ($name) => Route::has($name));
+        $reportesRouteName = $currentUser?->hasRole('admin')
+            ? collect(['reportes.index', 'reports.index'])->first(fn ($name) => Route::has($name))
+            : null;
         $sesionesValidacionRouteName = collect([
             'sesiones.validacion',
             'sesiones.validacion.index',

@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\CatalogoConsultorio;
 use App\Models\ConsultorioReserva;
 use App\Models\ConsultorioReservaSolicitud;
 use App\Models\Expediente;
-use App\Services\ConsultorioReservationGuard;
+use App\Services\ConsultorioReservationUpdateService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -19,6 +20,8 @@ use Illuminate\View\View;
 
 class ConsultorioSolicitudController extends Controller
 {
+    public function __construct(private ConsultorioReservationUpdateService $reservationUpdater) {}
+
     private function hasSolicitudesTable(): bool
     {
         return Schema::hasTable('consultorio_reserva_solicitudes');
@@ -59,102 +62,103 @@ class ConsultorioSolicitudController extends Controller
             ->whereKey($proposedIds)
             ->get($identityColumns)
             ->keyBy('id');
+        $proposedRoomNumbers = $solicitudes
+            ->map(fn (ConsultorioReservaSolicitud $solicitud) => data_get($solicitud->payload, 'consultorio_numero'))
+            ->filter(fn ($numero): bool => is_numeric($numero) && (int) $numero > 0)
+            ->map(fn ($numero): int => (int) $numero)
+            ->unique()
+            ->values()
+            ->all();
+        $cubiculosPropuestos = $proposedRoomNumbers === [] ? collect() : CatalogoConsultorio::query()
+            ->whereIn('numero', $proposedRoomNumbers)
+            ->get(['id', 'numero', 'nombre'])
+            ->keyBy('numero');
 
         return view('admin.consultorios.solicitudes.index', [
             'solicitudesPendientes' => $solicitudesPendientes,
             'expedientesPropuestos' => $expedientesPropuestos,
+            'cubiculosPropuestos' => $cubiculosPropuestos,
         ]);
     }
 
     public function approve(Request $request, ConsultorioReservaSolicitud $solicitud): RedirectResponse
     {
         abort_unless($request->user()?->hasRole('admin'), 403);
-        DB::transaction(function () use ($solicitud): void {
-            $locked = ConsultorioReservaSolicitud::query()
-                ->lockForUpdate()
-                ->findOrFail($solicitud->getKey());
+        $current = ConsultorioReservaSolicitud::query()->findOrFail($solicitud->getKey());
+        abort_if($current->status !== 'pendiente', 422, 'Esta solicitud ya fue atendida.');
 
-            abort_if($locked->status !== 'pendiente', 422, 'Esta solicitud ya fue atendida.');
-
-            $reserva = ConsultorioReserva::query()
-                ->findOrFail($locked->consultorio_reserva_id);
-
-            if ($locked->tipo === 'baja') {
+        if ($current->tipo === 'baja') {
+            DB::transaction(function () use ($current): void {
+                $locked = ConsultorioReservaSolicitud::query()
+                    ->lockForUpdate()
+                    ->findOrFail($current->getKey());
+                abort_if($locked->status !== 'pendiente', 422, 'Esta solicitud ya fue atendida.');
                 $reserva = ConsultorioReserva::query()
                     ->lockForUpdate()
                     ->findOrFail($locked->consultorio_reserva_id);
                 // Conserva la solicitud como evidencia de quién pidió la baja y cuándo fue atendida.
                 $locked->update(['status' => 'atendida']);
                 $reserva->delete();
+            }, 3);
 
+            return redirect()->route('admin.consultorios.solicitudes.index')->with('status', 'Solicitud aprobada correctamente.');
+        }
+
+        abort_unless($current->tipo === 'edicion' && is_array($current->payload), 422, 'La solicitud no contiene cambios válidos.');
+
+        $changes = Arr::only($current->payload, [
+            'fecha',
+            'hora_inicio',
+            'hora_fin',
+            'consultorio_numero',
+            'cubiculo_numero',
+            'estrategia',
+            'expediente_id',
+            'usuario_atendido_id',
+            'estratega_id',
+            'supervisor_id',
+        ]);
+        abort_if($changes === [], 422, 'La solicitud no contiene cambios válidos.');
+
+        // Retain the original request payload as audit evidence, but apply
+        // only its physical room selection, never a legacy sub-room pair.
+        $changes['cubiculo_numero'] = $changes['consultorio_numero'] ?? null;
+
+        $validator = Validator::make($changes, [
+            'fecha' => ['required', 'date'],
+            'hora_inicio' => ['required', 'date_format:H:i'],
+            'hora_fin' => ['required', 'date_format:H:i', 'after:hora_inicio'],
+            'consultorio_numero' => ['required', 'integer', Rule::exists('catalogo_consultorios', 'numero')->where('activo', true)],
+            'cubiculo_numero' => ['required', 'integer', 'same:consultorio_numero'],
+            'estrategia' => ['required', 'string', 'max:255', Rule::exists('catalogo_estrategias', 'nombre')->where('activo', true)],
+            'expediente_id' => ['sometimes', 'nullable', 'integer', 'exists:expedientes,id'],
+            'usuario_atendido_id' => ['nullable', 'integer', 'exists:users,id'],
+            'estratega_id' => ['nullable', 'integer', 'exists:users,id'],
+            'supervisor_id' => ['nullable', 'integer', 'exists:users,id'],
+        ]);
+
+        $validator->after(function ($validator) use ($changes): void {
+            if ($validator->errors()->isNotEmpty()) {
                 return;
             }
 
-            abort_unless($locked->tipo === 'edicion' && is_array($locked->payload), 422, 'La solicitud no contiene cambios válidos.');
+            if (date('w', strtotime((string) ($changes['fecha'] ?? ''))) === '0') {
+                $validator->errors()->add('fecha', 'Solo se permiten reservas de lunes a sábado.');
+            }
 
-            $changes = Arr::only($locked->payload, [
-                'fecha',
-                'hora_inicio',
-                'hora_fin',
-                'consultorio_numero',
-                'cubiculo_numero',
-                'estrategia',
-                'expediente_id',
-                'usuario_atendido_id',
-                'estratega_id',
-                'supervisor_id',
-            ]);
+            if (($changes['hora_inicio'] ?? '') < '07:00' || ($changes['hora_fin'] ?? '') > '22:00') {
+                $validator->errors()->add('hora_inicio', 'El horario permitido es de 07:00 a 22:00.');
+            }
+        });
 
-            abort_if($changes === [], 422, 'La solicitud no contiene cambios válidos.');
-
-            // Retain the original request payload as audit evidence, but apply
-            // only its physical room selection, never a legacy sub-room pair.
-            $changes['cubiculo_numero'] = $changes['consultorio_numero'] ?? null;
-
-            $validator = Validator::make($changes, [
-                'fecha' => ['required', 'date'],
-                'hora_inicio' => ['required', 'date_format:H:i'],
-                'hora_fin' => ['required', 'date_format:H:i', 'after:hora_inicio'],
-                'consultorio_numero' => ['required', 'integer', Rule::exists('catalogo_consultorios', 'numero')->where('activo', true)],
-                'cubiculo_numero' => ['required', 'integer', 'same:consultorio_numero'],
-                'estrategia' => ['required', 'string', 'max:255', Rule::exists('catalogo_estrategias', 'nombre')->where('activo', true)],
-                'expediente_id' => ['sometimes', 'nullable', 'integer', 'exists:expedientes,id'],
-                'usuario_atendido_id' => ['nullable', 'integer', 'exists:users,id'],
-                'estratega_id' => ['nullable', 'integer', 'exists:users,id'],
-                'supervisor_id' => ['nullable', 'integer', 'exists:users,id'],
-            ]);
-
-            $validator->after(function ($validator) use ($changes): void {
-                if ($validator->errors()->isNotEmpty()) {
-                    return;
-                }
-
-                if (date('w', strtotime((string) ($changes['fecha'] ?? ''))) === '0') {
-                    $validator->errors()->add('fecha', 'Solo se permiten reservas de lunes a sábado.');
-                }
-
-                if (($changes['hora_inicio'] ?? '') < '07:00' || ($changes['hora_fin'] ?? '') > '22:00') {
-                    $validator->errors()->add('hora_inicio', 'El horario permitido es de 07:00 a 22:00.');
-                }
-            });
-
-            $validated = $validator->validate();
-            $guard = app(ConsultorioReservationGuard::class);
-            $guard->lockConsultorio((int) $validated['consultorio_numero']);
-            $reserva = ConsultorioReserva::query()
-                ->lockForUpdate()
-                ->findOrFail($locked->consultorio_reserva_id);
-            $guard->assertAvailable(
-                (int) $validated['consultorio_numero'],
-                [$validated['fecha']],
-                $validated['hora_inicio'],
-                $validated['hora_fin'],
-                (int) $reserva->getKey(),
-            );
-
-            $reserva->update($validated);
-            $locked->update(['status' => 'atendida']);
-        }, 3);
+        $validated = $validator->validate();
+        $reserva = ConsultorioReserva::query()->findOrFail($current->consultorio_reserva_id);
+        $this->reservationUpdater->approvePendingEdit(
+            $current,
+            $reserva,
+            $validated,
+            $request->user(),
+        );
 
         return redirect()->route('admin.consultorios.solicitudes.index')->with('status', 'Solicitud aprobada correctamente.');
     }

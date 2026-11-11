@@ -93,6 +93,26 @@
                     <span class="fw-semibold">Sin asignar</span>
                 @endif
             </div>
+            <div class="col-md-4" id="horarios-asignados">
+                <span class="text-muted small d-block">Día y horario asignado</span>
+                @if ($reservasCubiculo->isEmpty())
+                    <span class="text-muted">Sin horario vinculado</span>
+                @else
+                    @include('expedientes.partials.horario-asignado', ['reserva' => $reservasCubiculo->first()])
+                    @if ($reservasCubiculo->count() > 1)
+                        <details class="mt-2">
+                            <summary class="small">Otros horarios ({{ $reservasCubiculo->count() - 1 }})</summary>
+                            <ul class="list-unstyled mb-0">
+                                @foreach ($reservasCubiculo->skip(1) as $reserva)
+                                    <li class="mt-2">
+                                        @include('expedientes.partials.horario-asignado', ['reserva' => $reserva, 'mostrarCubiculo' => true])
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </details>
+                    @endif
+                @endif
+            </div>
         </div>
         @can('changeState', $expediente)
             <div class="card-footer">
@@ -1498,7 +1518,7 @@
                             <h6 class="mb-0">Actividad reciente</h6>
                             <p class="text-muted small mb-0">Movimientos y acciones registradas en el expediente.</p>
                         </div>
-                        @unless ($expediente->trashed())
+                        @if (! $expediente->trashed() && auth()->user()?->hasRole('admin'))
                             <button
                                 type="button"
                                 class="btn btn-outline-primary btn-sm ms-md-auto"
@@ -1507,7 +1527,7 @@
                                 <i class="mdi mdi-download"></i>
                                 {{ __('Exportar historial') }}
                             </button>
-                        @endunless
+                        @endif
                     </div>
                     <div id="timeline-export-feedback" class="alert d-none" role="alert"></div>
                     @if ($timelineEventos->isEmpty())
