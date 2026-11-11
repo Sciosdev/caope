@@ -17,17 +17,40 @@ class ConsultorioReservationGuard
      */
     public function lockConsultorio(int $numero): void
     {
+        $this->lockConsultorios([$numero], $numero);
+    }
+
+    /**
+     * Lock physical rooms in a stable order before locking an expediente or
+     * reservation. The destination must remain active; historical rooms may
+     * be inactive and are locked only to preserve a consistent lock order.
+     *
+     * @param  array<int, int>  $numeros
+     */
+    public function lockConsultorios(array $numeros, int $requiredActive): void
+    {
         if (DB::transactionLevel() < 1) {
             throw new LogicException('A consultorio must be locked inside a database transaction.');
         }
 
-        $consultorio = CatalogoConsultorio::query()
-            ->where('numero', $numero)
-            ->where('activo', true)
-            ->lockForUpdate()
-            ->first(['id']);
+        $normalized = collect($numeros)
+            ->push($requiredActive)
+            ->map(fn ($numero): int => (int) $numero)
+            ->filter(fn (int $numero): bool => $numero > 0)
+            ->unique()
+            ->sort()
+            ->values();
 
-        if ($consultorio === null) {
+        $consultorios = CatalogoConsultorio::query()
+            ->whereIn('numero', $normalized)
+            ->orderBy('numero')
+            ->lockForUpdate()
+            ->get(['id', 'numero', 'activo'])
+            ->keyBy('numero');
+
+        $consultorio = $consultorios->get($requiredActive);
+
+        if ($consultorio === null || ! $consultorio->activo) {
             throw ValidationException::withMessages([
                 'consultorio_numero' => 'El cubículo seleccionado no está disponible.',
             ]);

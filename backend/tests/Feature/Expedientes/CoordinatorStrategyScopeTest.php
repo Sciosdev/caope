@@ -19,10 +19,7 @@ use App\Models\TimelineEvento;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
@@ -179,7 +176,7 @@ class CoordinatorStrategyScopeTest extends TestCase
         $this->postJson(route('expedientes.timeline.export', $foreign), ['format' => 'xlsx'])->assertForbidden();
     }
 
-    public function test_reports_exports_timeline_and_dashboard_use_the_same_strategy_scope(): void
+    public function test_export_queries_timeline_and_dashboard_use_the_same_strategy_scope(): void
     {
         $coordinator = $this->coordinator([$this->strategyA->id]);
         $visible = $this->expediente([
@@ -198,8 +195,7 @@ class CoordinatorStrategyScopeTest extends TestCase
         $visibleEvent = $this->event($visible, $visibleSession);
         $this->event($foreign, $foreignSession);
 
-        $this->actingAs($coordinator)->get(route('reportes.index'))
-            ->assertOk()->assertSee($visible->no_control)->assertDontSee($foreign->no_control);
+        $this->actingAs($coordinator)->get(route('reportes.index'))->assertForbidden();
         $this->assertSame([$visible->id], (new ExpedientesExport([], $coordinator->id))->query()->pluck('id')->all());
         $this->assertSame([$visibleEvent->id], (new TimelineEventosExport($coordinator->id, $visible->id))->query()->pluck('id')->all());
         $this->assertSame([], (new TimelineEventosExport($coordinator->id, $foreign->id))->query()->pluck('id')->all());
@@ -212,9 +208,8 @@ class CoordinatorStrategyScopeTest extends TestCase
             ->assertJsonCount(1, 'alerts')->assertJsonPath('alerts.0.id', $visible->id);
     }
 
-    public function test_revoking_membership_immediately_revokes_preloaded_policies_scopes_metrics_and_export_tokens(): void
+    public function test_revoking_membership_immediately_revokes_preloaded_policies_scopes_and_metrics(): void
     {
-        Storage::fake('local');
         config(['dashboard.cache_ttl' => 300]);
         $coordinator = $this->coordinator([$this->strategyA->id]);
         $expediente = $this->expediente(['estrategia_id' => $this->strategyA->id]);
@@ -228,17 +223,6 @@ class CoordinatorStrategyScopeTest extends TestCase
         $this->assertVisibleIds($coordinator, [$expediente->id]);
         $this->actingAs($coordinator)->getJson(route('dashboard.metrics'))->assertJsonPath('expedientes.total', 1);
 
-        $statusToken = (string) Str::uuid();
-        $downloadToken = (string) Str::uuid();
-        foreach ([$statusToken, $downloadToken] as $token) {
-            $path = "exports/expedientes_{$token}.xlsx";
-            Storage::disk('local')->put($path, 'Reporte ficticio restringido');
-            Cache::put($token, [
-                'status' => 'ready', 'path' => $path, 'filename' => 'reporte.xlsx',
-                'user_id' => $coordinator->id, 'expediente_ids' => [$expediente->id],
-            ], now()->addMinutes(10));
-        }
-
         // A separate model simulates an administrator changing membership in another request.
         User::query()->findOrFail($coordinator->id)->estrategiasCoordinadas()->detach();
 
@@ -251,13 +235,6 @@ class CoordinatorStrategyScopeTest extends TestCase
         $this->assertSame([], Sesion::query()->visibleTo($coordinator)->pluck('id')->all());
         $this->get(route('expedientes.show', $expediente))->assertForbidden();
         $this->getJson(route('dashboard.metrics'))->assertJsonPath('expedientes.total', 0);
-        $this->getJson(route('reportes.expedientes.export.status', $statusToken))->assertNotFound();
-        $this->get(route('reportes.expedientes.download', $downloadToken))->assertNotFound();
-
-        foreach ([$statusToken, $downloadToken] as $token) {
-            $this->assertNull(Cache::get($token));
-            Storage::disk('local')->assertMissing("exports/expedientes_{$token}.xlsx");
-        }
     }
 
     public function test_coordinator_cannot_change_or_clear_strategy_even_when_coordinating_both_strategies(): void

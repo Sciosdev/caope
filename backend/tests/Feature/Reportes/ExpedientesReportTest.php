@@ -228,18 +228,15 @@ class ExpedientesReportTest extends TestCase
         $response->assertJsonPath('download_url', route('reportes.expedientes.download', $token));
     }
 
-    public function test_status_and_download_tokens_are_revoked_after_expediente_reassignment(): void
+    public function test_admin_export_tokens_are_revoked_after_included_expediente_is_archived(): void
     {
         Storage::fake('local');
 
-        $facilitador = User::factory()->create();
-        $facilitador->assignRole('alumno');
-
-        $newFacilitador = User::factory()->create();
-        $newFacilitador->assignRole('alumno');
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
 
         $expediente = Expediente::factory()->create([
-            'creado_por' => $facilitador->id,
+            'creado_por' => $admin->id,
             'tutor_id' => null,
             'coordinador_id' => null,
         ]);
@@ -255,17 +252,17 @@ class ExpedientesReportTest extends TestCase
                 'status' => 'ready',
                 'path' => $path,
                 'filename' => 'reporte.xlsx',
-                'user_id' => $facilitador->id,
+                'user_id' => $admin->id,
                 'expediente_ids' => [$expediente->id],
             ], now()->addMinutes(10));
         }
 
-        $expediente->update(['facilitador_id' => $newFacilitador->id]);
+        $expediente->delete();
 
-        $this->actingAs($facilitador)
+        $this->actingAs($admin)
             ->getJson(route('reportes.expedientes.export.status', $statusToken))
             ->assertNotFound();
-        $this->actingAs($facilitador)
+        $this->actingAs($admin)
             ->get(route('reportes.expedientes.download', $downloadToken))
             ->assertNotFound();
 
@@ -275,7 +272,7 @@ class ExpedientesReportTest extends TestCase
         }
     }
 
-    public function test_report_and_export_are_limited_to_assigned_expedientes(): void
+    public function test_non_admins_cannot_view_reports_and_export_queries_remain_scoped(): void
     {
         $facilitador = User::factory()->create(['name' => 'Facilitador Asignado']);
         $facilitador->assignRole('alumno');
@@ -312,7 +309,7 @@ class ExpedientesReportTest extends TestCase
             'tutor_id' => $ajeno->id,
             'coordinador_id' => $coordinador->id,
         ]);
-        $fueraDeAlcance = Expediente::factory()->create([
+        Expediente::factory()->create([
             'no_control' => 'CA-2026-X001',
             'creado_por' => $ajeno->id,
             'tutor_id' => $ajeno->id,
@@ -324,11 +321,7 @@ class ExpedientesReportTest extends TestCase
             [$docente, $delDocente],
             [$coordinador, $delCoordinador],
         ] as [$user, $visible]) {
-            $response = $this->actingAs($user)->get(route('reportes.index'));
-
-            $response->assertOk();
-            $response->assertSee($visible->no_control);
-            $response->assertDontSee($fueraDeAlcance->no_control);
+            $this->actingAs($user)->get(route('reportes.index'))->assertForbidden();
 
             $exportedIds = (new ExpedientesExport([], $user->id))
                 ->query()

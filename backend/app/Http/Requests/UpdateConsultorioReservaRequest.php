@@ -30,17 +30,28 @@ class UpdateConsultorioReservaRequest extends FormRequest
 
     public function rules(): array
     {
+        $scheduleOnly = $this->isExpedienteScheduleContext();
+
         return [
+            'edit_context' => [
+                'nullable',
+                Rule::in(['expediente']),
+                Rule::prohibitedIf(fn (): bool => ! $this->user()?->hasRole('admin')),
+            ],
             'fecha' => ['required', 'date'],
             'hora_inicio' => ['required', 'date_format:H:i'],
             'hora_fin' => ['required', 'date_format:H:i', 'after:hora_inicio'],
             'consultorio_numero' => ['required', 'integer', Rule::exists('catalogo_consultorios', 'numero')->where('activo', true)],
             'cubiculo_numero' => ['required', 'integer', 'same:consultorio_numero'],
-            'estrategia' => ['required', 'string', 'max:255', Rule::exists('catalogo_estrategias', 'nombre')->where('activo', true)],
-            'expediente_id' => ['sometimes', 'nullable', 'integer', 'exists:expedientes,id'],
-            'usuario_atendido_id' => ['nullable', 'integer', 'exists:users,id'],
-            'estratega_id' => ['nullable', 'integer', 'exists:users,id'],
-            'supervisor_id' => ['nullable', 'integer', 'exists:users,id'],
+            'estrategia' => $scheduleOnly
+                ? ['prohibited']
+                : ['required', 'string', 'max:255', Rule::exists('catalogo_estrategias', 'nombre')->where('activo', true)],
+            'expediente_id' => $scheduleOnly
+                ? ['prohibited']
+                : ['sometimes', 'nullable', 'integer', 'exists:expedientes,id'],
+            'usuario_atendido_id' => $scheduleOnly ? ['prohibited'] : ['nullable', 'integer', 'exists:users,id'],
+            'estratega_id' => $scheduleOnly ? ['prohibited'] : ['nullable', 'integer', 'exists:users,id'],
+            'supervisor_id' => $scheduleOnly ? ['prohibited'] : ['nullable', 'integer', 'exists:users,id'],
         ];
     }
 
@@ -86,5 +97,11 @@ class UpdateConsultorioReservaRequest extends FormRequest
                 (int) $reserva->id
             );
         });
+    }
+
+    private function isExpedienteScheduleContext(): bool
+    {
+        return $this->input('edit_context') === 'expediente'
+            && ($this->user()?->hasRole('admin') ?? false);
     }
 }

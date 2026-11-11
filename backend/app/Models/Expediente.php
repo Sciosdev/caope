@@ -425,6 +425,23 @@ class Expediente extends Model
         return $this->belongsTo(CatalogoConsultorio::class, 'cubiculo_id');
     }
 
+    /**
+     * Solo reservas vinculadas explícitamente. Primero la próxima fecha
+     * desde hoy; si ya no hay próximas, el horario pasado más reciente.
+     */
+    public function reservasCubiculo(): HasMany
+    {
+        $hoy = now('America/Mexico_City')->toDateString();
+
+        return $this->hasMany(ConsultorioReserva::class)
+            ->orderByRaw('CASE WHEN fecha >= ? THEN 0 ELSE 1 END', [$hoy])
+            ->orderByRaw('CASE WHEN fecha >= ? THEN fecha END ASC', [$hoy])
+            ->orderByDesc('fecha')
+            ->orderByRaw('CASE WHEN fecha >= ? THEN hora_inicio END ASC', [$hoy])
+            ->orderByDesc('hora_inicio')
+            ->orderBy('id');
+    }
+
     public function sesiones(): HasMany
     {
         return $this->hasMany(Sesion::class);

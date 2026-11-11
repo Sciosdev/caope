@@ -282,20 +282,19 @@ class TimelineExportTest extends TestCase
         $this->assertNotContains($foreignEvent->id, $visibleIds);
     }
 
-    public function test_timeline_status_and_download_are_revoked_when_session_author_changes(): void
+    public function test_admin_timeline_export_tokens_are_revoked_when_an_included_event_no_longer_exists(): void
     {
         Storage::fake('local');
 
-        $facilitador = User::factory()->create();
-        $facilitador->assignRole('alumno');
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
 
-        $otherUser = User::factory()->create();
         $expediente = Expediente::factory()->create([
-            'creado_por' => $facilitador->id,
+            'creado_por' => $admin->id,
         ]);
         $session = Sesion::factory()->create([
             'expediente_id' => $expediente->id,
-            'realizada_por' => $facilitador->id,
+            'realizada_por' => $admin->id,
             'status_revision' => 'pendiente',
             'validada_por' => null,
         ]);
@@ -319,18 +318,18 @@ class TimelineExportTest extends TestCase
                 'status' => 'ready',
                 'path' => $path,
                 'filename' => 'timeline.xlsx',
-                'user_id' => $facilitador->id,
+                'user_id' => $admin->id,
                 'expediente_id' => $expediente->id,
                 'event_ids' => [$event->id],
             ], now()->addMinutes(10));
         }
 
-        $session->update(['realizada_por' => $otherUser->id]);
+        $event->delete();
 
-        $this->actingAs($facilitador)
+        $this->actingAs($admin)
             ->getJson(route('expedientes.timeline.export.status', [$expediente, $statusToken]))
             ->assertNotFound();
-        $this->actingAs($facilitador)
+        $this->actingAs($admin)
             ->get(route('expedientes.timeline.export.download', [$expediente, $downloadToken]))
             ->assertNotFound();
 
@@ -339,6 +338,6 @@ class TimelineExportTest extends TestCase
             Storage::disk('local')->assertMissing("exports/timeline_{$token}.xlsx");
         }
 
-        $this->assertSame($facilitador->id, $expediente->fresh()->creado_por);
+        $this->assertSame($admin->id, $expediente->fresh()->creado_por);
     }
 }
