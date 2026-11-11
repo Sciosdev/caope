@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use RuntimeException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
 
 class DeploymentPreparationController extends Controller
@@ -61,12 +62,24 @@ class DeploymentPreparationController extends Controller
             $deployment = DeploymentRun::query()
                 ->where('request_id', $requestId)
                 ->where('ref', DeveloperConsoleSettings::PRODUCTION_REF)
-                ->whereIn('status', ['requested', 'queued', 'in_progress', 'waiting'])
-                ->where('created_at', '>=', now()->subHours(2))
                 ->first();
 
             abort_unless($deployment, 403);
-            abort_if($deployment->workflow_run_id !== null && $deployment->workflow_run_id !== $runId, 403);
+            abort_if($deployment->workflow_run_id !== null && (int) $deployment->workflow_run_id !== $runId, 403);
+            abort_if($deployment->commit_sha !== null && ! hash_equals(strtolower($deployment->commit_sha), $sha), 403);
+
+            if (in_array($deployment->agent_status, ['failed', 'timed_out', 'interrupted', 'recovery_required'], true)) {
+                return response()->json(['message' => 'El agente ya terminó este intento. Consulta el diagnóstico antes de solicitar otro.'], 409);
+            }
+
+            // A retry of GitHub's callback must not renew authorization or erase
+            // a running journal. Both identifiers were already attested.
+            if ((int) $deployment->workflow_run_id === $runId && $deployment->commit_sha === $sha
+                && ($deployment->agent_status === 'running' || $this->versionIsAlreadyPublished($sha, $requestId))) {
+                return $this->accepted();
+            }
+
+            abort_unless($deployment->isActive() && $deployment->created_at->gte(now()->subHours(2)), 403);
 
             try {
                 $attestation = $github->attestProductionRun($deployment, $sha, $runId, $runAttempt);
@@ -84,12 +97,19 @@ class DeploymentPreparationController extends Controller
                 ], 503);
             }
 
+            $markerWriteAttempted = false;
+
             try {
-                DB::transaction(function () use ($deployment, $runId, $attestation, $sha, $requestId): void {
+                DB::transaction(function () use ($deployment, $runId, $attestation, $sha, $requestId, &$markerWriteAttempted): void {
                     $locked = DeploymentRun::query()->lockForUpdate()->findOrFail($deployment->getKey());
 
                     abort_unless($locked->isActive(), 409);
-                    abort_if($locked->workflow_run_id !== null && $locked->workflow_run_id !== $runId, 409);
+                    abort_if(in_array($locked->agent_status, ['failed', 'timed_out', 'interrupted', 'recovery_required'], true), 409);
+                    abort_if($locked->workflow_run_id !== null && (int) $locked->workflow_run_id !== $runId, 409);
+
+                    if ($locked->agent_status === 'running') {
+                        return;
+                    }
 
                     $locked->update([
                         'status' => 'in_progress',
@@ -100,16 +120,19 @@ class DeploymentPreparationController extends Controller
                     ]);
 
                     if (! $this->versionIsAlreadyPublished($sha, $requestId)) {
+                        $markerWriteAttempted = true;
                         $this->writeMarker($sha, $requestId);
                     }
                 });
             } catch (Throwable $exception) {
-                $this->deleteMarkerIfOwnedBy($requestId);
+                if ($markerWriteAttempted) {
+                    $this->deleteMarkerIfOwnedBy($requestId);
+                }
                 report($exception);
 
                 return response()->json([
                     'message' => 'No fue posible registrar la autorización de despliegue.',
-                ], 503);
+                ], $exception instanceof HttpExceptionInterface ? $exception->getStatusCode() : 503);
             }
 
             return $this->accepted();

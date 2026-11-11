@@ -4,19 +4,6 @@
         <li class="breadcrumb-item active" aria-current="page">{{ __('Consola del desarrollador') }}</li>
     @endsection
 
-    @php
-        $errorCount = collect($checks)->where('status', 'error')->count();
-        $warningCount = collect($checks)->where('status', 'warning')->count();
-        $overallStatus = $errorCount > 0 ? 'error' : ($warningCount > 0 ? 'warning' : 'ok');
-        $overallClasses = [
-            'ok' => ['alert-success', 'Operación normal'],
-            'warning' => ['alert-warning', 'Requiere atención'],
-            'error' => ['alert-danger', 'Se detectaron errores'],
-        ][$overallStatus];
-        $activeDeployment = $deployments->first(fn ($deployment) => $deployment->isActive());
-        $deployDisabled = $deploymentConfigurationIssues !== [] || $activeDeployment !== null || $errorCount > 0;
-    @endphp
-
     <div class="d-flex flex-column gap-4">
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
             <div>
@@ -38,39 +25,8 @@
             <div class="alert alert-danger mb-0">{{ $errors->first('credentials') }}</div>
         @endif
 
-        @if ($synchronizationWarning)
-            <div class="alert alert-warning mb-0">{{ $synchronizationWarning }}</div>
-        @endif
-
-        <div class="alert {{ $overallClasses[0] }} d-flex flex-wrap justify-content-between align-items-center gap-2 mb-0">
-            <strong>{{ $overallClasses[1] }}</strong>
-            <span>{{ count($checks) }} comprobaciones · {{ $errorCount }} errores · {{ $warningCount }} advertencias</span>
-        </div>
-
-        <div class="row g-3">
-            @foreach ($checks as $check)
-                @php
-                    $statusPresentation = [
-                        'ok' => ['text-bg-success', 'Correcto'],
-                        'warning' => ['text-bg-warning', 'Advertencia'],
-                        'error' => ['text-bg-danger', 'Error'],
-                    ][$check['status']];
-                @endphp
-                <div class="col-md-6 col-xl-4">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
-                                <h5 class="card-title mb-0">{{ $check['label'] }}</h5>
-                                <span class="badge {{ $statusPresentation[0] }}">{{ $statusPresentation[1] }}</span>
-                            </div>
-                            <p class="mb-1">{{ $check['summary'] }}</p>
-                            @if ($check['details'])
-                                <p class="text-muted small mb-0 text-break">{{ $check['details'] }}</p>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-            @endforeach
+        <div id="deployment-health" class="d-flex flex-column gap-3">
+            @include('developer.partials.health')
         </div>
 
         <div class="card border-danger">
@@ -79,14 +35,10 @@
                     <h5 class="mb-1">Desplegar {{ $deploymentTargetLabel }}</h5>
                     <p class="text-muted small mb-0">Rama fija: <code>{{ $deploymentRef }}</code></p>
                 </div>
-                @if ($activeDeployment)
-                    <span class="badge {{ $activeDeployment->badgeClass() }}">{{ $activeDeployment->statusLabel() }}</span>
-                @endif
             </div>
             <div class="card-body">
                 <p>
                     GitHub ejecutará las pruebas, generará un respaldo y actualizará {{ $deploymentTargetLabel }} mediante el workflow protegido.
-                    Esta pantalla no ejecuta comandos arbitrarios en el servidor.
                 </p>
 
                 @if ($deploymentConfigurationIssues !== [])
@@ -100,11 +52,12 @@
                     </div>
                 @endif
 
-                @if ($activeDeployment)
-                    <div class="alert alert-info">Hay un despliegue activo. Espera a que termine antes de solicitar otro.</div>
-                @endif
+                <div id="deployment-progress" aria-live="polite">
+                    @include('developer.partials.progress')
+                </div>
+                <p id="deployment-refresh-status" class="small text-muted" role="status">El estado se actualiza automáticamente.</p>
 
-                <form method="POST" action="{{ route('developer.deploy') }}" class="row g-3 align-items-end">
+                <form method="POST" action="{{ route('developer.deploy') }}" class="row g-3 align-items-end" id="deployment-form">
                     @csrf
                     <div class="col-md-8">
                         <label for="confirmation" class="form-label">Escribe <strong>DESPLEGAR</strong> para confirmar</label>
@@ -129,60 +82,8 @@
             </div>
         </div>
 
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Historial de despliegues</h5>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead>
-                            <tr>
-                                <th>Fecha</th>
-                                <th>Solicitó</th>
-                                <th>Referencia</th>
-                                <th>Commit</th>
-                                <th>Estado</th>
-                                <th class="text-end">Registro</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse ($deployments as $deployment)
-                                <tr>
-                                    <td>{{ $deployment->created_at?->format('d/m/Y H:i:s') }}</td>
-                                    <td>
-                                        {{ $deployment->requestedBy?->name ?? 'Usuario eliminado' }}
-                                        @if ($deployment->requestedBy?->email)
-                                            <div class="text-muted small">{{ $deployment->requestedBy->email }}</div>
-                                        @endif
-                                    </td>
-                                    <td><code>{{ $deployment->ref }}</code></td>
-                                    <td><code>{{ $deployment->commit_sha ? substr($deployment->commit_sha, 0, 8) : '—' }}</code></td>
-                                    <td><span class="badge {{ $deployment->badgeClass() }}">{{ $deployment->statusLabel() }}</span></td>
-                                    <td class="text-end">
-                                        @if ($deployment->workflow_url)
-                                            <a href="{{ $deployment->workflow_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm">
-                                                Ver en GitHub
-                                            </a>
-                                        @else
-                                            <span class="text-muted">Pendiente</span>
-                                        @endif
-                                    </td>
-                                </tr>
-                                @if ($deployment->error_message)
-                                    <tr>
-                                        <td colspan="6" class="small text-danger bg-danger-subtle">{{ $deployment->error_message }}</td>
-                                    </tr>
-                                @endif
-                            @empty
-                                <tr>
-                                    <td colspan="6" class="text-center text-muted py-4">Todavía no hay despliegues registrados.</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        <div id="deployment-history">
+            @include('developer.partials.history')
         </div>
 
         @if ($canRotateCredentials)
@@ -216,4 +117,59 @@
             </details>
         @endif
     </div>
+    @push('scripts')
+        <script>
+            (() => {
+                const status = document.getElementById('deployment-refresh-status');
+                const form = document.getElementById('deployment-form');
+                let active = @json($activeDeployment !== null);
+                let stopped = false;
+
+                const schedule = () => {
+                    if (!stopped) window.setTimeout(refresh, active ? 15000 : 60000);
+                };
+
+                async function refresh() {
+                    if (document.hidden) {
+                        schedule();
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(@json(route('developer.index')), {
+                            headers: { 'Accept': 'application/json' },
+                            credentials: 'same-origin',
+                            cache: 'no-store',
+                        });
+
+                        if (response.redirected || response.status === 401 || response.status === 403) {
+                            stopped = true;
+                            form.querySelector('button[type="submit"]').disabled = true;
+                            status.textContent = 'La sesión requiere confirmación. Usa Actualizar comprobaciones para continuar.';
+                            return;
+                        }
+                        if (!response.ok) throw new Error('Estado temporalmente no disponible');
+
+                        const data = await response.json();
+                        for (const section of ['health', 'progress', 'history']) {
+                            document.getElementById(`deployment-${section}`).innerHTML = data[section];
+                        }
+                        // Only replace diagnostic fragments. Passwords, CSRF
+                        // fields and the typed confirmation stay in the form.
+                        form.querySelector('#confirmation').disabled = data.deploy_disabled;
+                        form.querySelector('button[type="submit"]').disabled = data.deploy_disabled;
+                        active = data.active;
+                        status.textContent = `Actualizado a las ${new Date().toLocaleTimeString('es-MX')}.`;
+                    } catch (error) {
+                        form.querySelector('button[type="submit"]').disabled = true;
+                        status.textContent = 'No se pudo actualizar el estado. Se reintentará automáticamente; durante el mantenimiento puede tardar unos minutos.';
+                    } finally {
+                        schedule();
+                    }
+                }
+
+                schedule();
+            })();
+        </script>
+    @endpush
 </x-app-layout>

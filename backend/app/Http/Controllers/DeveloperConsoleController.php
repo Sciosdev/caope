@@ -3,39 +3,65 @@
 namespace App\Http\Controllers;
 
 use App\Models\DeploymentRun;
+use App\Services\DeploymentAgentState;
 use App\Services\DeveloperConsoleSettings;
 use App\Services\DeveloperHealthService;
 use App\Services\GitHubDeploymentService;
 use App\Services\ProductionSecurityAudit;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use RuntimeException;
 use Throwable;
 
 class DeveloperConsoleController extends Controller
 {
     public function index(
+        Request $request,
         GitHubDeploymentService $github,
         DeveloperHealthService $health,
         DeveloperConsoleSettings $settings,
-    ): View {
+        DeploymentAgentState $agentState,
+    ): View|JsonResponse {
+        $agentState->synchronizeResult();
         $synchronizationWarning = $github->synchronize();
+        $checks = $health->run();
+        $activeDeployment = $this->activeDeployment();
+        $configurationIssues = $github->configurationIssues();
+        $deployDisabled = $configurationIssues !== [] || $activeDeployment !== null
+            || collect($checks)->contains('status', 'error');
 
-        return view('developer.index', [
-            'checks' => $health->run(),
+        $data = [
+            'checks' => $checks,
             'deployments' => DeploymentRun::query()
                 ->with('requestedBy:id,name,email')
                 ->latest()
                 ->limit(20)
                 ->get(),
-            'deploymentConfigurationIssues' => $github->configurationIssues(),
+            'deploymentConfigurationIssues' => $configurationIssues,
             'synchronizationWarning' => $synchronizationWarning,
             'deploymentRef' => $settings->githubRef(),
             'deploymentTargetLabel' => $settings->targetLabel(),
             'canRotateCredentials' => $settings->hasEncryptedSettings(),
-        ]);
+            'activeDeployment' => $activeDeployment,
+            'deployDisabled' => $deployDisabled,
+        ];
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'health' => view('developer.partials.health', $data)->render(),
+                'progress' => view('developer.partials.progress', $data)->render(),
+                'history' => view('developer.partials.history', $data)->render(),
+                'deploy_disabled' => $deployDisabled,
+                'active' => $activeDeployment !== null,
+            ])->withHeaders(['Cache-Control' => 'no-store, private']);
+        }
+
+        return view('developer.index', $data);
     }
 
     public function deploy(
@@ -43,6 +69,7 @@ class DeveloperConsoleController extends Controller
         GitHubDeploymentService $github,
         DeveloperConsoleSettings $settings,
         ProductionSecurityAudit $securityAudit,
+        DeploymentAgentState $agentState,
     ): RedirectResponse {
         $request->validate([
             'confirmation' => ['required', 'in:DESPLEGAR'],
@@ -61,7 +88,7 @@ class DeveloperConsoleController extends Controller
             ]);
         }
 
-        $lock = Cache::lock('developer-console:deployment-dispatch', 15);
+        $lock = Cache::lock('developer-console:deployment-dispatch', 300);
 
         if (! $lock->get()) {
             return back()->withErrors([
@@ -70,13 +97,10 @@ class DeveloperConsoleController extends Controller
         }
 
         try {
+            $agentState->synchronizeResult();
             $github->synchronize();
 
-            $activeDeployment = DeploymentRun::query()
-                ->whereIn('status', ['requested', 'queued', 'in_progress', 'waiting'])
-                ->where('created_at', '>=', now()->subHours(6))
-                ->latest()
-                ->first();
+            $activeDeployment = $this->activeDeployment();
 
             if ($activeDeployment) {
                 return back()->withErrors([
@@ -94,15 +118,21 @@ class DeveloperConsoleController extends Controller
             try {
                 $github->trigger($deployment);
             } catch (Throwable $exception) {
+                $uncertain = $exception instanceof ConnectionException
+                    || ($exception instanceof RuntimeException && $exception->getCode() >= 500);
                 $deployment->update([
-                    'status' => 'failed_to_dispatch',
-                    'error_message' => $exception->getMessage(),
+                    'status' => $uncertain ? 'requested' : 'failed_to_dispatch',
+                    'error_message' => $uncertain
+                        ? 'No se pudo confirmar la respuesta de GitHub. Se comprobará si recibió la solicitud antes de permitir otro intento.'
+                        : $exception->getMessage(),
                 ]);
 
                 report($exception);
 
                 return back()->withErrors([
-                    'deployment' => 'No fue posible solicitar el despliegue. Revisa la configuración y el registro de la aplicación.',
+                    'deployment' => $uncertain
+                        ? 'GitHub no confirmó la respuesta. Espera a que la consola compruebe la solicitud para evitar duplicados.'
+                        : 'No fue posible solicitar el despliegue. Revisa la configuración y el registro de la aplicación.',
                 ]);
             }
 
@@ -112,5 +142,11 @@ class DeveloperConsoleController extends Controller
         } finally {
             $lock->release();
         }
+    }
+
+    private function activeDeployment(): ?DeploymentRun
+    {
+        return DeploymentRun::query()->blocking()->latest()->get()
+            ->first(fn (DeploymentRun $deployment): bool => $deployment->isActive());
     }
 }
