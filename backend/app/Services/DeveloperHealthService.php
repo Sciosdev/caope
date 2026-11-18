@@ -6,6 +6,7 @@ use Illuminate\Database\Migrations\Migrator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
@@ -18,6 +19,7 @@ class DeveloperHealthService
         private Migrator $migrator,
         private DeveloperConsoleSettings $settings,
         private ProductionSecurityAudit $securityAudit,
+        private QueueWorkerHeartbeat $queueHeartbeat,
     ) {}
 
     /**
@@ -281,6 +283,7 @@ class DeveloperHealthService
     {
         $connection = (string) config('queue.default');
         $driver = (string) config("queue.connections.{$connection}.driver", $connection);
+        $queue = (string) config("queue.connections.{$connection}.queue", 'default');
 
         try {
             $failed = Schema::hasTable('failed_jobs') ? DB::table('failed_jobs')->count() : null;
@@ -290,16 +293,36 @@ class DeveloperHealthService
                 return $this->result('queue', 'Colas', 'warning', $failed.' trabajo(s) fallido(s).', "Conexión: {$connection}");
             }
 
-            if (app()->environment('production') && $driver === 'sync') {
-                return $this->result('queue', 'Colas', 'warning', 'La cola se ejecuta de forma síncrona en producción.', $connection);
+            if ($driver === 'sync') {
+                return $this->result(
+                    'queue',
+                    'Colas',
+                    app()->environment('production') ? 'warning' : 'ok',
+                    'Los trabajos se ejecutan dentro de la solicitud; no hay un trabajador independiente.',
+                    $connection
+                );
             }
 
-            $details = "Conexión: {$connection}";
+            $details = "Conexión: {$connection} · Cola: {$queue}";
             if ($pending !== null) {
                 $details .= " · Pendientes: {$pending}";
             }
 
-            return $this->result('queue', 'Colas', 'ok', 'La configuración de colas está disponible.', $details);
+            $lastSeen = $this->queueHeartbeat->lastSeen($connection, $queue);
+
+            if (! $lastSeen || $lastSeen->lt(now()->subMinutes(3)) || $lastSeen->gt(now()->addMinute())) {
+                return $this->result(
+                    'queue',
+                    'Colas',
+                    'warning',
+                    'No se ha comprobado actividad reciente de un trabajador para esta cola.',
+                    $details.($lastSeen ? ' · Última señal: '.$lastSeen->format('d/m/Y H:i:s') : '')
+                        .' · Comprueba el trabajador; el despliegue reinicia los procesos para cargar este diagnóstico.'
+                );
+            }
+
+            return $this->result('queue', 'Colas', 'ok', 'Un trabajador registró actividad reciente para esta cola.',
+                $details.' · Última señal: '.$lastSeen->format('d/m/Y H:i:s'));
         } catch (Throwable $exception) {
             report($exception);
 
@@ -392,7 +415,58 @@ class DeveloperHealthService
             return $this->result('github', 'Despliegue GitHub', 'warning', 'Falta completar la configuración de GitHub Actions.');
         }
 
-        return $this->result('github', 'Despliegue GitHub', 'ok', 'Las credenciales de despliegue están configuradas.', "{$repository} · {$workflow}");
+        $apiUrl = $this->settings->githubApiUrl();
+        $cacheKey = 'developer-console:github-health:'.hash('sha256', $apiUrl."\0".$repository."\0".$workflow."\0".$token);
+
+        try {
+            return Cache::remember($cacheKey, 60, function () use ($apiUrl, $repository, $workflow, $token): array {
+                $details = "{$repository} · {$workflow} · Comprobado: ".now()->format('d/m/Y H:i:s');
+
+                try {
+                    $response = Http::baseUrl($apiUrl)
+                        ->withToken($token)
+                        ->acceptJson()
+                        ->withHeaders([
+                            'X-GitHub-Api-Version' => '2022-11-28',
+                            'User-Agent' => 'CAOPE-Developer-Console',
+                        ])
+                        ->connectTimeout(3)
+                        ->timeout(5)
+                        ->get('/repos/'.trim($repository, '/').'/actions/workflows/'.rawurlencode($workflow));
+
+                    if (! $response->successful()) {
+                        $summary = match ($response->status()) {
+                            401 => 'GitHub rechazó las credenciales. Actualiza el token de despliegue.',
+                            403 => 'GitHub rechazó la consulta. Revisa los permisos del token o el límite de solicitudes.',
+                            404 => 'El token no permite consultar el repositorio y workflow configurados.',
+                            default => 'GitHub no respondió correctamente a la comprobación.',
+                        };
+
+                        return $this->result('github', 'Despliegue GitHub', 'warning', $summary,
+                            $details.' · HTTP '.$response->status());
+                    }
+
+                    if ($response->json('state') !== 'active' || (int) $response->json('id') < 1) {
+                        return $this->result('github', 'Despliegue GitHub', 'warning',
+                            'El workflow de despliegue no está activo o no pudo verificarse.', $details);
+                    }
+
+                    return $this->result('github', 'Despliegue GitHub', 'ok',
+                        'GitHub permite consultar el workflow y está activo.',
+                        $details.' · El permiso para ejecutarlo se valida al activar las credenciales y al solicitar el despliegue.');
+                } catch (Throwable) {
+                    // Do not expose request exceptions: they may contain the
+                    // configured API URL or response data. Cache failures too.
+                    return $this->result('github', 'Despliegue GitHub', 'warning',
+                        'No fue posible contactar GitHub; vuelve a comprobarlo en un minuto.', $details);
+                }
+            });
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return $this->result('github', 'Despliegue GitHub', 'warning',
+                'No fue posible guardar o leer la comprobación de GitHub. Revisa la caché.');
+        }
     }
 
     /**
@@ -488,7 +562,7 @@ class DeveloperHealthService
                 'deployment_runtime',
                 'Motor de despliegue',
                 'ok',
-                'El servidor puede ejecutar despliegues autónomos.',
+                'El checkout cumple las verificaciones previas; la ejecución depende del agente programado.',
                 'main · scheduler'
             );
         } catch (Throwable $exception) {

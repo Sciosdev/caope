@@ -29,6 +29,7 @@ final class ProductionSecurityAudit
             $this->secureSessionCookie(),
             $this->revocableEncryptedSessions(),
             $this->encryptedBackups(),
+            $this->recoverableMaintenance(),
         ];
     }
 
@@ -197,6 +198,16 @@ final class ProductionSecurityAudit
         return $isConfigured
             ? $this->result('security_backup_encryption', 'Cifrado de respaldos', 'ok', 'Los archivos de respaldo tienen una contraseña de cifrado configurada.')
             : $this->result('security_backup_encryption', 'Cifrado de respaldos', 'error', 'El cifrado AES-256 de respaldos no está disponible o BACKUP_ARCHIVE_PASSWORD no cumple los requisitos.');
+    }
+
+    /**
+     * @return array{id: string, label: string, status: string, summary: string, details: null}
+     */
+    private function recoverableMaintenance(): array
+    {
+        return config('app.maintenance.driver') === 'file'
+            ? $this->result('security_maintenance', 'Mantenimiento recuperable', 'ok', 'El mantenimiento permite recuperar la instalación sin iniciar Laravel.')
+            : $this->result('security_maintenance', 'Mantenimiento recuperable', 'error', 'APP_MAINTENANCE_DRIVER debe ser file para mantener CAOPE cerrado durante una recuperación aunque Laravel no pueda iniciar.');
     }
 
     private function decodeApplicationKey(mixed $configuredKey): string

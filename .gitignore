@@ -2,6 +2,8 @@
 /backend/node_modules/
 /backend/public/storage
 /backend/public/build
+/.deploy-agent.lock
+/.deploy-lock/
 
 # Runtime environment files. Only the two reviewed backend templates may be
 # versioned; every real environment file must remain outside Git.

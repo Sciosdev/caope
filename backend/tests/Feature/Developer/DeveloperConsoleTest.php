@@ -4,8 +4,10 @@ namespace Tests\Feature\Developer;
 
 use App\Models\DeploymentRun;
 use App\Models\User;
+use App\Services\DeveloperHealthService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as ClientRequest;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\URL;
 use Spatie\Permission\Models\Role;
@@ -186,6 +188,19 @@ class DeveloperConsoleTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_cache_maintenance_blocks_dispatch_before_contacting_github(): void
+    {
+        config(['app.maintenance.driver' => 'cache']);
+
+        $this->actingAs($this->developer())
+            ->withSession($this->confirmedPasswordSession())
+            ->post(route('developer.deploy'), ['confirmation' => 'DESPLEGAR'])
+            ->assertSessionHasErrors('deployment');
+
+        $this->assertDatabaseCount('deployment_runs', 0);
+        Http::assertNothingSent();
+    }
+
     public function test_failed_dispatch_is_kept_in_audit_history(): void
     {
         $this->dispatchBody = ['message' => 'Forbidden'];
@@ -225,6 +240,25 @@ class DeveloperConsoleTest extends TestCase
         $response->assertSessionHasErrors('deployment');
         $this->assertDatabaseCount('deployment_runs', 1);
         Http::assertNotSent(fn (ClientRequest $request): bool => str_ends_with($request->url(), '/dispatches'));
+    }
+
+    public function test_uncertain_github_dispatch_remains_pending_to_prevent_duplicate_attempts(): void
+    {
+        $this->dispatchStatus = 503;
+        $developer = $this->developer();
+        $this->actingAs($developer)->withSession($this->confirmedPasswordSession())
+            ->post(route('developer.deploy'), ['confirmation' => 'DESPLEGAR'])
+            ->assertSessionHasErrors('deployment');
+
+        $deployment = DeploymentRun::query()->sole();
+        $this->assertSame('requested', $deployment->status);
+        $this->assertTrue($deployment->isActive());
+        $this->assertStringContainsString('No se pudo confirmar', $deployment->error_message);
+
+        $this->post(route('developer.deploy'), ['confirmation' => 'DESPLEGAR'])
+            ->assertSessionHasErrors('deployment');
+        $this->assertDatabaseCount('deployment_runs', 1);
+        $this->assertCount(1, Http::recorded(fn (ClientRequest $request): bool => str_ends_with($request->url(), '/dispatches')));
     }
 
     public function test_console_synchronizes_a_github_workflow_status(): void
@@ -304,6 +338,120 @@ class DeveloperConsoleTest extends TestCase
             ->get(route('developer.index'));
 
         $response->assertForbidden();
+    }
+
+    public function test_old_missing_request_is_reconciled_consistently_for_screen_and_dispatch(): void
+    {
+        $this->healthyChecks();
+        $this->dispatchBody = null;
+        $this->dispatchStatus = 204;
+        $developer = $this->developer();
+        $deployment = DeploymentRun::query()->create([
+            'request_id' => '60f3c860-81e5-4c91-92d5-acd2197a1a81',
+            'ref' => 'main',
+            'status' => 'requested',
+        ]);
+        $deployment->forceFill(['created_at' => now()->subHours(7)])->save();
+
+        $this->actingAs($developer)->withSession($this->confirmedPasswordSession())
+            ->getJson(route('developer.index'))
+            ->assertOk()->assertJsonPath('active', false)->assertJsonPath('deploy_disabled', false);
+
+        $this->post(route('developer.deploy'), ['confirmation' => 'DESPLEGAR'])
+            ->assertSessionHasNoErrors()->assertSessionHas('status');
+        $this->assertDatabaseCount('deployment_runs', 2);
+    }
+
+    public function test_active_deployment_outside_visible_history_still_blocks_screen_and_dispatch(): void
+    {
+        $this->healthyChecks();
+        $developer = $this->developer();
+        $active = DeploymentRun::query()->create([
+            'request_id' => '60f3c860-81e5-4c91-92d5-acd2197a1a81',
+            'ref' => 'main',
+            'status' => 'completed',
+            'conclusion' => 'cancelled',
+            'agent_status' => 'running',
+            'agent_stage' => 'backup',
+            'agent_heartbeat_at' => now(),
+        ]);
+        $active->forceFill(['created_at' => now()->subHours(7)])->save();
+        for ($i = 0; $i < 21; $i++) {
+            DeploymentRun::query()->create([
+                'request_id' => (string) \Illuminate\Support\Str::uuid(),
+                'ref' => 'main',
+                'status' => 'completed',
+                'conclusion' => 'success',
+            ]);
+        }
+
+        $response = $this->actingAs($developer)->withSession($this->confirmedPasswordSession())
+            ->getJson(route('developer.index'))
+            ->assertOk()->assertJsonPath('active', true)->assertJsonPath('deploy_disabled', true);
+
+        $this->assertStringContainsString('Creando respaldo', $response->json('progress'));
+        $this->post(route('developer.deploy'), ['confirmation' => 'DESPLEGAR'])->assertSessionHasErrors('deployment');
+        Http::assertNotSent(fn (ClientRequest $request): bool => str_ends_with($request->url(), '/dispatches'));
+    }
+
+    public function test_live_status_contains_only_diagnostic_fragments_and_never_replaces_forms(): void
+    {
+        $this->healthyChecks();
+        $response = $this->actingAs($this->developer())->withSession($this->confirmedPasswordSession())
+            ->getJson(route('developer.index'))->assertOk()
+            ->assertJsonStructure(['health', 'progress', 'history', 'deploy_disabled', 'active']);
+
+        $this->assertStringContainsString('Versión instalada', $response->json('progress'));
+        $this->assertStringNotContainsString('<form', $response->getContent());
+        $this->assertStringNotContainsString('test-token', $response->getContent());
+        $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
+    }
+
+    public function test_console_imports_durable_shell_recovery_before_presenting_remote_success(): void
+    {
+        $this->healthyChecks();
+        $deployment = DeploymentRun::query()->create([
+            'request_id' => '60f3c860-81e5-4c91-92d5-acd2197a1a81',
+            'ref' => 'main',
+            'status' => 'in_progress',
+            'agent_status' => 'running',
+        ]);
+        $this->workflowRuns = [[
+            'id' => 12345,
+            'display_title' => "Deploy production main [{$deployment->request_id}]",
+            'status' => 'completed',
+            'conclusion' => 'success',
+        ]];
+        $path = storage_path('app/deployment/result.json');
+        $original = File::exists($path) ? File::get($path) : null;
+        File::ensureDirectoryExists(dirname($path));
+
+        try {
+            File::put($path, json_encode([
+                'schema' => 1,
+                'request_id' => $deployment->request_id,
+                'finished_at' => now()->toIso8601String(),
+                'status' => 'failed',
+                'stage' => 'rollback',
+                'restored' => true,
+            ], JSON_THROW_ON_ERROR));
+
+            $response = $this->actingAs($this->developer())->withSession($this->confirmedPasswordSession())
+                ->getJson(route('developer.index'))->assertOk()->assertJsonPath('active', false);
+
+            $this->assertSame('failed', $deployment->refresh()->agent_status);
+            $this->assertStringContainsString('restaurada automáticamente', $response->json('history'));
+            $this->assertStringContainsString('Falló en el servidor', $response->json('progress'));
+        } finally {
+            $original === null ? File::delete($path) : File::put($path, $original);
+        }
+    }
+
+    private function healthyChecks(): void
+    {
+        $this->mock(DeveloperHealthService::class)->shouldReceive('run')->andReturn([
+            ['id' => 'version', 'label' => 'Versión desplegada', 'status' => 'ok', 'summary' => 'abcdef123456', 'details' => null],
+        ]);
     }
 
     private function developer(): User
