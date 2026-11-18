@@ -18,6 +18,7 @@ use App\Http\Controllers\ConsentimientoPdfController;
 use App\Http\Controllers\ConsentimientoRequeridoController;
 use App\Http\Controllers\ConsentimientoUploadController;
 use App\Http\Controllers\ConsultorioReservaController;
+use App\Http\Controllers\ConsultorioSerieController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeveloperConsoleActivationController;
 use App\Http\Controllers\DeveloperConsoleController;
@@ -115,6 +116,8 @@ Route::middleware(['auth', 'active_user'])->group(function () {
     Route::prefix('admin/herramientas/consultorios')->name('admin.consultorios.solicitudes.')->middleware(['role:admin|paps', 'approved_paps:admin'])->group(function (): void {
         Route::get('solicitudes', [ConsultorioSolicitudController::class, 'index'])->name('index');
         Route::post('solicitudes/{solicitud}/aprobar', [ConsultorioSolicitudController::class, 'approve'])->name('approve');
+        Route::post('solicitudes/{solicitud}/corregir', [ConsultorioSolicitudController::class, 'correct'])->middleware('role:admin')->name('correct');
+        Route::post('solicitudes/{solicitud}/rechazar', [ConsultorioSolicitudController::class, 'reject'])->middleware('role:admin')->name('reject');
     });
 
     Route::prefix('admin/documentos')->name('admin.documentos.')->group(function (): void {
@@ -143,6 +146,11 @@ Route::middleware(['auth', 'active_user'])->group(function () {
             Route::put('{reserva}/solicitar-edicion', [ConsultorioReservaController::class, 'requestUpdate'])->name('request-update');
             Route::delete('{reserva}/solicitar-baja', [ConsultorioReservaController::class, 'requestDestroy'])->name('request-destroy');
         });
+    });
+
+    Route::prefix('cubiculos/reservas/{reserva}/serie')->middleware('role:admin')->name('consultorios.serie.')->group(function (): void {
+        Route::get('/', [ConsultorioSerieController::class, 'edit'])->name('edit');
+        Route::post('/', [ConsultorioSerieController::class, 'apply'])->name('apply');
     });
 
     Route::middleware(['role:admin', 'can:exportReport,'.Expediente::class])->group(function (): void {

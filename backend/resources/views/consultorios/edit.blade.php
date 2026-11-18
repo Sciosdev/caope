@@ -11,6 +11,7 @@
             @php
                 $isAdmin = auth()->user()?->hasRole('admin') ?? false;
                 $fromExpediente = ($editContext ?? null) === 'expediente';
+                $seriesDataOnly = $isAdmin && $reserva->serie_uuid !== null;
                 $cubiculoNumeroSeleccionado = (int) old('consultorio_numero', $reserva->consultorio_numero);
                 $cubiculoSeleccionadoDisponible = $consultoriosActivos->contains(
                     fn ($cubiculo) => (int) $cubiculo->numero === $cubiculoNumeroSeleccionado
@@ -46,6 +47,17 @@
                 @if ($fromExpediente)
                     <input type="hidden" name="edit_context" value="expediente">
                 @endif
+                @if ($seriesDataOnly)
+                    <div class="col-12">
+                        <p class="small mb-1">Horario vigente: {{ $reserva->fecha->format('d/m/Y') }} · {{ substr($reserva->hora_inicio, 0, 5) }}–{{ substr($reserva->hora_fin, 0, 5) }} · {{ $cubiculoActualNombre }}.</p>
+                        <p class="form-text">Si cambias el expediente, las personas o la estrategia, esta reserva quedará separada de la serie.</p>
+                        <a href="{{ route('consultorios.serie.edit', $reserva) }}">Reprogramar o cancelar desde la serie</a>
+                        <input type="hidden" name="fecha" value="{{ $reserva->fecha->toDateString() }}">
+                        <input type="hidden" name="hora_inicio" value="{{ substr($reserva->hora_inicio, 0, 5) }}">
+                        <input type="hidden" name="hora_fin" value="{{ substr($reserva->hora_fin, 0, 5) }}">
+                        <input type="hidden" name="consultorio_numero" value="{{ $reserva->consultorio_numero }}">
+                    </div>
+                @else
                 <div class="col-md-2"><label class="form-label">Día</label><input type="date" name="fecha" class="form-control" value="{{ old('fecha', $reserva->fecha->format('Y-m-d')) }}" required></div>
                 <div class="col-md-2"><label class="form-label">Inicio</label><input type="time" name="hora_inicio" class="form-control" value="{{ old('hora_inicio', substr($reserva->hora_inicio,0,5)) }}" required></div>
                 <div class="col-md-2"><label class="form-label">Fin</label><input type="time" name="hora_fin" class="form-control" value="{{ old('hora_fin', substr($reserva->hora_fin,0,5)) }}" required></div>
@@ -64,6 +76,7 @@
                         @endforeach
                     </select>
                 </div>
+                @endif
                 @if ($fromExpediente)
                     <div class="col-12">
                         <dl class="row small mb-0 border rounded p-3 bg-light">

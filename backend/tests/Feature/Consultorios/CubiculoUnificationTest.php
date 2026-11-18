@@ -17,6 +17,7 @@ use Database\Seeders\RoleSeeder;
 use DOMDocument;
 use DOMXPath;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -125,6 +126,7 @@ class CubiculoUnificationTest extends TestCase
 
     public function test_explicit_reservation_edit_normalizes_the_selected_canonical_number_only_when_written(): void
     {
+        $this->travelTo(Carbon::parse('2026-11-09 08:00', 'America/Mexico_City'));
         $booking = $this->reservation(1, 7);
 
         $this->putJson(route('consultorios.update', $booking), $this->reservationPayload(18) + ['cubiculo_numero' => 999])
@@ -187,6 +189,7 @@ class CubiculoUnificationTest extends TestCase
 
     public function test_editing_an_inactive_current_space_does_not_silently_select_the_first_active_option(): void
     {
+        $this->travelTo(Carbon::parse('2026-11-09 08:00', 'America/Mexico_City'));
         $room = $this->room(18);
         $booking = $this->reservation(18, 7);
         $room->update(['activo' => false]);

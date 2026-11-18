@@ -64,9 +64,8 @@ class ConsultorioReservationUpdateService
     }
 
     /**
-     * Apply the immutable proposal payload and mark that same request as
-     * attended atomically. Its original payload remains unchanged as audit
-     * evidence of what PAPS requested.
+     * Apply the proposal, optionally with an administrator's schedule correction.
+     * The original proposal remains intact, separately from its resolution.
      *
      * @param  array<string, mixed>  $changes
      */
@@ -75,12 +74,14 @@ class ConsultorioReservationUpdateService
         ConsultorioReserva $reserva,
         array $changes,
         User $actor,
+        ?string $correctionReason = null,
     ): ConsultorioReserva {
         return $this->apply(
             $reserva,
             $changes,
             $actor,
             approvedSolicitudId: (int) $solicitud->getKey(),
+            correctionReason: $correctionReason,
         );
     }
 
@@ -93,6 +94,7 @@ class ConsultorioReservationUpdateService
         User $actor,
         bool $scheduleOnly = false,
         ?int $approvedSolicitudId = null,
+        ?string $correctionReason = null,
     ): ConsultorioReserva {
         if (! $actor->hasRole('admin')) {
             throw new AuthorizationException('Solo el administrador puede aplicar cambios de reserva.');
@@ -108,6 +110,7 @@ class ConsultorioReservationUpdateService
             $actor,
             $scheduleOnly,
             $approvedSolicitudId,
+            $correctionReason,
             $destination,
         ): ConsultorioReserva {
             $candidateExpedienteIds = collect([
@@ -172,6 +175,29 @@ class ConsultorioReservationUpdateService
 
             $approvedSolicitud = $this->lockPendingState($locked, $approvedSolicitudId);
 
+            // Legacy pending edits may still be resolved from the inbox. They
+            // have no series identity and can never change another occurrence.
+            $reviewedAt = now();
+            $started = ! $locked->hasNotStarted($reviewedAt);
+            $historicalReview = $started && ! $locked->serie_uuid && $approvedSolicitud !== null;
+            if ($started && ! $historicalReview) {
+                throw ValidationException::withMessages(['reserva' => 'La reserva ya comenzó y es de solo lectura.']);
+            }
+            $proposed = clone $locked;
+            $proposed->fill($changes);
+            $futureDestination = $proposed->hasNotStarted($reviewedAt);
+            if ($historicalReview && $futureDestination) {
+                throw ValidationException::withMessages(['fecha' => 'Una reserva que ya comenzó no puede convertirse en una reserva futura. Conserva el registro histórico y crea una reserva nueva para el horario futuro.']);
+            }
+            if (! $historicalReview) {
+                if (! $futureDestination) {
+                    throw ValidationException::withMessages(['fecha' => 'El nuevo horario debe estar en el futuro.']);
+                }
+                if ($locked->serie_uuid && ! $approvedSolicitud && $this->scheduleSnapshot($proposed) !== $this->scheduleSnapshot($locked)) {
+                    throw ValidationException::withMessages(['reserva' => 'Usa la gestión de la serie para confirmar si cambias esta fecha o también las siguientes.']);
+                }
+            }
+
             if ($scheduleOnly && $locked->expediente_id === null) {
                 throw ValidationException::withMessages([
                     'reserva' => 'Esta reserva ya no está vinculada a un expediente.',
@@ -187,8 +213,14 @@ class ConsultorioReservationUpdateService
             );
 
             $before = $this->scheduleSnapshot($locked);
+            $auditBefore = $approvedSolicitud ? $this->reservationSnapshot($locked) : null;
             $oldExpedienteId = $locked->expediente_id === null ? null : (int) $locked->expediente_id;
-            $locked->update($changes);
+            $locked->fill($changes);
+            if ($locked->serie_uuid && $locked->isDirty(['expediente_id', 'usuario_atendido_id', 'estratega_id', 'supervisor_id', 'estrategia'])) {
+                // An independently reassigned slot must not follow the previous person's series.
+                $locked->serie_uuid = null;
+            }
+            $locked->save();
             $locked->refresh();
             $after = $this->scheduleSnapshot($locked);
 
@@ -215,11 +247,68 @@ class ConsultorioReservationUpdateService
             }
 
             if ($approvedSolicitud) {
-                $approvedSolicitud->update(['status' => 'atendida']);
+                $approvedSolicitud->resolve(
+                    $correctionReason === null ? 'aprobada' : 'corregida',
+                    $actor,
+                    $correctionReason,
+                    $auditBefore,
+                    $this->reservationSnapshot($locked),
+                );
             }
 
             return $locked;
         }, 3);
+    }
+
+    /** Rejecting a request never changes the reservation, including a requested cancellation. */
+    public function finishWithoutEdit(ConsultorioReservaSolicitud $solicitud, User $actor, bool $reject, ?string $reason = null): void
+    {
+        if (! $actor->hasRole('admin')) {
+            throw new AuthorizationException;
+        }
+
+        DB::transaction(function () use ($solicitud, $actor, $reject, $reason): void {
+            $id = $solicitud->consultorio_reserva_id;
+            $expectedCase = ! $reject && $id ? ConsultorioReserva::query()->whereKey($id)->value('expediente_id') : null;
+            // An accepted cancellation must not mutate a case that is (or has just been) archived.
+            $expediente = $expectedCase ? Expediente::withTrashed()->lockForUpdate()->find($expectedCase) : null;
+            $reserva = $id ? ConsultorioReserva::query()->lockForUpdate()->find($id) : null;
+            $locked = ConsultorioReservaSolicitud::query()->lockForUpdate()->findOrFail($solicitud->getKey());
+
+            if ($locked->status !== 'pendiente') {
+                throw ValidationException::withMessages(['solicitud' => 'Esta solicitud ya fue atendida.']);
+            }
+            if ($reserva && (int) $reserva->id !== (int) $locked->consultorio_reserva_id) {
+                throw ValidationException::withMessages(['solicitud' => 'La reserva vinculada cambió. Actualiza la bandeja.']);
+            }
+            $before = $reserva ? $this->reservationSnapshot($reserva) : null;
+            if ($reject) {
+                $locked->resolve('rechazada', $actor, $reason, $before, $before);
+
+                return;
+            }
+            if ($locked->tipo !== 'baja' || ! $reserva) {
+                throw ValidationException::withMessages(['solicitud' => 'La reserva no está disponible para darla de baja. Puedes rechazar la solicitud.']);
+            }
+            if ((int) $reserva->expediente_id !== (int) $expectedCase || $expediente?->trashed()) {
+                throw ValidationException::withMessages(['solicitud' => 'El expediente cambió o está archivado. No se dio de baja la reserva.']);
+            }
+            if (! $reserva->hasNotStarted()) {
+                throw ValidationException::withMessages(['reserva' => 'La reserva ya comenzó. Puedes rechazar la solicitud de baja para conservar el historial.']);
+            }
+            $locked->resolve('aprobada', $actor, null, $before, null);
+            $reserva->delete();
+            if ($expediente) {
+                $this->syncEffectiveCubiculo($expediente);
+            }
+        }, 3);
+    }
+
+    private function reservationSnapshot(ConsultorioReserva $reserva): array
+    {
+        return $this->scheduleSnapshot($reserva) + $reserva->only([
+            'estrategia', 'expediente_id', 'usuario_atendido_id', 'estratega_id', 'supervisor_id',
+        ]);
     }
 
     private function lockPendingState(

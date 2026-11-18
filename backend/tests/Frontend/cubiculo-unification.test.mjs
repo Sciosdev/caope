@@ -5,6 +5,7 @@ import { runInNewContext, Script } from 'node:vm';
 
 const sources = {
     expediente: readFileSync(new URL('../../resources/views/expedientes/partials/form.blade.php', import.meta.url), 'utf8'),
+    shared: readFileSync(new URL('../../resources/views/consultorios/partials/fechas-asignacion-script.blade.php', import.meta.url), 'utf8'),
     reservas: readFileSync(new URL('../../resources/views/consultorios/index.blade.php', import.meta.url), 'utf8'),
 };
 
@@ -31,11 +32,12 @@ test('the case form uses the canonical ID, without the legacy physical-space sel
 });
 
 test('availability uses the selected room number, not its different database ID', () => {
-    const helper = sources.expediente.match(/const getCubiculoNumero = [^;]+;/)?.[0];
-    assert.ok(helper, 'Exercise the helper shipped in the case form.');
-    const selected = { value: '118', selectedOptions: [{ dataset: { numero: '18' } }] };
-    const getNumber = runInNewContext(`${helper}\ngetCubiculoNumero;`, { cubiculoInput: selected });
-    assert.equal(getNumber(), '18');
+    const helper = sources.shared.match(/const roomNumber = [^;]+;/)?.[0];
+    assert.ok(helper, 'Exercise the helper shared by the two real forms.');
+    const selected = {id: 'cubiculo_id', value: '118', selectedOptions: [{dataset: {numero: '18'}}]};
+    const getNumber = runInNewContext(helper + '\nroomNumber;');
+    assert.equal(getNumber(selected), '18');
     selected.selectedOptions = [];
-    assert.equal(getNumber(), '');
+    assert.equal(getNumber(selected), '');
+    assert.equal(getNumber({id: 'asignacion-consultorio', value: '18'}), '18');
 });

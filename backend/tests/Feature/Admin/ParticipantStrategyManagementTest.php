@@ -47,6 +47,32 @@ class ParticipantStrategyManagementTest extends TestCase
         $this->assertCount(0, $created->estrategiasCoordinadas);
     }
 
+    public function test_newly_assigned_strategist_appears_in_both_named_selectors_on_reopening_new_case(): void
+    {
+        $target = $this->account(['coordinador']);
+        $strategy = $this->strategy('Participación sintética');
+        $checkOptions = function (int $expected) use ($target): void {
+            $response = $this->get(route('expedientes.create'))->assertOk();
+            $document = new DOMDocument;
+            @$document->loadHTML('<?xml encoding="UTF-8">'.$response->getContent());
+            $xpath = new DOMXPath($document);
+            foreach ([
+                'tutor_id' => 'Estratega responsable del expediente',
+                'expediente-asignacion-estratega' => 'Estratega de la reserva de cubículo',
+            ] as $id => $label) {
+                $this->assertSame($label, $xpath->evaluate("normalize-space(//label[@for='$id'])"));
+                $this->assertCount($expected, $xpath->query("//select[@id='$id']/option[@value='$target->id']"));
+            }
+        };
+        $checkOptions(0);
+        $this->put(route('admin.users.update', $target), $this->updatePayload($target, [
+            'roles' => ['coordinador', 'estratega'],
+            'participante_estrategia_ids' => [$strategy->id],
+        ]))->assertSessionHasNoErrors()->assertRedirect(route('admin.users.index'))
+            ->assertSessionHas('status', fn ($message) => str_contains($message, 'Coordinador, Estratega'));
+        $checkOptions(1);
+    }
+
     public static function participantRoles(): array
     {
         return [

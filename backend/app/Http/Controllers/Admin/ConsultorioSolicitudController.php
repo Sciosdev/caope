@@ -12,10 +12,10 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ConsultorioSolicitudController extends Controller
@@ -25,6 +25,18 @@ class ConsultorioSolicitudController extends Controller
     private function hasSolicitudesTable(): bool
     {
         return Schema::hasTable('consultorio_reserva_solicitudes');
+    }
+
+    private function resolutionsAvailable(): bool
+    {
+        return Schema::hasColumn('consultorio_reserva_solicitudes', 'resolucion');
+    }
+
+    private function requireResolutionAudit(): void
+    {
+        if (! $this->resolutionsAvailable()) {
+            throw ValidationException::withMessages(['solicitud' => 'Las decisiones están temporalmente en pausa hasta que termine la actualización. La reserva y la solicitud no han cambiado.']);
+        }
     }
 
     public function index(Request $request): View
@@ -74,39 +86,77 @@ class ConsultorioSolicitudController extends Controller
             ->get(['id', 'numero', 'nombre'])
             ->keyBy('numero');
 
+        $resolutionsAvailable = $this->resolutionsAvailable();
+
         return view('admin.consultorios.solicitudes.index', [
             'solicitudesPendientes' => $solicitudesPendientes,
             'expedientesPropuestos' => $expedientesPropuestos,
             'cubiculosPropuestos' => $cubiculosPropuestos,
+            'accionesDisponibles' => $resolutionsAvailable,
+            'cubiculosActivos' => $isAdmin && $resolutionsAvailable ? CatalogoConsultorio::query()->where('activo', true)->orderBy('numero')->get(['numero', 'nombre']) : collect(),
+            'resueltas' => $resolutionsAvailable
+                ? ConsultorioReservaSolicitud::query()->where('status', 'atendida')->whereNotNull('resolucion')
+                    ->when(! $isAdmin, fn ($query) => $query->where('requested_by', $user->id))
+                    ->latest('updated_at')->orderByDesc('id')->limit(20)->get(['id', 'tipo', 'updated_at', 'resolucion'])
+                : collect(),
         ]);
     }
 
     public function approve(Request $request, ConsultorioReservaSolicitud $solicitud): RedirectResponse
     {
         abort_unless($request->user()?->hasRole('admin'), 403);
-        $current = ConsultorioReservaSolicitud::query()->findOrFail($solicitud->getKey());
-        abort_if($current->status !== 'pendiente', 422, 'Esta solicitud ya fue atendida.');
-
-        if ($current->tipo === 'baja') {
-            DB::transaction(function () use ($current): void {
-                $locked = ConsultorioReservaSolicitud::query()
-                    ->lockForUpdate()
-                    ->findOrFail($current->getKey());
-                abort_if($locked->status !== 'pendiente', 422, 'Esta solicitud ya fue atendida.');
-                $reserva = ConsultorioReserva::query()
-                    ->lockForUpdate()
-                    ->findOrFail($locked->consultorio_reserva_id);
-                // Conserva la solicitud como evidencia de quién pidió la baja y cuándo fue atendida.
-                $locked->update(['status' => 'atendida']);
-                $reserva->delete();
-            }, 3);
-
-            return redirect()->route('admin.consultorios.solicitudes.index')->with('status', 'Solicitud aprobada correctamente.');
+        $this->requireResolutionAudit();
+        if ($solicitud->tipo === 'baja') {
+            $this->reservationUpdater->finishWithoutEdit($solicitud, $request->user(), reject: false);
+        } else {
+            $this->applyProposal($request, $solicitud);
         }
 
-        abort_unless($current->tipo === 'edicion' && is_array($current->payload), 422, 'La solicitud no contiene cambios válidos.');
+        return redirect()->route('admin.consultorios.solicitudes.index')->with('status', 'Solicitud aprobada correctamente.');
+    }
 
-        $changes = Arr::only($current->payload, [
+    public function correct(Request $request, ConsultorioReservaSolicitud $solicitud): RedirectResponse
+    {
+        abort_unless($request->user()?->hasRole('admin'), 403);
+        $this->requireResolutionAudit();
+        $correction = $request->validate([
+            'fecha' => ['required', 'date_format:Y-m-d'],
+            'hora_inicio' => ['required', 'date_format:H:i'],
+            'hora_fin' => ['required', 'date_format:H:i'],
+            'consultorio_numero' => ['required', 'integer'],
+            'motivo' => ['required', 'string', 'max:300'],
+            'expediente_id' => ['missing'],
+            'usuario_atendido_id' => ['missing'],
+            'estratega_id' => ['missing'],
+            'supervisor_id' => ['missing'],
+            'estrategia' => ['missing'],
+        ]);
+        $this->applyProposal($request, $solicitud, $correction);
+
+        return redirect()->route('admin.consultorios.solicitudes.index')->with('status', 'Solicitud corregida y aprobada. Se actualizó la misma reserva.');
+    }
+
+    public function reject(Request $request, ConsultorioReservaSolicitud $solicitud): RedirectResponse
+    {
+        abort_unless($request->user()?->hasRole('admin'), 403);
+        $this->requireResolutionAudit();
+        $reason = $request->validate(['motivo' => ['required', 'string', 'max:300']])['motivo'];
+        $this->reservationUpdater->finishWithoutEdit($solicitud, $request->user(), reject: true, reason: $reason);
+
+        return redirect()->route('admin.consultorios.solicitudes.index')->with('status', 'Solicitud rechazada. No se modificó ni canceló ninguna reserva.');
+    }
+
+    private function applyProposal(Request $request, ConsultorioReservaSolicitud $current, array $correction = []): void
+    {
+        if ($current->status !== 'pendiente' || $current->tipo !== 'edicion') {
+            throw ValidationException::withMessages(['solicitud' => 'Solo se pueden aprobar cambios de una solicitud de edición pendiente.']);
+        }
+        $payload = $current->payload;
+        if (! is_array($payload) && $payload !== null) {
+            throw ValidationException::withMessages(['solicitud' => 'No se reconoce el formato de la propuesta. Puedes rechazarla, sin cancelar la reserva.']);
+        }
+
+        $changes = Arr::only($payload ?? [], [
             'fecha',
             'hora_inicio',
             'hora_fin',
@@ -118,7 +168,16 @@ class ConsultorioSolicitudController extends Controller
             'estratega_id',
             'supervisor_id',
         ]);
-        abort_if($changes === [], 422, 'La solicitud no contiene cambios válidos.');
+        $reason = $correction['motivo'] ?? null;
+        $changes = array_replace($changes, Arr::except($correction, ['motivo']));
+        if ($changes === []) {
+            throw ValidationException::withMessages(['solicitud' => 'La solicitud no contiene una propuesta. Indica un horario con «Corregir y aprobar» o recházala.']);
+        }
+        foreach (['hora_inicio', 'hora_fin'] as $field) {
+            if (is_string($changes[$field] ?? null) && preg_match('/^\d{2}:\d{2}:00$/D', $changes[$field])) {
+                $changes[$field] = substr($changes[$field], 0, 5);
+            }
+        }
 
         // Retain the original request payload as audit evidence, but apply
         // only its physical room selection, never a legacy sub-room pair.
@@ -130,12 +189,12 @@ class ConsultorioSolicitudController extends Controller
             'hora_fin' => ['required', 'date_format:H:i', 'after:hora_inicio'],
             'consultorio_numero' => ['required', 'integer', Rule::exists('catalogo_consultorios', 'numero')->where('activo', true)],
             'cubiculo_numero' => ['required', 'integer', 'same:consultorio_numero'],
-            'estrategia' => ['required', 'string', 'max:255', Rule::exists('catalogo_estrategias', 'nombre')->where('activo', true)],
+            'estrategia' => ['sometimes', 'required', 'string', 'max:255', Rule::exists('catalogo_estrategias', 'nombre')->where('activo', true)],
             'expediente_id' => ['sometimes', 'nullable', 'integer', 'exists:expedientes,id'],
             'usuario_atendido_id' => ['nullable', 'integer', 'exists:users,id'],
             'estratega_id' => ['nullable', 'integer', 'exists:users,id'],
             'supervisor_id' => ['nullable', 'integer', 'exists:users,id'],
-        ]);
+        ], [], ['consultorio_numero' => 'cubículo', 'estrategia' => 'estrategia propuesta']);
 
         $validator->after(function ($validator) use ($changes): void {
             if ($validator->errors()->isNotEmpty()) {
@@ -152,14 +211,16 @@ class ConsultorioSolicitudController extends Controller
         });
 
         $validated = $validator->validate();
-        $reserva = ConsultorioReserva::query()->findOrFail($current->consultorio_reserva_id);
+        $reserva = ConsultorioReserva::query()->find($current->consultorio_reserva_id);
+        if (! $reserva) {
+            throw ValidationException::withMessages(['solicitud' => 'La reserva vinculada ya no existe. Puedes rechazar esta solicitud.']);
+        }
         $this->reservationUpdater->approvePendingEdit(
             $current,
             $reserva,
             $validated,
             $request->user(),
+            $reason,
         );
-
-        return redirect()->route('admin.consultorios.solicitudes.index')->with('status', 'Solicitud aprobada correctamente.');
     }
 }

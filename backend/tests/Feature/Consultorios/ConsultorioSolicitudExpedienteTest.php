@@ -186,6 +186,7 @@ class ConsultorioSolicitudExpedienteTest extends TestCase
 
     public function test_admin_can_explicitly_link_a_legacy_reservation_and_the_request_list_uses_that_record(): void
     {
+        $this->travelTo(now('America/Mexico_City')->setDate(2026, 11, 9)->startOfDay());
         $facilitator = $this->user('alumno');
         $wrong = $this->expediente('Paciente sintético no elegido', $facilitator);
         $chosen = $this->expediente('Paciente sintético elegido manualmente', $facilitator);
@@ -207,6 +208,7 @@ class ConsultorioSolicitudExpedienteTest extends TestCase
 
     public function test_paps_relink_proposal_preserves_the_current_patient_until_admin_approval(): void
     {
+        $this->travelTo(now('America/Mexico_City')->setDate(2026, 11, 9)->startOfDay());
         $first = $this->expediente('Paciente sintético actual');
         $next = $this->expediente('Paciente sintético propuesto');
         $reservation = $this->reservation($first);

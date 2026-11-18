@@ -22,7 +22,25 @@ class ConsultorioReservaSolicitud extends Model
 
     protected $casts = [
         'payload' => 'array',
+        'resolucion' => 'array',
     ];
+
+    /** Called under the request row lock, in the same transaction as the decision. */
+    public function resolve(string $decision, User $actor, ?string $reason, ?array $before, ?array $after): void
+    {
+        $this->forceFill([
+            'status' => 'atendida',
+            'resolucion' => [
+                'decision' => $decision,
+                'actor_id' => $actor->getKey(),
+                'fecha' => now()->toIso8601String(),
+                'motivo' => $reason,
+                'reserva_id' => $this->consultorio_reserva_id,
+                'antes' => $before,
+                'despues' => $after,
+            ],
+        ])->save();
+    }
 
     public function reserva(): BelongsTo
     {

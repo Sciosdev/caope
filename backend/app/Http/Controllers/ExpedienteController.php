@@ -20,6 +20,7 @@ use App\Notifications\TutorAssignedNotification;
 use App\Services\ConsultorioReservationGuard;
 use App\Services\ExpedienteLifecycleService;
 use App\Services\ExpedienteStateValidator;
+use App\Services\ReservationDates;
 use App\Services\TimelineLogger;
 use App\Support\Uploads\AnexoUploadOptions;
 use App\Support\Uploads\ConsentimientoUploadOptions;
@@ -858,15 +859,14 @@ class ExpedienteController extends Controller
             ]);
         }
 
-        $fecha = (string) data_get($payload, 'fecha', '');
+        $fechas = ReservationDates::forSchedule($payload, 'consultorio_reserva.');
         $horaInicio = (string) data_get($payload, 'hora_inicio', '');
         $horaFin = (string) data_get($payload, 'hora_fin', '');
         $consultorioNumero = (int) $canonicalCubiculo->numero;
         $cubiculoNumero = (int) $canonicalCubiculo->numero;
 
         if (
-            $fecha === ''
-            || $horaInicio === ''
+            $horaInicio === ''
             || $horaFin === ''
             || $consultorioNumero <= 0
             || $cubiculoNumero <= 0
@@ -880,14 +880,13 @@ class ExpedienteController extends Controller
         $guard->lockConsultorio($consultorioNumero);
         $guard->assertAvailable(
             $consultorioNumero,
-            [$fecha],
+            $fechas->all(),
             $horaInicio,
             $horaFin,
             errorKey: 'consultorio_reserva.hora_inicio',
         );
 
-        $reserva = ConsultorioReserva::query()->create([
-            'fecha' => $fecha,
+        $base = [
             'hora_inicio' => $horaInicio,
             'hora_fin' => $horaFin,
             'consultorio_numero' => $consultorioNumero,
@@ -895,28 +894,25 @@ class ExpedienteController extends Controller
             'estrategia' => (string) data_get($payload, 'estrategia'),
             'usuario_atendido_id' => data_get($payload, 'usuario_atendido_id') ?: null,
             'estratega_id' => data_get($payload, 'estratega_id') ?: null,
-            'creado_por' => $request->user()->id,
-            'origen_expediente' => true,
-            'expediente_id' => $expediente->getKey(),
-        ]);
-
-        if ($request->user()?->isApprovedPaps() && Schema::hasTable('consultorio_reserva_solicitudes')) {
-            ConsultorioReservaSolicitud::query()->create([
-                'consultorio_reserva_id' => $reserva->id,
-                'requested_by' => $request->user()->id,
-                'tipo' => 'edicion',
-                'payload' => [
-                    'fecha' => $fecha,
-                    'hora_inicio' => $horaInicio,
-                    'hora_fin' => $horaFin,
-                    'consultorio_numero' => $consultorioNumero,
-                    'cubiculo_numero' => $cubiculoNumero,
-                    'estrategia' => (string) data_get($payload, 'estrategia'),
-                    'usuario_atendido_id' => data_get($payload, 'usuario_atendido_id') ?: null,
-                    'estratega_id' => data_get($payload, 'estratega_id') ?: null,
-                ],
-                'status' => 'pendiente',
-            ]);
+        ];
+        $requiresApproval = $user->isApprovedPaps() && Schema::hasTable('consultorio_reserva_solicitudes');
+        $seriesUuid = ConsultorioReserva::newSeriesUuid($payload['modo_repeticion'] ?? null);
+        foreach ($fechas as $fecha) {
+            $occurrence = ['fecha' => $fecha] + $base;
+            $reserva = ConsultorioReserva::createOccurrence($occurrence + [
+                'creado_por' => $user->id,
+                'origen_expediente' => true,
+                'expediente_id' => $expediente->getKey(),
+            ], $seriesUuid);
+            if ($requiresApproval) {
+                ConsultorioReservaSolicitud::query()->create([
+                    'consultorio_reserva_id' => $reserva->id,
+                    'requested_by' => $user->id,
+                    'tipo' => 'edicion',
+                    'payload' => $occurrence,
+                    'status' => 'pendiente',
+                ]);
+            }
         }
     }
 

@@ -227,7 +227,14 @@ class UserController extends Controller
             }
         });
 
-        return Redirect::route('admin.users.index')->with('status', __('Usuario actualizado correctamente.'));
+        $status = __('Usuario actualizado correctamente.');
+        if ($rolesChanged) {
+            $savedRoles = $user->roles()->orderBy('name')->pluck('name')
+                ->map(fn (string $role) => $role === 'alumno' ? 'Facilitador' : ucfirst($role));
+            $status .= ' '.__('Roles guardados para :nombre: :roles.', ['nombre' => $user->name, 'roles' => $savedRoles->implode(', ')]);
+        }
+
+        return Redirect::route('admin.users.index')->with('status', $status);
     }
 
     public function approve(User $user): RedirectResponse

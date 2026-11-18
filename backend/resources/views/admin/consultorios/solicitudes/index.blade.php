@@ -8,8 +8,17 @@
         <h4 class="mb-0">Solicitudes pendientes de cubículos</h4>
     </div>
 
+    @unless ($accionesDisponibles)
+        <div class="alert alert-warning">Las decisiones están temporalmente en pausa hasta que termine la actualización. Puedes consultar las solicitudes.</div>
+    @endunless
     @if (session('status'))
         <div class="alert alert-success">{{ session('status') }}</div>
+    @endif
+    @if ($errors->any())
+        <div class="alert alert-danger" role="alert">
+            <strong>No se completó la acción{{ is_numeric(old('_fila')) ? ' sobre la solicitud #'.(int) old('_fila') : '' }}.</strong>
+            <ul class="mb-0">@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
+        </div>
     @endif
 
     <div class="card">
@@ -19,6 +28,7 @@
                     <table class="table table-sm align-middle">
                         <thead>
                             <tr>
+                                @if ($accionesDisponibles && auth()->user()?->hasRole('admin'))<th>Acciones</th>@endif
                                 <th>Solicitado por</th>
                                 <th>Tipo</th>
                                 <th>Expediente</th>
@@ -26,7 +36,6 @@
                                 <th>Reserva actual</th>
                                 <th>Cambio solicitado</th>
                                 <th>Fecha de solicitud</th>
-                                <th class="text-end">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -51,6 +60,9 @@
                                     $cubiculoPropuesto = $numeroPropuesto === null ? null : $cubiculosPropuestos->get($numeroPropuesto);
                                 @endphp
                                 <tr>
+                                    @if ($accionesDisponibles && auth()->user()?->hasRole('admin'))
+                                        <td>@include('admin.consultorios.solicitudes.acciones')</td>
+                                    @endif
                                     <td>{{ $solicitud->requestedBy?->name ?? 'Usuario' }}</td>
                                     <td>
                                         <span class="badge {{ $solicitud->tipo === 'baja' ? 'bg-danger-subtle text-danger-emphasis border border-danger-subtle' : 'bg-primary-subtle text-primary-emphasis border border-primary-subtle' }}">
@@ -91,26 +103,18 @@
                                     </td>
                                     <td>
                                         @if ($solicitud->tipo === 'edicion' && $payload !== [])
-                                            <strong>{{ $payload['fecha'] ?? 'Fecha no disponible' }}</strong>
-                                            · {{ isset($payload['hora_inicio']) ? substr((string) $payload['hora_inicio'], 0, 5) : '—' }}-{{ isset($payload['hora_fin']) ? substr((string) $payload['hora_fin'], 0, 5) : '—' }}
+                                            <strong>{{ is_string($payload['fecha'] ?? null) ? $payload['fecha'] : 'Fecha no disponible' }}</strong>
+                                            · {{ is_string($payload['hora_inicio'] ?? null) ? substr($payload['hora_inicio'], 0, 5) : '—' }}-{{ is_string($payload['hora_fin'] ?? null) ? substr($payload['hora_fin'], 0, 5) : '—' }}
                                             <div class="small text-muted">
                                                 {{ trim((string) ($cubiculoPropuesto?->nombre ?? '')) !== '' ? $cubiculoPropuesto->nombre : ($numeroPropuesto ? 'Cubículo núm. '.$numeroPropuesto : 'Cubículo no disponible') }}
                                             </div>
-                                        @else
+                                        @elseif ($solicitud->tipo === 'baja')
                                             <span class="text-danger">Dar de baja la reserva completa</span>
+                                        @else
+                                            <span class="text-muted">Sin propuesta de horario registrada</span>
                                         @endif
                                     </td>
                                     <td>{{ $solicitud->created_at?->format('Y-m-d H:i') }}</td>
-                                    <td>
-                                        <div class="d-flex justify-content-end gap-2">
-                                            @if (auth()->user()?->hasRole('admin'))
-                                                <form method="POST" action="{{ route('admin.consultorios.solicitudes.approve', $solicitud) }}" onsubmit="return confirm('¿Aprobar esta solicitud?');">
-                                                    @csrf
-                                                    <button class="btn btn-sm btn-success">Aprobar tal cual</button>
-                                                </form>
-                                            @endif
-                                        </div>
-                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -123,4 +127,21 @@
             @endif
         </div>
     </div>
+    @if ($resueltas->isNotEmpty())
+        <details class="mt-3">
+            <summary>Decisiones recientes (últimas 20)</summary>
+            <ul class="mt-2">
+                @foreach ($resueltas as $resuelta)
+                    <li>Solicitud #{{ $resuelta->id }} · {{ $resuelta->tipo === 'baja' ? 'Baja' : 'Edición' }}
+                        · {{ $resuelta->updated_at?->format('d/m/Y H:i') }} · {{ ucfirst($resuelta->resolucion['decision']) }}
+                        @if ($resuelta->resolucion['reserva_id']) · Reserva #{{ $resuelta->resolucion['reserva_id'] }} @endif
+                        @if ($resuelta->resolucion['motivo']) · {{ $resuelta->resolucion['motivo'] }} @endif
+                        @if ($resuelta->resolucion['decision'] === 'corregida')
+                            · Horario aplicado: {{ $resuelta->resolucion['despues']['fecha'] }} · {{ $resuelta->resolucion['despues']['hora_inicio'] }}–{{ $resuelta->resolucion['despues']['hora_fin'] }} · Cubículo núm. {{ $resuelta->resolucion['despues']['consultorio_numero'] }}
+                        @endif
+                    </li>
+                @endforeach
+            </ul>
+        </details>
+    @endif
 </x-app-layout>

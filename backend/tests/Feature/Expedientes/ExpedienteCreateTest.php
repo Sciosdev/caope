@@ -332,6 +332,7 @@ class ExpedienteCreateTest extends TestCase
 
     public function test_paps_puede_guardar_expediente_y_genera_solicitud_pendiente_para_aprobar_consultorio(): void
     {
+        $fechaReserva = now()->addWeek()->startOfWeek()->toDateString();
         $paps = User::factory()->create(['approved_at' => now()]);
         $paps->assignRole('paps');
 
@@ -372,7 +373,7 @@ class ExpedienteCreateTest extends TestCase
                 'nivel_riesgo' => 'bajo',
             ],
             'consultorio_reserva' => [
-                'fecha' => Carbon::now()->toDateString(),
+                'fecha' => $fechaReserva,
                 'hora_inicio' => '07:00',
                 'hora_fin' => '08:00',
                 'consultorio_numero' => 1,
@@ -391,7 +392,7 @@ class ExpedienteCreateTest extends TestCase
             'expediente_id' => $expediente->id,
         ]);
         $this->assertDatabaseHas('consultorio_reservas', [
-            'fecha' => Carbon::now()->toDateString(),
+            'fecha' => $fechaReserva,
             'hora_inicio' => '07:00',
             'hora_fin' => '08:00',
             'consultorio_numero' => 1,

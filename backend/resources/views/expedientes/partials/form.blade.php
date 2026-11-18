@@ -185,10 +185,11 @@
             </div>
 
             <div class="col-md-4">
-                <label for="tutor_id" class="form-label">Estratega</label>
+                <label for="tutor_id" class="form-label">Estratega responsable del expediente</label>
                 <select
                     name="tutor_id"
                     id="tutor_id"
+                    @if ($isCreating && $canChangeAssignments) aria-describedby="tutor_id_help" @endif
                     class="form-select js-select2 @error('tutor_id') is-invalid @enderror"
                     data-placeholder="Sin asignar"
                     @disabled(! $canChangeAssignments)
@@ -203,6 +204,9 @@
                 @error('tutor_id')
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
+                @if ($isCreating && $canChangeAssignments)
+                    <div id="tutor_id_help" class="form-text">Aquí aparecen los perfiles con rol Docente o Estratega. Una estrategia asignada o el rol Coordinador, por sí solos, no agregan a la persona a esta lista. Si el formulario ya estaba abierto cuando cambiaste un rol, vuelve a abrirlo antes de capturar datos.</div>
+                @endif
             </div>
 
             <div class="col-md-4">
@@ -253,7 +257,7 @@
                     id="cubiculo_id"
                     class="form-select @error('cubiculo_id') is-invalid @enderror"
                     @disabled(! $canChangeCubiculo || $hasLinkedReservations)
-                    @if ($showNuevaAsignacion && request()->routeIs('expedientes.create')) required @endif
+                    @required($showNuevaAsignacion && request()->routeIs('expedientes.create') && old('consultorio_reserva') !== null)
                 >
                     <option value="">Sin asignar</option>
                     @foreach ($cubiculos as $cubiculo)
@@ -746,120 +750,86 @@
     <div class="card border shadow-none mb-4">
         <div class="card-body">
             <div class="mb-4">
-                <h6 class="mb-0">Nueva asignación</h6>
+                <h6 class="mb-2">Nueva asignación</h6>
+                <label class="form-check">
+                    <input type="checkbox" class="form-check-input" id="expediente-reservar-horario" @checked(old('consultorio_reserva') !== null)>
+                    Reservar fechas y horario para este expediente
+                </label>
+                <div class="form-text">Déjalo sin marcar para guardar el expediente sin crear una reserva.</div>
             </div>
 
-            <div class="row g-3">
-                <div class="col-md-2">
-                    <label class="form-label">Día</label>
-                    <input type="date" class="form-control" id="expediente-asignacion-fecha" value="{{ old('consultorio_reserva.fecha', now()->toDateString()) }}" required>
-                </div>
+            <fieldset id="expediente-datos-reserva" @if(old('consultorio_reserva') === null) disabled hidden @endif>
+                <legend class="visually-hidden">Datos de la reserva</legend>
+                <div class="row g-3">
+                    @include('consultorios.partials.fechas-asignacion', ['nested' => true])
+                    <div class="col-md-2">
+                        <label class="form-label">Inicio</label>
+                        <input type="time" class="form-control" id="expediente-asignacion-hora-inicio" min="07:00" max="22:00" value="{{ old('consultorio_reserva.hora_inicio', '07:00') }}" required>
+                    </div>
 
-                <div class="col-md-4">
-                    <label class="form-label d-block">Tipo de registro</label>
-                    <div class="d-flex gap-3 mt-2">
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="expediente_modo_repeticion" id="expediente-modo-repeticion-unica" value="unica" checked>
-                            <label class="form-check-label" for="expediente-modo-repeticion-unica">Fecha única</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="expediente_modo_repeticion" id="expediente-modo-repeticion-semanal" value="semanal">
-                            <label class="form-check-label" for="expediente-modo-repeticion-semanal">Repetición semanal</label>
-                        </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Fin</label>
+                        <input type="time" class="form-control" id="expediente-asignacion-hora-fin" min="07:00" max="22:00" value="{{ old('consultorio_reserva.hora_fin', '08:00') }}" required>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label">Cubículo</label>
+                        <p class="form-control-plaintext small mb-0">Se usará el cubículo seleccionado en Datos institucionales.</p>
+                    </div>
+
+
+                    <div class="col-md-4">
+                        <label class="form-label">Estrategia</label>
+                        <select class="form-select" id="expediente-asignacion-estrategia" required>
+                            <option value="">Selecciona una estrategia</option>
+                            @foreach ($estrategiasExpediente as $estrategia)
+                                <option value="{{ $estrategia->nombre }}" data-estrategia-id="{{ $estrategia->id }}" @selected(old('consultorio_reserva.estrategia') === $estrategia->nombre)>{{ $estrategia->nombre }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Facilitador</label>
+                        <select class="form-select" id="expediente-asignacion-usuario-atendido">
+                            <option value="">--</option>
+                            @foreach ($usuariosActivos as $usuario)
+                                <option value="{{ $usuario->id }}" @selected((int) old('consultorio_reserva.usuario_atendido_id') === $usuario->id)>{{ $usuario->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="expediente-asignacion-estratega" class="form-label">Estratega de la reserva de cubículo</label>
+                        <select class="form-select" id="expediente-asignacion-estratega">
+                            <option value="">--</option>
+                            @foreach ($docentesActivos as $usuario)
+                                <option value="{{ $usuario->id }}" @selected((int) old('consultorio_reserva.estratega_id') === $usuario->id)>{{ $usuario->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="col-12">
+                        @if ($errors->has('consultorio_reserva.*'))
+                            <div class="alert alert-danger" role="alert">
+                                <ul class="mb-0">
+                                    @foreach (collect($errors->get('consultorio_reserva.*'))->flatten() as $message)
+                                        <li>{{ $message }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+                        <p class="text-muted small mb-0">La asignación se guardará automáticamente al guardar el expediente.</p>
                     </div>
                 </div>
 
-                <div class="col-md-6 d-none" id="expediente-repeticion-config">
-                    <div class="row g-2">
-                        <div class="col-md-4">
-                            <label class="form-label">Desde</label>
-                            <input type="date" id="expediente-repeticion-fecha-inicio" class="form-control">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Hasta</label>
-                            <input type="date" id="expediente-repeticion-fecha-fin" class="form-control">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Día hábil</label>
-                            <select class="form-select" id="expediente-repeticion-dia-semana">
-                                <option value="">Selecciona un día</option>
-                                @foreach ([1 => 'Lunes', 2 => 'Martes', 3 => 'Miércoles', 4 => 'Jueves', 5 => 'Viernes', 6 => 'Sábado'] as $dayNumber => $dayLabel)
-                                    <option value="{{ $dayNumber }}">{{ $dayLabel }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-2">
-                    <label class="form-label">Inicio</label>
-                    <input type="time" class="form-control" id="expediente-asignacion-hora-inicio" min="07:00" max="22:00" value="{{ old('consultorio_reserva.hora_inicio', '07:00') }}" required>
-                </div>
-
-                <div class="col-md-2">
-                    <label class="form-label">Fin</label>
-                    <input type="time" class="form-control" id="expediente-asignacion-hora-fin" min="07:00" max="22:00" value="{{ old('consultorio_reserva.hora_fin', '08:00') }}" required>
-                </div>
-
-                <div class="col-md-2">
-                    <label class="form-label">Cubículo</label>
-                    <p class="form-control-plaintext small mb-0">Se usará el cubículo seleccionado en Datos institucionales.</p>
-                </div>
-
-
-                <div class="col-md-4">
-                    <label class="form-label">Estrategia</label>
-                    <select class="form-select" id="expediente-asignacion-estrategia" required>
-                        <option value="">Selecciona una estrategia</option>
-                        @foreach ($estrategiasExpediente as $estrategia)
-                            <option value="{{ $estrategia->nombre }}" data-estrategia-id="{{ $estrategia->id }}" @selected(old('consultorio_reserva.estrategia') === $estrategia->nombre)>{{ $estrategia->nombre }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="col-md-4">
-                    <label class="form-label">Facilitador</label>
-                    <select class="form-select" id="expediente-asignacion-usuario-atendido">
-                        <option value="">--</option>
-                        @foreach ($usuariosActivos as $usuario)
-                            <option value="{{ $usuario->id }}" @selected((int) old('consultorio_reserva.usuario_atendido_id') === $usuario->id)>{{ $usuario->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="col-md-4">
-                    <label class="form-label">Estratega</label>
-                    <select class="form-select" id="expediente-asignacion-estratega">
-                        <option value="">--</option>
-                        @foreach ($docentesActivos as $usuario)
-                            <option value="{{ $usuario->id }}" @selected((int) old('consultorio_reserva.estratega_id') === $usuario->id)>{{ $usuario->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="col-12">
-                    @if ($errors->has('consultorio_reserva.*'))
-                        <div class="alert alert-danger" role="alert">
-                            <ul class="mb-0">
-                                @foreach (collect($errors->get('consultorio_reserva.*'))->flatten() as $message)
-                                    <li>{{ $message }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    @endif
-                    <div id="expediente-asignacion-alerta" class="alert d-none mb-3" role="alert"></div>
-                    <p class="text-muted small mb-0">La asignación se guardará automáticamente al guardar el expediente.</p>
-                </div>
-            </div>
+                <input type="hidden" name="consultorio_reserva[hora_inicio]" id="expediente-consultorio-hora-inicio" value="{{ old('consultorio_reserva.hora_inicio', '07:00') }}">
+                <input type="hidden" name="consultorio_reserva[hora_fin]" id="expediente-consultorio-hora-fin" value="{{ old('consultorio_reserva.hora_fin', '08:00') }}">
+                <input type="hidden" name="consultorio_reserva[estrategia]" id="expediente-consultorio-estrategia" value="{{ old('consultorio_reserva.estrategia') }}">
+                <input type="hidden" name="consultorio_reserva[usuario_atendido_id]" id="expediente-consultorio-usuario" value="{{ old('consultorio_reserva.usuario_atendido_id') }}">
+                <input type="hidden" name="consultorio_reserva[estratega_id]" id="expediente-consultorio-estratega" value="{{ old('consultorio_reserva.estratega_id') }}">
+            </fieldset>
         </div>
     </div>
-
-    <input type="hidden" name="consultorio_reserva[fecha]" id="expediente-consultorio-fecha" value="{{ old('consultorio_reserva.fecha', now()->toDateString()) }}">
-    <input type="hidden" name="consultorio_reserva[hora_inicio]" id="expediente-consultorio-hora-inicio" value="{{ old('consultorio_reserva.hora_inicio', '07:00') }}">
-    <input type="hidden" name="consultorio_reserva[hora_fin]" id="expediente-consultorio-hora-fin" value="{{ old('consultorio_reserva.hora_fin', '08:00') }}">
-    <input type="hidden" name="consultorio_reserva[estrategia]" id="expediente-consultorio-estrategia" value="{{ old('consultorio_reserva.estrategia') }}">
-    <input type="hidden" name="consultorio_reserva[usuario_atendido_id]" id="expediente-consultorio-usuario" value="{{ old('consultorio_reserva.usuario_atendido_id') }}">
-    <input type="hidden" name="consultorio_reserva[estratega_id]" id="expediente-consultorio-estratega" value="{{ old('consultorio_reserva.estratega_id') }}">
 @endif
 
 @include('expedientes.partials.alumno.family-history')
@@ -950,135 +920,32 @@
                     }
                 }
 
-                const assignmentAlert = document.getElementById('expediente-asignacion-alerta');
+                const reservationToggle = document.getElementById('expediente-reservar-horario');
+                if (!reservationToggle) return;
+                const reservationFields = document.getElementById('expediente-datos-reserva');
+                const toggleReservation = () => {
+                    const assignedRoom = document.getElementById('cubiculo_id');
+                    if (assignedRoom) assignedRoom.required = reservationToggle.checked;
+                    reservationFields.hidden = !reservationToggle.checked;
+                    reservationFields.disabled = !reservationToggle.checked;
+                    reservationFields.querySelector('[data-reservation-dates]').dispatchEvent(new Event('change'));
+                };
+                reservationToggle.addEventListener('change', toggleReservation);
+                toggleReservation();
 
-                if (!assignmentAlert) {
-                    return;
-                }
-
-                const availabilityEndpoint = @json(route('consultorios.availability'));
-                const dateInput = document.getElementById('expediente-asignacion-fecha');
                 const startInput = document.getElementById('expediente-asignacion-hora-inicio');
                 const endInput = document.getElementById('expediente-asignacion-hora-fin');
-                const cubiculoInput = document.getElementById('cubiculo_id');
                 const estrategiaInput = document.getElementById('expediente-asignacion-estrategia');
                 const estrategiaExpedienteInput = document.getElementById('estrategia_id');
                 const usuarioAtendidoInput = document.getElementById('expediente-asignacion-usuario-atendido');
                 const estrategaInput = document.getElementById('expediente-asignacion-estratega');
-                const repeatConfig = document.getElementById('expediente-repeticion-config');
-                const repeatStartInput = document.getElementById('expediente-repeticion-fecha-inicio');
-                const repeatEndInput = document.getElementById('expediente-repeticion-fecha-fin');
-                const repeatDayInput = document.getElementById('expediente-repeticion-dia-semana');
-                const modeInputs = Array.from(document.querySelectorAll('input[name="expediente_modo_repeticion"]'));
-                const hiddenDateInput = document.getElementById('expediente-consultorio-fecha');
                 const hiddenStartInput = document.getElementById('expediente-consultorio-hora-inicio');
                 const hiddenEndInput = document.getElementById('expediente-consultorio-hora-fin');
                 const hiddenEstrategiaInput = document.getElementById('expediente-consultorio-estrategia');
                 const hiddenUsuarioInput = document.getElementById('expediente-consultorio-usuario');
                 const hiddenEstrategaInput = document.getElementById('expediente-consultorio-estratega');
 
-                const getMode = () => modeInputs.find((input) => input.checked)?.value ?? 'unica';
-                const getCubiculoNumero = () => cubiculoInput?.selectedOptions[0]?.dataset.numero ?? '';
-                const getCubiculoNombre = () => cubiculoInput?.selectedOptions[0]?.textContent?.trim() ?? 'seleccionado';
-                const toMinutes = (time) => {
-                    if (!time || !time.includes(':')) {
-                        return 0;
-                    }
-
-                    const [hours, minutes] = time.split(':').map(Number);
-                    return (hours * 60) + minutes;
-                };
-
-                const showAssignmentAlert = (message, type = 'warning') => {
-                    assignmentAlert.className = `alert alert-${type} mb-3`;
-                    assignmentAlert.textContent = message;
-                };
-
-                const hideAssignmentAlert = () => {
-                    assignmentAlert.className = 'alert d-none mb-3';
-                    assignmentAlert.textContent = '';
-                };
-
-                const toggleRepeatConfig = () => {
-                    if (!repeatConfig || !repeatStartInput || !repeatEndInput || !repeatDayInput) {
-                        return;
-                    }
-
-                    const isWeekly = getMode() === 'semanal';
-                    repeatConfig.classList.toggle('d-none', !isWeekly);
-                    repeatStartInput.required = isWeekly;
-                    repeatEndInput.required = isWeekly;
-                    repeatDayInput.required = isWeekly;
-                };
-
-                const findOverlap = (items, start, end, consultorio, fecha) => {
-                    const startMinutes = toMinutes(start);
-                    const endMinutes = toMinutes(end);
-
-                    return items.find((item) => {
-                        if (Number(item.consultorio_numero) !== Number(consultorio)
-                            || String(item.fecha ?? '').slice(0, 10) !== fecha) {
-                            return false;
-                        }
-
-                        const itemStartMinutes = toMinutes(String(item.hora_inicio).slice(0, 5));
-                        const itemEndMinutes = toMinutes(String(item.hora_fin).slice(0, 5));
-                        return itemStartMinutes < endMinutes && itemEndMinutes > startMinutes;
-                    });
-                };
-
-                const checkAvailability = async () => {
-                    hideAssignmentAlert();
-                    const cubiculoNumero = getCubiculoNumero();
-
-                    if (!dateInput?.value || !cubiculoInput?.value || !cubiculoNumero || !startInput?.value || !endInput?.value) {
-                        return true;
-                    }
-
-                    if (startInput.value >= endInput.value) {
-                        showAssignmentAlert('La hora de inicio debe ser menor a la hora de fin.');
-                        return false;
-                    }
-
-                    if (startInput.value < '07:00' || endInput.value > '22:00') {
-                        showAssignmentAlert('El horario permitido es de 07:00 a 22:00.');
-                        return false;
-                    }
-
-                    try {
-                        const params = new URLSearchParams({
-                            fecha: dateInput.value,
-                            consultorio_numero: cubiculoNumero,
-                        });
-                        const response = await fetch(`${availabilityEndpoint}?${params.toString()}`, {
-                            headers: {
-                                'Accept': 'application/json',
-                            },
-                        });
-
-                        if (!response.ok) {
-                            showAssignmentAlert('No fue posible verificar la disponibilidad. El servidor volverá a comprobar los horarios al guardar.');
-                            return false;
-                        }
-
-                        const data = await response.json();
-                        const overlap = findOverlap(data.reservas ?? [], startInput.value, endInput.value, cubiculoNumero, dateInput.value);
-
-                        if (overlap) {
-                            showAssignmentAlert(`⚠️ ${getCubiculoNombre()} ya está ocupado de ${String(overlap.hora_inicio).slice(0, 5)} a ${String(overlap.hora_fin).slice(0, 5)}.`);
-                            return false;
-                        }
-                    } catch (error) {
-                        console.error(error);
-                        showAssignmentAlert('No fue posible verificar la disponibilidad. El servidor volverá a comprobar los horarios al guardar.');
-                        return false;
-                    }
-
-                    return true;
-                };
-
                 const syncHiddenAssignmentFields = () => {
-                    if (hiddenDateInput) hiddenDateInput.value = dateInput?.value ?? '';
                     if (hiddenStartInput) hiddenStartInput.value = startInput?.value ?? '';
                     if (hiddenEndInput) hiddenEndInput.value = endInput?.value ?? '';
                     if (hiddenEstrategiaInput) hiddenEstrategiaInput.value = estrategiaInput?.value ?? '';
@@ -1086,15 +953,8 @@
                     if (hiddenEstrategaInput) hiddenEstrategaInput.value = estrategaInput?.value ?? '';
                 };
 
-                modeInputs.forEach((input) => input.addEventListener('change', toggleRepeatConfig));
-                dateInput?.addEventListener('change', checkAvailability);
-                startInput?.addEventListener('change', checkAvailability);
-                endInput?.addEventListener('change', checkAvailability);
-                cubiculoInput?.addEventListener('change', checkAvailability);
-                dateInput?.addEventListener('change', syncHiddenAssignmentFields);
                 startInput?.addEventListener('change', syncHiddenAssignmentFields);
                 endInput?.addEventListener('change', syncHiddenAssignmentFields);
-                cubiculoInput?.addEventListener('change', syncHiddenAssignmentFields);
                 estrategiaInput?.addEventListener('change', () => {
                     if (estrategiaExpedienteInput && !estrategiaExpedienteInput.disabled) {
                         estrategiaExpedienteInput.value = estrategiaInput.selectedOptions[0]?.dataset.estrategiaId ?? '';
@@ -1109,12 +969,10 @@
                 });
                 usuarioAtendidoInput?.addEventListener('change', syncHiddenAssignmentFields);
                 estrategaInput?.addEventListener('change', syncHiddenAssignmentFields);
-                toggleRepeatConfig();
                 if (estrategiaExpedienteInput?.value && estrategiaInput) {
                     estrategiaInput.value = estrategiaExpedienteInput.selectedOptions[0]?.dataset.nombre ?? '';
                 }
                 syncHiddenAssignmentFields();
-                checkAvailability();
             });
         </script>
     @endpush
