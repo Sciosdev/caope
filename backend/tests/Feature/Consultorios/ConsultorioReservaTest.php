@@ -249,6 +249,8 @@ class ConsultorioReservaTest extends TestCase
 
         $coordinador = User::factory()->create();
         $coordinador->assignRole($coordinadorRole);
+        $strategy = CatalogoEstrategia::query()->create(['nombre' => 'Asignada al coordinador', 'activo' => true]);
+        $coordinador->estrategiasCoordinadas()->attach($strategy);
 
         $fecha = now()->addDay()->toDateString();
 
@@ -321,7 +323,7 @@ class ConsultorioReservaTest extends TestCase
             ->assertSee('id="bitacora-fecha-base" name="bitacora_inicio" value="'.$fecha.'"', false);
     }
 
-    public function test_index_y_disponibilidad_ocultan_reservas_con_solicitud_pendiente(): void
+    public function test_index_y_disponibilidad_mantienen_el_horario_vigente_mientras_se_resuelve_la_edicion(): void
     {
         $role = Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
         $admin = User::factory()->create();
@@ -340,7 +342,7 @@ class ConsultorioReservaTest extends TestCase
             'origen_expediente' => true,
         ]);
 
-        $reservaOculta = ConsultorioReserva::query()->create([
+        $reservaPendiente = ConsultorioReserva::query()->create([
             'fecha' => $fecha,
             'hora_inicio' => '08:00',
             'hora_fin' => '09:00',
@@ -352,7 +354,7 @@ class ConsultorioReservaTest extends TestCase
         ]);
 
         ConsultorioReservaSolicitud::query()->create([
-            'consultorio_reserva_id' => $reservaOculta->id,
+            'consultorio_reserva_id' => $reservaPendiente->id,
             'requested_by' => $admin->id,
             'tipo' => 'edicion',
             'payload' => null,
@@ -362,7 +364,8 @@ class ConsultorioReservaTest extends TestCase
         $this->actingAs($admin)
             ->get(route('consultorios.index', ['fecha' => $fecha]))
             ->assertOk()
-            ->assertViewHas('reservas', fn ($reservas) => $reservas->pluck('id')->all() === [$reservaVisible->id]);
+            ->assertViewHas('reservas', fn ($reservas) => $reservas->pluck('id')->all() === [$reservaVisible->id, $reservaPendiente->id])
+            ->assertSeeText('Edición pendiente');
 
         $this->actingAs($admin)
             ->getJson(route('consultorios.availability', [
@@ -370,8 +373,9 @@ class ConsultorioReservaTest extends TestCase
                 'consultorio_numero' => 3,
             ]))
             ->assertOk()
-            ->assertJsonCount(1, 'reservas')
-            ->assertJsonPath('reservas.0.cubiculo_numero', 1);
+            ->assertJsonCount(2, 'reservas')
+            ->assertJsonPath('reservas.0.cubiculo_numero', 1)
+            ->assertJsonPath('reservas.1.solicitud_pendiente', 'edicion');
     }
 
     public function test_index_filtra_bitacora_por_semana_desde_fecha_base(): void
@@ -670,7 +674,7 @@ class ConsultorioReservaTest extends TestCase
             ->assertRedirect(route('consultorios.index'));
     }
 
-    public function test_permite_recrear_repeticion_semanal_tras_baja_seleccionada(): void
+    public function test_la_baja_seleccionada_no_elimina_una_serie_y_sus_bloques_siguen_ocupados(): void
     {
         $role = Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
         $admin = User::factory()->create();
@@ -693,17 +697,17 @@ class ConsultorioReservaTest extends TestCase
         $this->actingAs($admin)->post(route('consultorios.store'), $payload)->assertSessionHasNoErrors();
 
         $ids = ConsultorioReserva::query()->pluck('id')->all();
-        $this->actingAs($admin)->delete(route('consultorios.bulk-destroy'), [
+        $this->actingAs($admin)->deleteJson(route('consultorios.bulk-destroy'), [
             'reservas' => $ids,
-        ])->assertRedirect(route('consultorios.index'));
+        ])->assertUnprocessable()->assertJsonValidationErrors('reserva');
 
         foreach ($ids as $id) {
-            $this->assertDatabaseMissing('consultorio_reservas', ['id' => $id]);
+            $this->assertDatabaseHas('consultorio_reservas', ['id' => $id]);
         }
 
-        $this->actingAs($admin)->post(route('consultorios.store'), $payload)
-            ->assertSessionHasNoErrors()
-            ->assertRedirect(route('consultorios.index'));
+        $this->actingAs($admin)->postJson(route('consultorios.store'), $payload)
+            ->assertUnprocessable()->assertJsonValidationErrors('hora_inicio');
+        $this->assertDatabaseCount('consultorio_reservas', count($ids));
     }
 
     public function test_admin_puede_editar_y_eliminar_reserva_creada_desde_expediente(): void

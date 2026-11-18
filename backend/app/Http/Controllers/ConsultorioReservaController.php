@@ -31,17 +31,22 @@ class ConsultorioReservaController extends Controller
 {
     public function __construct(private ConsultorioReservationUpdateService $reservationUpdater) {}
 
-    private function applyPendingApprovalVisibilityFilter(Builder $query): Builder
+    /** Mark only the request type; never send the proposed schedule or its payload to the calendar. */
+    private function withPendingType(Builder $query): Builder
     {
         if (! $this->hasSolicitudesTable()) {
             return $query;
         }
 
-        return $query->whereDoesntHave('solicitudes', function (Builder $solicitudes): void {
-            $solicitudes
+        return $query->addSelect([
+            'solicitud_pendiente' => ConsultorioReservaSolicitud::query()
+                ->select('tipo')
+                ->whereColumn('consultorio_reserva_id', 'consultorio_reservas.id')
                 ->where('status', 'pendiente')
-                ->whereIn('tipo', ['edicion', 'baja']);
-        });
+                ->whereIn('tipo', ['edicion', 'baja'])
+                ->orderByRaw("CASE WHEN tipo = 'baja' THEN 0 ELSE 1 END")
+                ->limit(1),
+        ]);
     }
 
     private function hasSolicitudesTable(): bool
@@ -103,9 +108,7 @@ class ConsultorioReservaController extends Controller
         $bitacoraFin = ($bitacoraModo === 'mes' ? $bitacoraFechaBase->copy()->endOfMonth() : $bitacoraFechaBase->copy()->endOfWeek(Carbon::SUNDAY))->toDateString();
         $user = $request->user();
         $hasGlobalVisibility = $user->hasRole('admin') || $user->isApprovedPaps();
-        $visibleReservationsForCatalogs = $this->applyPendingApprovalVisibilityFilter(
-            $this->applyAssignedReservationsVisibilityFilter($request, ConsultorioReserva::query())
-        );
+        $visibleReservationsForCatalogs = $this->applyAssignedReservationsVisibilityFilter($request, ConsultorioReserva::query());
 
         $consultoriosActivos = CatalogoConsultorio::activos();
         if (! $hasGlobalVisibility) {
@@ -129,15 +132,17 @@ class ConsultorioReservaController extends Controller
                 : $consultoriosActivos->first()?->numero;
 
         $reservasQuery = ConsultorioReserva::query()
-            ->with(['usuarioAtendido', 'estratega', 'supervisor', 'creadoPor', 'cubiculo'])
+            ->with(['usuarioAtendido', 'estratega', 'supervisor', 'creadoPor', 'cubiculo', 'expediente:id,deleted_at'])
             ->orderByDesc('fecha')
             ->orderBy('consultorio_numero')
             ->orderBy('cubiculo_numero')
             ->orderBy('hora_inicio');
 
-        $reservas = $this->applyPendingApprovalVisibilityFilter(
+        $reservas = $this->withPendingType(
             $this->applyAssignedReservationsVisibilityFilter($request, $reservasQuery)
         )
+            ->when($request->filled('bitacora_inicio') || $request->filled('bitacora_modo'),
+                fn (Builder $query) => $query->whereBetween('fecha', [$bitacoraInicio, $bitacoraFin]))
             ->paginate(25)
             ->withQueryString();
 
@@ -152,7 +157,7 @@ class ConsultorioReservaController extends Controller
             ->orderBy('cubiculo_numero')
             ->orderBy('hora_inicio');
 
-        $ocupacionPorCubiculo = $this->applyPendingApprovalVisibilityFilter(
+        $ocupacionPorCubiculo = $this->withPendingType(
             $this->applyAssignedReservationsVisibilityFilter($request, $ocupacionQuery)
         )
             ->get()
@@ -191,6 +196,7 @@ class ConsultorioReservaController extends Controller
             : null;
 
         $reservasQuery = ConsultorioReserva::query()
+            ->select(['fecha', 'consultorio_numero', 'cubiculo_numero', 'hora_inicio', 'hora_fin', 'estrategia', 'usuario_atendido_id', 'estratega_id'])
             ->with(['usuarioAtendido:id,name', 'estratega:id,name', 'cubiculo:id,numero,nombre'])
             ->when(
                 $fechaInicio && $fechaFin,
@@ -205,12 +211,13 @@ class ConsultorioReservaController extends Controller
             ->orderBy('fecha')
             ->orderBy('hora_inicio');
 
-        $reservas = $this->applyPendingApprovalVisibilityFilter(
+        $reservas = $this->withPendingType(
             $this->applyAssignedReservationsVisibilityFilter($request, $reservasQuery)
         )
-            ->get(['fecha', 'consultorio_numero', 'cubiculo_numero', 'hora_inicio', 'hora_fin', 'estrategia', 'usuario_atendido_id', 'estratega_id'])
+            ->get()
             ->map(fn (ConsultorioReserva $reserva) => [
                 'fecha' => $reserva->fecha?->toDateString(),
+                'solicitud_pendiente' => $reserva->solicitud_pendiente,
                 'consultorio_numero' => $reserva->consultorio_numero,
                 'cubiculo_nombre' => $reserva->cubiculo?->nombre ?? 'Cubículo '.$reserva->consultorio_numero,
                 'cubiculo_numero' => $reserva->cubiculo_numero,
@@ -258,6 +265,7 @@ class ConsultorioReservaController extends Controller
         ]);
         abort_if($reserva->expediente?->trashed(), 403, 'Un expediente archivado es de solo lectura.');
         abort_if($this->reservationHasPendingRequest($reserva), 409, 'Esta reserva tiene una solicitud pendiente por atender.');
+        abort_unless($reserva->hasNotStarted(), 409, 'La reserva ya comenzó y es de solo lectura.');
 
         $fromExpediente = $request->string('origen')->toString() === 'expediente';
         if ($fromExpediente) {
@@ -295,9 +303,10 @@ class ConsultorioReservaController extends Controller
         ]);
 
         $fechas = $request->reservationDates()->all();
+        $seriesUuid = ConsultorioReserva::newSeriesUuid($validated['modo_repeticion'] ?? null);
         $reservationGuard = app(ConsultorioReservationGuard::class);
 
-        DB::transaction(function () use ($baseData, $fechas, $reservationGuard, $request): void {
+        DB::transaction(function () use ($baseData, $fechas, $reservationGuard, $seriesUuid, $request): void {
             $consultorioNumero = (int) $baseData['consultorio_numero'];
             $reservationGuard->lockConsultorio($consultorioNumero);
             $reservationGuard->assertAvailable(
@@ -308,11 +317,11 @@ class ConsultorioReservaController extends Controller
             );
 
             foreach ($fechas as $fecha) {
-                ConsultorioReserva::query()->create($baseData + [
+                ConsultorioReserva::createOccurrence($baseData + [
                     'fecha' => $fecha,
                     'creado_por' => $request->user()->id,
                     'origen_expediente' => (bool) ($baseData['origen_expediente'] ?? false),
-                ]);
+                ], $seriesUuid);
             }
         }, 3);
 
@@ -350,10 +359,7 @@ class ConsultorioReservaController extends Controller
     public function destroy(Request $request, ConsultorioReserva $reserva): RedirectResponse
     {
         abort_unless($this->canManageBitacora($request), 403);
-        ConsultorioReserva::query()
-            ->whereKey($reserva->getKey())
-            ->toBase()
-            ->delete();
+        $this->deleteResolvedReservations([(int) $reserva->getKey()]);
 
         return redirect()->route('consultorios.index')->with('status', 'Reserva eliminada correctamente.');
     }
@@ -456,10 +462,7 @@ class ConsultorioReservaController extends Controller
                 ->with('status', 'Selecciona al menos un registro para eliminar.');
         }
 
-        $eliminadas = ConsultorioReserva::query()
-            ->whereIn('id', $ids)
-            ->toBase()
-            ->delete();
+        $eliminadas = $this->deleteResolvedReservations($ids->all());
 
         return redirect()
             ->route('consultorios.index', $request->query())
@@ -479,12 +482,49 @@ class ConsultorioReservaController extends Controller
                 ->exists();
     }
 
+    /** @param list<int> $ids */
+    private function deleteResolvedReservations(array $ids): int
+    {
+        return DB::transaction(function () use ($ids): int {
+            $caseIds = ConsultorioReserva::query()->whereKey($ids)->whereNotNull('expediente_id')->distinct()->pluck('expediente_id');
+            // Same lock order as approval: archival cannot race a physical cancellation.
+            $cases = Expediente::withTrashed()->whereKey($caseIds->all())->orderBy('id')->lockForUpdate()
+                ->get(['id', 'deleted_at'])->keyBy('id');
+            $reservas = ConsultorioReserva::query()->whereKey($ids)->orderBy('id')->lockForUpdate()->get();
+            foreach ($reservas as $reserva) {
+                if ($reserva->expediente_id && ! $cases->has($reserva->expediente_id)) {
+                    throw ValidationException::withMessages(['reserva' => 'El expediente vinculado cambió. Actualiza la bitácora.']);
+                }
+                $reserva->setRelation('expediente', $cases->get($reserva->expediente_id));
+                $this->assertReservationIsMutable($reserva);
+                if ($reserva->serie_uuid) {
+                    throw ValidationException::withMessages([
+                        'reserva' => 'Usa la gestión de la serie para confirmar las fechas que deseas cancelar.',
+                    ]);
+                }
+            }
+            if ($this->hasSolicitudesTable() && ConsultorioReservaSolicitud::query()
+                ->whereIn('consultorio_reserva_id', $reservas->modelKeys())
+                ->where('status', 'pendiente')
+                ->lockForUpdate()->first(['id'])) {
+                throw ValidationException::withMessages([
+                    'reserva' => 'Hay una solicitud pendiente para una reserva seleccionada. Atiéndela antes de eliminar la reserva.',
+                ]);
+            }
+
+            return ConsultorioReserva::query()->whereKey($reservas->modelKeys())->toBase()->delete();
+        }, 3);
+    }
+
     private function assertReservationIsMutable(ConsultorioReserva $reserva): void
     {
         if ($reserva->expediente?->trashed()) {
             throw ValidationException::withMessages([
                 'reserva' => 'Un expediente archivado es de solo lectura; su reserva no puede modificarse.',
             ]);
+        }
+        if (! $reserva->hasNotStarted()) {
+            throw ValidationException::withMessages(['reserva' => 'La reserva ya comenzó y es de solo lectura.']);
         }
     }
 }

@@ -106,13 +106,20 @@ class ConsultorioReservationGuard
 
         // MySQL's locking SELECT uses a current read after a competing writer
         // commits, even if request validation established an older RR snapshot.
-        $overlap = DB::transactionLevel() > 0
-            ? $query->lockForUpdate()->first(['id']) !== null
-            : $query->exists();
+        if (DB::transactionLevel() > 0) {
+            $query->lockForUpdate();
+        }
+        $overlap = $query->orderBy('fecha')->orderBy('id')->first(['fecha']);
 
         if ($overlap) {
             throw ValidationException::withMessages([
-                $errorKey => 'Ese cubículo ya está reservado en el bloque seleccionado.',
+                $errorKey => sprintf(
+                    'Ese cubículo ya está reservado en el bloque seleccionado. Conflicto en el cubículo núm. %d el %s, en el horario solicitado de %s a %s.',
+                    $consultorio,
+                    $overlap->fecha->format('d/m/Y'),
+                    substr($horaInicio, 0, 5),
+                    substr($horaFin, 0, 5),
+                ),
             ]);
         }
     }

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Services\ConsultorioReservationGuard;
+use App\Services\ReservationDates;
 use Carbon\Carbon;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Collection;
@@ -97,28 +98,6 @@ class StoreConsultorioReservaRequest extends FormRequest
             $horaFin = $this->input('hora_fin');
             $consultorio = (int) $this->input('consultorio_numero');
 
-            if ($fechas->isEmpty()) {
-                $validator->errors()->add('fecha', 'Selecciona al menos una fecha para la reserva.');
-
-                return;
-            }
-
-            if ($fechas->count() > 180) {
-                $validator->errors()->add('fecha_fin_repeticion', 'Solo se pueden registrar hasta 180 fechas por operación.');
-            }
-
-            if ($fechas->contains(fn (string $fecha) => (int) date('w', strtotime($fecha)) === 0)) {
-                $validator->errors()->add('fecha', 'Solo se permiten reservas de lunes a sábado.');
-            }
-
-            if ($horaInicio < '07:00' || $horaFin > '22:00') {
-                $validator->errors()->add('hora_inicio', 'El horario permitido es de 07:00 a 22:00.');
-            }
-
-            if ($validator->errors()->isNotEmpty()) {
-                return;
-            }
-
             app(ConsultorioReservationGuard::class)->assertAvailable(
                 $consultorio,
                 $fechas->all(),
@@ -130,45 +109,6 @@ class StoreConsultorioReservaRequest extends FormRequest
 
     public function reservationDates(): Collection
     {
-        $mode = $this->input('modo_repeticion', 'unica');
-
-        if ($mode !== 'semanal') {
-            $fecha = $this->input('fecha');
-
-            return collect($fecha ? [$fecha] : []);
-        }
-
-        $inicio = $this->input('fecha_inicio_repeticion');
-        $fin = $this->input('fecha_fin_repeticion');
-        $dias = collect($this->input('dias_semana', []))
-            ->filter(fn ($dia) => filled($dia))
-            ->map(fn ($dia) => (int) $dia)
-            ->unique();
-
-        if (! $inicio || ! $fin) {
-            return collect();
-        }
-
-        if ($dias->isEmpty()) {
-            $dias = collect([(int) Carbon::parse($inicio)->dayOfWeekIso]);
-        }
-
-        $cursor = Carbon::parse($inicio)->startOfDay();
-        $end = Carbon::parse($fin)->startOfDay();
-        $fechas = collect();
-
-        while ($cursor->lte($end)) {
-            if ($dias->contains($cursor->dayOfWeekIso)) {
-                $fechas->push($cursor->toDateString());
-
-                if ($fechas->count() > 180) {
-                    break;
-                }
-            }
-
-            $cursor->addDay();
-        }
-
-        return $fechas;
+        return ReservationDates::forSchedule($this->only(['fecha', 'modo_repeticion', 'fecha_inicio_repeticion', 'fecha_fin_repeticion', 'dias_semana', 'hora_inicio', 'hora_fin']));
     }
 }

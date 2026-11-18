@@ -45,10 +45,11 @@ class ExpedienteAssignedScheduleTest extends TestCase
     #[DataProvider('authorizedProfiles')]
     public function test_schedule_is_in_case_header_but_only_admin_gets_the_reschedule_link(string $role): void
     {
+        $this->travelTo(Carbon::parse('2026-11-10 08:00', 'America/Mexico_City'));
         $actor = $this->user($role);
         $case = $this->expediente($actor);
         $reservation = $this->reserve($case, $actor, '2026-11-10', '09:10:00', '10:25:00');
-        $url = route('consultorios.edit', ['reserva' => $reservation, 'origen' => 'expediente']);
+        $url = route('consultorios.serie.edit', $reservation);
 
         $response = $this->actingAs($actor)->get(route('expedientes.show', $case))
             ->assertOk()->assertSeeText('Día y horario asignado')

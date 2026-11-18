@@ -12,7 +12,7 @@
         $isAdmin = $currentUser?->hasRole('admin') ?? false;
         $isPapsAprobado = ($currentUser?->hasRole('paps') ?? false) && ! is_null($currentUser?->approved_at);
         $canManageBitacora = $isAdmin;
-        $canViewBitacora = ! ($currentUser?->hasAnyRole(['coordinador', 'docente', 'alumno']) ?? false);
+        $canViewBitacora = $isAdmin || ! ($currentUser?->hasAnyRole(['coordinador', 'docente', 'alumno']) ?? false);
     @endphp
 
     @if (session('status'))
@@ -36,47 +36,7 @@
         <div class="card-body">
             <form method="POST" action="{{ route('consultorios.store') }}" class="row g-3" id="nueva-asignacion-form">
                 @csrf
-                <div class="col-md-2">
-                    <label class="form-label">Día</label>
-                    <input type="date" name="fecha" class="form-control" id="asignacion-fecha" value="{{ old('fecha', now()->toDateString()) }}" required>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label d-block">Tipo de registro</label>
-                    <div class="d-flex gap-3 mt-2">
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="modo_repeticion" id="modo-repeticion-unica" value="unica" @checked(old('modo_repeticion', 'unica') === 'unica')>
-                            <label class="form-check-label" for="modo-repeticion-unica">Fecha única</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="modo_repeticion" id="modo-repeticion-semanal" value="semanal" @checked(old('modo_repeticion') === 'semanal')>
-                            <label class="form-check-label" for="modo-repeticion-semanal">Repetición semanal</label>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 d-none" id="repeticion-config">
-                    <div class="row g-2">
-                        <div class="col-md-4">
-                            <label class="form-label">Desde</label>
-                            <input type="date" name="fecha_inicio_repeticion" id="repeticion-fecha-inicio" class="form-control" value="{{ old('fecha_inicio_repeticion') }}">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Hasta</label>
-                            <input type="date" name="fecha_fin_repeticion" id="repeticion-fecha-fin" class="form-control" value="{{ old('fecha_fin_repeticion') }}">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Día hábil</label>
-                            @php
-                                $diaSeleccionado = (int) collect(old('dias_semana', []))->first();
-                            @endphp
-                            <select class="form-select" name="dias_semana[]" id="repeticion-dia-semana">
-                                <option value="">Selecciona un día</option>
-                                @foreach ([1 => 'Lunes', 2 => 'Martes', 3 => 'Miércoles', 4 => 'Jueves', 5 => 'Viernes', 6 => 'Sábado'] as $dayNumber => $dayLabel)
-                                    <option value="{{ $dayNumber }}" @selected($diaSeleccionado === $dayNumber)>{{ $dayLabel }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                </div>
+                @include('consultorios.partials.fechas-asignacion', ['nested' => false])
                 <div class="col-md-2">
                     <label class="form-label">Inicio</label>
                     <input type="time" name="hora_inicio" class="form-control" id="asignacion-hora-inicio" min="07:00" max="22:00" value="{{ old('hora_inicio', '07:00') }}" required>
@@ -150,9 +110,6 @@
                 <button class="btn btn-outline-secondary" type="submit" id="ocupacion-ver-btn">Ver mes</button>
             </form>
         </div>
-        <div class="card-body pb-0">
-            <div id="disponibilidad-alerta" class="alert alert-warning d-none" role="alert"></div>
-        </div>
         <div class="card-body">
             <div id="ocupacion-calendario" class="mb-0"></div>
         </div>
@@ -195,25 +152,9 @@
             <div id="bitacora-vista-dinamica" class="table-responsive"></div>
         </div>
         <div class="card-body table-responsive">
-            @if($canManageBitacora)
-                <form id="bitacora-bulk-delete-form" action="{{ route('consultorios.bulk-destroy') }}" method="POST" class="mb-3 d-flex align-items-center gap-2">
-                    @csrf
-                    @method('DELETE')
-                    <input type="hidden" name="fecha" value="{{ $fechaFiltro }}">
-                    <input type="hidden" name="consultorio_numero" value="{{ $consultorioSeleccionado }}">
-                    <input type="hidden" name="bitacora_inicio" value="{{ request('bitacora_inicio', $bitacoraFechaSeleccionada) }}">
-                    <input type="hidden" name="bitacora_modo" value="{{ request('bitacora_modo', $bitacoraModo) }}">
-                    <button type="submit" class="btn btn-sm btn-outline-danger" id="bitacora-bulk-delete-button" disabled aria-disabled="true">
-                        Eliminar seleccionadas
-                    </button>
-                </form>
-            @endif
             <table class="table table-sm align-middle">
                 <thead>
                     <tr>
-                        @if($canManageBitacora)
-                            <th style="width: 1%;"></th>
-                        @endif
                         <th>Fecha</th>
                         <th>Horario</th>
                         <th>Cubículo</th>
@@ -226,26 +167,14 @@
                 <tbody>
                     @forelse ($reservas as $reserva)
                         <tr>
-                            @if($canManageBitacora)
-                                <td>
-                                    @if ($isAdmin)
-                                        <input
-                                            type="checkbox"
-                                            class="form-check-input bitacora-select-item"
-                                            data-reserva-id="{{ $reserva->id }}"
-                                            name="reservas[]"
-                                            value="{{ $reserva->id }}"
-                                            form="bitacora-bulk-delete-form"
-                                            aria-label="Seleccionar reserva {{ $reserva->id }}"
-                                        >
-                                    @endif
-                                </td>
-                            @endif
                             <td>{{ $reserva->fecha->format('Y-m-d') }}</td>
                             <td>{{ substr($reserva->hora_inicio, 0, 5) }} - {{ substr($reserva->hora_fin, 0, 5) }}</td>
                             <td>
                                 {{ trim((string) ($reserva->cubiculo?->nombre ?? '')) !== '' ? $reserva->cubiculo->nombre : 'Cubículo sin catálogo' }}
                                 · Núm. {{ $reserva->consultorio_numero }}
+                                @if ($reserva->solicitud_pendiente)
+                                    <span class="badge text-bg-warning">{{ $reserva->solicitud_pendiente === 'baja' ? 'Baja pendiente' : 'Edición pendiente' }}</span>
+                                @endif
                             </td>
                             <td>
                                 {{ $reserva->estrategia }}
@@ -260,14 +189,20 @@
                                 <span class="small text-muted d-block mb-2">
                                     {{ $reserva->origen_expediente ? 'Alta automática (asignación de cubículo desde expediente)' : 'Alta manual (asignación de cubículo)' }}
                                 </span>
-                                @if ($isAdmin)
-                                    <div class="d-flex gap-2">
-                                        <a class="btn btn-sm btn-outline-primary" href="{{ route('consultorios.edit', $reserva) }}">Editar</a>
-                                        <form action="{{ route('consultorios.destroy', $reserva) }}" method="POST" onsubmit="return confirm('¿Dar de baja reserva?')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button class="btn btn-sm btn-outline-danger">Eliminar</button>
-                                        </form>
+                                @if ($reserva->solicitud_pendiente)
+                                    @if ($isAdmin)
+                                        <a class="btn btn-sm btn-outline-primary" href="{{ route('admin.consultorios.solicitudes.index') }}">Gestionar solicitudes</a>
+                                    @else
+                                        <span class="small text-muted">En revisión; el horario actual sigue vigente.</span>
+                                    @endif
+                                @elseif ($reserva->expediente?->trashed())
+                                    <span class="small text-muted">Expediente archivado · solo lectura</span>
+                                @elseif (($isAdmin || $reserva->serie_uuid) && ! $reserva->hasNotStarted())
+                                    <span class="small text-muted">La reserva ya comenzó · solo lectura</span>
+                                @elseif ($isAdmin)
+                                    <div class="d-flex gap-2 flex-wrap">
+                                        <a class="btn btn-sm btn-outline-primary" href="{{ route('consultorios.serie.edit', $reserva) }}">Reprogramar o cancelar reserva</a>
+                                        <a class="btn btn-sm btn-outline-secondary" href="{{ route('consultorios.edit', $reserva) }}">Editar datos de asignación</a>
                                     </div>
                                 @elseif ($isPapsAprobado)
                                     <div class="d-flex gap-2">
@@ -287,7 +222,7 @@
                             @endif
                         </tr>
                     @empty
-                        <tr><td colspan="{{ ($canManageBitacora || $isPapsAprobado) ? 8 : 6 }}" class="text-center text-muted">Sin registros.</td></tr>
+                        <tr><td colspan="{{ ($canManageBitacora || $isPapsAprobado) ? 7 : 6 }}" class="text-center text-muted">Sin registros.</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -304,11 +239,6 @@
         }
         window.__consultoriosPageInitialized = true;
         const availabilityEndpoint = @json(route('consultorios.availability'));
-        const formFecha = document.getElementById('asignacion-fecha');
-        const formConsultorio = document.getElementById('asignacion-consultorio');
-        const formHoraInicio = document.getElementById('asignacion-hora-inicio');
-        const formHoraFin = document.getElementById('asignacion-hora-fin');
-        const alerta = document.getElementById('disponibilidad-alerta');
         const filtroFecha = document.getElementById('ocupacion-fecha');
         const filtroConsultorio = document.getElementById('ocupacion-consultorio');
         const calendarioContainer = document.getElementById('ocupacion-calendario');
@@ -319,17 +249,16 @@
         const bitacoraModo = document.getElementById('bitacora-modo');
         const bitacoraAplicarFiltro = document.getElementById('bitacora-aplicar-filtro');
         const bitacoraContainer = document.getElementById('bitacora-vista-dinamica');
-        const getBitacoraSelectItems = () => Array.from(document.querySelectorAll('.bitacora-select-item'));
-        const getBitacoraBulkDeleteButton = () => document.getElementById('bitacora-bulk-delete-button');
-        const getBitacoraBulkDeleteForm = () => document.getElementById('bitacora-bulk-delete-form');
-        const repeticionConfig = document.getElementById('repeticion-config');
-        const modoRepeticionInputs = document.querySelectorAll('input[name="modo_repeticion"]');
-        const repeticionFechaInicio = document.getElementById('repeticion-fecha-inicio');
-        const repeticionFechaFin = document.getElementById('repeticion-fecha-fin');
-        const diaSemanaSelect = document.getElementById('repeticion-dia-semana');
         const weekDayLabels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
         let groupedByDateCache = {};
         let selectedCalendarDay = null;
+        let calendarRequest = 0;
+        let bitacoraRequest = 0;
+        const pendingBadge = (item) => {
+            const label = item.solicitud_pendiente === 'baja' ? 'Baja pendiente'
+                : item.solicitud_pendiente === 'edicion' ? 'Edición pendiente' : '';
+            return label ? `<span class="badge text-bg-warning">${label}</span>` : '';
+        };
         const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
             '&': '&amp;',
             '<': '&lt;',
@@ -362,25 +291,6 @@
             `;
         };
 
-        if (diaSemanaSelect?.value) {
-            diaSemanaSelect.dataset.userSelected = 'true';
-        }
-
-        const timeToMinutes = (time) => {
-            const [hours = '0', minutes = '0'] = (time ?? '').split(':');
-            return (Number(hours) * 60) + Number(minutes);
-        };
-
-        const hideAlert = () => {
-            alerta.textContent = '';
-            alerta.classList.add('d-none');
-        };
-
-        const showAlert = (message) => {
-            alerta.textContent = message;
-            alerta.classList.remove('d-none');
-        };
-
         const renderDayDetail = (items) => {
             if (!detalleDiaContainer) {
                 return;
@@ -411,7 +321,7 @@
 
                 return `
                     <tr>
-                        <td class="text-nowrap">${horaInicio} - ${horaFin}</td>
+                        <td class="text-nowrap">${horaInicio} - ${horaFin} ${pendingBadge(item)}</td>
                         <td class="text-nowrap">${cubiculoNombre} · Núm. ${cubiculoNumero}</td>
                         <td>${estrategia}</td>
                         <td>${estratega}</td>
@@ -470,68 +380,6 @@
             };
         };
 
-        const toIsoWeekday = (dateValue) => {
-            if (!dateValue) {
-                return null;
-            }
-
-            const selectedDate = new Date(`${dateValue}T00:00:00`);
-            if (Number.isNaN(selectedDate.getTime())) {
-                return null;
-            }
-
-            const isoDay = selectedDate.getDay() === 0 ? 7 : selectedDate.getDay();
-            return isoDay <= 6 ? isoDay : null;
-        };
-
-        const syncRepeatDayFromStartDate = () => {
-            if (!diaSemanaSelect || diaSemanaSelect.dataset.userSelected === 'true') {
-                return;
-            }
-
-            const isoDay = toIsoWeekday(repeticionFechaInicio?.value);
-            if (isoDay) {
-                diaSemanaSelect.value = String(isoDay);
-            }
-        };
-
-        const syncRepeatStartFromSelectedDate = () => {
-            if (!repeticionFechaInicio || !formFecha?.value || repeticionFechaInicio.dataset.userSelected === 'true') {
-                return;
-            }
-
-            repeticionFechaInicio.value = formFecha.value;
-            syncRepeatDayFromStartDate();
-        };
-
-        const syncRepeatEndFromStartDate = () => {
-            if (!repeticionFechaFin || repeticionFechaFin.dataset.userSelected === 'true' || !repeticionFechaInicio?.value) {
-                return;
-            }
-
-            const endDate = new Date(`${repeticionFechaInicio.value}T00:00:00`);
-            if (Number.isNaN(endDate.getTime())) {
-                return;
-            }
-
-            endDate.setMonth(endDate.getMonth() + 1);
-            repeticionFechaFin.value = dateISO(endDate);
-        };
-
-        const toggleRepeatConfig = () => {
-            const mode = document.querySelector('input[name="modo_repeticion"]:checked')?.value ?? 'unica';
-            repeticionConfig?.classList.toggle('d-none', mode !== 'semanal');
-            if (formFecha) {
-                formFecha.required = mode !== 'semanal';
-            }
-
-            if (mode === 'semanal') {
-                syncRepeatStartFromSelectedDate();
-                syncRepeatEndFromStartDate();
-                syncRepeatDayFromStartDate();
-            }
-        };
-
         const fetchAvailability = async (params) => {
             const response = await fetch(`${availabilityEndpoint}?${params.toString()}`, {
                 headers: {
@@ -540,10 +388,14 @@
             });
 
             if (!response.ok) {
-                return null;
+                throw new Error('No se pudo consultar la ocupación.');
             }
 
-            return response.json();
+            const data = await response.json();
+            if (!Array.isArray(data?.reservas)) {
+                throw new Error('Respuesta de ocupación incompleta.');
+            }
+            return data;
         };
 
         const renderMonthCalendar = (monthValue, groupedByDate) => {
@@ -568,23 +420,23 @@
                     const isSelected = iso === selectedCalendarDay;
                     const isCurrentMonth = current.getMonth() === start.getMonth();
                     const dayOfWeek = current.getDay();
-                    const isBusinessDay = dayOfWeek >= 1 && dayOfWeek <= 5;
+                    const isBusinessDay = dayOfWeek >= 1 && dayOfWeek <= 6;
                     const hasRecords = items.length > 0;
                     const dayClass = hasRecords
                         ? (isBusinessDay ? 'bg-success-subtle' : 'bg-danger-subtle')
                         : 'bg-light';
                     const mutedClass = isCurrentMonth ? '' : 'text-muted opacity-50';
-                    const selectionStyle = isSelected ? ' style="box-shadow: inset 0 0 0 2px #212529;"' : '';
+                    const selectionStyle = isSelected ? 'box-shadow: inset 0 0 0 2px #212529;' : '';
                     const reservationsLabel = items.length ? `${items.length} reserva(s)` : 'Sin reservas';
                     const recordsLabel = `${items.length} registro${items.length === 1 ? '' : 's'}`;
                     weekCells.push(`
                         <td class="${dayClass} align-top p-0">
-                            <button type="button" class="btn btn-sm w-100 h-100 text-start rounded-0 border-0 p-1 ${mutedClass}" style="min-height: 74px;"${selectionStyle} data-calendar-day="${iso}">
+                            <button type="button" class="btn btn-sm w-100 h-100 text-start rounded-0 border-0 p-1 ${mutedClass}" style="min-height: 74px;${selectionStyle}" data-calendar-day="${iso}" ${!isCurrentMonth ? 'disabled' : ''}>
                                 <div class="d-flex justify-content-between align-items-start">
                                     <span class="fw-semibold">${current.getDate()}</span>
-                                    <span class="small text-nowrap">${recordsLabel}</span>
+                                    <span class="small text-nowrap">${isCurrentMonth ? recordsLabel : ''}</span>
                                 </div>
-                                <div class="small text-truncate">${reservationsLabel}</div>
+                                <div class="small text-truncate">${isCurrentMonth ? reservationsLabel : ''}</div>
                             </button>
                         </td>
                     `);
@@ -704,7 +556,7 @@
 
                     return `
                         <tr>
-                            <td class="small text-nowrap">${horaInicio} - ${horaFin}</td>
+                            <td class="small text-nowrap">${horaInicio} - ${horaFin} ${pendingBadge(item)}</td>
                             <td class="small text-nowrap">${cubiculoNombre} · Núm. ${cubiculoNumero}</td>
                             <td class="small">${estrategia}</td>
                             <td class="small">${estratega}</td>
@@ -771,6 +623,7 @@
                 return;
             }
 
+            const revision = ++calendarRequest;
             try {
                 const monthValue = filtroFecha.value;
                 const bounds = monthBounds(monthValue);
@@ -778,8 +631,8 @@
                     selectedCalendarDay = bounds.startISO;
                 }
                 formatSelectedDateLabel(selectedCalendarDay);
-                renderMonthCalendar(monthValue, {});
-                renderDayDetail([]);
+                calendarioContainer.textContent = 'Consultando ocupación…';
+                if (detalleDiaContainer) detalleDiaContainer.textContent = 'Consultando ocupación…';
                 const params = new URLSearchParams({
                     fecha_inicio: bounds.startISO,
                     fecha_fin: bounds.endISO,
@@ -789,7 +642,7 @@
                     params.set('consultorio_numero', filtroConsultorio.value);
                 }
                 const data = await fetchAvailability(params);
-                if (!data) {
+                if (revision !== calendarRequest) {
                     return;
                 }
 
@@ -807,8 +660,10 @@
                 renderMonthCalendar(monthValue, groupedByDate);
                 renderDayDetail(groupedByDate[selectedCalendarDay] ?? []);
             } catch (error) {
-                console.error(error);
-                showAlert('No fue posible cargar las reservas del calendario. Mostrando vista base sin registros.');
+                if (revision !== calendarRequest) return;
+                groupedByDateCache = {};
+                calendarioContainer.textContent = 'No se pudo consultar la ocupación. Actualiza la página para reintentar.';
+                if (detalleDiaContainer) detalleDiaContainer.textContent = 'Ocupación no disponible.';
             }
         };
 
@@ -833,7 +688,8 @@
                 const day = startDate.getDay();
                 const diffToMonday = day === 0 ? -6 : 1 - day;
                 startDate.setDate(startDate.getDate() + diffToMonday);
-                endDate.setDate(startDate.getDate() + 6);
+                endDate.setTime(startDate.getTime());
+                endDate.setDate(endDate.getDate() + 6);
             }
 
             return {
@@ -849,131 +705,26 @@
                 return;
             }
 
+            const revision = ++bitacoraRequest;
             try {
-                renderBitacoraGrid([]);
+                bitacoraContainer.textContent = 'Consultando la bitácora…';
                 const params = new URLSearchParams({
                     fecha_inicio: bounds.startISO,
                     fecha_fin: bounds.endISO,
                 });
                 const data = await fetchAvailability(params);
-                if (!data) {
+                if (revision !== bitacoraRequest) {
                     return;
                 }
 
                 renderBitacoraGrid(data.reservas ?? []);
             } catch (error) {
-                console.error(error);
-                showAlert('No fue posible cargar la bitácora dinámica. Se muestra una vista vacía.');
+                if (revision === bitacoraRequest && bitacoraContainer) {
+                    bitacoraContainer.textContent = 'No se pudo consultar la bitácora para este periodo.';
+                }
             }
         };
 
-        const hasOverlap = (items, start, end, consultorio, fechaInicio, fechaFin = fechaInicio, diaSemana = null) => {
-            const startMinutes = timeToMinutes(start);
-            const endMinutes = timeToMinutes(end);
-
-            return items.find((item) => {
-                const fecha = String(item.fecha ?? '').slice(0, 10);
-                if (Number(item.consultorio_numero) !== Number(consultorio)
-                    || fecha < fechaInicio || fecha > fechaFin
-                    || (diaSemana !== null && toIsoWeekday(fecha) !== Number(diaSemana))) {
-                    return false;
-                }
-
-                const itemStartMinutes = timeToMinutes(item.hora_inicio);
-                const itemEndMinutes = timeToMinutes(item.hora_fin);
-
-                return itemStartMinutes < endMinutes && itemEndMinutes > startMinutes;
-            });
-        };
-
-        const checkAvailability = async () => {
-            hideAlert();
-
-            const semanal = document.querySelector('input[name="modo_repeticion"]:checked')?.value === 'semanal';
-            const fechaInicio = semanal ? repeticionFechaInicio?.value : formFecha.value;
-            const fechaFin = semanal ? repeticionFechaFin?.value : fechaInicio;
-            const diaSemana = semanal ? (diaSemanaSelect?.value || toIsoWeekday(fechaInicio)) : null;
-
-            if (!fechaInicio || !fechaFin || !formConsultorio.value || !formHoraInicio.value || !formHoraFin.value) {
-                return;
-            }
-
-            if (fechaInicio > fechaFin || (semanal && !diaSemana)) {
-                showAlert('Revisa el intervalo y el día de la repetición semanal.');
-                return;
-            }
-
-            if (formHoraInicio.value >= formHoraFin.value) {
-                showAlert('La hora de inicio debe ser menor a la hora de fin.');
-                return;
-            }
-
-            try {
-                const params = new URLSearchParams({
-                    fecha: fechaInicio,
-                    consultorio_numero: formConsultorio.value,
-                });
-                if (semanal) {
-                    params.set('fecha_inicio', fechaInicio);
-                    params.set('fecha_fin', fechaFin);
-                }
-                const response = await fetch(`${availabilityEndpoint}?${params.toString()}`, {
-                    headers: {
-                        'Accept': 'application/json',
-                    },
-                });
-
-                if (!response.ok) {
-                    showAlert('No fue posible verificar la disponibilidad. El servidor volverá a comprobar los horarios al guardar.');
-                    return;
-                }
-
-                const data = await response.json();
-                const overlap = hasOverlap(data.reservas ?? [], formHoraInicio.value, formHoraFin.value, formConsultorio.value, fechaInicio, fechaFin, diaSemana);
-
-                if (overlap) {
-                    const cubiculoNombre = overlap.cubiculo_nombre || 'Cubículo sin catálogo';
-                    showAlert(`⚠️ ${cubiculoNombre} · Núm. ${formConsultorio.value} ya está ocupado el ${String(overlap.fecha).slice(0, 10)} de ${overlap.hora_inicio.slice(0, 5)} a ${overlap.hora_fin.slice(0, 5)}.`);
-                }
-            } catch (error) {
-                console.error(error);
-                showAlert('No fue posible verificar la disponibilidad. El servidor volverá a comprobar los horarios al guardar.');
-            }
-        };
-
-        if (formConsultorio && formFecha && formHoraInicio && formHoraFin) {
-            formConsultorio.addEventListener('change', checkAvailability);
-            formFecha.addEventListener('change', () => {
-                if (document.querySelector('input[name="modo_repeticion"]:checked')?.value === 'semanal') {
-                    syncRepeatStartFromSelectedDate();
-                    syncRepeatEndFromStartDate();
-                }
-                checkAvailability();
-            });
-            formHoraInicio.addEventListener('change', checkAvailability);
-            formHoraFin.addEventListener('change', checkAvailability);
-        }
-        modoRepeticionInputs.forEach((input) => {
-            input.addEventListener('change', () => {
-                toggleRepeatConfig();
-                checkAvailability();
-            });
-        });
-        repeticionFechaInicio?.addEventListener('change', () => {
-            repeticionFechaInicio.dataset.userSelected = repeticionFechaInicio.value ? 'true' : 'false';
-            syncRepeatDayFromStartDate();
-            syncRepeatEndFromStartDate();
-            checkAvailability();
-        });
-        repeticionFechaFin?.addEventListener('change', () => {
-            repeticionFechaFin.dataset.userSelected = repeticionFechaFin.value ? 'true' : 'false';
-            checkAvailability();
-        });
-        diaSemanaSelect?.addEventListener('change', () => {
-            diaSemanaSelect.dataset.userSelected = diaSemanaSelect.value ? 'true' : 'false';
-            checkAvailability();
-        });
-        toggleRepeatConfig();
         calendarioContainer?.addEventListener('click', (event) => {
             const button = event.target.closest('[data-calendar-day]');
             if (!button) {
@@ -1003,60 +754,6 @@
         bitacoraAplicarFiltro?.addEventListener('click', refreshBitacora);
         bitacoraFechaBase?.addEventListener('change', refreshBitacora);
         bitacoraModo?.addEventListener('change', refreshBitacora);
-
-        const updateBitacoraSelectionState = () => {
-            const bitacoraBulkDeleteButton = getBitacoraBulkDeleteButton();
-            if (!bitacoraBulkDeleteButton) {
-                return;
-            }
-
-            const bitacoraSelectItems = getBitacoraSelectItems();
-            const selectedCount = bitacoraSelectItems.filter((item) => item.checked).length;
-            const isDisabled = selectedCount === 0;
-            bitacoraBulkDeleteButton.disabled = isDisabled;
-            bitacoraBulkDeleteButton.setAttribute('aria-disabled', isDisabled ? 'true' : 'false');
-        };
-
-        const handleBitacoraItemSelection = (event) => {
-            const target = event.target;
-            if (!(target instanceof HTMLInputElement)) {
-                return;
-            }
-
-            if (!target.classList.contains('bitacora-select-item')) {
-                return;
-            }
-
-            updateBitacoraSelectionState();
-        };
-
-        document.addEventListener('change', handleBitacoraItemSelection);
-        document.addEventListener('input', handleBitacoraItemSelection);
-
-        const submitBitacoraBulkDelete = (event) => {
-            const bitacoraBulkDeleteForm = event.currentTarget;
-            if (!(bitacoraBulkDeleteForm instanceof HTMLFormElement)) {
-                return;
-            }
-
-            const bitacoraSelectItems = getBitacoraSelectItems();
-            const selectedItems = bitacoraSelectItems.filter((item) => item.checked);
-            const selectedCount = selectedItems.length;
-
-            if (!selectedCount) {
-                event.preventDefault();
-                return;
-            }
-
-            if (!window.confirm(`¿Eliminar ${selectedCount} registro${selectedCount === 1 ? '' : 's'} seleccionado${selectedCount === 1 ? '' : 's'}?`)) {
-                event.preventDefault();
-                return;
-            }
-        };
-
-        getBitacoraBulkDeleteForm()?.addEventListener('submit', submitBitacoraBulkDelete);
-
-        updateBitacoraSelectionState();
 
         refreshCalendar();
         refreshBitacora();

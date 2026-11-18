@@ -98,7 +98,7 @@ class ConsultorioApprovedLinkedEditTest extends TestCase
         $editUrl = route('consultorios.edit', ['reserva' => $reservation, 'origen' => 'expediente']);
         $this->get(route('expedientes.show', $case))
             ->assertOk()
-            ->assertSee($editUrl, false)
+            ->assertSee(route('consultorios.serie.edit', $reservation), false)
             ->assertSeeText('Jueves 12/11/2026')
             ->assertSeeText('09:00–10:00');
         $this->get($editUrl)
@@ -266,7 +266,7 @@ class ConsultorioApprovedLinkedEditTest extends TestCase
 
         $this->put(
             route('consultorios.update', ['reserva' => $secondary, 'origen' => 'expediente']),
-            $this->schedulePayload('2026-11-11', '11:00', '12:00', $this->roomTwo),
+            $this->schedulePayload('2026-11-11', '13:00', '14:00', $this->roomTwo),
         )->assertSessionHasNoErrors();
 
         $this->assertDatabaseCount('consultorio_reservas', 2);

@@ -230,7 +230,7 @@ class ConsultorioVisibilityScopeTest extends TestCase
     {
         $admin = $this->user('admin');
         $paps = $this->user('paps', ['approved_at' => now()]);
-        $reserva = $this->reservation(5, 2, $admin);
+        $reserva = $this->reservation(5, 2, $admin, ['fecha' => now('America/Mexico_City')->addWeek()->startOfWeek()->toDateString()]);
 
         $solicitud = ConsultorioReservaSolicitud::query()->create([
             'consultorio_reserva_id' => $reserva->id,

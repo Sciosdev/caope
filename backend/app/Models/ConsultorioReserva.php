@@ -2,12 +2,17 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class ConsultorioReserva extends Model
 {
@@ -32,6 +37,45 @@ class ConsultorioReserva extends Model
         'fecha' => 'date:Y-m-d',
         'origen_expediente' => 'boolean',
     ];
+
+    /** Call once per submitted schedule, not once per occurrence. */
+    public static function newSeriesUuid(?string $mode): ?string
+    {
+        if ($mode !== 'semanal') {
+            return null;
+        }
+        if (! Schema::hasColumn('consultorio_reservas', 'serie_uuid')) {
+            throw ValidationException::withMessages([
+                'reserva' => 'Las reservas semanales estarán disponibles al terminar la actualización. No se guardó ninguna fecha.',
+            ]);
+        }
+
+        return (string) Str::uuid();
+    }
+
+    /** Series membership is server-generated and intentionally not mass assignable. */
+    public static function createOccurrence(array $attributes, ?string $seriesUuid): self
+    {
+        $reserva = new self($attributes);
+        if ($seriesUuid !== null) {
+            $reserva->serie_uuid = $seriesUuid;
+        }
+        $reserva->save();
+
+        return $reserva;
+    }
+
+    public function hasNotStarted(?CarbonInterface $at = null): bool
+    {
+        $time = (string) $this->hora_inicio;
+        if (! $this->fecha || ! preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/D', $time)) {
+            return false;
+        }
+
+        $start = CarbonImmutable::parse($this->fecha->toDateString().' '.$time, 'America/Mexico_City');
+
+        return $start->greaterThan($at ?? now());
+    }
 
     protected static function booted(): void
     {

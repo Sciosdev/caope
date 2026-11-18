@@ -9,8 +9,8 @@
 @endif
 @if ($reserva->solicitud_pendiente ?? false)
     <span class="badge bg-warning">Solicitud pendiente</span>
-@elseif (! $expediente->trashed() && auth()->user()?->hasRole('admin'))
-    <a class="btn btn-sm btn-outline-primary mt-1" href="{{ route('consultorios.edit', ['reserva' => $reserva, 'origen' => 'expediente']) }}">
-        Cambiar horario o cubículo
+@elseif (! $expediente->trashed() && auth()->user()?->hasRole('admin') && $reserva->hasNotStarted())
+    <a class="btn btn-sm btn-outline-primary mt-1" href="{{ route('consultorios.serie.edit', $reserva) }}">
+        Cambiar horario o cubículo / cancelar reserva
     </a>
 @endif
